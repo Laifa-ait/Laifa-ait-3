@@ -1,0 +1,184 @@
+import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate, Link } from 'react-router-dom';
+import {
+  LogOut,
+  Calendar,
+  Settings,
+  Heart,
+  Building2,
+  User,
+  ArrowLeft,
+} from 'lucide-react';
+import { OlmaImmoShell } from '../../components/OlmaImmo/OlmaImmoShell';
+import { ProApplicationSection } from '../../components/OlmaImmo/ProApplicationSection';
+import { ProfileFavoritesSection } from '../../components/OlmaImmo/ProfileFavoritesSection';
+import { ProfileSettingsSection } from '../../components/OlmaImmo/ProfileSettingsSection';
+import { ProfileStaysSection } from '../../components/OlmaImmo/ProfileStaysSection';
+
+export const OlmaImmoProfile: React.FC = () => {
+  const { currentUser, userProfile, logout, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'favorites' | 'stays' | 'pro' | 'settings'>('favorites');
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/immo');
+    } catch {
+      // Ignored
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <OlmaImmoShell>
+        <div className="py-16 text-center">
+          <div className="w-10 h-10 border-4 border-[#1E3A8A] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-xs font-bold text-slate-600">Chargement de votre profil...</p>
+        </div>
+      </OlmaImmoShell>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <OlmaImmoShell>
+        <div className="max-w-xl mx-auto py-16 text-center">
+          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xs space-y-6">
+            <div className="w-16 h-16 rounded-2xl bg-slate-100 text-[#1E3A8A] flex items-center justify-center mx-auto border border-slate-200">
+              <User className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold text-[#1E3A8A] font-['Playfair_Display',serif]">
+                Espace Membre Olma Immo
+              </h1>
+              <p className="text-xs text-slate-600">
+                Connectez-vous pour accéder à vos favoris, gérer vos réservations de séjours et vos annonces.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('auth:openModal', { detail: { mode: 'login' } }))}
+                className="w-full sm:w-auto py-3.5 px-6 bg-[#1E3A8A] hover:bg-blue-900 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition cursor-pointer shadow-md"
+              >
+                Se connecter / S'inscrire
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/immo')}
+                className="w-full sm:w-auto py-3.5 px-6 bg-slate-100 hover:bg-slate-200 text-[#1E3A8A] rounded-xl text-xs font-bold uppercase tracking-wider transition cursor-pointer border border-slate-200"
+              >
+                Retour aux annonces
+              </button>
+            </div>
+          </div>
+        </div>
+      </OlmaImmoShell>
+    );
+  }
+
+  return (
+    <OlmaImmoShell className="py-6 md:py-8 space-y-6">
+      {/* Navigation fil d'ariane & retour */}
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => navigate('/immo')}
+          className="inline-flex items-center gap-2 text-xs font-bold text-[#1E3A8A] hover:text-blue-900 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
+        >
+          <ArrowLeft className="w-4 h-4 text-[#1E3A8A]" />
+          <span>Retour à Olma Immo</span>
+        </button>
+      </div>
+
+      {/* Top Header Card */}
+      <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 bg-slate-100 text-[#1E3A8A] border border-slate-200 rounded-2xl flex items-center justify-center font-bold text-2xl uppercase shrink-0">
+            {userProfile?.displayName?.charAt(0) || currentUser?.email?.charAt(0) || 'U'}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-[#1E3A8A] font-['Playfair_Display',serif]">
+                {userProfile?.displayName || 'Mon Compte'}
+              </h1>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-[#1E3A8A] border border-blue-200">
+                Membre Vérifié
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">{currentUser?.email}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Link
+            to="/immo/owner"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#1E3A8A] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-blue-900 shadow-xs transition"
+          >
+            <Building2 className="w-4 h-4 text-[#F59E0B]" />
+            <span>Espace Annonceur</span>
+          </Link>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="hidden md:flex items-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition font-bold text-xs uppercase tracking-wider cursor-pointer"
+          >
+            <LogOut className="w-4 h-4 text-slate-500" />
+            <span>Déconnexion</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 2-Column Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Left Navigation Sidebar */}
+        <div className="col-span-1 space-y-2">
+          {[
+            { id: 'favorites' as const, label: 'Mes Biens Favoris', icon: Heart },
+            { id: 'stays' as const, label: 'Mes Séjours & Visites', icon: Calendar },
+            { id: 'pro' as const, label: 'Compte Pro & Agence', icon: Building2 },
+            { id: 'settings' as const, label: 'Paramètres du compte', icon: Settings },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isSelected = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold text-xs transition cursor-pointer border ${
+                  isSelected
+                    ? 'bg-[#1E3A8A] text-white border-[#1E3A8A] shadow-xs'
+                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isSelected ? 'text-[#F59E0B]' : 'text-slate-400'}`} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="md:hidden w-full flex items-center gap-3 p-4 rounded-2xl bg-white hover:bg-rose-50 text-rose-700 font-bold text-xs border border-rose-200 transition mt-6 cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Se déconnecter</span>
+          </button>
+        </div>
+
+        {/* Right Main Content Panel */}
+        <div className="col-span-1 md:col-span-2">
+          {activeTab === 'favorites' && <ProfileFavoritesSection />}
+          {activeTab === 'stays' && <ProfileStaysSection />}
+          {activeTab === 'pro' && <ProApplicationSection />}
+          {activeTab === 'settings' && <ProfileSettingsSection />}
+        </div>
+      </div>
+    </OlmaImmoShell>
+  );
+};

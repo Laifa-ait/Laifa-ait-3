@@ -1,0 +1,14 @@
+node_modules
+.git
+.github
+.env*
+src/tests
+tests
+docs
+coverage
+playwright-report
+test-results
+dist
+.husky
+*.md
+*.map

@@ -1,0 +1,80 @@
+/**
+ * OLMART — Olma Immo Silent Luxury Scoped CSS Variables
+ * Palette : "Slate / Cool Grey / Bleu ardoise" & Luxe Silencieux
+ * 
+ * Fond : Blanc pur (#FFFFFF)
+ * Charbons sombres : #1E293B, #0F172A (Titres & éléments maîtres)
+ * Gris-bleu ardoise froid : #64748B, #475569 (Textes secondaires, icônes & séparateurs)
+ */
+
+.olma-immo-scope {
+  /* ========================================================
+     IDENTITÉ VISUELLE & CHARBONS SOMBRES
+     ======================================================== */
+  --olma-brand-primary: #1E293B;
+  --olma-brand-primary-dark: #0F172A;
+  --olma-brand-primary-light: #334155;
+  --olma-brand-primary-soft: #F8FAFC;
+
+  /* ========================================================
+     ACCENTS ARDOISE & COOL GREY (AUCUN JAUNE NI BLEU SATURE)
+     ======================================================== */
+  --olma-brand-accent: #64748B;
+  --olma-brand-accent-hover: #475569;
+  --olma-brand-accent-soft: #F1F5F9;
+  --olma-brand-highlight: #475569;
+  --olma-brand-highlight-light: #F8FAFC;
+
+  /* ========================================================
+     FOND BLANC PUR & SURFACES LUMINEUSES
+     ======================================================== */
+  --olma-bg-base: #FFFFFF;
+  --olma-bg-subtle: #F8FAFC;
+  --olma-bg-muted: #F1F5F9;
+  --olma-bg-dark: #0F172A;
+
+  /* Surfaces & Cartes */
+  --olma-surface-default: #FFFFFF;
+  --olma-surface-subtle: #F8FAFC;
+  --olma-surface-raised: #FFFFFF;
+  --olma-surface-muted: #F1F5F9;
+  --olma-surface-dark: #1E293B;
+
+  /* Bordures (Slate neutre ultrafines) */
+  --olma-border-subtle: #F1F5F9;
+  --olma-border-default: #E2E8F0;
+  --olma-border-strong: #CBD5E1;
+  --olma-border-focus: #475569;
+  --olma-border-accent: #64748B;
+
+  /* Typographie & Contrastes Minimalistes */
+  --olma-text-primary: #1E293B;
+  --olma-text-secondary: #475569;
+  --olma-text-muted: #64748B;
+  --olma-text-subtle: #94A3B8;
+  --olma-text-inverse: #FFFFFF;
+  --olma-text-highlight: #1E293B;
+  --olma-text-accent: #475569;
+
+  --olma-font-display: "Playfair Display", Georgia, serif;
+  --olma-font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+
+  /* Ombres douces & diffuses studio */
+  --olma-shadow-subtle: 0 1px 3px rgba(100, 116, 139, 0.05);
+  --olma-shadow-card: 0 10px 30px -10px rgba(100, 116, 139, 0.08);
+  --olma-shadow-floating: 0 15px 35px -5px rgba(100, 116, 139, 0.12), 0 4px 12px rgba(100, 116, 139, 0.04);
+
+  /* Statuts épurés */
+  --olma-semantic-success: #10B981;
+  --olma-semantic-success-light: #F0FDF4;
+  --olma-semantic-warning: #64748B;
+  --olma-semantic-warning-light: #F1F5F9;
+  --olma-semantic-danger: #EF4444;
+  --olma-semantic-danger-light: #FEF2F2;
+  --olma-semantic-info: #475569;
+  --olma-semantic-info-light: #F8FAFC;
+
+  /* Anneau de focus discret */
+  --olma-focus-ring: 2px solid #64748B;
+  --olma-focus-offset: 2px;
+}

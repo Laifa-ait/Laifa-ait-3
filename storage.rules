@@ -1,0 +1,272 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper to check if user is logged in
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    // Helper to check if user is an admin (verified against signed custom token claim)
+    function isAdmin() {
+      return isLoggedIn() && request.auth.token != null && (
+        ('admin' in request.auth.token && request.auth.token.admin == true) ||
+        ('isAdmin' in request.auth.token && request.auth.token.isAdmin == true) ||
+        ('role' in request.auth.token && (request.auth.token.role == 'admin' || request.auth.token.role == 'superadmin'))
+      );
+    }
+
+    // Helper to check if caller is an active verified seller or artisan
+    function isActiveSeller() {
+      return isLoggedIn() && (
+        isAdmin() ||
+        (request.auth.token != null && 'role' in request.auth.token && (request.auth.token.role == 'seller' || request.auth.token.role == 'artisan')) ||
+        (
+          firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+          ('role' in firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data) &&
+          (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'seller' ||
+           firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'artisan') &&
+          (!('status' in firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data) ||
+           firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.status == 'active')
+        )
+      );
+    }
+
+    // Strict regex validation for file names: blocks path traversal, XSS scripts, null bytes
+    function isValidSafeFileName(fileName) {
+      return fileName.matches('^[a-zA-Z0-9_\\-.]{1,120}\\.(jpg|jpeg|png|webp|gif|pdf|docx|mp4|webm)$');
+    }
+
+    // Strict regex validation for user-prefixed file names: requires userId_ followed by safe characters
+    function isValidUserPrefixedFileName(userId, fileName) {
+      return fileName.startsWith(userId) && fileName.matches('^' + userId + '_[a-zA-Z0-9_\\-.]{1,120}\\.(jpg|jpeg|png|webp|gif|pdf|docx|mp4|webm)$');
+    }
+
+    // Helper to check if user owns the support ticket or is admin (metadata first to avoid document read bottlenecks)
+    function isTicketParticipant(ticketId) {
+      return isLoggedIn() && (
+        isAdmin() ||
+        (resource != null && 'metadata' in resource && 'participantUid' in resource.metadata && resource.metadata.participantUid == request.auth.uid) ||
+        (request.resource != null && 'metadata' in request.resource && 'participantUid' in request.resource.metadata && request.resource.metadata.participantUid == request.auth.uid) ||
+        (
+          firestore.exists(/databases/(default)/documents/supportTickets/$(ticketId)) &&
+          ('userId' in firestore.get(/databases/(default)/documents/supportTickets/$(ticketId)).data) &&
+          firestore.get(/databases/(default)/documents/supportTickets/$(ticketId)).data.userId == request.auth.uid
+        )
+      );
+    }
+
+    // Helper to check if user is buyer or seller of an order or admin
+    function isOrderParticipant(orderId) {
+      return isLoggedIn() && (
+        isAdmin() ||
+        (
+          firestore.exists(/databases/(default)/documents/orders/$(orderId)) && (
+            ('buyerId' in firestore.get(/databases/(default)/documents/orders/$(orderId)).data && firestore.get(/databases/(default)/documents/orders/$(orderId)).data.buyerId == request.auth.uid) ||
+            ('userId' in firestore.get(/databases/(default)/documents/orders/$(orderId)).data && firestore.get(/databases/(default)/documents/orders/$(orderId)).data.userId == request.auth.uid) ||
+            ('sellerId' in firestore.get(/databases/(default)/documents/orders/$(orderId)).data && firestore.get(/databases/(default)/documents/orders/$(orderId)).data.sellerId == request.auth.uid) ||
+            ('sellerIds' in firestore.get(/databases/(default)/documents/orders/$(orderId)).data && request.auth.uid in firestore.get(/databases/(default)/documents/orders/$(orderId)).data.sellerIds)
+          )
+        )
+      );
+    }
+
+    // Helper to check if user is participant in a dispute
+    function isDisputeParticipant(disputeOrOrderId) {
+      return isLoggedIn() && (
+        isAdmin() ||
+        isOrderParticipant(disputeOrOrderId) ||
+        (
+          firestore.exists(/databases/(default)/documents/disputes/$(disputeOrOrderId)) && (
+            ('buyerId' in firestore.get(/databases/(default)/documents/disputes/$(disputeOrOrderId)).data && firestore.get(/databases/(default)/documents/disputes/$(disputeOrOrderId)).data.buyerId == request.auth.uid) ||
+            ('sellerId' in firestore.get(/databases/(default)/documents/disputes/$(disputeOrOrderId)).data && firestore.get(/databases/(default)/documents/disputes/$(disputeOrOrderId)).data.sellerId == request.auth.uid) ||
+            ('userId' in firestore.get(/databases/(default)/documents/disputes/$(disputeOrOrderId)).data && firestore.get(/databases/(default)/documents/disputes/$(disputeOrOrderId)).data.userId == request.auth.uid)
+          )
+        )
+      );
+    }
+
+    // -------------------------------------------------------------------------
+    // PRODUCT IMAGES & VIDEOS
+    // -------------------------------------------------------------------------
+    match /products/{sellerId}/{type}/{fileName} {
+      allow read: if true;
+      allow write: if isLoggedIn() && (
+        isAdmin() || (
+          request.auth.uid == sellerId &&
+          isActiveSeller() &&
+          isValidSafeFileName(fileName) &&
+          (
+            (type == 'images' && request.resource.size < 10 * 1024 * 1024 && request.resource.contentType.matches('image/.*')) ||
+            (type == 'videos' && request.resource.size < 50 * 1024 * 1024 && request.resource.contentType.matches('video/.*'))
+          )
+        )
+      );
+    }
+
+    match /products/{type}/{fileName} {
+      allow read: if true;
+      allow write: if isLoggedIn() && (
+        isAdmin() || (
+          isActiveSeller() &&
+          fileName.startsWith(request.auth.uid + '_') &&
+          isValidUserPrefixedFileName(request.auth.uid, fileName) &&
+          (
+            (type == 'images' && request.resource.size < 10 * 1024 * 1024 && request.resource.contentType.matches('image/.*')) ||
+            (type == 'videos' && request.resource.size < 50 * 1024 * 1024 && request.resource.contentType.matches('video/.*'))
+          )
+        )
+      );
+    }
+
+    // -------------------------------------------------------------------------
+    // SELLER KYC DOCUMENTS (Extreme confidentiality required)
+    // -------------------------------------------------------------------------
+    match /kyc/{uid}/{fileName} {
+      allow read: if isLoggedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if isLoggedIn() && request.auth.uid == uid 
+        && isValidSafeFileName(fileName)
+        && request.resource.size < 10 * 1024 * 1024 
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf');
+    }
+
+    // -------------------------------------------------------------------------
+    // USER VAULT DOCUMENTS (IDOR-protected, user or admin only)
+    // -------------------------------------------------------------------------
+    match /user_documents/{uid}/{fileName} {
+      allow read: if isLoggedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if isLoggedIn() && request.auth.uid == uid 
+        && isValidSafeFileName(fileName)
+        && request.resource.size < 30 * 1024 * 1024 
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf');
+      allow delete: if isLoggedIn() && (request.auth.uid == uid || isAdmin());
+    }
+
+    // -------------------------------------------------------------------------
+    // SUBSCRIPTION PAYMENT PROOFS (Strict confidentiality - seller or admin only)
+    // -------------------------------------------------------------------------
+    match /subscription_proofs/{sellerId}/{fileName} {
+      allow read: if isLoggedIn() && (request.auth.uid == sellerId || isAdmin());
+      allow write: if isLoggedIn() && request.auth.uid == sellerId 
+        && isValidSafeFileName(fileName)
+        && request.resource.size < 10 * 1024 * 1024 
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf');
+      allow delete: if isLoggedIn() && (request.auth.uid == sellerId || isAdmin());
+    }
+
+    // -------------------------------------------------------------------------
+    // USER PUBLIC AVATARS (Legacy fallback / public avatars)
+    // -------------------------------------------------------------------------
+    match /users/{uid}/avatar/{fileName} {
+      allow read: if true;
+      allow write: if isLoggedIn() && request.auth.uid == uid 
+        && isValidSafeFileName(fileName)
+        && request.resource.size < 2 * 1024 * 1024 
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // -------------------------------------------------------------------------
+    // SHOP ASSETS (Banners, Logos)
+    // -------------------------------------------------------------------------
+    match /shops/{sellerId}/{fileName} {
+      allow read: if true;
+      allow write: if isLoggedIn() && (isAdmin() || request.auth.uid == sellerId) 
+        && isValidSafeFileName(fileName)
+        && request.resource.size < 5 * 1024 * 1024 
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // -------------------------------------------------------------------------
+    // PRIVATE SUPPORT & DISPUTE ATTACHMENTS (STRICT PARTICIPANT ACCESS ONLY - NO IDOR)
+    // -------------------------------------------------------------------------
+    match /support/{ticketId}/{fileName} {
+      allow read: if isTicketParticipant(ticketId);
+      allow write: if isTicketParticipant(ticketId) 
+        && isValidSafeFileName(fileName)
+        && request.resource.size < 10 * 1024 * 1024 
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf');
+    }
+
+    match /disputes/{disputeId}/{fileName} {
+      allow read: if isDisputeParticipant(disputeId);
+      allow write: if isDisputeParticipant(disputeId) 
+        && isValidSafeFileName(fileName)
+        && request.resource.size <= 1 * 1024 * 1024 
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf');
+    }
+
+    match /returns/{orderId}/{fileName} {
+      allow read: if isOrderParticipant(orderId);
+      allow write: if isOrderParticipant(orderId) 
+        && isValidSafeFileName(fileName)
+        && request.resource.size <= 1 * 1024 * 1024 
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf');
+    }
+
+    // -------------------------------------------------------------------------
+    // LIVE CHAT IMAGES (ORDER PARTICIPANTS ONLY - NO IDOR)
+    // -------------------------------------------------------------------------
+    match /chat_images/{orderId}/{fileName} {
+      allow read: if isOrderParticipant(orderId);
+      allow write: if isOrderParticipant(orderId) 
+        && isValidSafeFileName(fileName)
+        && request.resource.size < 10 * 1024 * 1024 
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // -------------------------------------------------------------------------
+    // ADMIN ASSETS & MARKETING
+    // -------------------------------------------------------------------------
+    match /banners/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSafeFileName(fileName) && request.resource.size < 10 * 1024 * 1024 
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /categories_covers/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSafeFileName(fileName) && request.resource.size < 5 * 1024 * 1024 
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /megamenu_icons/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSafeFileName(fileName) && request.resource.size < 2 * 1024 * 1024 
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /homepage_media/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSafeFileName(fileName) && request.resource.size < 15 * 1024 * 1024 
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'video/.*');
+    }
+
+    match /newsletter-images/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSafeFileName(fileName) && request.resource.size < 10 * 1024 * 1024 
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // -------------------------------------------------------------------------
+    // OLM-04 CHAT ATTACHMENTS (Restricted to conversation participants & admin)
+    // -------------------------------------------------------------------------
+    match /chat_attachments/{conversationId}/{fileName} {
+      allow read: if request.auth != null && (
+        isAdmin() ||
+        (
+          firestore.exists(/databases/(default)/documents/conversations/$(conversationId)) &&
+          request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(conversationId)).data.participants
+        )
+      );
+      allow write: if request.auth != null && (
+        isAdmin() ||
+        (
+          firestore.exists(/databases/(default)/documents/conversations/$(conversationId)) &&
+          request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(conversationId)).data.participants &&
+          isValidSafeFileName(fileName) &&
+          request.resource.size <= 5 * 1024 * 1024 &&
+          (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf')
+        )
+      );
+    }
+  }
+}

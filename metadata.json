@@ -1,0 +1,10 @@
+{
+  "name": "Olma Marketplace",
+  "description": "La marketplace premium d'Algérie desservant les 69 wilayas avec des sélections exclusives.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

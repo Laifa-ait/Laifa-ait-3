@@ -1,0 +1,991 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // 1. SÉCURITÉ PAR DÉFAUT (Default Deny Catch-All)
+    // =========================================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================================
+    // 2. FONCTIONS HELPERS DE BASE ET CONTRÔLE D'ACCÈS (RBAC)
+    // =========================================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data
+        : null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token != null && (
+        ('admin' in request.auth.token && request.auth.token.admin == true) ||
+        ('isAdmin' in request.auth.token && request.auth.token.isAdmin == true) ||
+        ('role' in request.auth.token && (request.auth.token.role == 'admin' || request.auth.token.role == 'superadmin'))
+      );
+    }
+
+    function isSeller() {
+      return isSignedIn() && (
+        (request.auth.token != null && 'role' in request.auth.token && (request.auth.token.role == 'seller' || request.auth.token.role == 'artisan')) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['seller', 'artisan'])
+      );
+    }
+
+    function isArtisan() {
+      return isSignedIn() && (
+        (request.auth.token != null && 'role' in request.auth.token && request.auth.token.role == 'artisan') ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'artisan')
+      );
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidPublicProfileData(data) {
+      return (!('shopName' in data) || (data.shopName is string && data.shopName.size() <= 100)) &&
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+        (!('shopDescription' in data) || (data.shopDescription is string && data.shopDescription.size() <= 2000)) &&
+        (!('description' in data) || (data.description is string && data.description.size() <= 2000)) &&
+        (!('logoUrl' in data) || (data.logoUrl is string && data.logoUrl.size() <= 1000)) &&
+        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1000)) &&
+        (!('avatarUrl' in data) || (data.avatarUrl is string && data.avatarUrl.size() <= 1000)) &&
+        (!('bannerUrl' in data) || (data.bannerUrl is string && data.bannerUrl.size() <= 1000)) &&
+        (!('coverUrl' in data) || (data.coverUrl is string && data.coverUrl.size() <= 1000)) &&
+        (!('coverImage' in data) || (data.coverImage is string && data.coverImage.size() <= 1000)) &&
+        (!('wilaya' in data) || (data.wilaya is string && data.wilaya.size() <= 50)) &&
+        (!('commune' in data) || (data.commune is string && data.commune.size() <= 100)) &&
+        (!('category' in data) || (data.category is string && data.category.size() <= 100)) &&
+        (!('categories' in data) || (data.categories is list && data.categories.size() <= 20)) &&
+        (!('slogan' in data) || (data.slogan is string && data.slogan.size() <= 200)) &&
+        (!('avgPreparationTime' in data) || (data.avgPreparationTime is string && data.avgPreparationTime.size() <= 50)) &&
+        (!('returnPolicy' in data) || (data.returnPolicy is string && data.returnPolicy.size() <= 2000)) &&
+        (!('legalStatus' in data) || (data.legalStatus is string && data.legalStatus.size() <= 100)) &&
+        (!('createdAt' in data) || data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    // =========================================================================
+    // 3. COLLECTION USERS (Profils, Paniers, Favoris)
+    // =========================================================================
+    match /users/{userId} {
+      // Lecture : strictement réservée au propriétaire du profil ou à un administrateur
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Création : autorisée pour l'utilisateur sur son propre document (sans élévation de rôle/privilèges/MFA)
+      allow create: if isOwner(userId) && (
+        !('role' in incoming()) || incoming().role in ['buyer', 'client']
+      ) && (
+        !('status' in incoming()) || incoming().status == 'pending'
+      ) && (
+        !('capabilities' in incoming())
+      ) && (
+        !('verification' in incoming())
+      ) && (
+        !('is2FAEnabled' in incoming())
+      ) && (
+        !('twoFactorSecret' in incoming())
+      ) && (
+        !('mfa' in incoming())
+      ) && (
+        !('soldes' in incoming())
+      );
+
+      // Mise à jour : autorisée pour l'utilisateur sur son propre profil (champs sûrs uniquement) ou pour un administrateur
+      allow update: if isAdmin() || (
+        isOwner(userId) &&
+        !incoming().diff(existing()).affectedKeys().hasAny([
+          'role', 'status', 'capabilities', 'verification', 'is2FAEnabled', 'twoFactorSecret', 'mfa',
+          'soldes', 'balance', 'customClaims', 'permissions', 'commissionRate', 'isVerified', 'verified', 'kycStatus',
+          'email', 'rib', 'nis', 'commercialRegister', 'rcNumber', 'artisanCardNumber', 'documents',
+          'nif', 'nifNumber', 'nifTaxId'
+        ]) &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName', 'name', 'firstName', 'lastName', 'photoURL', 'avatar',
+          'phone', 'phoneNumber', 'address', 'wilaya', 'commune', 'city', 'postalCode',
+          'bio', 'description', 'updatedAt', 'lastLogin', 'lastLoginAt', 'theme', 'language',
+          'preferences', 'shopName', 'shopDescription', 'shopLogo', 'shopBanner', 'shopAddress',
+          'shopPhone', 'shopWilaya', 'shopCommune', 'fcmToken', 'fcmTokens',
+          'notificationsEnabled', 'socialLinks', 'website',
+          'specialties', 'experienceYears', 'portfolio', 'workingHours',
+          'services', 'categories', 'avatarUrl', 'coverUrl', 'metadata', 'cart', 'wishlist', 'searchHistory'
+        ])
+      );
+
+      // Suppression : strictement réservée aux administrateurs
+      allow delete: if isAdmin();
+
+      // Sous-collections utilisateur
+      match /cart/{id} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      match /wishlist/{id} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      match /following/{id} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      match /followed_stores/{id} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      match /consents/{id} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      match /documents/{id} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    // Collection des documents justificatifs utilisateur (anti-IDOR)
+    match /user_documents/{docId} {
+      allow read, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Collections privées d'authentification et secrets OTP (strictement inaccessibles via SDK client)
+    match /user_secrets/{userId} {
+      allow read, write: if false;
+    }
+
+    match /private_auth/{userId} {
+      allow read, write: if false;
+    }
+
+    // Profils publics commerciaux (Vendeurs / Artisans)
+    match /publicProfiles/{id} {
+      // Lecture directe SDK client réservée au propriétaire du profil ou à un administrateur.
+      // Tous les écrans publics passent exclusivement par les routes API DTO (/api/v1/public/shops...).
+      allow read: if isOwner(id) || isAdmin();
+
+      // Création : autorisée uniquement pour le propriétaire ou l'administrateur avec liste blanche stricte
+      allow create: if isAdmin() || (
+        isOwner(id) &&
+        incoming().keys().hasOnly([
+          'shopName', 'displayName', 'shopDescription', 'description', 'logoUrl', 'photoURL',
+          'avatarUrl', 'bannerUrl', 'coverUrl', 'coverImage', 'wilaya', 'commune', 'category',
+          'categories', 'slogan', 'avgPreparationTime', 'returnPolicy', 'legalStatus',
+          'createdAt', 'updatedAt'
+        ]) &&
+        !incoming().keys().hasAny([
+          'isVerified', 'verified', 'status', 'sellerTrustScore', 'trustScore', 'badge',
+          'rating', 'reviewsCount', 'productsCount', 'followersCount', 'role', 'roles',
+          'isAdmin', 'customClaims', 'permissions', 'kycStatus', 'kyc', 'verification',
+          'email', 'phone', 'phoneNumber', 'shopPhone', 'supportPhone', 'personalPhone', 'contact',
+          'rib', 'rcNumber', 'nif', 'nifNumber', 'nifTaxId', 'nis', 'commercialRegister', 'artisanCardNumber', 'documents',
+          'twoFactorSecret', 'is2FAEnabled', 'fcmToken', 'fcmTokens', 'tokens', 'metadata', 'internalNotes'
+        ]) &&
+        isValidPublicProfileData(incoming())
+      );
+
+      // Mise à jour : autorisée pour le propriétaire sur les champs commerciaux autorisés ou pour l'administrateur
+      allow update: if isAdmin() || (
+        isOwner(id) &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'shopName', 'displayName', 'shopDescription', 'description', 'logoUrl', 'photoURL',
+          'avatarUrl', 'bannerUrl', 'coverUrl', 'coverImage', 'wilaya', 'commune', 'category',
+          'categories', 'slogan', 'avgPreparationTime', 'returnPolicy', 'legalStatus',
+          'createdAt', 'updatedAt'
+        ]) &&
+        !incoming().diff(existing()).affectedKeys().hasAny([
+          'isVerified', 'verified', 'status', 'sellerTrustScore', 'trustScore', 'badge',
+          'rating', 'reviewsCount', 'productsCount', 'followersCount', 'role', 'roles',
+          'isAdmin', 'customClaims', 'permissions', 'kycStatus', 'kyc', 'verification',
+          'email', 'phone', 'phoneNumber', 'shopPhone', 'supportPhone', 'personalPhone', 'contact',
+          'rib', 'rcNumber', 'nif', 'nifNumber', 'nifTaxId', 'nis', 'commercialRegister', 'artisanCardNumber', 'documents',
+          'twoFactorSecret', 'is2FAEnabled', 'fcmToken', 'fcmTokens', 'tokens', 'metadata', 'internalNotes'
+        ]) &&
+        isValidPublicProfileData(incoming())
+      );
+
+      // Suppression : strictement réservée aux administrateurs
+      allow delete: if isAdmin();
+    }
+
+
+    match /user_habits/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    // =========================================================================
+    // 4. COLLECTION PRODUCTS (Marketplace)
+    // =========================================================================
+    match /products/{productId} {
+      // Lecture publique conditionnée à status == "active" (brouillons, rejetés, archivés réservés au propriétaire et à l'admin)
+      allow read: if resource.data.status == "active" || isAdmin() || (isSignedIn() && (
+        resource.data.sellerId == request.auth.uid ||
+        resource.data.artisanId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      ));
+
+      // Écriture : réservée aux vendeurs, artisans ou administrateurs avec liaison obligatoire à l'UID de l'auteur
+      // Les clients ne peuvent pas auto-activer un produit ou altérer les métriques d'autorité
+      allow create: if (isSeller() || isArtisan() || isAdmin()) && (
+        isAdmin() ||
+        (
+          (('sellerId' in incoming() && incoming().sellerId == request.auth.uid) ||
+           ('artisanId' in incoming() && incoming().artisanId == request.auth.uid) ||
+           ('userId' in incoming() && incoming().userId == request.auth.uid)) &&
+          (!('status' in incoming()) || incoming().status in ['pending', 'draft', 'pending_approval']) &&
+          !incoming().keys().hasAny(['isFeatured', 'commission', 'sellerTrustScore', 'trustScore', 'rating'])
+        )
+      );
+      
+      // Modification : réservée à l'administrateur ou au vendeur/artisan propriétaire du produit (interdiction de modifier le sellerId/artisanId/userId)
+      allow update: if isAdmin() || (
+        (
+          (isSeller() && (existing().sellerId == request.auth.uid || existing().userId == request.auth.uid)) ||
+          (isArtisan() && (existing().artisanId == request.auth.uid || existing().sellerId == request.auth.uid || existing().userId == request.auth.uid))
+        ) &&
+        (!('sellerId' in incoming()) || !('sellerId' in existing()) || incoming().sellerId == existing().sellerId) &&
+        (!('artisanId' in incoming()) || !('artisanId' in existing()) || incoming().artisanId == existing().artisanId) &&
+        (!('userId' in incoming()) || !('userId' in existing()) || incoming().userId == existing().userId) &&
+        !incoming().diff(existing()).affectedKeys().hasAny(['commission', 'sellerTrustScore', 'trustScore', 'rating'])
+      );
+
+      // Suppression : réservée à l'administrateur ou au vendeur/artisan propriétaire
+      allow delete: if isAdmin() || (
+        (isSeller() && (existing().sellerId == request.auth.uid || existing().userId == request.auth.uid)) ||
+        (isArtisan() && (existing().artisanId == request.auth.uid || existing().sellerId == request.auth.uid || existing().userId == request.auth.uid))
+      );
+    }
+
+    match /product_history/{id} {
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.sellerId == request.auth.uid || resource.data.userId == request.auth.uid));
+      allow create: if (isSeller() || isArtisan() || isAdmin()) && (
+        isAdmin() ||
+        (
+          (('sellerId' in incoming() && incoming().sellerId == request.auth.uid) ||
+           ('userId' in incoming() && incoming().userId == request.auth.uid)) &&
+          (!('productId' in incoming()) || (
+            exists(/databases/$(database)/documents/products/$(incoming().productId)) &&
+            (get(/databases/$(database)/documents/products/$(incoming().productId)).data.sellerId == request.auth.uid ||
+             get(/databases/$(database)/documents/products/$(incoming().productId)).data.userId == request.auth.uid)
+          ))
+        )
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // 5. COLLECTION ORDERS & SOUS-COLLECTIONS (Commandes)
+    // =========================================================================
+    match /order_masters/{masterId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.buyerId == request.auth.uid || isAdmin());
+      // Création directe client STRICTEMENT INTERDITE : passe exclusivement par les transactions serveur ACID
+      allow create: if false;
+      allow update, delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      // Création directe client STRICTEMENT INTERDITE : la commande financière est server-only (/api/v1/place-order)
+      allow create: if false;
+
+      // Lecture : autorisée pour l'acheteur, les vendeurs de la commande ou l'administrateur
+      allow read: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin() ||
+        (isSeller() && ('sellerIds' in resource.data) && request.auth.uid in resource.data.sellerIds) ||
+        (isSeller() && ('sellerId' in resource.data) && resource.data.sellerId == request.auth.uid)
+      );
+
+      // Mise à jour : autorisée pour l'acheteur ou le vendeur avec immuabilité stricte des prix, montants, articles, statuts, acheteur et données de paiement
+      // Les mutations financières, transitions d'état de commande et changements de paiement sont réservés à l'Admin SDK transactionnel côté serveur
+      allow update: if isSignedIn() && (
+        isAdmin() || (
+          (
+            existing().buyerId == request.auth.uid ||
+            existing().userId == request.auth.uid ||
+            (isSeller() && ('sellerIds' in existing()) && request.auth.uid in existing().sellerIds) ||
+            (isSeller() && ('sellerId' in existing()) && existing().sellerId == request.auth.uid)
+          ) &&
+          !incoming().diff(existing()).affectedKeys().hasAny([
+            'buyerId', 'userId', 'sellerId', 'sellerIds', 'totalAmount', 'subtotal', 'total',
+            'items', 'price', 'paymentStatus', 'paymentMethod', 'paidAt', 'commission', 'createdAt',
+            'status', 'deliveredAt', 'confirmedAt', 'escrowStatus', 'shippedAt', 'cancelledAt',
+            'trackingNumber', 'carrier'
+          ]) &&
+          (!('buyerId' in incoming()) || incoming().buyerId == existing().buyerId) &&
+          (!('userId' in incoming()) || incoming().userId == existing().userId)
+        )
+      );
+
+      allow delete: if isAdmin();
+
+      // Sous-collections de commande
+      match /order_logs/{logId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/orders/$(orderId)).data.buyerId == request.auth.uid ||
+          get(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid ||
+          isAdmin() ||
+          (isSeller() && (
+            ('sellerIds' in get(/databases/$(database)/documents/orders/$(orderId)).data && request.auth.uid in get(/databases/$(database)/documents/orders/$(orderId)).data.sellerIds) ||
+            ('sellerId' in get(/databases/$(database)/documents/orders/$(orderId)).data && get(/databases/$(database)/documents/orders/$(orderId)).data.sellerId == request.auth.uid)
+          ))
+        );
+        // order_logs est un journal d'audit append-only créé exclusivement côté serveur
+        allow write: if false;
+      }
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/orders/$(orderId)).data.buyerId == request.auth.uid ||
+          get(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid ||
+          isAdmin() ||
+          (isSeller() && (
+            ('sellerIds' in get(/databases/$(database)/documents/orders/$(orderId)).data && request.auth.uid in get(/databases/$(database)/documents/orders/$(orderId)).data.sellerIds) ||
+            ('sellerId' in get(/databases/$(database)/documents/orders/$(orderId)).data && get(/databases/$(database)/documents/orders/$(orderId)).data.sellerId == request.auth.uid)
+          ))
+        );
+        allow create: if isSignedIn() && (
+          isAdmin() ||
+          (
+            (
+              get(/databases/$(database)/documents/orders/$(orderId)).data.buyerId == request.auth.uid ||
+              get(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid ||
+              (isSeller() && (
+                ('sellerIds' in get(/databases/$(database)/documents/orders/$(orderId)).data && request.auth.uid in get(/databases/$(database)/documents/orders/$(orderId)).data.sellerIds) ||
+                ('sellerId' in get(/databases/$(database)/documents/orders/$(orderId)).data && get(/databases/$(database)/documents/orders/$(orderId)).data.sellerId == request.auth.uid)
+              ))
+            ) &&
+            (!('senderId' in incoming()) || incoming().senderId == request.auth.uid)
+          )
+        );
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    match /confirmed_delivery_info/{refId} {
+      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && (!('userId' in incoming()) || incoming().userId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    match /withdrawals/{id} {
+      allow read: if isSignedIn() && (resource.data.sellerId == request.auth.uid || isAdmin());
+      allow write: if false;
+    }
+
+    // =========================================================================
+    // 6. COLLECTIONS PUBLIQUES ET CONFIGURATIONS (Lecture publique, Admin écriture)
+    // =========================================================================
+    match /banners/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /categories/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /homepage_categories_v2/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /homepage_sections/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /homepage_versions/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /settings/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /global_settings/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /public_configs/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /ui_elements/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /tags/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /translations/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /coupons/{id} {
+      // Les coupons et historiques d'utilisation sont validés côté serveur uniquement (ou par l'admin / vendeur créateur)
+      allow read: if isAdmin() || (isSignedIn() && (
+        ('sellerId' in resource.data && resource.data.sellerId == request.auth.uid) ||
+        ('createdBy' in resource.data && resource.data.createdBy == request.auth.uid) ||
+        ('userId' in resource.data && resource.data.userId == request.auth.uid)
+      ));
+      allow write: if isAdmin();
+    }
+
+    match /reviews/{id} {
+      allow read: if true;
+      allow create: if isSignedIn() && ('userId' in incoming()) && incoming().userId == request.auth.uid;
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /site_content_monthly/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /platform_stats/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /seasonal_themes/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /public/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /metadata/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // =========================================================================
+    // 7. NOTIFICATIONS & SUPPORT
+    // =========================================================================
+    match /user_notifications/{notifId} {
+      allow read: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+      allow create: if isAdmin() || (isSignedIn() && ('recipientId' in incoming()) && incoming().recipientId == request.auth.uid);
+      allow update: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+    }
+
+    match /internal_notifications/{notifId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /seller_support/{supportId} {
+      allow read: if isSignedIn() && (resource.data.sellerId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && ('sellerId' in incoming()) && incoming().sellerId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /buyer_support/{supportId} {
+      allow read: if isSignedIn() && (resource.data.buyerId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && ('buyerId' in incoming()) && incoming().buyerId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /support_tickets/{id} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && ('userId' in incoming()) && incoming().userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /supportTickets/{id} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && ('userId' in incoming()) && incoming().userId == request.auth.uid;
+      allow update: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    match /supportMessages/{id} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid ||
+        resource.data.senderId == request.auth.uid
+      );
+      allow create: if isSignedIn() && (
+        isAdmin() ||
+        (('senderId' in incoming()) && incoming().senderId == request.auth.uid)
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    match /disputeMessages/{id} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.buyerId == request.auth.uid ||
+        resource.data.sellerId == request.auth.uid ||
+        resource.data.senderId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      );
+      allow create: if isSignedIn() && (
+        isAdmin() ||
+        (('senderId' in incoming()) && incoming().senderId == request.auth.uid)
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    match /login_history/{id} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /site_errors/{id} {
+      allow create: if incoming().keys().hasOnly(['message', 'stack', 'url', 'timestamp', 'userAgent', 'error', 'createdAt', 'path'])
+        && (!('message' in incoming()) || (incoming().message is string && incoming().message.size() <= 2000));
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /sponsorship_requests/{id} {
+      allow read: if isAdmin() || (isSeller() && resource.data.sellerId == request.auth.uid);
+      allow create: if isSeller() || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /admin_alerts/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /analytics/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /analytics_events/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /admin_activities/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /audit_logs/{id} {
+      allow read: if isAdmin();
+      // Les journaux d'audit sont strictement append-only via Firebase Admin SDK / serveur
+      allow write: if false;
+    }
+
+    match /ad_events/{id} {
+      allow create: if true;
+      allow read, write: if isAdmin();
+    }
+
+    match /newsletter_campaigns/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /newsletter_subscribers/{id} {
+      allow create: if incoming().keys().hasOnly(['email', 'createdAt', 'subscribedAt', 'source', 'status', 'active', 'timestamp'])
+        && incoming().email is string
+        && incoming().email.size() <= 254;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // 8. MODULES ADDITIONNELS (OlmaBricolage, OlmaImmo, Messagerie Unifiée)
+    // =========================================================================
+    match /bricolage_categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /bricolage_artisans/{artisanId} {
+      allow read: if true;
+      allow create: if (isOwner(artisanId) || isArtisan() || isAdmin()) && (
+        artisanId == request.auth.uid ||
+        ('userId' in incoming() && incoming().userId == request.auth.uid) ||
+        ('id' in incoming() && incoming().id == request.auth.uid)
+      );
+      allow update: if isAdmin() || (
+        (isOwner(artisanId) || (isArtisan() && (artisanId == request.auth.uid || existing().userId == request.auth.uid))) &&
+        (!('userId' in incoming()) || !('userId' in existing()) || incoming().userId == existing().userId)
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /bricolage_quote_requests/{requestId} {
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.customerId == request.auth.uid || resource.data.artisanId == request.auth.uid || ('userId' in resource.data && resource.data.userId == request.auth.uid)));
+      allow create: if isSignedIn() && (
+        ('customerId' in incoming() && incoming().customerId == request.auth.uid) ||
+        ('userId' in incoming() && incoming().userId == request.auth.uid)
+      );
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        (existing().customerId == request.auth.uid || existing().artisanId == request.auth.uid || ('userId' in existing() && existing().userId == request.auth.uid)) &&
+        !incoming().diff(existing()).affectedKeys().hasAny(['customerId', 'userId', 'artisanId', 'budget', 'price', 'amount'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /bricolage_reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isSignedIn() && (
+        ('reviewerId' in incoming() && incoming().reviewerId == request.auth.uid) ||
+        ('userId' in incoming() && incoming().userId == request.auth.uid) ||
+        ('customerId' in incoming() && incoming().customerId == request.auth.uid) ||
+        ('buyerId' in incoming() && incoming().buyerId == request.auth.uid)
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    match /real_estate_properties/{propertyId} {
+      allow read: if (('status' in resource.data) && resource.data.status in ["active", "available"]) || isAdmin() || (isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      ));
+      allow create: if isSignedIn() && (
+        isAdmin() ||
+        (('ownerId' in incoming() && incoming().ownerId == request.auth.uid) ||
+         ('userId' in incoming() && incoming().userId == request.auth.uid))
+      );
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        (existing().ownerId == request.auth.uid || ('userId' in existing() && existing().userId == request.auth.uid)) &&
+        (!('ownerId' in incoming()) || !('ownerId' in existing()) || incoming().ownerId == existing().ownerId) &&
+        (!('userId' in incoming()) || !('userId' in existing()) || incoming().userId == existing().userId)
+      );
+      allow delete: if isAdmin() || (isSignedIn() && (existing().ownerId == request.auth.uid || ('userId' in existing() && existing().userId == request.auth.uid)));
+    }
+
+    match /real_estate_bookings/{bookingId} {
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.tenantId == request.auth.uid || resource.data.ownerId == request.auth.uid || ('userId' in resource.data && resource.data.userId == request.auth.uid)));
+      allow create: if isSignedIn() && (
+        ('tenantId' in incoming() && incoming().tenantId == request.auth.uid) ||
+        ('userId' in incoming() && incoming().userId == request.auth.uid)
+      );
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        (existing().tenantId == request.auth.uid || existing().ownerId == request.auth.uid || ('userId' in existing() && existing().userId == request.auth.uid)) &&
+        !incoming().diff(existing()).affectedKeys().hasAny(['tenantId', 'userId', 'ownerId', 'price', 'totalPrice', 'amount', 'paymentStatus'])
+      );
+      allow delete: if isAdmin() || (isSignedIn() && (existing().tenantId == request.auth.uid || existing().ownerId == request.auth.uid || ('userId' in existing() && existing().userId == request.auth.uid)));
+    }
+
+    match /real_estate_visits/{visitId} {
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.visitorId == request.auth.uid || resource.data.ownerId == request.auth.uid || ('userId' in resource.data && resource.data.userId == request.auth.uid)));
+      allow create: if isSignedIn() && (
+        ('visitorId' in incoming() && incoming().visitorId == request.auth.uid) ||
+        ('userId' in incoming() && incoming().userId == request.auth.uid)
+      );
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        (existing().visitorId == request.auth.uid || existing().ownerId == request.auth.uid || ('userId' in existing() && existing().userId == request.auth.uid)) &&
+        (!('visitorId' in incoming()) || !('visitorId' in existing()) || incoming().visitorId == existing().visitorId) &&
+        (!('ownerId' in incoming()) || !('ownerId' in existing()) || incoming().ownerId == existing().ownerId)
+      );
+      allow delete: if isAdmin() || (isSignedIn() && (existing().visitorId == request.auth.uid || existing().ownerId == request.auth.uid || ('userId' in existing() && existing().userId == request.auth.uid)));
+    }
+
+    match /conversations/{conversationId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
+      allow create: if isSignedIn() && ('participants' in incoming()) && (request.auth.uid in incoming().participants);
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        request.auth.uid in existing().participants &&
+        (!('participants' in incoming()) || request.auth.uid in incoming().participants)
+      );
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow read: if isAdmin() || (
+          isSignedIn() &&
+          exists(/databases/$(database)/documents/conversations/$(conversationId)) &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants
+        );
+        allow create: if isAdmin() || (
+          isSignedIn() &&
+          exists(/databases/$(database)/documents/conversations/$(conversationId)) &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
+          ('senderId' in incoming()) && incoming().senderId == request.auth.uid
+        );
+        allow update, delete: if isAdmin();
+      }
+    }
+
+
+    // =========================================================================
+    // 18. BOUTIQUES & VENDEURS (Shops & Sellers Storefronts)
+    // =========================================================================
+    match /shops/{shopId} {
+      // Lecture publique pour l'annuaire et les vitrines des boutiques
+      allow read: if true;
+      allow create: if isSignedIn() && (
+        isAdmin() ||
+        incoming().ownerId == request.auth.uid ||
+        incoming().sellerId == request.auth.uid ||
+        shopId == request.auth.uid
+      );
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.sellerId == request.auth.uid ||
+        shopId == request.auth.uid ||
+        incoming().diff(existing()).affectedKeys().hasOnly(['followersCount'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /sellers/{sellerId} {
+      allow read: if true;
+      allow create: if isSignedIn() && (isAdmin() || sellerId == request.auth.uid);
+      allow update: if isSignedIn() && (isAdmin() || sellerId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // 19. MESSAGERIE INSTANTANÉE (Chats & Messages en direct)
+    // =========================================================================
+    match /chats/{chatId} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        ('participants' in resource.data && request.auth.uid in resource.data.participants) ||
+        ('userId' in resource.data && resource.data.userId == request.auth.uid) ||
+        ('sellerId' in resource.data && resource.data.sellerId == request.auth.uid) ||
+        ('buyerId' in resource.data && resource.data.buyerId == request.auth.uid)
+      );
+      allow create: if isSignedIn() && (
+        isAdmin() ||
+        (!('userId' in incoming()) || incoming().userId == request.auth.uid) ||
+        (!('participants' in incoming()) || request.auth.uid in incoming().participants)
+      );
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        ('participants' in existing() && request.auth.uid in existing().participants) ||
+        ('userId' in existing() && existing().userId == request.auth.uid) ||
+        ('sellerId' in existing() && existing().sellerId == request.auth.uid)
+      );
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && (
+          isAdmin() ||
+          (exists(/databases/$(database)/documents/chats/$(chatId)) && (
+            ('participants' in get(/databases/$(database)/documents/chats/$(chatId)).data && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants) ||
+            ('userId' in get(/databases/$(database)/documents/chats/$(chatId)).data && get(/databases/$(database)/documents/chats/$(chatId)).data.userId == request.auth.uid) ||
+            ('sellerId' in get(/databases/$(database)/documents/chats/$(chatId)).data && get(/databases/$(database)/documents/chats/$(chatId)).data.sellerId == request.auth.uid) ||
+            ('buyerId' in get(/databases/$(database)/documents/chats/$(chatId)).data && get(/databases/$(database)/documents/chats/$(chatId)).data.buyerId == request.auth.uid)
+          ))
+        );
+        allow create: if isSignedIn() && (
+          isAdmin() ||
+          (!('senderId' in incoming()) || incoming().senderId == request.auth.uid)
+        );
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // =========================================================================
+    // 20. SPONSORISATIONS, MARKETING & AUDITS CHECKOUT
+    // =========================================================================
+    match /sponsorships/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /checkout_audits/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() || (isSignedIn() && incoming().userId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // 21. ANALYTICS & LOGS SYSTÈME
+    // =========================================================================
+    match /search_analytics/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /search_synonyms/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /site_logs/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /ip_logs/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /category_history/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // =========================================================================
+    // 22. IMMOBILIER PRO & OLMA UNIVERS
+    // =========================================================================
+    match /real_estate_pro_applications/{id} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /olma_univers_app/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /olma_univers_waitlist/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // 23. GESTION DES LITIGES & PIÈCES JOINTES
+    // =========================================================================
+    match /disputes/{id} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.buyerId == request.auth.uid ||
+        resource.data.sellerId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      );
+      allow create: if isSignedIn() && (
+        incoming().buyerId == request.auth.uid ||
+        incoming().userId == request.auth.uid
+      );
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.buyerId == request.auth.uid ||
+        resource.data.sellerId == request.auth.uid
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /disputeAttachments/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    match /supportAttachments/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // 24. NOTIFICATIONS PUSH & AFFINITÉS UTILISATEUR
+    // =========================================================================
+    match /pushTokens/{id} {
+      allow read, write: if isSignedIn() && (
+        isAdmin() ||
+        id == request.auth.uid ||
+        ('userId' in resource.data && resource.data.userId == request.auth.uid) ||
+        ('userId' in incoming() && incoming().userId == request.auth.uid)
+      );
+    }
+
+    match /user_affinities/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    // =========================================================================
+    // 25. OLMART COMMERCE STUDIO : ABONNEMENTS, PAGES PERSONNALISÉES & MARKETING
+    // =========================================================================
+    match /subscription_plans/{planId} {
+      // Lecture publique des forfaits actifs, lecture totale et écriture réservées aux administrateurs
+      allow read: if (resource.data.isActive == true) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /subscription_requests/{requestId} {
+      // Les administrateurs peuvent tout lire et écrire.
+      // Le vendeur propriétaire peut lire sa propre demande.
+      allow read: if isAdmin() || (isSignedIn() && resource.data.sellerId == request.auth.uid);
+
+      // Le vendeur peut initier une demande en statut 'pending' uniquement
+      allow create: if isSignedIn() && (
+        isAdmin() || (
+          isSeller() &&
+          incoming().sellerId == request.auth.uid &&
+          incoming().status == 'pending'
+        )
+      );
+
+      // Le vendeur peut uniquement soumettre sa preuve de paiement (passage à 'payment_declared')
+      // Interdiction formelle pour le vendeur de passer à 'payment_confirmed' ou 'granted'
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        resource.data.sellerId == request.auth.uid &&
+        resource.data.status == 'payment_requested' &&
+        incoming().status == 'payment_declared' &&
+        incoming().sellerId == resource.data.sellerId &&
+        incoming().planId == resource.data.planId
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    match /seller_subscriptions/{subscriptionId} {
+      // Les abonnements accordés sont gérés STRICTEMENT côté serveur/Admin
+      allow read: if isAdmin() || (isSignedIn() && resource.data.sellerId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+
+    match /seller_custom_pages/{pageId} {
+      // Les pages publiées sont visibles par tous les clients
+      // Les brouillons sont visibles uniquement par le vendeur propriétaire ou un admin
+      allow read: if (resource.data.status == 'active') ||
+                     isAdmin() ||
+                     (isSignedIn() && resource.data.sellerId == request.auth.uid);
+
+      allow create: if isAdmin() || (
+        isSeller() &&
+        incoming().sellerId == request.auth.uid
+      );
+
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        resource.data.sellerId == request.auth.uid &&
+        incoming().sellerId == request.auth.uid
+      );
+
+      allow delete: if isAdmin() || (
+        isSignedIn() &&
+        resource.data.sellerId == request.auth.uid
+      );
+
+      match /versions/{versionId} {
+        allow read: if isAdmin() || (isSignedIn() && resource.data.sellerId == request.auth.uid);
+        allow write: if isAdmin() || (isSignedIn() && incoming().sellerId == request.auth.uid);
+      }
+    }
+
+    match /marketing_campaigns/{campaignId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.sellerId == request.auth.uid);
+      allow create: if isAdmin() || (isSeller() && incoming().sellerId == request.auth.uid);
+      allow update: if isAdmin() || (isSignedIn() && resource.data.sellerId == request.auth.uid && incoming().sellerId == request.auth.uid);
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.sellerId == request.auth.uid);
+    }
+
+  }
+}
+

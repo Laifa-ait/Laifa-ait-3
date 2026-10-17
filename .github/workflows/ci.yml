@@ -1,0 +1,297 @@
+name: Olmart CI
+
+on:
+  push:
+    branches: [ main, master, dev ]
+  pull_request:
+    branches: [ main, master, dev ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_OPTIONS: "--no-deprecation"
+
+jobs:
+  build-and-test:
+    name: Lint, Typecheck, Test & Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VITE_FIREBASE_API_KEY: "AIzaSyFakeKeyForCiTesting1234567890"
+      VITE_FIREBASE_AUTH_DOMAIN: "olmart-ci-demo.firebaseapp.com"
+      VITE_FIREBASE_PROJECT_ID: "olmart-ci-demo"
+      VITE_FIREBASE_STORAGE_BUCKET: "olmart-ci-demo.appspot.com"
+      VITE_FIREBASE_MESSAGING_SENDER_ID: "123456789012"
+      VITE_FIREBASE_APP_ID: "1:123456789012:web:abcdef1234567890"
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+
+      - name: Setup Java (required for Firebase Emulators)
+        uses: actions/setup-java@273229181560643261a71a1544c22304f2a40df8
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Node.js (v22.23.2)
+        uses: actions/setup-node@94196ee1d15439c1b6651cd87ef14e88ec435966
+        with:
+          node-version: '22.23.2'
+          cache: 'npm'
+
+      - name: Enforce Exact npm Version (10.9.4)
+        run: npm install -g npm@10.9.4
+
+      - name: Install Clean Dependencies
+        timeout-minutes: 5
+        run: npm ci
+
+      - name: Verify Lockfile Integrity & No Drift
+        timeout-minutes: 2
+        run: |
+          git diff --exit-code package-lock.json || (echo "❌ package-lock.json is out of sync with package.json" && exit 1)
+
+      - name: Security Audit (Production Dependencies - High+)
+        timeout-minutes: 3
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Security Audit (All Dependencies - High+)
+        timeout-minutes: 3
+        run: npm audit --audit-level=high
+
+      - name: ESLint Code Quality
+        timeout-minutes: 3
+        run: npm run lint
+
+      - name: TypeScript Typecheck
+        timeout-minutes: 3
+        run: npm run typecheck
+
+      - name: Run Vitest Test Suite with Coverage (with Firebase Emulators)
+        timeout-minutes: 6
+        run: npx firebase emulators:exec --only auth,firestore,storage "npm run test:coverage"
+
+      - name: Upload Test Coverage Report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: vitest-coverage-report
+          path: coverage/
+          retention-days: 7
+
+      - name: Validate Image Assets
+        timeout-minutes: 2
+        run: npm run validate:assets
+
+      - name: Build Application (SPA + Server)
+        timeout-minutes: 5
+        run: npm run build
+
+      - name: Upload Build Artifacts for E2E
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: build-artifacts
+          path: dist/
+          retention-days: 1
+
+  e2e:
+    name: Playwright E2E Tests (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: build-and-test
+    env:
+      VITE_FIREBASE_API_KEY: "AIzaSyFakeKeyForCiTesting1234567890"
+      VITE_FIREBASE_AUTH_DOMAIN: "olmart-ci-demo.firebaseapp.com"
+      VITE_FIREBASE_PROJECT_ID: "olmart-ci-demo"
+      VITE_FIREBASE_STORAGE_BUCKET: "olmart-ci-demo.appspot.com"
+      VITE_FIREBASE_MESSAGING_SENDER_ID: "123456789012"
+      VITE_FIREBASE_APP_ID: "1:123456789012:web:abcdef1234567890"
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+
+      - name: Setup Node.js (v22.23.2)
+        uses: actions/setup-node@94196ee1d15439c1b6651cd87ef14e88ec435966
+        with:
+          node-version: '22.23.2'
+          cache: 'npm'
+
+      - name: Enforce Exact npm Version (10.9.4)
+        run: npm install -g npm@10.9.4
+
+      - name: Install Clean Dependencies
+        timeout-minutes: 5
+        run: npm ci
+
+      - name: Download Build Artifacts from Previous Job
+        uses: actions/download-artifact@484a0b528fb4d7bd804637ccb632e47a0e638317
+        with:
+          name: build-artifacts
+          path: dist/
+
+      - name: Install Playwright Browsers (Chromium)
+        timeout-minutes: 5
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E Tests (Headless Chromium)
+        timeout-minutes: 8
+        env:
+          CSRF_SECRET: ${{ secrets.CSRF_SECRET }}
+        run: npx playwright test --project=chromium
+
+      - name: Upload Playwright Test Report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload Playwright Traces & Test Results on Failure
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: failure()
+        with:
+          name: playwright-test-results
+          path: test-results/
+          retention-days: 7
+
+  docker-build-scan:
+    name: Build Docker, Scan & Generate SBOM
+    runs-on: ubuntu-latest
+    needs: e2e
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev'
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID || 'olmart-ci-demo' }}
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3
+      
+      - name: Build Docker Image
+        id: build
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6
+        with:
+          context: .
+          push: false
+          tags: europe-west2-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/olmart/app:${{ github.sha }}
+          load: true
+          
+      - name: Generate SBOM (Anchore Syft)
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26
+        with:
+          image: europe-west2-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/olmart/app:${{ github.sha }}
+          artifact-name: sbom.spdx.json
+          
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@d2a0b60797ff03db6132bd4e2b293f9b37081297
+        with:
+          image-ref: 'europe-west2-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/olmart/app:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          
+  deploy-staging:
+    name: Deploy to Staging (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: docker-build-scan
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    environment: staging
+    steps:
+      - name: Check Staging Credentials
+        id: check_creds
+        env:
+          GCP_CREDS: ${{ secrets.GCP_CREDENTIALS_STAGING }}
+        run: |
+          if [ -n "$GCP_CREDS" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Notice: GCP_CREDENTIALS_STAGING secret is not configured. Skipping staging deployment."
+          fi
+      - name: Checkout Source Code
+        if: steps.check_creds.outputs.configured == 'true'
+        uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+      - name: Authenticate to Google Cloud
+        if: steps.check_creds.outputs.configured == 'true'
+        uses: google-github-actions/auth@12060449e87204eca501a11f2f7f1483024afff0
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS_STAGING }}
+      - name: Deploy to Cloud Run (Staging)
+        id: deploy
+        if: steps.check_creds.outputs.configured == 'true'
+        uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d
+        with:
+          service: olmart-staging
+          region: europe-west2
+          source: .
+          env_vars: |
+            NODE_ENV=production
+            FIREBASE_DATABASE_ID=(default)
+          secrets: |
+            CSRF_SECRET=CSRF_SECRET:latest
+
+      - name: Smoke Test Staging (Health Check)
+        if: steps.check_creds.outputs.configured == 'true'
+        run: |
+          echo "Verifying Staging live endpoint at ${{ steps.deploy.outputs.url }}/api/v1/health/live"
+          curl --fail --retry 5 --retry-delay 5 --retry-connrefused -s -i "${{ steps.deploy.outputs.url }}/api/v1/health/live" || exit 1
+          echo "Verifying Staging readiness endpoint at ${{ steps.deploy.outputs.url }}/api/v1/health"
+          curl --fail --retry 3 --retry-delay 3 --retry-connrefused -s -i "${{ steps.deploy.outputs.url }}/api/v1/health" || exit 1
+
+  deploy-production:
+    name: Deploy to Production (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    environment: 
+      name: production
+      url: https://olmart.dz
+    steps:
+      - name: Check Production Credentials
+        id: check_creds
+        env:
+          GCP_CREDS: ${{ secrets.GCP_CREDENTIALS_PRODUCTION }}
+        run: |
+          if [ -n "$GCP_CREDS" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Notice: GCP_CREDENTIALS_PRODUCTION secret is not configured. Skipping production deployment."
+          fi
+      - name: Checkout Source Code
+        if: steps.check_creds.outputs.configured == 'true'
+        uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+      - name: Authenticate to Google Cloud
+        if: steps.check_creds.outputs.configured == 'true'
+        uses: google-github-actions/auth@12060449e87204eca501a11f2f7f1483024afff0
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS_PRODUCTION }}
+      - name: Deploy to Cloud Run (Production)
+        id: deploy
+        if: steps.check_creds.outputs.configured == 'true'
+        uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d
+        with:
+          service: olmart-production
+          region: europe-west2
+          source: .
+          env_vars: |
+            NODE_ENV=production
+            FIREBASE_DATABASE_ID=(default)
+          secrets: |
+            CSRF_SECRET=CSRF_SECRET:latest
+
+      - name: Smoke Test Production (Health Check)
+        if: steps.check_creds.outputs.configured == 'true'
+        run: |
+          echo "Verifying Production live endpoint at ${{ steps.deploy.outputs.url }}/api/v1/health/live"
+          curl --fail --retry 5 --retry-delay 5 --retry-connrefused -s -i "${{ steps.deploy.outputs.url }}/api/v1/health/live" || exit 1
+          echo "Verifying Production readiness endpoint at ${{ steps.deploy.outputs.url }}/api/v1/health"
+          curl --fail --retry 3 --retry-delay 3 --retry-connrefused -s -i "${{ steps.deploy.outputs.url }}/api/v1/health" || exit 1

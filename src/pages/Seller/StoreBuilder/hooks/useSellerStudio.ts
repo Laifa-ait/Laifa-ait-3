@@ -1,0 +1,209 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import { apiGet, apiPut, apiPost } from "../../../../lib/api";
+import {
+  StudioDataResponse,
+  StoreConfig,
+  CustomPageSection,
+  StoreHistoryEntry,
+  MediaGalleryItem,
+  CustomPageSectionType,
+} from "../../../../domains/seller/customPage.types";
+import { Product } from "../../../../domains/product/product.types";
+import { toast } from "react-hot-toast";
+
+export type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+export function useSellerStudio() {
+  const [loading, setLoading] = useState(true);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
+  const [sections, setSections] = useState<CustomPageSection[]>([]);
+  const [historyList, setHistoryList] = useState<StoreHistoryEntry[]>([]);
+  const [mediaGallery, setMediaGallery] = useState<MediaGalleryItem[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const initialLoadDone = useRef(false);
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchStudioData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [studioRes, prodRes] = await Promise.all([
+        apiGet<{ success: boolean; data: StudioDataResponse }>("/api/v1/seller/studio"),
+        apiGet<{ success: boolean; products: Product[] }>("/api/v1/seller/products").catch(() => ({ success: true, products: [] })),
+      ]);
+
+      if (studioRes && studioRes.success && studioRes.data) {
+        setStoreConfig(studioRes.data.storeConfig);
+        const draftSections = studioRes.data.draftLayout?.sections || [];
+        setSections(draftSections);
+        setHistoryList(studioRes.data.historyList || []);
+        setMediaGallery(studioRes.data.mediaGallery || []);
+        if (draftSections.length > 0) {
+          setSelectedSectionId(draftSections[0].id);
+        }
+      }
+      if (prodRes && Array.isArray(prodRes.products)) {
+        setProducts(prodRes.products);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erreur lors du chargement du Studio";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+      initialLoadDone.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStudioData();
+  }, [fetchStudioData]);
+
+  // Debounced auto-save for sections draft (1500ms)
+  const saveDraft = useCallback(async (currentSections: CustomPageSection[]) => {
+    try {
+      setSaveStatus("saving");
+      await apiPut("/api/v1/seller/studio/layout/draft", { sections: currentSections });
+      setSaveStatus("saved");
+      setHasUnsavedChanges(false);
+    } catch (err: unknown) {
+      setSaveStatus("error");
+      const msg = err instanceof Error ? err.message : "Échec de la sauvegarde du brouillon";
+      toast.error(msg);
+    }
+  }, []);
+
+  const triggerAutoSave = useCallback((updatedSections: CustomPageSection[]) => {
+    setSections(updatedSections);
+    setHasUnsavedChanges(true);
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      saveDraft(updatedSections);
+    }, 1500);
+  }, [saveDraft]);
+
+  // Actions on sections
+  const addSection = (type: CustomPageSectionType, defaultSettings: Record<string, unknown>, defaultTitle?: string) => {
+    const newSection: CustomPageSection = {
+      id: `sec_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      type,
+      title: defaultTitle || `Section ${type}`,
+      settings: defaultSettings as unknown as CustomPageSection["settings"],
+      styles: {
+        containerWidth: "contained",
+        paddingY: "md",
+        borderRadius: "none",
+      },
+      isVisible: true,
+      order: sections.length,
+    };
+
+    const updated = [...sections, newSection];
+    triggerAutoSave(updated);
+    setSelectedSectionId(newSection.id);
+    toast.success("Nouvelle section ajoutée");
+  };
+
+  const updateSection = (sectionId: string, updates: Partial<CustomPageSection>) => {
+    const updated = sections.map((sec) => (sec.id === sectionId ? { ...sec, ...updates } : sec));
+    triggerAutoSave(updated);
+  };
+
+  const reorderSections = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= sections.length) return;
+    const updated = [...sections];
+    const [moved] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, moved);
+    const reordered = updated.map((sec, idx) => ({ ...sec, order: idx }));
+    triggerAutoSave(reordered);
+  };
+
+  const deleteSection = (sectionId: string) => {
+    const updated = sections.filter((sec) => sec.id !== sectionId);
+    triggerAutoSave(updated);
+    if (selectedSectionId === sectionId) {
+      setSelectedSectionId(updated[0]?.id || null);
+    }
+    toast.success("Section supprimée");
+  };
+
+  const toggleVisibility = (sectionId: string) => {
+    const updated = sections.map((sec) => (sec.id === sectionId ? { ...sec, isVisible: !sec.isVisible } : sec));
+    triggerAutoSave(updated);
+  };
+
+  // Actions on Config & Studio Lifecycle
+  const saveStoreConfig = async (updatedConfigPayload: Partial<StoreConfig>) => {
+    try {
+      setSaveStatus("saving");
+      const res = await apiPut<{ success: boolean; data: StoreConfig }>("/api/v1/seller/store/config", updatedConfigPayload);
+      if (res && res.data) {
+        setStoreConfig(res.data);
+      }
+      setSaveStatus("saved");
+      toast.success("Paramètres de la boutique mis à jour !");
+    } catch (err: unknown) {
+      setSaveStatus("error");
+      const msg = err instanceof Error ? err.message : "Erreur de mise à jour";
+      toast.error(msg);
+      throw err;
+    }
+  };
+
+  const publishStudio = async (changeSummary?: string) => {
+    try {
+      setSaveStatus("saving");
+      await apiPost("/api/v1/seller/studio/layout/publish", { changeSummary });
+      setSaveStatus("saved");
+      toast.success("🎉 Votre boutique a été publiée avec succès !");
+      await fetchStudioData();
+    } catch (err: unknown) {
+      setSaveStatus("error");
+      const msg = err instanceof Error ? err.message : "Échec de la publication";
+      toast.error(msg);
+    }
+  };
+
+  const rollbackVersion = async (versionNumber: number) => {
+    try {
+      setSaveStatus("saving");
+      await apiPost("/api/v1/seller/studio/layout/rollback", { versionNumber });
+      setSaveStatus("saved");
+      toast.success(`Restauration vers la version #${versionNumber} effectuée !`);
+      await fetchStudioData();
+    } catch (err: unknown) {
+      setSaveStatus("error");
+      const msg = err instanceof Error ? err.message : "Échec de la restauration";
+      toast.error(msg);
+    }
+  };
+
+  return {
+    loading,
+    saveStatus,
+    storeConfig,
+    sections,
+    products,
+    historyList,
+    mediaGallery,
+    selectedSectionId,
+    setSelectedSectionId,
+    hasUnsavedChanges,
+    addSection,
+    updateSection,
+    reorderSections,
+    deleteSection,
+    toggleVisibility,
+    saveStoreConfig,
+    publishStudio,
+    rollbackVersion,
+    triggerAutoSave,
+    refreshData: fetchStudioData,
+  };
+}

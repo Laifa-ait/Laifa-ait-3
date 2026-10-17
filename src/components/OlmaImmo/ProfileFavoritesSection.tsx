@@ -1,0 +1,104 @@
+import React, { useState, useEffect } from 'react';
+import { Heart, ArrowRight, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { PublicPropertyDTO, PropertyListResponse } from '../../types/realEstate';
+import { PropertyCard } from './PropertyCard';
+import { getFavoritePropertyIds } from '../../utils/realEstateFavorites';
+import { apiGet } from '../../lib/api';
+
+export const ProfileFavoritesSection: React.FC = () => {
+  const [properties, setProperties] = useState<PublicPropertyDTO[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadFavorites();
+
+    const handleUpdate = () => {
+      loadFavorites();
+    };
+
+    window.addEventListener('olma_immo:favorites_updated', handleUpdate);
+    return () => window.removeEventListener('olma_immo:favorites_updated', handleUpdate);
+  }, []);
+
+  const loadFavorites = async () => {
+    const ids = getFavoritePropertyIds();
+
+    if (ids.length === 0) {
+      setProperties([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Fetch public properties to match favorite ids
+      const res = await apiGet<PropertyListResponse>('/api/v1/real-estate/properties?limit=50');
+      if (res.success && res.data) {
+        const matched = res.data.filter((p) => ids.includes(p.id));
+        setProperties(matched);
+      }
+    } catch (err) {
+      console.error('Failed to load favorite properties:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFavoriteToggle = (id: string, isFav: boolean) => {
+    if (!isFav) {
+      setProperties((prev) => prev.filter((p) => p.id !== id));
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-3xl p-12 border border-slate-200 text-center">
+        <Loader2 className="w-8 h-8 text-[#1E3A8A] animate-spin mx-auto mb-2" />
+        <p className="text-xs font-bold text-slate-600">Chargement de vos favoris...</p>
+      </div>
+    );
+  }
+
+  if (properties.length === 0) {
+    return (
+      <div className="bg-white rounded-3xl p-8 md:p-12 border border-slate-200 text-center space-y-4 shadow-xs">
+        <div className="w-16 h-16 rounded-3xl bg-slate-100 text-[#1E3A8A] flex items-center justify-center mx-auto border border-slate-200">
+          <Heart className="w-8 h-8 text-[#F59E0B]" />
+        </div>
+        <div className="space-y-1">
+          <h3 className="text-lg font-bold text-[#1E3A8A]">Vos biens favoris apparaîtront ici</h3>
+          <p className="text-xs text-slate-600 max-w-md mx-auto">
+            Vous n'avez pas encore sauvegardé de propriétés. Explorez nos annonces de vente, location et vacances en Algérie.
+          </p>
+        </div>
+        <Link
+          to="/immo"
+          className="inline-flex items-center gap-2 py-3 px-6 bg-[#1E3A8A] hover:bg-blue-900 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition shadow-xs cursor-pointer"
+        >
+          <span>Explorer l'immobilier</span>
+          <ArrowRight className="w-4 h-4 text-[#F59E0B]" />
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-slate-600">
+          {properties.length} bien{properties.length > 1 ? 's' : ''} sauvegardé{properties.length > 1 ? 's' : ''}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {properties.map((property) => (
+          <PropertyCard
+            key={property.id}
+            property={property}
+            onFavoriteToggle={handleFavoriteToggle}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
