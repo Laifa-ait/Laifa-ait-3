@@ -291,9 +291,30 @@ export const customPageSectionSchema = z.discriminatedUnion("type", [
   contactFooterSchema,
 ]);
 
+export const storeConfigThemeSchema = z.object({
+  sector: z.enum(["mode", "beaute", "artisanat", "tech", "maison"]).optional(),
+  primaryColor: z.string().regex(HEX_COLOR_REGEX, "Couleur primaire hexadécimale invalide").optional(),
+  secondaryColor: z.string().regex(HEX_COLOR_REGEX, "Couleur secondaire hexadécimale invalide").optional(),
+  accentColor: z.string().regex(HEX_COLOR_REGEX, "Couleur accent hexadécimale invalide").optional(),
+  canvasColor: z.string().regex(HEX_COLOR_REGEX, "Couleur canvas hexadécimale invalide").optional(),
+  surfaceColor: z.string().regex(HEX_COLOR_REGEX, "Couleur surface hexadécimale invalide").optional(),
+  fontFamily: z.string().max(100).optional(),
+  accentBadgeColor: z.string().regex(HEX_COLOR_REGEX, "Couleur badge hexadécimale invalide").optional(),
+  borderRadiusPx: z.number().min(0).max(50).optional(),
+  spacingYPx: z.number().min(0).max(100).optional(),
+  titleFontSizePx: z.number().min(8).max(100).optional(),
+  bodyFontSizePx: z.number().min(8).max(50).optional(),
+});
+
+export const storeConfigSeoSchema = z.object({
+  metaTitle: z.string().min(1).max(120).optional(),
+  metaDescription: z.string().max(400).optional(),
+  ogImage: safeMediaUrl.optional(),
+});
+
 export const storeConfigSchema = z.object({
-  shopName: z.string().min(2, "Le nom de la boutique doit comporter au moins 2 caractères").max(80),
-  shopSlug: z.string().min(3).max(50).regex(SAFE_SLUG_REGEX, "Le slug doit contenir uniquement lettres minuscules, chiffres et tirets"),
+  shopName: z.string().min(2, "Le nom de la boutique doit comporter au moins 2 caractères").max(80).optional(),
+  shopSlug: z.string().min(3).max(50).regex(SAFE_SLUG_REGEX, "Le slug doit contenir uniquement lettres minuscules, chiffres et tirets").optional(),
   shopDescription: z.string().max(500).optional(),
   wilaya: z.string().max(50).optional(),
   commune: z.string().max(50).optional(),
@@ -303,18 +324,8 @@ export const storeConfigSchema = z.object({
   returnPolicy: z.string().max(1500).optional(),
   avgPreparationTime: z.string().max(40).optional(),
   legalStatus: z.string().max(60).optional(),
-  theme: z.object({
-    sector: z.enum(["mode", "beaute", "artisanat", "tech", "maison"]),
-    primaryColor: z.string().regex(HEX_COLOR_REGEX, "Couleur primaire hexadécimale invalide"),
-    secondaryColor: z.string().regex(HEX_COLOR_REGEX, "Couleur secondaire hexadécimale invalide").optional(),
-    fontFamily: z.string().max(50),
-    accentBadgeColor: z.string().regex(HEX_COLOR_REGEX, "Couleur badge hexadécimale invalide").optional(),
-  }),
-  seo: z.object({
-    metaTitle: z.string().min(2).max(100),
-    metaDescription: z.string().min(5).max(300),
-    ogImage: safeMediaUrl.optional(),
-  }),
+  theme: storeConfigThemeSchema.optional(),
+  seo: storeConfigSeoSchema.optional(),
   socialLinks: z.object({
     instagram: z.string().max(100).optional(),
     facebook: z.string().max(100).optional(),

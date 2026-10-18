@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  Palette,
   Package,
   ShoppingBag,
   Truck,
@@ -27,6 +28,7 @@ export interface SellerNavItem {
 export function getSellerNavItems(t: TFunction): SellerNavItem[] {
   return [
     { id: "seller-nav-overview", to: "/dashboard/seller", icon: LayoutDashboard, label: t("seller.menu.overview", "Vue d'ensemble"), end: true },
+    { id: "seller-nav-studio", to: "/dashboard/seller/studio", icon: Palette, label: t("seller.menu.studio", "Studio Boutique") },
     { id: "seller-nav-catalog", to: "/dashboard/seller/catalog", icon: Package, label: t("seller.menu.catalog", "Catalogue Produits") },
     { id: "seller-nav-coupons", to: "/dashboard/seller/coupons", icon: Tag, label: t("seller.menu.coupons", "Mes coupons") },
     { id: "seller-nav-orders", to: "/dashboard/seller/orders", icon: ShoppingBag, label: t("seller.menu.orders", "Commandes") },

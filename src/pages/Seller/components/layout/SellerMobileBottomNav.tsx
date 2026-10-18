@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Palette } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export const SellerMobileBottomNav: React.FC = () => {
@@ -8,6 +8,7 @@ export const SellerMobileBottomNav: React.FC = () => {
 
   const bottomItems = [
     { to: "/dashboard/seller", icon: LayoutDashboard, label: t("Vue", "Vue"), end: true },
+    { to: "/dashboard/seller/studio", icon: Palette, label: t("Studio", "Studio") },
     { to: "/dashboard/seller/orders", icon: ShoppingBag, label: t("Commandes", "Commandes") },
     { to: "/dashboard/seller/catalog", icon: Package, label: t("Catalogue", "Catalogue") },
   ];

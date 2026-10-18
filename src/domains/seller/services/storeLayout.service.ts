@@ -122,9 +122,26 @@ export class StoreLayoutService {
         }
       }
 
+      const baseConfig = existingConfig || LegacyStoreAdapter.buildStoreConfig(sellerId, {});
       const mergedConfig: StoreConfig = {
-        ...(existingConfig || LegacyStoreAdapter.buildStoreConfig(sellerId, {})),
+        ...baseConfig,
         ...payload,
+        theme: {
+          ...baseConfig.theme,
+          ...(payload.theme || {}),
+        },
+        seo: {
+          ...baseConfig.seo,
+          ...(payload.seo || {}),
+        },
+        socialLinks: {
+          ...(baseConfig.socialLinks || {}),
+          ...(payload.socialLinks || {}),
+        },
+        contacts: {
+          ...(baseConfig.contacts || {}),
+          ...(payload.contacts || {}),
+        },
         sellerId,
         updatedAt: new Date().toISOString(),
       };

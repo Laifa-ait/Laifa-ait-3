@@ -49,6 +49,10 @@ const SellerCoupons = React.lazy(() =>
   import("../pages/Seller/SellerCoupons").then((m) => ({ default: m.SellerCoupons }))
 );
 
+const StoreBuilderGate = React.lazy(() =>
+  import("../pages/Seller/StoreBuilderGate").then((m) => ({ default: m.StoreBuilderGate }))
+);
+
 export const renderSellerRoutes = () => (
   <Route
     path="/dashboard/seller"
@@ -59,6 +63,8 @@ export const renderSellerRoutes = () => (
     }
   >
     <Route index element={<SellerOverview />} />
+    <Route path="store-builder" element={<StoreBuilderGate />} />
+    <Route path="studio" element={<StoreBuilderGate />} />
     <Route path="analytics" element={<SellerAnalytics />} />
     <Route path="catalog" element={<Catalog />} />
     <Route path="orders" element={<SellerOrders />} />

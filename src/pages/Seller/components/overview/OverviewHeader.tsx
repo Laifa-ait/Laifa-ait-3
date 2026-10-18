@@ -1,5 +1,6 @@
 import React from "react";
-import { ShieldCheck, AlertCircle } from "lucide-react";
+import { ShieldCheck, AlertCircle, Palette } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { SellerUserProfile } from "../../../../types/seller";
 
@@ -13,6 +14,7 @@ export const OverviewHeader: React.FC<OverviewHeaderProps> = ({
   outOfStockCount,
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6" id="seller-overview-header">
@@ -26,6 +28,15 @@ export const OverviewHeader: React.FC<OverviewHeaderProps> = ({
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => navigate("/dashboard/seller/studio")}
+          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs rounded-2xl shadow-md shadow-orange-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+          id="seller-header-studio-btn"
+        >
+          <Palette className="w-4 h-4" />
+          <span>{t("seller.overview.open_studio", "Ouvrir Studio Vitrine")}</span>
+        </button>
         {userProfile?.sellerTrustScore !== undefined && (
           <div
             className="flex items-center gap-2 p-1 bg-white border border-zinc-100 rounded-2xl shadow-sm cursor-help"

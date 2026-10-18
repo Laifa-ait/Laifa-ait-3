@@ -1,0 +1,91 @@
+:root {
+  --studio-orange: #F97316;
+  --studio-orange-hover: #EA580C;
+  --studio-orange-soft: #FFF1E7;
+  --studio-black: #17191C;
+  --studio-text: #344054;
+  --studio-muted: #667085;
+  --studio-background: #F7F8FA;
+  --studio-white: #FFFFFF;
+  --studio-border: #E5E7EB;
+  --studio-border-strong: #D0D5DD;
+  --studio-green: #16A34A;
+  --studio-red: #DC2626;
+  --studio-radius: 10px;
+  --studio-sidebar-width: 260px;
+  --studio-section-width: 260px;
+  --studio-inspector-width: 320px;
+  --studio-topbar-height: 64px;
+}
+
+.studio-panel {
+  background-color: var(--studio-white);
+  border-color: var(--studio-border);
+  border-radius: var(--studio-radius);
+}
+
+.studio-btn-primary {
+  height: 44px;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  background-color: var(--studio-orange);
+  color: var(--studio-white);
+  font-weight: 600;
+  border-radius: var(--studio-radius);
+  transition: background-color 0.15s ease-in-out;
+}
+
+.studio-btn-primary:hover {
+  background-color: var(--studio-orange-hover);
+}
+
+.studio-input {
+  min-height: 44px;
+  border-radius: var(--studio-radius);
+  border: 1px solid var(--studio-border-strong);
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--studio-black);
+}
+
+.studio-input:focus {
+  outline: none;
+  border-color: var(--studio-orange);
+  box-shadow: 0 0 0 2px var(--studio-orange-soft);
+}
+
+.studio-topbar {
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.studio-sidebar {
+  width: 260px;
+  min-width: 260px;
+  flex-shrink: 0;
+}
+
+.studio-section-panel {
+  width: 260px;
+  min-width: 260px;
+  flex-shrink: 0;
+}
+
+.studio-inspector {
+  width: 320px;
+  min-width: 320px;
+  flex-shrink: 0;
+}
+
+.studio-preview {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (min-width: 1200px) {
+  .studio-desktop-only {
+    display: flex !important;
+  }
+}
+

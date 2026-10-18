@@ -63,7 +63,17 @@ export const SubscriptionRequestsTable: React.FC<Props> = ({
                   <td className="py-3.5 px-4">
                     <div className="font-semibold text-zinc-900">{req.shopName}</div>
                     <div className="text-[11px] text-zinc-400 font-mono">{req.sellerEmail}</div>
-                    <div className="text-[10px] text-zinc-400">ID: {req.sellerId.substring(0, 8)}...</div>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <a
+                        href={`/store/${req.sellerId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-2 py-0.5 rounded-md transition-colors"
+                      >
+                        <ExternalLink className="w-2.5 h-2.5" />
+                        <span>Inspecter la vitrine</span>
+                      </a>
+                    </div>
                   </td>
 
                   <td className="py-3.5 px-4">

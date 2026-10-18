@@ -1,5 +1,4 @@
-import React from "react";
-import { Plus, List, BarChart3, HelpCircle } from "lucide-react";
+import { Plus, List, BarChart3, Palette } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -8,6 +7,14 @@ export const OverviewQuickActions: React.FC = () => {
   const navigate = useNavigate();
 
   const actions = [
+    {
+      label: t("seller.overview.studio_boutique", "Studio Boutique"),
+      icon: Palette,
+      color: "text-orange-600",
+      bg: "bg-orange-50",
+      onClick: () => navigate("/dashboard/seller/studio"),
+      id: "seller-quick-action-studio",
+    },
     {
       label: t("seller.overview.new_product", "Nouveau Produit"),
       icon: Plus,
@@ -19,8 +26,8 @@ export const OverviewQuickActions: React.FC = () => {
     {
       label: t("seller.overview.manage_orders", "Gérer Commandes"),
       icon: List,
-      color: "text-orange-600",
-      bg: "bg-orange-50",
+      color: "text-zinc-700",
+      bg: "bg-zinc-100",
       onClick: () => navigate("/dashboard/seller/orders"),
       id: "seller-quick-action-orders",
     },
@@ -31,14 +38,6 @@ export const OverviewQuickActions: React.FC = () => {
       bg: "bg-emerald-50",
       onClick: () => navigate("/dashboard/seller/analytics"),
       id: "seller-quick-action-analytics",
-    },
-    {
-      label: t("seller.overview.help_center", "Centre d'aide"),
-      icon: HelpCircle,
-      color: "text-zinc-600",
-      bg: "bg-zinc-50",
-      onClick: () => navigate("/dashboard/seller/support"),
-      id: "seller-quick-action-help",
     },
   ];
 

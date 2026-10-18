@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { Store, Menu } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
@@ -14,11 +14,13 @@ import { NotificationCenter } from "../../components/NotificationCenter";
 export const SellerDashboardLayout: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser, userProfile } = useAuth();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [forceTour, setForceTour] = useState(false);
 
   const navItems = getSellerNavItems(t);
+  const isStudio = location.pathname.includes("/store-builder") || location.pathname.includes("/studio");
 
   return (
     <div className="flex h-screen bg-[#fafafa] overflow-hidden" id="seller-dashboard-root">
@@ -28,50 +30,52 @@ export const SellerDashboardLayout: React.FC = () => {
         onTourEnd={() => setForceTour(false)}
       />
 
-      {/* Mobile Top Header */}
-      <div
-        className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-md border-b border-zinc-200/80 px-4 py-3 flex items-center justify-between"
-        id="seller-mobile-header"
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-zinc-950 flex items-center justify-center text-white shadow-md">
-            <Store className="w-4 h-4" />
+      {/* Mobile Top Header - Hidden in Studio to prevent stacked headers */}
+      {!isStudio && (
+        <div
+          className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 flex items-center justify-between"
+          id="seller-mobile-header"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-orange-600 flex items-center justify-center text-white shadow-sm">
+              <Store className="w-4 h-4" />
+            </div>
+            <div>
+              <h1 className="text-sm font-sans font-bold tracking-tight rtl:tracking-normal text-slate-900 leading-none">
+                {t("OLMA")}
+              </h1>
+              <p className="text-[8px] font-sans font-bold text-slate-400 uppercase tracking-widest rtl:tracking-normal mt-0.5">
+                {t("Seller Space")}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-sm font-sans font-bold tracking-tight rtl:tracking-normal text-zinc-950 leading-none">
-              {t("OLMA")}
-            </h1>
-            <p className="text-[8px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mt-0.5">
-              {t("Seller Space")}
-            </p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          {currentUser && (
+          <div className="flex items-center gap-2">
+            {currentUser && (
+              <button
+                type="button"
+                id="seller-mobile-header-store-btn"
+                onClick={() => navigate(`/store/${currentUser.uid}`)}
+                className="p-2 rounded-xl text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors border-none cursor-pointer"
+              >
+                <Store className="w-4 h-4" />
+              </button>
+            )}
+            <NotificationCenter />
             <button
               type="button"
-              id="seller-mobile-header-store-btn"
-              onClick={() => navigate(`/store/${currentUser.uid}`)}
-              className="p-2 rounded-xl text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors border-none cursor-pointer"
+              id="seller-mobile-menu-toggle-btn"
+              onClick={() => setIsMobileNavOpen(true)}
+              className="p-2 rounded-xl text-slate-600 hover:text-slate-950 hover:bg-slate-100 transition-colors border-none cursor-pointer"
             >
-              <Store className="w-4 h-4" />
+              <Menu className="w-5 h-5" />
             </button>
-          )}
-          <NotificationCenter />
-          <button
-            type="button"
-            id="seller-mobile-menu-toggle-btn"
-            onClick={() => setIsMobileNavOpen(true)}
-            className="p-2 rounded-xl text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 transition-colors border-none cursor-pointer"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Mobile Bottom Navigation */}
-      <SellerMobileBottomNav />
+      {/* Mobile Bottom Navigation - REMOVED completely in Studio per user mandate */}
+      {!isStudio && <SellerMobileBottomNav />}
 
       {/* Mobile Drawer Navigation */}
       <SellerMobileDrawer
@@ -89,16 +93,17 @@ export const SellerDashboardLayout: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto bg-transparent pt-14 lg:pt-0" id="seller-main-content">
-        {/* Desktop Top Notification Bar */}
-        <div className="hidden lg:flex items-center justify-end px-8 py-4 border-b border-zinc-200/60 bg-white/60 backdrop-blur-sm sticky top-0 z-30">
-          <div className="flex items-center gap-4">
-            <NotificationCenter />
+      <main className={`flex-1 overflow-y-auto bg-slate-50 ${isStudio ? "h-full pt-0" : "pt-14 lg:pt-0"}`} id="seller-main-content">
+        {!isStudio && (
+          <div className="hidden lg:flex items-center justify-end px-8 py-4 border-b border-slate-200/60 bg-white/80 backdrop-blur-sm sticky top-0 z-30">
+            <div className="flex items-center gap-4">
+              <NotificationCenter />
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="p-4 sm:p-8 lg:p-12 space-y-6">
-          <SellerDashboardAlerts userProfile={userProfile} />
+        <div className={isStudio ? "h-full" : "p-4 sm:p-8 lg:p-12 space-y-6"}>
+          {!isStudio && <SellerDashboardAlerts userProfile={userProfile} />}
           <Outlet />
         </div>
       </main>

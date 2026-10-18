@@ -187,8 +187,15 @@ export interface CustomPageTheme {
   sector: StoreThemeSector;
   primaryColor: string;
   secondaryColor?: string;
+  accentColor?: string;
+  canvasColor?: string;
+  surfaceColor?: string;
   fontFamily: string;
   accentBadgeColor?: string;
+  borderRadiusPx?: number;
+  spacingYPx?: number;
+  titleFontSizePx?: number;
+  bodyFontSizePx?: number;
 }
 
 export interface CustomPageSeo {

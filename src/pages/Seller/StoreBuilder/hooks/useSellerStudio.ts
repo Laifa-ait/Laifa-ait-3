@@ -138,6 +138,25 @@ export function useSellerStudio() {
     triggerAutoSave(updated);
   };
 
+  const duplicateSection = (sectionId: string) => {
+    const targetIdx = sections.findIndex((sec) => sec.id === sectionId);
+    if (targetIdx === -1) return;
+    const original = sections[targetIdx];
+    const copy: CustomPageSection = {
+      ...original,
+      id: `sec_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      title: `${original.title || original.type} (Copie)`,
+      settings: JSON.parse(JSON.stringify(original.settings || {})),
+      styles: JSON.parse(JSON.stringify(original.styles || {})),
+    };
+    const updated = [...sections];
+    updated.splice(targetIdx + 1, 0, copy);
+    const reordered = updated.map((sec, idx) => ({ ...sec, order: idx }));
+    triggerAutoSave(reordered);
+    setSelectedSectionId(copy.id);
+    toast.success("Section dupliquée");
+  };
+
   // Actions on Config & Studio Lifecycle
   const saveStoreConfig = async (updatedConfigPayload: Partial<StoreConfig>) => {
     try {
@@ -199,6 +218,7 @@ export function useSellerStudio() {
     updateSection,
     reorderSections,
     deleteSection,
+    duplicateSection,
     toggleVisibility,
     saveStoreConfig,
     publishStudio,
