@@ -1,0 +1,42 @@
+name: Olmart CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js v22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Typecheck
+        run: npm run typecheck
+
+      - name: Run Unit & Integration Tests (Vitest)
+        run: npm test
+
+      - name: Validate Firestore Security Rules
+        run: npm run lint:firestore-rules
+
+      - name: Validate Assets & Media
+        run: npm run validate:assets
+
+      - name: Build Application (Vite 8 & ESBuild)
+        run: npm run build
