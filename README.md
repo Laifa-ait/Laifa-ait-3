@@ -1,6 +1,6 @@
 # OLMART — Marketplace E-Commerce Multi-Vendeurs
 
-[![Olmart CI](https://github.com/Laifa-ait/Laifa-ait/actions/workflows/ci.yml/badge.svg)](https://github.com/Laifa-ait/Laifa-ait/actions/workflows/ci.yml)
+[![Olmart CI](https://github.com/Laifa-ait/Laifa-ait-3/actions/workflows/ci.yml/badge.svg)](https://github.com/Laifa-ait/Laifa-ait-3/actions/workflows/ci.yml)
 ![Vite 8](https://img.shields.io/badge/Vite-8.2-646CFF.svg)
 ![React 19](https://img.shields.io/badge/React-19.0-61DAFB.svg)
 ![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict_5.8-3178C6.svg)
