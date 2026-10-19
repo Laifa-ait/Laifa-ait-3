@@ -100,7 +100,7 @@
     "react-error-boundary": "^6.1.2",
     "react-helmet-async": "^3.0.0",
     "react-hot-toast": "^2.6.0",
-    "react-i18next": "^17.0.8",
+    "react-i18next": "^17.0.18",
     "react-joyride": "^3.1.0",
     "react-markdown": "^10.1.0",
     "react-quill-new": "^3.8.3",
