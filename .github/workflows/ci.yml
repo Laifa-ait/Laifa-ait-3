@@ -31,23 +31,19 @@ jobs:
         run: npm ci
 
       - name: Security Audit (Production Dependencies - High+)
-        if: !cancelled()
         run: npm run audit:ci
 
       - name: ESLint Code Quality
-        if: !cancelled()
         run: npm run lint
 
       - name: TypeScript Typecheck
-        if: !cancelled()
         run: npm run typecheck
 
       - name: Run Vitest Test Suite with Coverage
-        if: !cancelled()
         run: npm run test
 
       - name: Upload Test Coverage Report
-        if: !cancelled()
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
@@ -55,15 +51,13 @@ jobs:
           if-no-files-found: ignore
 
       - name: Validate Image Assets
-        if: !cancelled()
         run: npm run validate:assets
 
       - name: Build Application (SPA + Server)
-        if: !cancelled()
         run: npm run build
 
       - name: Upload Build Artifacts
-        if: !cancelled()
+        if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
@@ -73,7 +67,6 @@ jobs:
   docker-build-verification:
     name: "Docker Build Verification"
     needs: [lint-typecheck-test-build]
-    if: !cancelled()
     runs-on: ubuntu-latest
 
     steps:
@@ -93,7 +86,6 @@ jobs:
   firestore-concurrency-emulator:
     name: "Firestore ACID Stock Concurrency (Emulator)"
     needs: [lint-typecheck-test-build]
-    if: !cancelled()
     runs-on: ubuntu-latest
 
     steps:
