@@ -1,0 +1,711 @@
+import { Request, Response, Router } from "express";
+import { z } from "zod";
+import { admin, db } from "../../../config/firebase-admin";
+import { authenticateToken, authorizeAdmin, require2FA, AuthenticatedRequest, clearUserProfileCache } from "../../../middlewares/auth";
+import { safeLogger } from "../../../utils/logger";
+import { LocaleStorageService } from "../../../services/LocaleStorageService";
+import { PRODUCT_STATUSES } from "../../product/product.status";
+
+import { getTelemetryStats } from "../../../utils/telemetry";
+
+const router = Router();
+
+// ADMIN ONLY: Zero-cost in-memory Ring Buffer Telemetry (ACID transaction latencies & Background workers)
+router.get("/admin/telemetry", authenticateToken, authorizeAdmin, require2FA, (_req: AuthenticatedRequest, res: Response) => {
+  const stats = getTelemetryStats();
+  return res.json({ success: true, data: stats });
+});
+
+// ADMIN ONLY: DANGER ZONE - Database Wipe / Reset (Restricted to non-production environments)
+router.post("/admin/danger-zone-wipe", authenticateToken, authorizeAdmin, require2FA, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // 1. Strict Production Guard: Global database wipe is strictly forbidden in production.
+    if (process.env.NODE_ENV === "production") {
+      await db.collection("audit_logs").add({
+        type: "SECURITY_ALERT",
+        action: "DANGER_ZONE_WIPE_BLOCKED_IN_PRODUCTION",
+        adminId: req.user?.uid || "unknown",
+        ip: req.ip || req.socket.remoteAddress || "unknown",
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      return res.status(403).json({
+        error: "Opération de réinitialisation globale formellement interdite et désactivée en environnement de production.",
+      });
+    }
+
+    const { confirmationCode } = req.body;
+    const requiredSecret = process.env.DANGER_ZONE_SECRET;
+
+    // 2. Secret Verification: Must be explicitly configured in non-production environment.
+    if (!requiredSecret || requiredSecret.trim() === "") {
+      return res.status(500).json({
+        error: "DANGER_ZONE_SECRET non configuré sur le serveur. Opération impossible.",
+      });
+    }
+
+    if (!confirmationCode || typeof confirmationCode !== "string" || confirmationCode !== requiredSecret.trim()) {
+      await db.collection("audit_logs").add({
+        type: "SECURITY_ALERT",
+        action: "DANGER_ZONE_WIPE_INVALID_SECRET",
+        adminId: req.user?.uid || "unknown",
+        ip: req.ip || req.socket.remoteAddress || "unknown",
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      return res.status(400).json({ error: "Code de confirmation de sécurité invalide." });
+    }
+
+    // 3. 24h Safety Window check via system_config
+    const configDoc = await db.collection("system_config").doc("danger_zone").get();
+    if (configDoc.exists) {
+      const data = configDoc.data();
+      if (data?.wipeRequestedAt) {
+        const reqTime = data.wipeRequestedAt.toDate().getTime();
+        const now = Date.now();
+        const hoursPassed = (now - reqTime) / (1000 * 60 * 60);
+        if (hoursPassed < 24) {
+          return res.status(400).json({
+            error: `Délai de sécurité de 24h non révolu. Il reste ${Math.ceil(24 - hoursPassed)} heures avant déverrouillage.`,
+          });
+        }
+      }
+    }
+
+    const collectionsToClear = [
+      "products",
+      "orders",
+      "withdrawals",
+      "disputes",
+      "coupons",
+      "finance_logs",
+      "user_notifications",
+    ];
+
+    for (const collName of collectionsToClear) {
+      let hasMore = true;
+      let iterations = 0;
+      const MAX_BATCH_ROUNDS = 50; // Safety guard: max 22,500 docs per collection per wipe
+
+      while (hasMore && iterations < MAX_BATCH_ROUNDS) {
+        iterations++;
+        const snap = await db.collection(collName).limit(450).get();
+        if (snap.empty) {
+          hasMore = false;
+          break;
+        }
+
+        const batch = db.batch();
+        snap.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+
+        if (snap.size < 450) {
+          hasMore = false;
+        }
+      }
+    }
+
+    await db.collection("audit_logs").add({
+      type: "DANGER_ZONE",
+      action: "DATABASE_WIPE",
+      adminId: req.user?.uid || "admin",
+      details: "Nettoyage intégral effectué en environnement hors-production après validation stricte.",
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ success: true, message: "Réinitialisation des données de test effectuée avec succès." });
+  } catch (err: unknown) {
+    res.status(500).json({ error: err instanceof Error ? err.message : "Erreur interne" });
+  }
+});
+
+// GET & POST Translations Management (Authoritative Firestore backing for Cloud Run)
+router.get(["/translations", "/api/v1/translations"], async (req: Request, res: Response) => {
+  try {
+    const lang = (req.query.lang as string) || "fr";
+    if (!["fr", "ar", "en"].includes(lang)) {
+      return res.status(400).json({ error: "Langue non supportée." });
+    }
+    const translations = await LocaleStorageService.getMergedLocale(lang);
+    res.json({ success: true, translations });
+  } catch (error: unknown) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+  }
+});
+
+router.post("/admin/save-translation", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { lang, key, value, fr, ar, en } = req.body;
+    
+    // Format 1: Single language { lang, key, value }
+    if (lang && key && value !== undefined) {
+      if (!["fr", "ar", "en"].includes(lang)) {
+        return res.status(400).json({ error: "Langue non supportée." });
+      }
+      await LocaleStorageService.saveTranslation(key, { [lang]: value }, req.user?.uid);
+      return res.json({ success: true, message: "Traduction enregistrée avec succès." });
+    }
+
+    // Format 2: Multi language { key, fr, ar, en }
+    if (key && (fr !== undefined || ar !== undefined || en !== undefined)) {
+      await LocaleStorageService.saveTranslation(key, { fr, ar, en }, req.user?.uid);
+      return res.json({ success: true, message: "Traductions enregistrées avec succès." });
+    }
+
+    return res.status(400).json({ error: "Paramètres de traduction manquants ou invalides." });
+  } catch (error: unknown) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+  }
+});
+
+const getUsersQuerySchema = z.object({
+  role: z.string().optional(),
+  status: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(100),
+});
+
+const SENSITIVE_PII_KEYS = new Set([
+  "rib",
+  "documents",
+  "nif",
+  "nifNumber",
+  "nifTaxId",
+  "nis",
+  "commercialRegister",
+  "rcNumber",
+  "artisanCardNumber",
+  "twoFactorSecret",
+  "mfa",
+  "soldes",
+  "balance",
+  "internalNotes",
+]);
+
+function sanitizeAdminUserProjection(docId: string, data: Record<string, unknown>) {
+  const safeData: Record<string, unknown> = { id: docId };
+  for (const [k, v] of Object.entries(data)) {
+    const lowerKey = k.toLowerCase();
+    if (!SENSITIVE_PII_KEYS.has(k) && !lowerKey.startsWith("nif")) {
+      safeData[k] = v;
+    }
+  }
+  return safeData;
+}
+
+// ADMIN ONLY: User Management
+router.get("/admin/users", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const parseResult = getUsersQuerySchema.safeParse(req.query);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: "Paramètres de requête invalides.",
+        details: parseResult.error.errors,
+      });
+    }
+
+    const { role, status, limit } = parseResult.data;
+    let query: admin.firestore.Query<admin.firestore.DocumentData> = db.collection("users");
+
+    if (role) query = query.where("role", "==", role);
+    if (status) query = query.where("status", "==", status);
+
+    query = query.limit(limit);
+
+    const snapshot = await query.get();
+    const users = snapshot.docs.map(doc => sanitizeAdminUserProjection(doc.id, doc.data() as Record<string, unknown>));
+
+    res.json({ success: true, users });
+  } catch (error: unknown) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+  }
+});
+
+router.put("/admin/users/:id/status", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.params.id;
+    const { status, reason } = req.body;
+
+    if (!["active", "suspended", "blocked"].includes(status)) {
+      return res.status(400).json({ error: "Statut invalide" });
+    }
+
+    await db.collection("users").doc(userId).update({
+      status,
+      statusReason: reason || "",
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Invalidate refresh tokens immediately when a user is suspended or blocked
+    if (status === "suspended" || status === "blocked") {
+      try {
+        await admin.auth().revokeRefreshTokens(userId);
+      } catch (authErr: unknown) {
+        safeLogger.warn("Failed to revoke refresh tokens on user suspension", {
+          userId,
+          err: authErr instanceof Error ? authErr.message : String(authErr),
+        });
+      }
+    }
+
+    await db.collection("audit_logs").add({
+      type: "USER_MANAGEMENT",
+      action: "UPDATE_STATUS",
+      targetUserId: userId,
+      adminId: req.user?.uid || "admin",
+      details: { newStatus: status, reason },
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ success: true });
+  } catch (error: unknown) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+  }
+});
+
+router.put("/admin/users/:id/role", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.params.id;
+    const { role } = req.body;
+
+    if (!["buyer", "seller", "artisan", "property_owner", "admin", "superadmin"].includes(role)) {
+      return res.status(400).json({ error: "Rôle invalide" });
+    }
+
+    // Only superadmin can assign administrative roles
+    if ((role === "admin" || role === "superadmin") && req.user?.role !== "superadmin") {
+      return res.status(403).json({ error: "Seul un superadministrateur peut attribuer les rôles d'administration" });
+    }
+
+    await db.collection("users").doc(userId).update({
+      role,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    const isTargetAdmin = role === "admin" || role === "superadmin";
+    const customClaims = {
+      role,
+      admin: isTargetAdmin,
+      isAdmin: isTargetAdmin,
+    };
+    await admin.auth().setCustomUserClaims(userId, customClaims);
+    clearUserProfileCache(userId);
+
+    // Invalidate refresh tokens on role change/downgrade to force re-authentication with new claims
+    try {
+      await admin.auth().revokeRefreshTokens(userId);
+    } catch (authErr: unknown) {
+      safeLogger.warn("Failed to revoke refresh tokens on role update", {
+        userId,
+        err: authErr instanceof Error ? authErr.message : String(authErr),
+      });
+    }
+
+    await db.collection("audit_logs").add({
+      type: "USER_MANAGEMENT",
+      action: "UPDATE_ROLE",
+      targetUserId: userId,
+      adminId: req.user?.uid || "admin",
+      details: { newRole: role },
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ success: true, role });
+  } catch (error: unknown) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+  }
+});
+
+router.put("/admin/users/:id/client-type", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.params.id;
+    const { clientType, isB2BVerified } = req.body;
+
+    if (!["B2C", "B2B_PARTICULIER", "B2B_ENTREPRISE"].includes(clientType)) {
+      return res.status(400).json({ error: "Type de client invalide" });
+    }
+
+    await db.collection("users").doc(userId).update({
+      clientType,
+      isB2BVerified: isB2BVerified !== undefined ? Boolean(isB2BVerified) : false,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ success: true });
+  } catch (error: unknown) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+  }
+});
+
+const ALLOWED_CAPABILITIES = [
+  "property_owner",
+  "artisan",
+  "real_estate_pro",
+  "seller",
+  "delivery_agent",
+  "verified_buyer",
+  "support_agent",
+  "marketing_manager",
+] as const;
+
+function csvSafe(value: unknown): string {
+  const s = String(value ?? "");
+  const protectedValue = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+  return `"${protectedValue.replace(/"/g, '""')}"`;
+}
+
+router.put("/admin/users/:id/capabilities", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.params.id;
+    const { capabilities } = req.body;
+
+    if (!Array.isArray(capabilities) || !capabilities.every((c) => typeof c === "string")) {
+      return res.status(400).json({ error: "Les fonctionnalités (capabilities) doivent être un tableau de chaînes." });
+    }
+
+    const invalidCaps = capabilities.filter(
+      (c) => !ALLOWED_CAPABILITIES.includes(c as (typeof ALLOWED_CAPABILITIES)[number])
+    );
+    if (invalidCaps.length > 0) {
+      return res.status(400).json({
+        error: `Fonctionnalité(s) non autorisée(s): ${invalidCaps.join(", ")}. Valeurs admises: ${ALLOWED_CAPABILITIES.join(", ")}`,
+      });
+    }
+
+    await db.collection("users").doc(userId).update({
+      capabilities,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    await db.collection("audit_logs").add({
+      type: "USER_MANAGEMENT",
+      action: "UPDATE_CAPABILITIES",
+      targetUserId: userId,
+      adminId: req.user?.uid || "admin",
+      details: { capabilities },
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ success: true, capabilities });
+  } catch (error: unknown) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+  }
+});
+
+router.post("/admin/users/bulk-status", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userIds, status, reason } = req.body;
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: "Liste d'utilisateurs requise" });
+    }
+    if (userIds.length > 100) {
+      return res.status(400).json({ error: "Maximum 100 utilisateurs par opération groupée." });
+    }
+    if (!["active", "suspended", "blocked"].includes(status)) {
+      return res.status(400).json({ error: "Statut invalide" });
+    }
+
+    const batchSize = 400;
+    for (let i = 0; i < userIds.length; i += batchSize) {
+      const chunk = userIds.slice(i, i + batchSize);
+      const batch = db.batch();
+      chunk.forEach((uid: string) => {
+        const ref = db.collection("users").doc(uid);
+        batch.update(ref, {
+          status,
+          statusReason: reason || "",
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      });
+      await batch.commit();
+    }
+
+    // Invalidate refresh tokens for suspended/blocked users in bulk
+    if (status === "suspended" || status === "blocked") {
+      await Promise.allSettled(
+        userIds.map((uid: string) =>
+          admin.auth().revokeRefreshTokens(uid).catch((authErr: unknown) => {
+            safeLogger.warn("Failed to revoke refresh tokens in bulk suspension", {
+              uid,
+              err: authErr instanceof Error ? authErr.message : String(authErr),
+            });
+          })
+        )
+      );
+    }
+
+    await db.collection("audit_logs").add({
+      type: "USER_MANAGEMENT",
+      action: "BULK_UPDATE_STATUS",
+      targetUserIds: userIds,
+      adminId: req.user?.uid || "admin",
+      details: { newStatus: status, reason, count: userIds.length },
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ success: true, count: userIds.length });
+  } catch (error: unknown) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+  }
+});
+
+router.post("/admin/users/bulk-delete", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userIds } = req.body;
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: "Liste d'utilisateurs requise" });
+    }
+    if (userIds.length > 20) {
+      return res.status(400).json({ error: "La suppression en masse est limitée à 20 utilisateurs maximum par opération." });
+    }
+
+    const batchSize = 400;
+    for (let i = 0; i < userIds.length; i += batchSize) {
+      const chunk = userIds.slice(i, i + batchSize);
+      const batch = db.batch();
+      chunk.forEach((uid: string) => {
+        const ref = db.collection("users").doc(uid);
+        batch.delete(ref);
+      });
+      await batch.commit();
+    }
+
+    // Invalidate refresh tokens on bulk delete
+    await Promise.allSettled(
+      userIds.map((uid: string) =>
+        admin.auth().revokeRefreshTokens(uid).catch((authErr: unknown) => {
+          safeLogger.warn("Failed to revoke refresh tokens on bulk user deletion", {
+            uid,
+            err: authErr instanceof Error ? authErr.message : String(authErr),
+          });
+        })
+      )
+    );
+
+    await db.collection("audit_logs").add({
+      type: "USER_MANAGEMENT",
+      action: "BULK_DELETE_USERS",
+      targetUserIds: userIds,
+      adminId: req.user?.uid || "admin",
+      details: { count: userIds.length },
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ success: true, count: userIds.length });
+  } catch (error: unknown) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+  }
+});
+
+router.delete("/admin/users/:id", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const targetUserId = req.params.id;
+    const callerId = req.user?.uid;
+    const callerRole = req.user?.role || "admin";
+
+    // 1. Interdire d'agir sur soi-même
+    if (callerId && callerId === targetUserId) {
+      return res.status(400).json({ error: "Action interdite : vous ne pouvez pas supprimer votre propre compte." });
+    }
+
+    // 2. Vérifier l'utilisateur cible et la hiérarchie des rôles
+    const targetDoc = await db.collection("users").doc(targetUserId).get();
+    if (!targetDoc.exists) {
+      return res.status(404).json({ error: "Utilisateur introuvable." });
+    }
+
+    const targetData = targetDoc.data();
+    const targetRole = targetData?.role || "buyer";
+
+    const ROLE_WEIGHT: Record<string, number> = {
+      buyer: 1,
+      seller: 1,
+      artisan: 1,
+      property_owner: 1,
+      admin: 2,
+      superadmin: 3,
+    };
+
+    const callerWeight = ROLE_WEIGHT[callerRole] || 1;
+    const targetWeight = ROLE_WEIGHT[targetRole] || 1;
+
+    // Interdire d'agir sur un rôle supérieur ou égal pour un non-superadmin
+    if (targetWeight >= callerWeight && callerRole !== "superadmin") {
+      return res.status(403).json({
+        error: "Action interdite : vous n'avez pas l'autorisation d'agir sur un rôle supérieur ou équivalent.",
+      });
+    }
+
+    if (targetRole === "superadmin" && callerRole === "superadmin") {
+      return res.status(403).json({
+        error: "Action interdite : impossible de supprimer un superadministrateur.",
+      });
+    }
+
+    // 3. Supprimer le compte Auth (ou désactiver + révoquer en fallback)
+    try {
+      await admin.auth().deleteUser(targetUserId);
+    } catch (authErr: unknown) {
+      safeLogger.warn("Failed or skipped Firebase Auth deleteUser (attempting disable fallback)", {
+        targetUserId,
+        err: authErr instanceof Error ? authErr.message : String(authErr),
+      });
+      try {
+        await admin.auth().updateUser(targetUserId, { disabled: true });
+        await admin.auth().revokeRefreshTokens(targetUserId);
+      } catch {
+        // ignore if not present in Auth
+      }
+    }
+
+    // 4. Supprimer le document Firestore et invalider le cache
+    await db.collection("users").doc(targetUserId).delete();
+    clearUserProfileCache(targetUserId);
+
+    try {
+      await admin.auth().revokeRefreshTokens(targetUserId);
+    } catch {
+      // Ignored
+    }
+
+    await db.collection("audit_logs").add({
+      type: "USER_MANAGEMENT",
+      action: "DELETE_USER",
+      targetUserId,
+      targetRole,
+      adminId: callerId || "admin",
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ success: true, message: "Utilisateur supprimé avec succès." });
+  } catch (error: unknown) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+  }
+});
+
+// Audit logs
+router.get("/admin/audit-logs", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const limitNum = parseInt((req.query.limit as string) || "50", 10);
+    const snapshot = await db.collection("audit_logs").orderBy("timestamp", "desc").limit(limitNum).get();
+    const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    res.json({ success: true, logs });
+  } catch (error: unknown) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+  }
+});
+
+// CSV Exports
+router.get("/admin/reports/export", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { type } = req.query;
+    if (!type || !["orders", "sellers", "finances"].includes(type as string)) {
+      return res.status(400).json({ error: "Type de rapport invalide (orders, sellers, finances)" });
+    }
+
+    let csvContent = "";
+
+    if (type === "orders") {
+      const snap = await db.collection("orders").limit(500).get();
+      csvContent = "ID,Client,Montant,Statut,Date\n";
+      snap.docs.forEach((doc) => {
+        const d = doc.data();
+        const dateStr = d.createdAt && typeof d.createdAt.toDate === "function" ? d.createdAt.toDate().toISOString() : "";
+        csvContent += `${csvSafe(doc.id)},${csvSafe(d.customerName || "")},${csvSafe(d.totalAmount || 0)},${csvSafe(d.status || "")},${csvSafe(dateStr)}\n`;
+      });
+    } else if (type === "sellers") {
+      const snap = await db.collection("users").where("role", "==", "seller").limit(500).get();
+      csvContent = "ID,Boutique,Email,Statut,Wilaya\n";
+      snap.docs.forEach((doc) => {
+        const d = doc.data();
+        csvContent += `${csvSafe(doc.id)},${csvSafe(d.shopName || "")},${csvSafe(d.email || "")},${csvSafe(d.status || "")},${csvSafe(d.wilaya || "")}\n`;
+      });
+    } else if (type === "finances") {
+      const snap = await db.collection("withdrawals").limit(500).get();
+      csvContent = "ID,VendeurID,Montant,Statut,Date\n";
+      snap.docs.forEach((doc) => {
+        const d = doc.data();
+        const dateStr = d.createdAt && typeof d.createdAt.toDate === "function" ? d.createdAt.toDate().toISOString() : "";
+        csvContent += `${csvSafe(doc.id)},${csvSafe(d.sellerId || "")},${csvSafe(d.amount || 0)},${csvSafe(d.status || "")},${csvSafe(dateStr)}\n`;
+      });
+    }
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename=olmart_report_${type}_${Date.now()}.csv`);
+    res.status(200).send(csvContent);
+  } catch (error: unknown) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+  }
+});
+
+// Search Configuration
+router.get("/admin/search/config", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const doc = await db.collection("system_config").doc("search_engine").get();
+    const config = doc.exists ? doc.data() : { provider: "typesense", apiKey: "", nodeUrl: "" };
+
+    if (config?.apiKey) {
+      config.apiKey = "••••••••" + config.apiKey.slice(-4);
+    }
+
+    res.json({ success: true, config });
+  } catch (err: unknown) {
+    res.status(500).json({ error: err instanceof Error ? err.message : "Erreur interne" });
+  }
+});
+
+interface SearchEngineConfigUpdates {
+  provider: string;
+  nodeUrl: string;
+  indexName: string;
+  updatedAt: admin.firestore.FieldValue;
+  updatedBy: string;
+  apiKey?: string;
+}
+
+router.put("/admin/search/config", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { provider, apiKey, nodeUrl, indexName } = req.body;
+    if (!["typesense", "algolia", "firestore_native"].includes(provider)) {
+      return res.status(400).json({ error: "Moteur de recherche non supporté" });
+    }
+
+    const updates: SearchEngineConfigUpdates = {
+      provider,
+      nodeUrl: nodeUrl || "",
+      indexName: indexName || "products",
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedBy: req.user?.uid || "admin",
+    };
+
+    if (apiKey && !apiKey.startsWith("••••")) {
+      updates.apiKey = apiKey;
+    }
+
+    await db.collection("system_config").doc("search_engine").set(updates, { merge: true });
+
+    await db.collection("audit_logs").add({
+      type: "SYSTEM_CONFIG",
+      action: "UPDATE_SEARCH_ENGINE",
+      adminId: req.user?.uid || "admin",
+      details: { provider, nodeUrl },
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ success: true });
+  } catch (err: unknown) {
+    res.status(500).json({ error: err instanceof Error ? err.message : "Erreur interne" });
+  }
+});
+
+router.get("/admin/search/products-preview", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const snap = await db.collection("products").where("status", "==", PRODUCT_STATUSES.ACTIVE).limit(10).get();
+    const products = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ success: true, count: products.length, sample: products });
+  } catch (err: unknown) {
+    res.status(500).json({ error: err instanceof Error ? err.message : "Erreur interne" });
+  }
+});
+
+export default router;

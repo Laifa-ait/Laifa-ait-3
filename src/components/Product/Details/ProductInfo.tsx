@@ -1,0 +1,212 @@
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { toast } from "react-hot-toast";
+import { Product } from "../../../domains/product/product.types";
+import { Shop } from "../../../domains/seller/shop.types";
+import { useAuth } from "../../../context/AuthContext";
+import { ConfirmModal } from "../../ui/ConfirmModal";
+import { apiGet, apiPost } from "../../../lib/api";
+import { ProductHeaderBento } from "./ProductHeaderBento";
+import { ProductSellerAlcove } from "./ProductSellerAlcove";
+import { ProductVariantsStuds } from "./ProductVariantsStuds";
+import { ProductAccordionsBento } from "./ProductAccordionsBento";
+import { ProductSizeGuideModal } from "./ProductSizeGuideModal";
+import { MATERIAL_TRANSLATIONS, SEASON_TRANSLATIONS } from "./productAttributeTranslations";
+import { useDetailedAttributes } from "./useDetailedAttributes";
+
+interface InfoProps {
+  product: Product;
+  shop: Shop | null;
+  currentPrice: number;
+  selectedColor: string | null;
+  selectedSize: string | null;
+  onSelectColor: (c: string) => void;
+  onSelectSize: (s: string) => void;
+  isColorOutOfStock: (c: string) => boolean;
+  isSizeOutOfStock: (s: string) => boolean;
+  buyBoxNode?: React.ReactNode;
+}
+
+export const ProductInfo: React.FC<InfoProps> = ({
+  product,
+  shop,
+  currentPrice,
+  selectedColor,
+  selectedSize,
+  onSelectColor,
+  onSelectSize,
+  isColorOutOfStock,
+  isSizeOutOfStock,
+  buyBoxNode,
+}) => {
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const { t, i18n } = useTranslation();
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [bilingualMode, setBilingualMode] = useState(false);
+  const [openAccordion, setOpenAccordion] = useState<string | null>("description");
+
+  const currentLang = (i18n.language || "fr").split("-")[0].toLowerCase();
+  const isRTL = currentLang === "ar";
+
+  const toggleAccordion = useCallback((section: string) => {
+    setOpenAccordion((prev) => (prev === section ? null : section));
+  }, []);
+
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      if (!currentUser || !shop?.id) return;
+      try {
+        const res = await apiGet<{ following: boolean }>(
+          `/api/v1/auth/following/${encodeURIComponent(shop.id)}`
+        );
+        if (res && res.following) {
+          setIsFollowing(true);
+        }
+      } catch (err) {
+        console.error("Error checking follow status:", err);
+      }
+    };
+    void checkFollowStatus();
+  }, [currentUser, shop?.id]);
+
+  const executeFollowToggle = useCallback(async () => {
+    if (!shop?.id) return;
+    setFollowLoading(true);
+    try {
+      if (isFollowing) {
+        const res = await fetch(`/api/v1/auth/following/${encodeURIComponent(shop.id)}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) throw new Error("Unfollow failed");
+        setIsFollowing(false);
+        toast.success(t("product.details.unfollow_success") || "Désabonnement réussi.");
+      } else {
+        await apiPost(`/api/v1/auth/following/${encodeURIComponent(shop.id)}`, {
+          sellerId: shop.id,
+          name: shop.shopName || "Boutique",
+          logo: shop.logoUrl || null,
+          location: shop.wilaya || "Algérie",
+        });
+        setIsFollowing(true);
+        toast.success(t("product.details.follow_success") || "Boutique suivie !");
+      }
+    } catch (err) {
+      console.error("Error toggling follow:", err);
+      toast.error(t("product.details.error_action") || "Erreur lors de l'action.");
+    } finally {
+      setFollowLoading(false);
+      setShowConfirm(false);
+    }
+  }, [isFollowing, shop, t]);
+
+  const handleFollowToggle = useCallback(() => {
+    if (!currentUser) {
+      navigate("/login");
+      return;
+    }
+    if (!shop?.id || followLoading) return;
+    if (isFollowing) {
+      setShowConfirm(true);
+      return;
+    }
+    void executeFollowToggle();
+  }, [currentUser, followLoading, isFollowing, navigate, shop?.id, executeFollowToggle]);
+
+  const getTranslatedMaterials = useCallback((): string | null => {
+    if (!product.materials || product.materials.length === 0) return null;
+    return product.materials
+      .map((m) => (MATERIAL_TRANSLATIONS[m]?.[currentLang] ? MATERIAL_TRANSLATIONS[m][currentLang] : m))
+      .join(", ");
+  }, [product.materials, currentLang]);
+
+  const getTranslatedSeason = useCallback((): string | null => {
+    if (!product.season) return null;
+    if (SEASON_TRANSLATIONS[product.season]?.[currentLang]) {
+      return SEASON_TRANSLATIONS[product.season][currentLang];
+    }
+    return product.season;
+  }, [product.season, currentLang]);
+
+  const isClothing = useMemo(() => {
+    const cat = (product.category || "").toLowerCase();
+    return (
+      cat.includes("mode") ||
+      cat.includes("vêtement") ||
+      cat.includes("habit") ||
+      cat.includes("chaussure") ||
+      cat.includes("textile") ||
+      Boolean(product.sizeType && product.sizeType === "clothing")
+    );
+  }, [product.category, product.sizeType]);
+
+  const detailedAttributes = useDetailedAttributes(product);
+
+  return (
+    <div className="space-y-6" dir={isRTL ? "rtl" : "ltr"}>
+      <ConfirmModal
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={executeFollowToggle}
+        title={t("product.details.unfollow_confirm_title") || "Se désabonner"}
+        message={
+          t("product.details.unfollow_confirm_message") ||
+          "Voulez-vous vraiment ne plus suivre cette boutique ?"
+        }
+      />
+
+      <ProductHeaderBento
+        product={product}
+        shop={shop}
+        currentPrice={currentPrice}
+        bilingualMode={bilingualMode}
+        onToggleBilingualMode={() => setBilingualMode((prev) => !prev)}
+        currentLang={currentLang}
+      />
+
+      <ProductVariantsStuds
+        product={product}
+        selectedColor={selectedColor}
+        selectedSize={selectedSize}
+        onSelectColor={onSelectColor}
+        onSelectSize={onSelectSize}
+        isColorOutOfStock={isColorOutOfStock}
+        isSizeOutOfStock={isSizeOutOfStock}
+        onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
+      />
+
+      {buyBoxNode}
+
+      <ProductAccordionsBento
+        product={product}
+        shop={shop}
+        currentLang={currentLang}
+        bilingualMode={bilingualMode}
+        openAccordion={openAccordion}
+        onToggleAccordion={toggleAccordion}
+        onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
+        isClothing={isClothing}
+        getTranslatedMaterials={getTranslatedMaterials}
+        getTranslatedSeason={getTranslatedSeason}
+        detailedAttributes={detailedAttributes}
+      />
+
+      <ProductSellerAlcove
+        shop={shop}
+        product={product}
+        isFollowing={isFollowing}
+        followLoading={followLoading}
+        onFollowToggle={handleFollowToggle}
+      />
+
+      <ProductSizeGuideModal
+        isOpen={isSizeGuideOpen}
+        onClose={() => setIsSizeGuideOpen(false)}
+      />
+    </div>
+  );
+};

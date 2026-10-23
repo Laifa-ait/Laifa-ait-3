@@ -1,0 +1,174 @@
+import rateLimit from "express-rate-limit";
+import { RedisStore } from "rate-limit-redis";
+import Redis from "ioredis";
+import { safeLogger } from "../utils/logger";
+
+let redisClient: Redis | null = null;
+
+/**
+ * Creates a distributed RedisStore if REDIS_URL is configured in environment.
+ * Enables fail-safe rate limiting across multi-instance Cloud Run containers.
+ * Gracefully falls back to standard memory store if REDIS_URL is unconfigured or Redis fails.
+ */
+function createStore(prefix: string) {
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) {
+    if (process.env.NODE_ENV === "production") {
+      safeLogger.info("[Olmart RateLimiter] REDIS_URL not configured. Running with robust per-instance memory store fallback.");
+    }
+    return undefined; // Default memory store
+  }
+
+  try {
+    if (!redisClient) {
+      redisClient = new Redis(redisUrl, {
+        maxRetriesPerRequest: 2,
+        enableOfflineQueue: false,
+        lazyConnect: false,
+      });
+
+      redisClient.on("error", (err) => {
+        safeLogger.error("[Olmart RateLimiter] ❌ Redis connection error in rate limiter", {
+          err: err.message,
+        });
+      });
+
+      redisClient.on("connect", () => {
+        safeLogger.info("[Olmart RateLimiter] 🟢 Connected to Redis for multi-instance rate limiting");
+      });
+    }
+
+    type RedisReply = boolean | number | string | Array<boolean | number | string>;
+
+    return new RedisStore({
+      sendCommand: async (...args: string[]): Promise<RedisReply> => {
+        if (!redisClient || redisClient.status !== "ready") {
+          throw new Error("Redis client not ready");
+        }
+        const reply = await redisClient.call(args[0], ...args.slice(1));
+        return reply as RedisReply;
+      },
+      prefix: `olmart_rl:${prefix}:`,
+    });
+  } catch (err: unknown) {
+    safeLogger.error("[Olmart RateLimiter] ❌ Failed to initialize Redis store, falling back to memory store", {
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return undefined;
+  }
+}
+
+export const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // General rate limit for API routes
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createStore("api"),
+  handler: (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.status(429).json({ success: false, error: "Trop de requêtes, veuillez réessayer dans une minute." });
+  },
+});
+
+export const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Max 10 auth attempts per 15 min (anti-brute force)
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createStore("login"),
+  handler: (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.status(429).json({ success: false, error: "Trop de tentatives de connexion, veuillez réessayer dans 15 minutes." });
+  },
+});
+
+export const pinLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 15, // Max 15 2FA/PIN attempts per 5 min
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createStore("pin"),
+  handler: (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.status(429).json({ success: false, error: "Trop de tentatives de vérification, veuillez réessayer dans 5 minutes." });
+  },
+});
+
+export const strictLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 60, // Strict limit for sensitive endpoints (payments, exports, KYC, danger zone, sensitive real estate)
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createStore("strict"),
+  handler: (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.status(429).json({ success: false, error: "Trop de requêtes sur cette opération sensible, veuillez réessayer dans une minute." });
+  },
+});
+
+export const adminLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 300, // Rate limit for authenticated back-office admin operations, section management & dashboard polling
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createStore("admin"),
+  handler: (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.status(429).json({ success: false, error: "Trop de requêtes administratives, veuillez patienter un instant." });
+  },
+});
+
+export const debugLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 20,
+  store: createStore("debug"),
+  handler: (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.status(429).json({ success: false, error: "Trop de requêtes debug." });
+  },
+});
+
+export const chatLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 60, // Max 60 chat messages per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createStore("chat"),
+  handler: (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.status(429).json({ success: false, error: "Trop de messages envoyés, veuillez patienter un instant." });
+  },
+});
+
+export const autoContactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 heure
+  max: 15, // Max 15 consultations de contact par heure par IP/UID
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { keyGeneratorIpFallback: false },
+  store: createStore("auto_contact"),
+  keyGenerator: (req) => {
+    const userUid = (req as { user?: { uid?: string } }).user?.uid;
+    return userUid ? `uid_${userUid}` : (req.ip || "unknown");
+  },
+  handler: (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.status(429).json({ success: false, error: "Limite de consultation de coordonnées atteinte (protection anti-scraping). Veuillez réessayer plus tard." });
+  },
+});
+
+export const webhookLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 1200, // High capacity limit to prevent payment gateway IP throttling during promotional bursts
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createStore("webhook"),
+  handler: (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.status(429).json({ success: false, error: "Trop de requêtes webhook." });
+  },
+});
+
+
+
+

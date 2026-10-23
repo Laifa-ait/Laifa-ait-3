@@ -1,0 +1,168 @@
+import React, { useState, useEffect } from 'react';
+import { OlmaImmoShell } from '../../components/OlmaImmo/OlmaImmoShell';
+import { UnifiedMessagingDrawer } from '../../components/Chat/UnifiedMessagingDrawer';
+import { Booking } from '../../types/realEstate';
+import { InitiateConversationDTO } from '../../types/messaging';
+import { apiGet, apiPut } from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
+import { Palmtree, UserX, LogIn } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+import { BookingCard } from '../../components/OlmaImmo/Bookings/BookingCard';
+import { BookingFilterTabs } from '../../components/OlmaImmo/Bookings/BookingFilterTabs';
+import { BookingEmptyState } from '../../components/OlmaImmo/Bookings/BookingEmptyState';
+
+export const MyBookings: React.FC = () => {
+  const { currentUser, loading: authLoading } = useAuth();
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('all');
+
+  const [activeChatContext, setActiveChatContext] = useState<InitiateConversationDTO | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!currentUser) {
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchMyBookings = async () => {
+      setIsLoading(true);
+      try {
+        const res = await apiGet<{ success: boolean; data?: Booking[] }>('/api/v1/real-estate/my-bookings');
+        if (res.success && res.data) {
+          setBookings(res.data);
+        }
+      } catch {
+        toast.error('Impossible de charger vos réservations');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMyBookings();
+  }, [currentUser, authLoading]);
+
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!window.confirm('Voulez-vous vraiment annuler cette réservation ?')) return;
+
+    try {
+      const res = await apiPut<{ success: boolean }>(`/api/v1/real-estate/bookings/${bookingId}/status`, {
+        status: 'cancelled',
+      });
+      if (res.success) {
+        toast.success('Réservation annulée');
+        setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'cancelled' } : b)));
+      }
+    } catch {
+      toast.error("Erreur lors de l'annulation");
+    }
+  };
+
+  const handleOpenChat = (booking: Booking) => {
+    if (!booking.ownerId) return;
+    setActiveChatContext({
+      type: 'REAL_ESTATE_INQUIRY',
+      recipientId: booking.ownerId,
+      context: {
+        propertyId: booking.propertyId,
+        referenceTitle: booking.propertyTitle || 'Hébergement',
+        referenceImageUrl: booking.propertyImage,
+        referencePriceDZD: booking.totalPriceDZD,
+      },
+      initialMessage: `Bonjour, je vous contacte concernant ma réservation du ${booking.startDate} au ${booking.endDate}.`,
+    });
+    setIsChatOpen(true);
+  };
+
+  if (!currentUser && !authLoading) {
+    return (
+      <OlmaImmoShell>
+        <div className="max-w-md mx-auto py-24 text-center space-y-4 flex-1 flex flex-col items-center justify-center">
+          <div className="w-16 h-16 rounded-3xl bg-slate-100 text-[#1E3A8A] flex items-center justify-center mb-2 border border-slate-200">
+            <UserX className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-[#1E3A8A] font-['Playfair_Display',serif]">
+            Connexion requise
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600">
+            Veuillez vous connecter à votre compte Olmart pour retrouver vos réservations de séjours et locations.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('auth:openModal', { detail: { mode: 'login' } }))}
+            className="inline-flex items-center gap-2 px-6 py-3.5 bg-[#1E3A8A] hover:bg-blue-900 text-white font-bold text-xs rounded-xl uppercase tracking-wider transition shadow-md cursor-pointer mt-2"
+          >
+            <LogIn className="w-4 h-4 text-[#F59E0B]" />
+            <span>Se connecter / S'inscrire</span>
+          </button>
+        </div>
+      </OlmaImmoShell>
+    );
+  }
+
+  const counts = {
+    all: bookings.length,
+    upcoming: bookings.filter((b) => b.status === 'confirmed' || b.status === 'pending').length,
+    completed: bookings.filter((b) => b.status === 'completed').length,
+    cancelled: bookings.filter((b) => b.status === 'cancelled' || b.status === 'rejected').length,
+  };
+
+  const filteredBookings = bookings.filter((b) => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'upcoming') return b.status === 'confirmed' || b.status === 'pending';
+    if (activeTab === 'completed') return b.status === 'completed';
+    if (activeTab === 'cancelled') return b.status === 'cancelled' || b.status === 'rejected';
+    return true;
+  });
+
+  return (
+    <OlmaImmoShell className="max-w-5xl py-8 space-y-6">
+      <div className="space-y-1">
+        <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1E3A8A] uppercase tracking-wider">
+          <Palmtree className="w-4 h-4 text-[#F59E0B]" />
+          <span>Séjours & Vacances</span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-[#1E3A8A] font-['Playfair_Display',serif]">
+          Mes Réservations de Séjours
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-600">
+          Retrouvez l'historique et le suivi de vos locations vacances à travers l'Algérie.
+        </p>
+      </div>
+
+      <BookingFilterTabs activeTab={activeTab} onTabChange={setActiveTab} counts={counts} />
+
+      {isLoading ? (
+        <div className="space-y-4 animate-pulse py-8">
+          <div className="h-44 bg-slate-200/80 rounded-3xl" />
+          <div className="h-44 bg-slate-200/80 rounded-3xl" />
+        </div>
+      ) : filteredBookings.length === 0 ? (
+        <BookingEmptyState activeTab={activeTab} />
+      ) : (
+        <div className="space-y-4">
+          {filteredBookings.map((booking) => (
+            <BookingCard
+              key={booking.id}
+              booking={booking}
+              onOpenChat={handleOpenChat}
+              onCancelBooking={handleCancelBooking}
+            />
+          ))}
+        </div>
+      )}
+
+      {isChatOpen && activeChatContext && (
+        <UnifiedMessagingDrawer
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          initialContext={activeChatContext}
+        />
+      )}
+    </OlmaImmoShell>
+  );
+};

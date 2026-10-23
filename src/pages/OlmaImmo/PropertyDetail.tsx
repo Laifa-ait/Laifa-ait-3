@@ -1,0 +1,238 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { OlmaImmoShell } from '../../components/OlmaImmo/OlmaImmoShell';
+import { ImageGalleryLightbox } from '../../components/OlmaImmo/ImageGalleryLightbox';
+import { VisitRequestModal } from '../../components/OlmaImmo/VisitRequestModal';
+import { BookingRequestModal } from '../../components/OlmaImmo/BookingRequestModal';
+import { UnifiedMessagingDrawer } from '../../components/Chat/UnifiedMessagingDrawer';
+import { PublicPropertyDTO, PublicOwnerProfile, PropertyResponse, PropertyListResponse } from '../../types/realEstate';
+import { apiGet } from '../../lib/api';
+import { isFavoritePropertyId, toggleFavoritePropertyId } from '../../utils/realEstateFavorites';
+import toast from 'react-hot-toast';
+import { Building2, ArrowLeft } from 'lucide-react';
+
+import { DetailHeader } from '../../components/OlmaImmo/PropertyDetail/DetailHeader';
+import { DetailGallery } from '../../components/OlmaImmo/PropertyDetail/DetailGallery';
+import { DetailSectionNav, DetailTabKey } from '../../components/OlmaImmo/PropertyDetail/DetailSectionNav';
+import { DetailPropertyAccordion } from '../../components/OlmaImmo/PropertyDetail/DetailPropertyAccordion';
+import { DetailSidebar } from '../../components/OlmaImmo/PropertyDetail/DetailSidebar';
+import { DetailSimilar } from '../../components/OlmaImmo/PropertyDetail/DetailSimilar';
+import { DetailMobileActionBar } from '../../components/OlmaImmo/PropertyDetail/DetailMobileActionBar';
+
+export const PropertyDetail: React.FC = () => {
+  const { t } = useTranslation();
+  const { id } = useParams<{ id: string }>();
+  const [property, setProperty] = useState<PublicPropertyDTO | null>(null);
+  const [similarProperties, setSimilarProperties] = useState<PublicPropertyDTO[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFav, setIsFav] = useState(false);
+  const [activeTab, setActiveTab] = useState<DetailTabKey>('all');
+  const [ownerProfile, setOwnerProfile] = useState<PublicOwnerProfile | null>(null);
+  const [isOwnerLoading, setIsOwnerLoading] = useState(false);
+  const [ownerError, setOwnerError] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [isDirectChatOpen, setIsDirectChatOpen] = useState(false);
+
+  const [bookingSummary, setBookingSummary] = useState({
+    startDate: '', endDate: '', totalNights: 0, guests: { adults: 2, children: 1 },
+    subtotal: 0, cleaningFee: 10000, serviceFee: 5000, totalPriceDZD: 0,
+  });
+
+  useEffect(() => {
+    if (!id) return;
+    const fetchPropertyData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await apiGet<PropertyResponse>(`/api/v1/real-estate/properties/${id}`);
+        if (response.success && response.data) {
+          setProperty(response.data);
+          setIsFav(isFavoritePropertyId(response.data.id));
+
+          setIsOwnerLoading(true);
+          setOwnerError(false);
+          apiGet<{ success: boolean; data?: PublicOwnerProfile }>(`/api/v1/real-estate/properties/${response.data.id}/owner`)
+            .then((res) => { if (res.success && res.data) setOwnerProfile(res.data); else setOwnerError(true); })
+            .catch(() => setOwnerError(true))
+            .finally(() => setIsOwnerLoading(false));
+
+          try {
+            const similarRes = await apiGet<PropertyListResponse>(`/api/v1/real-estate/properties/${response.data.id}/similar`);
+            if (similarRes.success && similarRes.data) setSimilarProperties(similarRes.data);
+          } catch {
+            void 0;
+          }
+        } else {
+          toast.error(t('immo_toast_not_found', 'Annonce introuvable'));
+        }
+      } catch {
+        toast.error(t('immo_toast_load_error', "Erreur lors du chargement de l'annonce"));
+      } finally {
+        setIsLoading(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    fetchPropertyData();
+  }, [id, t]);
+
+  if (isLoading) {
+    return (
+      <OlmaImmoShell showBottomNav={false}>
+        <div className="py-12 flex-1 w-full animate-pulse space-y-6">
+          <div className="h-10 bg-slate-200/80 rounded-2xl w-1/4" />
+          <div className="h-96 bg-slate-200/80 rounded-3xl" />
+        </div>
+      </OlmaImmoShell>
+    );
+  }
+
+  if (!property) {
+    return (
+      <OlmaImmoShell showBottomNav={false}>
+        <div className="max-w-md mx-auto py-24 text-center space-y-4 flex-1 flex flex-col items-center justify-center">
+          <div className="w-16 h-16 rounded-3xl bg-slate-100 text-[#1E3A8A] flex items-center justify-center mb-2 border border-slate-200">
+            <Building2 className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-[#1E3A8A] font-['Playfair_Display',serif]">
+            {t('immo_detail_not_found_title', 'Annonce introuvable')}
+          </h2>
+          <p className="text-sm text-slate-600">
+            {t('immo_detail_not_found_desc', "Cette annonce n'existe plus ou a été retirée.")}
+          </p>
+          <Link to="/immo" className="inline-flex items-center gap-2 px-6 py-3 bg-[#1E3A8A] hover:bg-blue-900 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer mt-2 uppercase tracking-wider">
+            <ArrowLeft className="w-4 h-4 text-[#F59E0B] rtl:rotate-180" />
+            <span>{t('immo_action_explore_listings', 'Explorer les annonces')}</span>
+          </Link>
+        </div>
+      </OlmaImmoShell>
+    );
+  }
+
+  const handleFavoriteClick = () => {
+    const updated = toggleFavoritePropertyId(property.id);
+    setIsFav(updated);
+    toast.success(updated ? t('immo_toast_fav_added', 'Ajouté à vos favoris') : t('immo_toast_fav_removed', 'Retiré des favoris'));
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({ title: property.title, url: window.location.href }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success(t('immo_toast_link_copied', 'Lien copié !'));
+    }
+  };
+
+  const legalCount = property.legalPapers?.length || (property.legalPaperType ? 1 : 0);
+  const featuresCount = property.features?.length || 0;
+
+  return (
+    <OlmaImmoShell
+      className="py-6 space-y-6 pb-24 lg:pb-8"
+      bottomNav={
+        <DetailMobileActionBar
+          property={property}
+          ownerProfile={ownerProfile}
+          onOpenVisitModal={() => setIsVisitModalOpen(true)}
+          onOpenBookingModal={() => setIsBookingModalOpen(true)}
+          onOpenDirectChat={() => setIsDirectChatOpen(true)}
+        />
+      }
+    >
+      <DetailHeader
+        property={property}
+        isFav={isFav}
+        onFavoriteClick={handleFavoriteClick}
+        onShare={handleShare}
+      />
+
+      <DetailGallery
+        images={property.images || []}
+        title={property.title}
+        selectedImageIndex={selectedImageIndex}
+        onSelectImage={setSelectedImageIndex}
+        onOpenLightbox={() => setIsLightboxOpen(true)}
+      />
+
+      {/* Navigation par onglets / Rangement intelligent */}
+      <DetailSectionNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        legalCount={legalCount}
+        featuresCount={featuresCount}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8">
+          <DetailPropertyAccordion
+            property={property}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+        </div>
+
+        <div className="lg:col-span-4">
+          <DetailSidebar
+            property={property}
+            ownerProfile={ownerProfile}
+            isOwnerLoading={isOwnerLoading}
+            ownerError={ownerError}
+            onOpenVisitModal={() => setIsVisitModalOpen(true)}
+            onOpenBookingModal={() => setIsBookingModalOpen(true)}
+            onOpenDirectChat={() => setIsDirectChatOpen(true)}
+            onBookingSummaryChange={setBookingSummary}
+          />
+        </div>
+      </div>
+
+      <DetailSimilar similarProperties={similarProperties} />
+
+      <ImageGalleryLightbox
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        images={property.images || []}
+        currentIndex={selectedImageIndex}
+        onIndexChange={setSelectedImageIndex}
+        title={property.title}
+      />
+
+      <VisitRequestModal
+        propertyId={property.id}
+        propertyTitle={property.title}
+        isOpen={isVisitModalOpen}
+        onClose={() => setIsVisitModalOpen(false)}
+      />
+
+      <BookingRequestModal
+        propertyId={property.id}
+        propertyTitle={property.title}
+        propertyLocation={`${property.location.commune}, ${property.location.wilaya}`}
+        propertyImage={property.images?.[0] || ''}
+        bookingSummary={bookingSummary}
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+      />
+
+      {isDirectChatOpen && (
+        <UnifiedMessagingDrawer
+          isOpen={isDirectChatOpen}
+          onClose={() => setIsDirectChatOpen(false)}
+          initialContext={{
+            type: 'REAL_ESTATE_INQUIRY',
+            recipientId: property.id,
+            context: {
+              propertyId: property.id,
+              referenceTitle: property.title,
+              referenceImageUrl: property.images?.[0],
+              referencePriceDZD: property.price,
+            },
+            initialMessage: t('immo_chat_initial_message', 'Bonjour, je suis intéressé par votre annonce "{{title}}".', { title: property.title }),
+          }}
+        />
+      )}
+    </OlmaImmoShell>
+  );
+};

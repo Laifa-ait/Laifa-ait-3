@@ -1,0 +1,204 @@
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  Auth,
+} from "firebase/auth";
+import { getStorage, FirebaseStorage } from "firebase/storage";
+import { initializeFirestore, getFirestore, Firestore, setLogLevel } from "firebase/firestore";
+import { safeLogger } from "../utils/logger";
+
+// Safely resolve optional firebase-applet-config.json via eager glob (prevents build failure if absent)
+const configModules = import.meta.glob<{ default: Record<string, string> }>("../../firebase-applet-config.json", {
+  eager: true,
+});
+const firebaseAppletConfig = configModules["../../firebase-applet-config.json"]?.default || null;
+
+const isTestEnv =
+  (typeof process !== "undefined" && process.env?.NODE_ENV === "test") ||
+  (typeof import.meta !== "undefined" && import.meta.env?.MODE === "test");
+
+const isStringAndValid = (val: unknown): val is string => 
+  typeof val === "string" && 
+  val.trim().length > 0 && 
+  val !== "undefined" && 
+  val !== "null" && 
+  !val.includes("YOUR_") && 
+  !val.includes("your_");
+
+const rawApiKey = import.meta.env?.VITE_FIREBASE_API_KEY || firebaseAppletConfig?.apiKey;
+const rawAuthDomain = import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig?.authDomain;
+const rawProjectId = import.meta.env?.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig?.projectId;
+const rawStorageBucket = import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET || firebaseAppletConfig?.storageBucket;
+const rawMessagingSenderId = import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig?.messagingSenderId;
+const rawAppId = import.meta.env?.VITE_FIREBASE_APP_ID || firebaseAppletConfig?.appId;
+
+const apiKey = isStringAndValid(rawApiKey) ? rawApiKey.trim() : (isTestEnv ? "AIzaSyFakeTestKeyForUnitTestsOnly" : "");
+const authDomain = isStringAndValid(rawAuthDomain) ? rawAuthDomain.trim() : (isTestEnv ? "test-app.firebaseapp.com" : "");
+const projectId = isStringAndValid(rawProjectId) ? rawProjectId.trim() : (isTestEnv ? "test-app" : "");
+const storageBucket = isStringAndValid(rawStorageBucket) ? rawStorageBucket.trim() : (isTestEnv ? "test-app.firebasestorage.app" : "");
+const messagingSenderId = isStringAndValid(rawMessagingSenderId) ? rawMessagingSenderId.trim() : (isTestEnv ? "00000000000" : "");
+const appId = isStringAndValid(rawAppId) ? rawAppId.trim() : (isTestEnv ? "1:00000000000:web:000000000000" : "");
+
+const clientConfig = {
+  apiKey,
+  authDomain,
+  projectId,
+  storageBucket,
+  messagingSenderId,
+  appId,
+  measurementId: import.meta.env?.VITE_FIREBASE_MEASUREMENT_ID || firebaseAppletConfig?.measurementId,
+};
+
+const requiredVars = ["VITE_FIREBASE_API_KEY", "VITE_FIREBASE_AUTH_DOMAIN", "VITE_FIREBASE_PROJECT_ID", "VITE_FIREBASE_APP_ID"];
+if (!isTestEnv) {
+  const missingVars: string[] = [];
+  for (const key of requiredVars) {
+    const val = import.meta.env?.[key];
+    if (!isStringAndValid(val)) {
+      missingVars.push(key);
+    }
+  }
+  if (missingVars.length > 0) {
+    const msg = `[Firebase Client] ⚠️ Variables d'environnement Firebase non configurées : ${missingVars.join(", ")}.`;
+    safeLogger.warn(msg);
+  }
+}
+
+let app: FirebaseApp;
+let auth: Auth;
+let storage: FirebaseStorage;
+let db: Firestore;
+
+try {
+  app = getApps().length === 0 ? initializeApp(clientConfig) : getApp();
+  auth = getAuth(app);
+  storage = getStorage(app);
+
+  if (!isTestEnv) {
+    try {
+      setLogLevel("error");
+    } catch {
+      // ignore
+    }
+  }
+
+  const customDbId =
+    import.meta.env?.VITE_FIREBASE_DATABASE_ID ||
+    firebaseAppletConfig?.firestoreDatabaseId ||
+    (typeof process !== "undefined" ? process.env?.FIREBASE_DATABASE_ID : undefined) ||
+    "ai-studio-217f6d79-c758-4e14-845d-737228cd3915";
+
+  const effectiveDbId = customDbId;
+  try {
+    db = initializeFirestore(
+      app,
+      {
+        experimentalForceLongPolling: true,
+      },
+      effectiveDbId !== "(default)" ? effectiveDbId : undefined
+    );
+  } catch {
+    db = effectiveDbId !== "(default)" ? getFirestore(app, effectiveDbId) : getFirestore(app);
+  }
+} catch (err: unknown) {
+  const errorObj = err as { code?: string; message?: string };
+  if (errorObj?.code === "app/duplicate-app") {
+    app = getApp();
+    auth = getAuth(app);
+    storage = getStorage(app);
+    const customDbId =
+      import.meta.env?.VITE_FIREBASE_DATABASE_ID ||
+      firebaseAppletConfig?.firestoreDatabaseId;
+    db = customDbId && customDbId !== "(default)" ? getFirestore(app, customDbId) : getFirestore(app);
+  } else {
+    const errorMsg = errorObj?.message || String(err);
+    safeLogger.error("[Firebase Client] ❌ Échec critique de l'initialisation Firebase, fallback actif pour éviter l'écran blanc", { err: errorMsg });
+    app = (getApps()[0] || {}) as FirebaseApp;
+    auth = {} as Auth;
+    storage = {} as FirebaseStorage;
+    db = {} as Firestore;
+  }
+}
+
+export { app, auth, storage, db };
+
+// FINOPS FIX: Emulators disabled for AI Studio preview environment
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
+
+// Auth helpers
+
+// Firestore Error Handler
+export const OperationType = {
+  CREATE: "create",
+  UPDATE: "update",
+  DELETE: "delete",
+  LIST: "list",
+  GET: "get",
+  WRITE: "write",
+} as const;
+export type OperationType = (typeof OperationType)[keyof typeof OperationType];
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo:
+        auth.currentUser?.providerData?.map((provider) => ({
+          providerId: provider.providerId,
+          email: provider.email,
+        })) || [],
+    },
+    operationType,
+    path,
+  };
+  safeLogger.error("Firestore Error", { errInfo: JSON.stringify(errInfo) });
+  throw new Error(JSON.stringify(errInfo));
+}
+
+// Timeout helper to avoid indefinite hanging on slow connection
+export function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs = 15000,
+  errorMsg = "La requête de base de données a expiré. Veuillez vérifier votre connexion."
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(errorMsg));
+    }, timeoutMs);
+
+    promise
+      .then((res) => {
+        clearTimeout(timer);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+

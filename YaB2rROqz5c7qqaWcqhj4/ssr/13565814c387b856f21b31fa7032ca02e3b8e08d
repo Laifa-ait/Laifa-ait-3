@@ -1,0 +1,72 @@
+__vite_ssr_exportName__("ALGERIA_PHONE_REGEX", () => { try { return ALGERIA_PHONE_REGEX } catch {} });
+__vite_ssr_exportName__("ALGERIA_MOBILE_STRICT_REGEX", () => { try { return ALGERIA_MOBILE_STRICT_REGEX } catch {} });
+__vite_ssr_exportName__("cleanPhoneNumber", () => { try { return cleanPhoneNumber } catch {} });
+__vite_ssr_exportName__("isValidAlgerianPhone", () => { try { return isValidAlgerianPhone } catch {} });
+__vite_ssr_exportName__("isValidAlgerianMobile", () => { try { return isValidAlgerianMobile } catch {} });
+__vite_ssr_exportName__("normalizeAlgerianPhone", () => { try { return normalizeAlgerianPhone } catch {} });
+__vite_ssr_exportName__("toE164AlgerianPhone", () => { try { return toE164AlgerianPhone } catch {} });
+__vite_ssr_exportName__("formatPhoneDisplay", () => { try { return formatPhoneDisplay } catch {} });
+/**
+* OLMART — Validateur & Normalisateur Téléphone Algérien Centralisé
+* Prise en charge universelle :
+* - Mobiles : 05, 06, 07 (ex: 0550123456, 0661123456, 0770123456)
+* - Fixes : 02X, 03X, 04X, 09X (ex: 021, 023, 031, etc.)
+* - International : +213 ou 00213 (ex: +213550123456, 0021321123456)
+*/
+// Regex de validation tolérante (avec ou sans espaces / tirets / préfixe international)
+const ALGERIA_PHONE_REGEX = /^(?:(?:\+|00)213|0)([2-79]\d{8})$/;
+// Regex stricte pour les numéros de mobile uniquement (SMS OTP, contact WhatsApp)
+const ALGERIA_MOBILE_STRICT_REGEX = /^(?:(?:\+|00)213|0)([5-7]\d{8})$/;
+/**
+* Nettoie une chaîne de caractères en ne conservant que les chiffres et le '+'
+*/
+function cleanPhoneNumber(phone) {
+	if (!phone || typeof phone !== "string") return "";
+	return phone.replace(/[\s\-.()]/g, "").trim();
+};
+/**
+* Vérifie si le numéro est un numéro de téléphone algérien valide (mobile ou fixe).
+*/
+function isValidAlgerianPhone(phone) {
+	const cleaned = cleanPhoneNumber(phone);
+	return ALGERIA_PHONE_REGEX.test(cleaned);
+};
+/**
+* Vérifie si le numéro est un numéro mobile algérien valide (05, 06, 07).
+*/
+function isValidAlgerianMobile(phone) {
+	const cleaned = cleanPhoneNumber(phone);
+	return ALGERIA_MOBILE_STRICT_REGEX.test(cleaned);
+};
+/**
+* Normalise un numéro algérien au format national standard à 10 chiffres (ex: "0550123456").
+* Retourne une chaîne vide si le format est invalide.
+*/
+function normalizeAlgerianPhone(phone) {
+	const cleaned = cleanPhoneNumber(phone);
+	const match = cleaned.match(ALGERIA_PHONE_REGEX);
+	if (!match || !match[1]) return "";
+	return `0${match[1]}`;
+};
+/**
+* Normalise un numéro algérien au format international E.164 (ex: "+213550123456").
+* Utile pour les SMS Twilio/Firebase et les liens WhatsApp `https://wa.me/213550123456`.
+*/
+function toE164AlgerianPhone(phone) {
+	const cleaned = cleanPhoneNumber(phone);
+	const match = cleaned.match(ALGERIA_PHONE_REGEX);
+	if (!match || !match[1]) return "";
+	return `+213${match[1]}`;
+};
+/**
+* Formate un numéro algérien pour l'affichage UI avec espacements lisibles (ex: "0550 12 34 56").
+*/
+function formatPhoneDisplay(phone) {
+	const normalized = normalizeAlgerianPhone(phone);
+	if (!normalized || normalized.length !== 10) return phone || "";
+	return `${normalized.slice(0, 4)} ${normalized.slice(4, 6)} ${normalized.slice(6, 8)} ${normalized.slice(8, 10)}`;
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTs7Ozs7Ozs7Ozs7Ozs7OztBQVNPLE1BQU0sc0JBQXNCOztBQUc1QixNQUFNLDhCQUE4Qjs7OztBQUtwQyxTQUFTLGlCQUFpQixPQUEwQztDQUN6RSxJQUFJLENBQUMsU0FBUyxPQUFPLFVBQVUsVUFBVSxPQUFPO0NBQ2hELE9BQU8sTUFBTSxRQUFRLGNBQWMsRUFBRSxDQUFDLENBQUMsS0FBSztBQUM5Qzs7OztBQUtPLFNBQVMscUJBQXFCLE9BQTJDO0NBQzlFLE1BQU0sVUFBVSxpQkFBaUIsS0FBSztDQUN0QyxPQUFPLG9CQUFvQixLQUFLLE9BQU87QUFDekM7Ozs7QUFLTyxTQUFTLHNCQUFzQixPQUEyQztDQUMvRSxNQUFNLFVBQVUsaUJBQWlCLEtBQUs7Q0FDdEMsT0FBTyw0QkFBNEIsS0FBSyxPQUFPO0FBQ2pEOzs7OztBQU1PLFNBQVMsdUJBQXVCLE9BQTBDO0NBQy9FLE1BQU0sVUFBVSxpQkFBaUIsS0FBSztDQUN0QyxNQUFNLFFBQVEsUUFBUSxNQUFNLG1CQUFtQjtDQUMvQyxJQUFJLENBQUMsU0FBUyxDQUFDLE1BQU0sSUFBSSxPQUFPO0NBQ2hDLE9BQU8sSUFBSSxNQUFNO0FBQ25COzs7OztBQU1PLFNBQVMsb0JBQW9CLE9BQTBDO0NBQzVFLE1BQU0sVUFBVSxpQkFBaUIsS0FBSztDQUN0QyxNQUFNLFFBQVEsUUFBUSxNQUFNLG1CQUFtQjtDQUMvQyxJQUFJLENBQUMsU0FBUyxDQUFDLE1BQU0sSUFBSSxPQUFPO0NBQ2hDLE9BQU8sT0FBTyxNQUFNO0FBQ3RCOzs7O0FBS08sU0FBUyxtQkFBbUIsT0FBMEM7Q0FDM0UsTUFBTSxhQUFhLHVCQUF1QixLQUFLO0NBQy9DLElBQUksQ0FBQyxjQUFjLFdBQVcsV0FBVyxJQUFJLE9BQU8sU0FBUztDQUM3RCxPQUFPLEdBQUcsV0FBVyxNQUFNLEdBQUcsQ0FBQyxFQUFFLEdBQUcsV0FBVyxNQUFNLEdBQUcsQ0FBQyxFQUFFLEdBQUcsV0FBVyxNQUFNLEdBQUcsQ0FBQyxFQUFFLEdBQUcsV0FBVyxNQUFNLEdBQUcsRUFBRTtBQUNoSCIsIm5hbWVzIjpbXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsicGhvbmUudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBPTE1BUlQg4oCUIFZhbGlkYXRldXIgJiBOb3JtYWxpc2F0ZXVyIFTDqWzDqXBob25lIEFsZ8OpcmllbiBDZW50cmFsaXPDqVxuICogUHJpc2UgZW4gY2hhcmdlIHVuaXZlcnNlbGxlIDpcbiAqIC0gTW9iaWxlcyA6IDA1LCAwNiwgMDcgKGV4OiAwNTUwMTIzNDU2LCAwNjYxMTIzNDU2LCAwNzcwMTIzNDU2KVxuICogLSBGaXhlcyA6IDAyWCwgMDNYLCAwNFgsIDA5WCAoZXg6IDAyMSwgMDIzLCAwMzEsIGV0Yy4pXG4gKiAtIEludGVybmF0aW9uYWwgOiArMjEzIG91IDAwMjEzIChleDogKzIxMzU1MDEyMzQ1NiwgMDAyMTMyMTEyMzQ1NilcbiAqL1xuXG4vLyBSZWdleCBkZSB2YWxpZGF0aW9uIHRvbMOpcmFudGUgKGF2ZWMgb3Ugc2FucyBlc3BhY2VzIC8gdGlyZXRzIC8gcHLDqWZpeGUgaW50ZXJuYXRpb25hbClcbmV4cG9ydCBjb25zdCBBTEdFUklBX1BIT05FX1JFR0VYID0gL14oPzooPzpcXCt8MDApMjEzfDApKFsyLTc5XVxcZHs4fSkkLztcblxuLy8gUmVnZXggc3RyaWN0ZSBwb3VyIGxlcyBudW3DqXJvcyBkZSBtb2JpbGUgdW5pcXVlbWVudCAoU01TIE9UUCwgY29udGFjdCBXaGF0c0FwcClcbmV4cG9ydCBjb25zdCBBTEdFUklBX01PQklMRV9TVFJJQ1RfUkVHRVggPSAvXig/Oig/OlxcK3wwMCkyMTN8MCkoWzUtN11cXGR7OH0pJC87XG5cbi8qKlxuICogTmV0dG9pZSB1bmUgY2hhw65uZSBkZSBjYXJhY3TDqHJlcyBlbiBuZSBjb25zZXJ2YW50IHF1ZSBsZXMgY2hpZmZyZXMgZXQgbGUgJysnXG4gKi9cbmV4cG9ydCBmdW5jdGlvbiBjbGVhblBob25lTnVtYmVyKHBob25lOiBzdHJpbmcgfCBudWxsIHwgdW5kZWZpbmVkKTogc3RyaW5nIHtcbiAgaWYgKCFwaG9uZSB8fCB0eXBlb2YgcGhvbmUgIT09IFwic3RyaW5nXCIpIHJldHVybiBcIlwiO1xuICByZXR1cm4gcGhvbmUucmVwbGFjZSgvW1xcc1xcLS4oKV0vZywgXCJcIikudHJpbSgpO1xufVxuXG4vKipcbiAqIFbDqXJpZmllIHNpIGxlIG51bcOpcm8gZXN0IHVuIG51bcOpcm8gZGUgdMOpbMOpcGhvbmUgYWxnw6lyaWVuIHZhbGlkZSAobW9iaWxlIG91IGZpeGUpLlxuICovXG5leHBvcnQgZnVuY3Rpb24gaXNWYWxpZEFsZ2VyaWFuUGhvbmUocGhvbmU6IHN0cmluZyB8IG51bGwgfCB1bmRlZmluZWQpOiBib29sZWFuIHtcbiAgY29uc3QgY2xlYW5lZCA9IGNsZWFuUGhvbmVOdW1iZXIocGhvbmUpO1xuICByZXR1cm4gQUxHRVJJQV9QSE9ORV9SRUdFWC50ZXN0KGNsZWFuZWQpO1xufVxuXG4vKipcbiAqIFbDqXJpZmllIHNpIGxlIG51bcOpcm8gZXN0IHVuIG51bcOpcm8gbW9iaWxlIGFsZ8OpcmllbiB2YWxpZGUgKDA1LCAwNiwgMDcpLlxuICovXG5leHBvcnQgZnVuY3Rpb24gaXNWYWxpZEFsZ2VyaWFuTW9iaWxlKHBob25lOiBzdHJpbmcgfCBudWxsIHwgdW5kZWZpbmVkKTogYm9vbGVhbiB7XG4gIGNvbnN0IGNsZWFuZWQgPSBjbGVhblBob25lTnVtYmVyKHBob25lKTtcbiAgcmV0dXJuIEFMR0VSSUFfTU9CSUxFX1NUUklDVF9SRUdFWC50ZXN0KGNsZWFuZWQpO1xufVxuXG4vKipcbiAqIE5vcm1hbGlzZSB1biBudW3DqXJvIGFsZ8OpcmllbiBhdSBmb3JtYXQgbmF0aW9uYWwgc3RhbmRhcmQgw6AgMTAgY2hpZmZyZXMgKGV4OiBcIjA1NTAxMjM0NTZcIikuXG4gKiBSZXRvdXJuZSB1bmUgY2hhw65uZSB2aWRlIHNpIGxlIGZvcm1hdCBlc3QgaW52YWxpZGUuXG4gKi9cbmV4cG9ydCBmdW5jdGlvbiBub3JtYWxpemVBbGdlcmlhblBob25lKHBob25lOiBzdHJpbmcgfCBudWxsIHwgdW5kZWZpbmVkKTogc3RyaW5nIHtcbiAgY29uc3QgY2xlYW5lZCA9IGNsZWFuUGhvbmVOdW1iZXIocGhvbmUpO1xuICBjb25zdCBtYXRjaCA9IGNsZWFuZWQubWF0Y2goQUxHRVJJQV9QSE9ORV9SRUdFWCk7XG4gIGlmICghbWF0Y2ggfHwgIW1hdGNoWzFdKSByZXR1cm4gXCJcIjtcbiAgcmV0dXJuIGAwJHttYXRjaFsxXX1gO1xufVxuXG4vKipcbiAqIE5vcm1hbGlzZSB1biBudW3DqXJvIGFsZ8OpcmllbiBhdSBmb3JtYXQgaW50ZXJuYXRpb25hbCBFLjE2NCAoZXg6IFwiKzIxMzU1MDEyMzQ1NlwiKS5cbiAqIFV0aWxlIHBvdXIgbGVzIFNNUyBUd2lsaW8vRmlyZWJhc2UgZXQgbGVzIGxpZW5zIFdoYXRzQXBwIGBodHRwczovL3dhLm1lLzIxMzU1MDEyMzQ1NmAuXG4gKi9cbmV4cG9ydCBmdW5jdGlvbiB0b0UxNjRBbGdlcmlhblBob25lKHBob25lOiBzdHJpbmcgfCBudWxsIHwgdW5kZWZpbmVkKTogc3RyaW5nIHtcbiAgY29uc3QgY2xlYW5lZCA9IGNsZWFuUGhvbmVOdW1iZXIocGhvbmUpO1xuICBjb25zdCBtYXRjaCA9IGNsZWFuZWQubWF0Y2goQUxHRVJJQV9QSE9ORV9SRUdFWCk7XG4gIGlmICghbWF0Y2ggfHwgIW1hdGNoWzFdKSByZXR1cm4gXCJcIjtcbiAgcmV0dXJuIGArMjEzJHttYXRjaFsxXX1gO1xufVxuXG4vKipcbiAqIEZvcm1hdGUgdW4gbnVtw6lybyBhbGfDqXJpZW4gcG91ciBsJ2FmZmljaGFnZSBVSSBhdmVjIGVzcGFjZW1lbnRzIGxpc2libGVzIChleDogXCIwNTUwIDEyIDM0IDU2XCIpLlxuICovXG5leHBvcnQgZnVuY3Rpb24gZm9ybWF0UGhvbmVEaXNwbGF5KHBob25lOiBzdHJpbmcgfCBudWxsIHwgdW5kZWZpbmVkKTogc3RyaW5nIHtcbiAgY29uc3Qgbm9ybWFsaXplZCA9IG5vcm1hbGl6ZUFsZ2VyaWFuUGhvbmUocGhvbmUpO1xuICBpZiAoIW5vcm1hbGl6ZWQgfHwgbm9ybWFsaXplZC5sZW5ndGggIT09IDEwKSByZXR1cm4gcGhvbmUgfHwgXCJcIjtcbiAgcmV0dXJuIGAke25vcm1hbGl6ZWQuc2xpY2UoMCwgNCl9ICR7bm9ybWFsaXplZC5zbGljZSg0LCA2KX0gJHtub3JtYWxpemVkLnNsaWNlKDYsIDgpfSAke25vcm1hbGl6ZWQuc2xpY2UoOCwgMTApfWA7XG59XG4iXSwiZmlsZSI6Ii9zcmMvdXRpbHMvcGhvbmUudHMifQ==
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZX0sIi9hcHAvYXBwbGV0L3NyYy91dGlscy9waG9uZS50cyIsIi9zcmMvdXRpbHMvcGhvbmUudHMiLFtdXQ==
