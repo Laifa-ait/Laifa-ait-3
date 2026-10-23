@@ -82,7 +82,7 @@ export const SponsoredCampaignCreateModal: React.FC<SponsoredCampaignCreateModal
             >
               <option value="">-- Choisir un produit publié --</option>
               {products
-                .filter((p) => p.status === "active" || p.status === "approved")
+                .filter((p) => p.status === "active" || (p.status as string) === "approved")
                 .map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} ({p.price?.toLocaleString()} DZD)

@@ -1,6 +1,5 @@
 import React from "react";
 import { ArrowRight, Star, MapPin, Truck, CheckCircle2 } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import { Product } from "../../domains/product/product.types";
 import { formatPrice } from "../../utils/format";
 import { getOptimizedImageUrl } from "../../utils/imageUtils";
@@ -16,8 +15,7 @@ export const SearchProductCard: React.FC<SearchProductCardProps> = ({
   query,
   onSelect
 }) => {
-  const { t } = useTranslation();
-  const name = product.name || product.title || "";
+  const name = product.name || ((product as Record<string, unknown>).title as string) || "";
   const price = product.promoPrice || product.price || 0;
   const originalPrice = product.originalPrice || (product.promoPrice ? product.price : null);
   const discountPercent = originalPrice && originalPrice > price

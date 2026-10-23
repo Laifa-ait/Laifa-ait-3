@@ -38,6 +38,10 @@ export type UserProfile = ZodUserProfile & {
   commissionRate?: number;
   status?: string;
   verificationStatus?: string;
+  bio?: string;
+  interests?: string[];
+  phoneNumber?: string | null;
+  capabilities?: string[];
 };
 
 export { ROLES } from "../../constants/roles";

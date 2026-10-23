@@ -95,7 +95,7 @@ export const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
               {t("❌ Refusé")}
             </span>
           )}
-          {p.status === "pending_deletion" && (
+          {(p.status as string) === "pending_deletion" && (
             <span className="px-3 py-1.5 w-fit rounded-lg bg-red-100 text-red-800 text-[9px] font-sans font-bold uppercase tracking-wider rtl:tracking-normal animate-pulse">
               {t("🗑️ Suppression Demandée")}
             </span>

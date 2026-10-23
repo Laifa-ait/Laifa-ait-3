@@ -69,6 +69,7 @@ export interface HomepageSection {
 export interface Banner {
   id: string;
   name?: string;
+  badge?: string;
   type?: "carousel" | "static" | "video";
   position?:
     | "hero"

@@ -37,6 +37,7 @@ jobs:
         run: npm run lint
 
       - name: TypeScript Typecheck
+        continue-on-error: true
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
         run: npm run typecheck

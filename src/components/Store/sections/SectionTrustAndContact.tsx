@@ -148,13 +148,12 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
       </section>
     );
   }
-
   if (section.type === "contact_footer") {
-    const socialLinks: Array<[string, string]> = [
+    const socialLinks: Array<[string, string]> = ([
       ["Instagram", typeof settings.socialInstagram === "string" ? settings.socialInstagram : ""],
       ["Facebook", typeof settings.socialFacebook === "string" ? settings.socialFacebook : ""],
       ["TikTok", typeof settings.socialTiktok === "string" ? settings.socialTiktok : ""],
-    ].filter(([, value]) => Boolean(value));
+    ] as [string, string][]).filter(([, value]) => Boolean(value));
     return (
       <section onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={sectionStyle}>
         <div
