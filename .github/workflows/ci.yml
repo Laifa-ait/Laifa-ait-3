@@ -37,9 +37,13 @@ jobs:
         run: npm run lint
 
       - name: TypeScript Typecheck
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: npm run typecheck
 
       - name: Run Vitest Test Suite with Coverage
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: npm run test
 
       - name: Upload Test Coverage Report
