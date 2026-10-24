@@ -1,11 +1,10 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { TrendingUp, Percent, DollarSign, FileText } from "lucide-react";
+import { TrendingUp, DollarSign, FileText } from "lucide-react";
 import { formatPrice } from "../../../utils/format";
 
 export interface OrdersStatsCardsProps {
   totalVolume: number;
-  totalCommission: number;
   sellersNetPayout: number;
   filteredOrdersCount: number;
   totalOrdersCount: number;
@@ -13,7 +12,6 @@ export interface OrdersStatsCardsProps {
 
 export const OrdersStatsCards: React.FC<OrdersStatsCardsProps> = ({
   totalVolume,
-  totalCommission,
   sellersNetPayout,
   filteredOrdersCount,
   totalOrdersCount,
@@ -40,22 +38,6 @@ export const OrdersStatsCards: React.FC<OrdersStatsCardsProps> = ({
         </div>
       </div>
 
-      {/* Commission */}
-      <div className="p-6 bg-white border border-zinc-250/70 rounded-[2rem] shadow-sm flex items-center gap-4 relative overflow-hidden">
-        <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-          <Percent className="w-6 h-6" />
-        </div>
-        <div>
-          <span className="block text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest">
-            {t("Commission Olmart (5%)")}
-          </span>
-          <strong className="block text-xl font-sans font-bold font-mono text-purple-600 tracking-tight mt-1">
-            {formatPrice(totalCommission)}
-          </strong>
-        </div>
-        <div className="absolute end-3 top-3 opacity-10 font-mono text-4xl select-none font-bold">5%</div>
-      </div>
-
       {/* Payout */}
       <div className="p-6 bg-white border border-zinc-250/70 rounded-[2rem] shadow-sm flex items-center gap-4 relative overflow-hidden">
         <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
@@ -63,13 +45,12 @@ export const OrdersStatsCards: React.FC<OrdersStatsCardsProps> = ({
         </div>
         <div>
           <span className="block text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest">
-            {t("Net Estimé Vendeurs (95%)")}
+            {t("Montant revenant aux vendeurs")}
           </span>
           <strong className="block text-xl font-sans font-bold font-mono text-emerald-600 tracking-tight mt-1">
             {formatPrice(sellersNetPayout)}
           </strong>
         </div>
-        <div className="absolute end-3 top-3 opacity-10 font-mono text-4xl select-none font-bold">95%</div>
       </div>
 
       {/* Count */}

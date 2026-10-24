@@ -5,14 +5,12 @@ import { useTranslation } from "react-i18next";
 import {
   OrderClientProfileCard,
   OrderItemsTable,
-  OrderCommissionCard
 } from "./OrderDetailsSections";
 
 interface OrderDetailsModalProps {
   selectedOrder: Order | null;
   setSelectedOrder: (order: Order | null) => void;
   statusLabels: Record<string, string>;
-  calculatedOrdersMap: Record<string, { commissionAmount: number; netRevenue: number }>;
   isUpdatingStatus: boolean;
   handleUpdateOrderStatus: (orderId: string, newStatus: OrderStatus) => void;
   setSelectedOrderIds: (ids: string[]) => void;
@@ -25,7 +23,6 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   selectedOrder,
   setSelectedOrder,
   statusLabels,
-  calculatedOrdersMap,
   isUpdatingStatus,
   handleUpdateOrderStatus,
   setSelectedOrderIds,
@@ -59,7 +56,6 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         <div className="p-6 overflow-y-auto space-y-6 flex-1 text-zinc-800">
           <OrderClientProfileCard selectedOrder={selectedOrder} />
           <OrderItemsTable items={selectedOrder.items || []} />
-          <OrderCommissionCard selectedOrder={selectedOrder} calculatedOrdersMap={calculatedOrdersMap} />
 
           <div className="p-5 border border-zinc-200 rounded-[2rem] space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

@@ -8,11 +8,11 @@ import { StatusBadge } from "../../ui/Admin/StatusBadge";
 
 interface CalculatedOrder {
   id: string;
-  commissionAmount: number;
-  netRevenue: number;
-  platformFee: number;
-  sellerPayout: number;
-  commissionCalc?: number; // added based on usage
+  commissionAmount?: number;
+  netRevenue?: number;
+  platformFee?: number;
+  sellerPayout?: number;
+  commissionCalc?: number;
 }
 
 interface OrderTableProps {
@@ -132,16 +132,13 @@ export const OrderTable: React.FC<OrderTableProps> = ({
       className: "w-48"
     },
     {
-      header: t("Encaissable COD / 5% Math"),
+      header: t("Montant de la commande (COD)"),
       accessor: (order: Order) => (
         <div className="font-sans">
           <strong className="block text-base font-sans font-bold text-zinc-950 tracking-tight">
             {formatPrice(order.total)}
           </strong>
-          <span className="text-[9px] font-sans font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded inline-block uppercase tracking-wide mt-1">
-            {t("Portion (5%):")} {formatPrice(calculatedOrdersMap[order.id]?.commissionCalc || 0)}
-          </span>
-        </div>
+       </div>
       )
     },
     {

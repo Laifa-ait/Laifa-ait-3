@@ -32,6 +32,7 @@ export interface SellerAnalyticsData {
   totalOrders: number;
   aov: number;
   conversionRate: number;
+  trackingAvailable: boolean;
   storeViews: number;
   productViews: number;
   cartAdds: number;
@@ -125,16 +126,20 @@ export class SellerAnalyticsService {
         .limit(500)
         .get();
 
-      const orders = ordersSnap.docs.map((doc) => {
+      const allOrders = ordersSnap.docs.map((doc) => {
         const data = doc.data();
-        return {
-          total: data.total,
-          totalPrice: data.totalPrice,
-          status: data.status,
-        };
+        return { total: data.total, totalPrice: data.totalPrice, status: data.status, createdAt: data.createdAt };
+      });
+      const periodDays: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90 };
+      const days = periodDays[period];
+      const cutoff = days ? Date.now() - days * 24 * 60 * 60 * 1000 : 0;
+      const orders = allOrders.filter((order) => {
+        if (!days) return true;
+        const value = order.createdAt as { toDate?: () => Date } | string | number | undefined;
+        const timestamp = value && typeof value === "object" && typeof value.toDate === "function" ? value.toDate().getTime() : value ? new Date(value as string | number).getTime() : 0;
+        return timestamp >= cutoff;
       });
       const { orderedRevenue, deliveredRevenue, statusBreakdown } = this.calculateRevenueBreakdown(orders);
-
       const totalOrders = orders.length;
       const deliveredCount = statusBreakdown.delivered;
       const aov = deliveredCount > 0 ? Math.round(deliveredRevenue / deliveredCount) : 0;
@@ -142,33 +147,24 @@ export class SellerAnalyticsService {
       // 2. Compteurs réels du profil vendeur
       let followersCount = 0;
       let reviewsCount = 0;
-      let averageRating = 5.0;
+      let averageRating = 0;
 
       const userDoc = await db.collection("users").doc(sellerId).get();
       if (userDoc.exists) {
         const uData = userDoc.data() || {};
         followersCount = Number(uData.followersCount) || 0;
         reviewsCount = Number(uData.reviewsCount) || 0;
-        averageRating = Number(uData.rating) || 5.0;
+        averageRating = Number(uData.rating) || 0;
       }
 
-      // 3. Analytics document & événements de tracking
-      const analyticsDoc = await db.collection("seller_analytics").doc(sellerId).get();
-      const analyticsData = analyticsDoc.exists ? analyticsDoc.data() || {} : {};
-      const periodData = analyticsData[period] || analyticsData["7d"] || {};
-
-      const storeViews = Number(periodData.storeViews ?? analyticsData.storeViews ?? 120);
-      const productViews = Number(periodData.productViews ?? analyticsData.productViews ?? 340);
-      const cartAdds = Number(periodData.cartAdds ?? analyticsData.cartAdds ?? 45);
-
-      const conversionRate = this.calculateConversionRate(deliveredCount, storeViews);
-
-      const trafficSources: TrafficSources = {
-        direct: Number(periodData.trafficSources?.direct ?? 40),
-        search: Number(periodData.trafficSources?.search ?? 30),
-        social: Number(periodData.trafficSources?.social ?? 20),
-        sponsored: Number(periodData.trafficSources?.sponsored ?? 10),
-      };
+      // Les événements de consultation et d'ajout au panier ne sont pas encore enregistrés.
+      // Signaler leur absence au lieu de présenter des chiffres ou une conversion inventés.
+      const trackingAvailable = false;
+      const storeViews = 0;
+      const productViews = 0;
+      const cartAdds = 0;
+      const conversionRate = 0;
+      const trafficSources: TrafficSources = { direct: 0, search: 0, social: 0, sponsored: 0 };
 
       // 4. Top Produits
       const productsSnap = await db
@@ -192,16 +188,8 @@ export class SellerAnalyticsService {
 
       topProducts.sort((a, b) => b.salesCount - a.salesCount);
 
-      // 5. Chart Data
-      const chartData = [
-        { name: "J-6", ordered: Math.round(orderedRevenue * 0.1), delivered: Math.round(deliveredRevenue * 0.1), orders: Math.max(1, Math.round(totalOrders * 0.1)) },
-        { name: "J-5", ordered: Math.round(orderedRevenue * 0.15), delivered: Math.round(deliveredRevenue * 0.12), orders: Math.max(1, Math.round(totalOrders * 0.15)) },
-        { name: "J-4", ordered: Math.round(orderedRevenue * 0.12), delivered: Math.round(deliveredRevenue * 0.15), orders: Math.max(1, Math.round(totalOrders * 0.12)) },
-        { name: "J-3", ordered: Math.round(orderedRevenue * 0.2), delivered: Math.round(deliveredRevenue * 0.18), orders: Math.max(1, Math.round(totalOrders * 0.2)) },
-        { name: "J-2", ordered: Math.round(orderedRevenue * 0.18), delivered: Math.round(deliveredRevenue * 0.2), orders: Math.max(1, Math.round(totalOrders * 0.18)) },
-        { name: "J-1", ordered: Math.round(orderedRevenue * 0.15), delivered: Math.round(deliveredRevenue * 0.15), orders: Math.max(1, Math.round(totalOrders * 0.15)) },
-        { name: "Aujourd'hui", ordered: Math.round(orderedRevenue * 0.1), delivered: Math.round(deliveredRevenue * 0.1), orders: Math.max(1, Math.round(totalOrders * 0.1)) },
-      ];
+      // Pas de série temporelle exacte disponible tant que la date des commandes n'est pas agrégée ici.
+      const chartData: SellerAnalyticsData["chartData"] = [];
 
       return {
         orderedRevenue,
@@ -209,6 +197,7 @@ export class SellerAnalyticsService {
         totalOrders,
         aov,
         conversionRate,
+        trackingAvailable,
         storeViews,
         productViews,
         cartAdds,

@@ -22,16 +22,9 @@ export const useSellerOrdersExport = () => {
 
       const realRows: (string | number)[][] = [];
       let totalBrut = 0;
-      let totalCommission = 0;
       let totalNet = 0;
 
-      const commissionRate = userProfile?.commissionRate || 10;
-      const calcData = await apiPost<{ calculatedOrders?: CalculatedOrder[] }>(
-        "/api/v1/calculate-commissions",
-        { orders: rawOrders }
-      );
-      const calcMap: Record<string, CalculatedOrder> = {};
-      calcData.calculatedOrders?.forEach((co: CalculatedOrder) => (calcMap[co.id] = co));
+
 
       rawOrders.forEach((order) => {
         const orderId = order.id;
@@ -46,13 +39,9 @@ export const useSellerOrdersExport = () => {
 
         sellerItems.forEach((item) => {
           const lineTotal = item.price * item.quantity;
-          const serverComm = calcMap[orderId]?.commissionAmount || 0;
-          const orderTotal = order.total || 1;
-          const commission = lineTotal * (serverComm / orderTotal);
-          const net = lineTotal - commission;
+          const net = lineTotal;
 
           totalBrut += lineTotal;
-          totalCommission += commission;
           totalNet += net;
 
           realRows.push([
@@ -62,8 +51,8 @@ export const useSellerOrdersExport = () => {
             item.quantity || 1,
             item.price || 0,
             lineTotal,
-            "Serveur API",
-            commission,
+            "Vendeur",
+            0,
             net,
             zipCode,
             province,
@@ -88,19 +77,19 @@ export const useSellerOrdersExport = () => {
         if (lang.startsWith("ar")) {
           return [
             "التاريخ", "رقم الطلب", "المنتج", "الكمية", "سعر الوحدة (د.ج)", "المجموع الإجمالي (د.ج)",
-            "نسبة العمولة", "مبلغ العمولة (د.ج)", "صافي البائع (د.ج)", "الرمز البريدي", "الولاية",
+            "رسوم المنصة", "المبلغ المقتطع", "إيراد البائع", "الرمز البريدي", "الولاية",
             "الموزع", "رقم التتبع", "حالة الدفع", "حالة الطرد"
           ];
         } else if (lang.startsWith("en")) {
           return [
             "Date", "Order ID", "Product", "Qty", "Unit Price (DZD)", "Total Gross (DZD)",
-            "Commission %", "Commission Amount", "Net Seller (Revenue)", "Zip Code", "Province",
+            "Platform Fee", "Commission Amount", "Seller Revenue", "Zip Code", "Province",
             "Carrier", "Tracking", "Payment Status", "Package Status"
           ];
         } else {
           return [
             "Date", "ID Commande", "Produit", "Qte", "Prix Unitaire (DZD)", "Total Brut (DZD)",
-            "Commission %", "Montant Commission", "Net Vendeur (Revenu)", "Code postal", "Wilaya",
+            "Frais plateforme", "Montant retenu", "Revenu Vendeur", "Code postal", "Wilaya",
             "Livreur", "Tracking", "Statut Paiement", "Statut Colis"
           ];
         }
@@ -117,10 +106,10 @@ export const useSellerOrdersExport = () => {
       }
 
       const mainHeader = isArabic
-        ? `تقرير المبيعات والعمولات - متجر ${sellerShopName || "الخاص بك"}`
+        ? `تقرير المبيعات - متجر ${sellerShopName || "الخاص بك"}`
         : isEnglish
-          ? `SALES & COMMISSIONS REPORT - SHOP ${(sellerShopName || "").toUpperCase()}`
-          : `RAPPORT DE VENTES ET COMMISSIONS - BOUTIQUE ${(sellerShopName || "").toUpperCase()}`;
+          ? `SALES REPORT - SHOP ${(sellerShopName || "").toUpperCase()}`
+          : `RAPPORT DE VENTES - BOUTIQUE ${(sellerShopName || "").toUpperCase()}`;
 
       const metadata = [
         [mainHeader],
@@ -135,14 +124,14 @@ export const useSellerOrdersExport = () => {
         [
           isArabic ? "صافي الأرباح" : isEnglish ? "Net Balance" : "Solde Net Vendeur",
           `${totalNet} DZD`,
-          isArabic ? "عمولة المنصة" : isEnglish ? "Avg Platform Commission" : "Commission Plateforme",
-          `${commissionRate}%`, "", ""
+          isArabic ? "Revenu Olmart" : isEnglish ? "Olmart revenue" : "Revenu Olmart",
+          isArabic ? "إعلانات" : isEnglish ? "Advertising" : "Publicité", "", ""
         ],
         [""],
       ];
 
       const totalLabel = isArabic ? "المجموع الكلي" : isEnglish ? "GRAND TOTAL" : "TOTAL GÉNÉRAL";
-      const totals = [["", "", "", "", totalLabel, totalBrut, "", totalCommission, totalNet, "", "", "", "", "", ""]];
+      const totals = [["", "", "", "", totalLabel, totalBrut, "", 0, totalNet, "", "", "", "", "", ""]];
 
       const payload = {
         title: docTitle,

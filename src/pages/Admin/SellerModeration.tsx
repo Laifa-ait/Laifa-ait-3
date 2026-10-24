@@ -152,12 +152,6 @@ export const SellerModeration: React.FC = () => {
       )
     },
     {
-      header: t("Commission"),
-      accessor: (s: Seller) => (
-        <span className="text-sm font-sans font-bold text-zinc-950">{s.commissionRate || 10}%</span>
-      )
-    },
-    {
       header: t("Actions"),
       accessor: (s: Seller) => (
         <Button

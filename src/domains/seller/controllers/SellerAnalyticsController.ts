@@ -43,6 +43,7 @@ router.get("/api/v1/seller/analytics", authenticateToken, authorizeSeller, async
       totalOrders: data.totalOrders,
       aov: data.aov,
       conversionRate: data.conversionRate,
+      trackingAvailable: data.trackingAvailable,
       storeViews: data.storeViews,
       productViews: data.productViews,
       cartAdds: data.cartAdds,

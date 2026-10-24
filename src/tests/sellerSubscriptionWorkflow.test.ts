@@ -144,88 +144,33 @@ describe("Olmart Commerce Studio - Subscription Workflow (Steps A to F)", () => 
     };
   });
 
-  it("Step A: Seller submits subscription request (pending)", async () => {
+  it("seller access is free and paid plans cannot be requested", async () => {
+    mockStore.subscription_plans["plan_decouverte"] = {
+      id: "plan_decouverte",
+      name: "Boutique Olmart",
+      price: 0,
+      currency: "DZD",
+      durationDays: 365,
+      features: ["standard_store"],
+      limits: { maxPages: 25 },
+      isActive: true
+    };
     currentMockUser = { uid: "seller_dz_101", role: "seller", email: "vendeur@olmart.dz" };
-    const res = await request(app)
-      .post("/api/v1/seller/subscription/request")
-      .send({ planId: "plan_business_performance" });
+    const free = await request(app).post("/api/v1/seller/subscription/request").send({ planId: "plan_decouverte" });
+    expect(free.status).toBe(200);
+    expect(free.body.data.status).toBe("granted");
+    expect(Object.keys(mockStore.seller_subscriptions)).toHaveLength(1);
 
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.status).toBe("pending");
-    expect(res.body.data.sellerId).toBe("seller_dz_101");
+    const paid = await request(app).post("/api/v1/seller/subscription/request").send({ planId: "plan_business_performance" });
+    expect(paid.status).toBe(400);
   });
 
-  it("Step B/C: Admin sends bank payment instructions (payment_requested)", async () => {
-    mockStore.subscription_requests["req_123"] = {
-      id: "req_123",
-      sellerId: "seller_dz_101",
-      planId: "plan_business_performance",
-      status: "pending"
-    };
-
-    currentMockUser = { uid: "admin_super", role: "admin" };
-    const res = await request(app)
-      .post("/api/v1/admin/subscriptions/requests/req_123/request-payment")
-      .send({
-        accountHolder: "Olmart E-Commerce SARL",
-        bankName: "BNA Alger",
-        rib: "00100123456789012345",
-        referenceCode: "OLM-SUB-9988",
-        amount: 7900
-      });
-
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(mockStore.subscription_requests["req_123"].status).toBe("payment_requested");
-  });
-
-  it("Step D: Seller declares payment transfer (payment_declared)", async () => {
-    mockStore.subscription_requests["req_123"] = {
-      id: "req_123",
-      sellerId: "seller_dz_101",
-      status: "payment_requested"
-    };
-
+  it("seller cannot declare subscription payments", async () => {
     currentMockUser = { uid: "seller_dz_101", role: "seller" };
-    const res = await request(app)
-      .post("/api/v1/seller/subscription/declare-payment")
-      .send({
-        requestId: "req_123",
-        transactionReference: "BNA-VIR-20261013-098",
-        paymentDate: "2026-10-13"
-      });
-
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(mockStore.subscription_requests["req_123"].status).toBe("payment_declared");
-  });
-
-  it("Step E & F: Admin confirms payment and grants subscription with ACID tx", async () => {
-    mockStore.subscription_requests["req_123"] = {
-      id: "req_123",
-      sellerId: "seller_dz_101",
-      planId: "plan_business_performance",
-      planSnapshot: { durationDays: 30, name: "Business", features: ["custom_pages"], limits: {} },
-      status: "payment_declared"
-    };
-
-    currentMockUser = { uid: "admin_super", role: "admin" };
-    // Step E: Confirm payment received
-    const resConfirm = await request(app)
-      .post("/api/v1/admin/subscriptions/requests/req_123/confirm-payment")
-      .send({ confirmedAmount: 7900, notes: "Fonds reçus sur compte BNA" });
-    expect(resConfirm.status).toBe(200);
-    expect(mockStore.subscription_requests["req_123"].status).toBe("payment_confirmed");
-
-    // Step F: Grant subscription
-    const resGrant = await request(app)
-      .post("/api/v1/admin/subscriptions/requests/req_123/grant")
-      .send({ notes: "Validation officielle vérifiée" });
-    expect(resGrant.status).toBe(200);
-    expect(resGrant.body.success).toBe(true);
-    expect(mockStore.subscription_requests["req_123"].status).toBe("granted");
-    expect(Object.keys(mockStore.seller_subscriptions).length).toBeGreaterThan(0);
+    const response = await request(app).post("/api/v1/seller/subscription/declare-payment").send({
+      requestId: "req_123", transactionReference: "REF", paymentDate: "2026-10-24"
+    });
+    expect(response.status).toBe(404);
   });
 
   it("IDOR protection: Seller cannot declare payment on another seller's request", async () => {

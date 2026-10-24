@@ -16,7 +16,6 @@ interface OrderDetailsDrawerProps {
   onClose: () => void;
   onSetPrintingOrder: (order: Order) => void;
   calculatedOrdersMap: Record<string, CalculatedOrder>;
-  commissionRate?: number;
   carrier: string;
   setCarrier: (val: string) => void;
   trackingNumber: string;
@@ -32,7 +31,6 @@ export const OrderDetailsDrawer: React.FC<OrderDetailsDrawerProps> = ({
   onClose,
   onSetPrintingOrder,
   calculatedOrdersMap,
-  commissionRate = 10,
   carrier,
   setCarrier,
   trackingNumber,
@@ -149,13 +147,6 @@ export const OrderDetailsDrawer: React.FC<OrderDetailsDrawerProps> = ({
                     <div className="flex justify-between items-center text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal">
                       <span>{t("Total Client")}</span>
                       <span>{formatPrice(selectedOrder.total)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-[10px] font-sans font-bold text-rose-500 uppercase tracking-widest rtl:tracking-normal">
-                      <span>
-                        {t("Commission OLMART (")}
-                        {commissionRate}%)
-                      </span>
-                      <span>-{formatPrice(calculatedOrdersMap[selectedOrder?.id]?.commissionAmount || 0)}</span>
                     </div>
                     <div className="h-[1px] bg-zinc-100 w-full" />
                   </div>

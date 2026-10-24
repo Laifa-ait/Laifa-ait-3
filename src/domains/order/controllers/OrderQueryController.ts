@@ -1,8 +1,6 @@
 import { Router, Response } from "express";
 import { admin, db } from "../../../config/firebase-admin";
 import { authenticateToken, AuthenticatedRequest } from "../../../middlewares/auth";
-import { Order } from "../order.types";
-import { calculateOrderCommission } from "../../../utils/orderCalculations";
 import { safeLogger } from "../../../utils/logger";
 
 interface OrderItemDoc {
@@ -17,7 +15,7 @@ interface OrderItemDoc {
 const router = Router();
 
 // Update Order Status Securely
-router.post("/calculate-commissions", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+router.post("/calculate-order-totals", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { orders } = req.body;
     if (!orders || !Array.isArray(orders)) return res.status(400).json({ error: "Valid orders array required" });
@@ -26,7 +24,7 @@ router.post("/calculate-commissions", authenticateToken, async (req: Authenticat
     const userRole = req.user?.role;
     const userId = req.user?.uid;
     if (userRole !== "admin" && userRole !== "seller") {
-      return res.status(403).json({ error: "Accès refusé. Autorisation insuffisante pour calculer les commissions." });
+      return res.status(403).json({ error: "Accès refusé. Autorisation insuffisante pour consulter les montants des commandes." });
     }
 
     // 2. Fetch authentic order data from Firestore DB to override incoming client data
@@ -54,67 +52,35 @@ router.post("/calculate-commissions", authenticateToken, async (req: Authenticat
       if (oid && dbOrdersMap.has(oid)) {
         const dbOrder = dbOrdersMap.get(oid)!;
 
-        // If caller is a seller, they can ONLY calculate commission on their own products/orders
+        // Sellers can only read totals for their own orders.
         if (userRole === "seller") {
           const isMyOrder =
             dbOrder.sellerId === userId ||
             (dbOrder.sellerIds && dbOrder.sellerIds.includes(userId || "")) ||
             (dbOrder.items && dbOrder.items.some((item) => item.sellerId === userId));
           if (!isMyOrder) {
-            continue; // Silently filter out other seller data to protect client VIP database
+            continue;
           }
         }
         validatedOrders.push(dbOrder);
       }
     }
 
-    let totalVolume = 0;
-    let totalCommission = 0;
-
-    // Fetch all sellers in one go to minimize DB calls
-    const sellerIds = new Set<string>();
-    validatedOrders.forEach((o) => {
-      if (o.sellerIds) o.sellerIds.forEach((id: string) => sellerIds.add(id));
-      else if (o.sellerId) sellerIds.add(o.sellerId);
-      o.items?.forEach((i) => {
-        if (i.sellerId) sellerIds.add(i.sellerId);
-      });
-    });
-
-    const sellerRates: Record<string, number> = {};
-    let globalRate = 10;
-    const commDoc = await db.collection("settings").doc("commission").get();
-    if (commDoc.exists) globalRate = commDoc.data()?.globalRate ?? 10;
-
-    // Only fetch if there are sellers
-    if (sellerIds.size > 0) {
-      const sellersSnap = await db
-        .collection("users")
-        .where(admin.firestore.FieldPath.documentId(), "in", Array.from(sellerIds))
-        .get();
-      sellersSnap.forEach((snap) => {
-        sellerRates[snap.id] = snap.data().commissionRate ?? globalRate;
-      });
-    }
-
-    const calculatedOrders = validatedOrders.map((order) => {
-      const { orderCommission, netPayout } = calculateOrderCommission(order as unknown as Order, sellerRates, globalRate);
-
-      totalVolume += order.total || 0;
-      totalCommission += orderCommission;
-
-      return {
-        ...order,
-        commissionCalc: orderCommission,
-        netPayout,
-      };
-    });
+    const totalVolume = validatedOrders.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+    const calculatedOrders = validatedOrders.map((order) => ({
+      ...order,
+      commissionCalc: 0,
+      commissionAmount: 0,
+      netPayout: Math.max(0, Number(order.total) || 0),
+    }));
+    const totalCommission = 0;
+    const sellersNetPayout = totalVolume;
 
     return res.json({
       calculatedOrders,
       totalVolume,
       totalCommission,
-      sellersNetPayout: totalVolume - totalCommission,
+      sellersNetPayout,
     });
   } catch (error: unknown) {
     safeLogger.error("Calculate commissions error", { err: error instanceof Error ? error.message : String(error) });

@@ -27,6 +27,7 @@ router.post("/api/v1/seller/products", authenticateToken, authorizeSeller, async
     }
     const uid = req.user.uid;
     const body = req.body as Record<string, unknown>;
+    const requestedDraft = body.status === "draft";
 
     // Fetch seller profile metadata to ensure full linkage
     const [userDoc, pubDoc] = await Promise.all([
@@ -47,6 +48,21 @@ router.post("/api/v1/seller/products", authenticateToken, authorizeSeller, async
       "salesCount",
       "sellerId",
       "role",
+      "status",
+      "isApproved",
+      "approvedAt",
+      "approvedBy",
+      "rejectedAt",
+      "rejectedBy",
+      "rejectionReasons",
+      "rejectionComment",
+      "moderationType",
+      "sellerName",
+      "storeName",
+      "sellerShopName",
+      "sellerLogo",
+      "sellerPhone",
+      "sellerWilaya",
     ]);
 
     const safeProductData: Record<string, unknown> = {};
@@ -108,7 +124,9 @@ router.post("/api/v1/seller/products", authenticateToken, authorizeSeller, async
       sellerPhone: phone || (safeProductData.sellerPhone as string) || "",
       wilaya: safeProductData.wilaya || wilaya,
       sellerWilaya: safeProductData.wilaya || wilaya,
-      status: safeProductData.status || "active",
+      status: requestedDraft ? "draft" : "pending",
+      isApproved: false,
+      moderationType: requestedDraft ? undefined : "new",
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
@@ -176,13 +194,32 @@ router.put("/api/v1/seller/products/:id", authenticateToken, authorizeSeller, as
       "role",
       "owner",
       "userId",
+      "status",
+      "isApproved",
+      "approvedAt",
+      "approvedBy",
+      "rejectedAt",
+      "rejectedBy",
+      "rejectionReasons",
+      "rejectionComment",
+      "moderationType",
     ]);
 
+    const isAdminUser = req.user.role === "admin" || req.user.role === "superadmin";
     const safeUpdate: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(body)) {
       if (!protectedUpdateFields.has(key)) {
         safeUpdate[key] = value;
       }
+    }
+
+    if (isAdminUser) {
+      safeUpdate.status = existing?.status || "pending";
+    } else {
+      const keepDraft = existing?.status === "draft" && body.status === "draft";
+      safeUpdate.status = keepDraft ? "draft" : "pending";
+      safeUpdate.isApproved = false;
+      safeUpdate.moderationType = keepDraft ? existing?.moderationType : "update";
     }
 
     const nameVal = ((safeUpdate.name || safeUpdate.title || existing?.name || existing?.title || "") as string).trim();

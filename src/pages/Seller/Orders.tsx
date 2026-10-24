@@ -10,7 +10,6 @@ import { OrderDetailsDrawer } from "./components/orders/OrderDetailsDrawer";
 export const Orders: React.FC = () => {
   const {
     currentUser,
-    commissionRate,
     orders,
     searchTerm,
     setSearchTerm,
@@ -76,7 +75,6 @@ export const Orders: React.FC = () => {
         onClose={() => setSelectedOrder(null)}
         onSetPrintingOrder={setPrintingOrder}
         calculatedOrdersMap={calculatedOrdersMap}
-        commissionRate={commissionRate}
         carrier={carrier}
         setCarrier={setCarrier}
         trackingNumber={trackingNumber}

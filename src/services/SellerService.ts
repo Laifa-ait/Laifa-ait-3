@@ -73,22 +73,19 @@ export class SellerService {
       const summaryDoc = await db.collection("financial_summary").doc(uid).get();
       if (summaryDoc.exists) {
         const data = summaryDoc.data();
-        totalSales = data?.totalSales || 0;
-        orderCount = data?.orderCount || 0;
-        pendingReturns = data?.pendingReturns || 0;
+        // Recompute from order statuses because legacy summaries may include pending orders.
+        orderCount = allOrders.length;
+        totalSales = allOrders.reduce((sum, order) => String(order.status || '').toLowerCase() === 'delivered' ? sum + (Number(order.total) || 0) : sum, 0);
+        pendingReturns = allOrders.filter((order) => ['return_requested', 'return-requested'].includes(String(order.status || '').toLowerCase())).length;
       } else {
          orderCount = allOrders.length;
-         allOrders.forEach((o) => {
-           totalSales += (o.total || 0);
-           if (o.status === "RETURN_REQUESTED") pendingReturns++;
-         });
+         totalSales = allOrders.reduce((sum, order) => String(order.status || '').toLowerCase() === 'delivered' ? sum + (Number(order.total) || 0) : sum, 0);
+         pendingReturns = allOrders.filter((order) => ['return_requested', 'return-requested'].includes(String(order.status || '').toLowerCase())).length;
       }
     } catch {
        orderCount = allOrders.length;
-       allOrders.forEach((o) => {
-         totalSales += (o.total || 0);
-         if (o.status === "RETURN_REQUESTED") pendingReturns++;
-       });
+       totalSales = allOrders.reduce((sum, order) => String(order.status || '').toLowerCase() === 'delivered' ? sum + (Number(order.total) || 0) : sum, 0);
+       pendingReturns = allOrders.filter((order) => ['return_requested', 'return-requested'].includes(String(order.status || '').toLowerCase())).length;
     }
 
     const startOfWeek = new Date(now);
@@ -105,9 +102,9 @@ export class SellerService {
       if (o.createdAt) {
         const createdDate = normalizeTimestamp(o.createdAt).toDate();
         if (createdDate >= startOfWeek) {
-          currentWeekTotal += (o.total || 0);
+          if (String(o.status || '').toLowerCase() === 'delivered') currentWeekTotal += (o.total || 0);
         } else if (createdDate >= startOfLastWeek && createdDate < startOfWeek) {
-          lastWeekTotal += (o.total || 0);
+          if (String(o.status || '').toLowerCase() === 'delivered') lastWeekTotal += (o.total || 0);
         }
       }
     });
@@ -132,7 +129,7 @@ export class SellerService {
          const normalizedTime = new Date(od).setHours(0,0,0,0);
          const cMatch = chartData.find(c => c.rawDate === normalizedTime);
          if (cMatch) {
-            cMatch.sales += (o.total || 0);
+            if (String(o.status || '').toLowerCase() === 'delivered') cMatch.sales += (o.total || 0);
          }
        }
     });
@@ -179,10 +176,7 @@ export class SellerService {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    const payoutStats = {
-      available: totalSales * 0.85,
-      nextPaymentDate: new Date(new Date().setDate(new Date().getDate() + (7 - new Date().getDay()))).toLocaleDateString("fr-FR")
-    };
+    const payoutStats = { available: totalSales, nextPaymentDate: null };
 
     return {
       stats: { totalSales, orderCount, productCount, growth, pendingReturns },

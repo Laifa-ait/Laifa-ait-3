@@ -48,118 +48,51 @@ describe('Production Order Calculations & Transitions', () => {
     }));
   });
 
-  describe('Commission Calculations (utils/orderCalculations)', () => {
-    it('calculates commission and payout accurately with items', () => {
+  describe('Seller proceeds (utils/orderCalculations)', () => {
+    it('does not charge a commission on multi-seller orders', () => {
       const mockOrder: Order = {
         total: 1000,
         items: [
-          { sellerId: 'seller-a', price: 100, quantity: 2 }, // total = 200
-          { sellerId: 'seller-b', price: 400, quantity: 2 }  // total = 800
+          { sellerId: 'seller-a', price: 100, quantity: 2 },
+          { sellerId: 'seller-b', price: 400, quantity: 2 }
         ]
       };
-
-      const sellerRates = {
-        'seller-a': 10, // 10% on 200 = 20
-        'seller-b': 15  // 15% on 800 = 120
-      };
-
-      const globalRate = 12; // fallback
-
-      const result = calculateOrderCommission(mockOrder, sellerRates, globalRate);
-      
-      expect(result.orderCommission).toBe(140);
-      expect(result.netPayout).toBe(860);
+      const result = calculateOrderCommission(mockOrder, { 'seller-a': 10, 'seller-b': 15 }, 12);
+      expect(result.orderCommission).toBe(0);
+      expect(result.netPayout).toBe(1000);
     });
 
-    it('calculates commission based on subtotal fallback when items are empty', () => {
-      const mockOrder: Order = {
-        total: 5000,
-        subtotal: 5000,
-        sellerId: 'seller-c'
-      };
-
-      const sellerRates = { 'seller-c': 8 };
-      const globalRate = 10;
-
-      const result = calculateOrderCommission(mockOrder, sellerRates, globalRate);
-      expect(result.orderCommission).toBe(400);
-      expect(result.netPayout).toBe(4600);
+    it('returns the full order amount when items are missing', () => {
+      const result = calculateOrderCommission({ total: 5000, subtotal: 5000, sellerId: 'seller-c' }, { 'seller-c': 8 }, 10);
+      expect(result.orderCommission).toBe(0);
+      expect(result.netPayout).toBe(5000);
     });
   });
 
   describe('Order Status Transitions (domains/order/services)', () => {
-    it('allows valid status transitions within the state machine', async () => {
+    const runTransition = async (currentStatus: string, status: string) => {
       mockRunTransaction.mockImplementationOnce(async (callback) => {
-        let callCount = 0;
-        const mockTx = {
-          get: vi.fn(async () => {
-            callCount++;
-            if (callCount === 1) {
-              return { exists: true, data: () => ({ globalRate: 10 }) };
-            } else {
-              return {
-                exists: true,
-                data: () => ({
-                  status: "new",
-                  sellerId: "seller-1",
-                  sellerIds: ["seller-1"],
-                }),
-              };
-            }
-          }),
+        const tx = {
+          get: vi.fn(async () => ({
+            exists: true,
+            data: () => ({ status: currentStatus, sellerId: "seller-1", sellerIds: ["seller-1"] }),
+          })),
           update: vi.fn(),
           set: vi.fn(),
         };
-        return callback(mockTx);
+        return callback(tx);
       });
+      return OrderStatusService.updateOrderStatus({
+        orderIds: ["order-1"], status, sellerId: "seller-1", isUserAdmin: true, authUid: "admin-1",
+      });
+    };
 
-      // "new" to "processing" is valid
-      await expect(
-        OrderStatusService.updateOrderStatus({
-          orderIds: ["order-1"],
-          status: "processing",
-          sellerId: "seller-1",
-          isUserAdmin: true,
-          authUid: "admin-1",
-        })
-      ).resolves.not.toThrow();
+    it('allows valid status transitions within the state machine', async () => {
+      await expect(runTransition("new", "processing")).resolves.not.toThrow();
     });
 
     it('rejects invalid status transitions with BusinessError', async () => {
-      mockRunTransaction.mockImplementationOnce(async (callback) => {
-        let callCount = 0;
-        const mockTx = {
-          get: vi.fn(async () => {
-            callCount++;
-            if (callCount === 1) {
-              return { exists: true, data: () => ({ globalRate: 10 }) };
-            } else {
-              return {
-                exists: true,
-                data: () => ({
-                  status: "canceled", // Canceled state has no outgoing transitions
-                  sellerId: "seller-1",
-                  sellerIds: ["seller-1"],
-                }),
-              };
-            }
-          }),
-          update: vi.fn(),
-          set: vi.fn(),
-        };
-        return callback(mockTx);
-      });
-
-      // "canceled" to "processing" is invalid
-      await expect(
-        OrderStatusService.updateOrderStatus({
-          orderIds: ["order-1"],
-          status: "processing",
-          sellerId: "seller-1",
-          isUserAdmin: true,
-          authUid: "admin-1",
-        })
-      ).rejects.toThrow(BusinessError);
+      await expect(runTransition("canceled", "processing")).rejects.toThrow(BusinessError);
     });
   });
 });

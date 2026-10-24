@@ -54,22 +54,10 @@ export class OrderStatusService {
 
     await traceTransactionExecution("order_update_status", () =>
       db.runTransaction(async (t: firestore.Transaction) => {
-      let globalCommissionRate = 0;
-      try {
-        const commDoc = await t.get(db.collection("settings").doc("commission"));
-        if (commDoc && commDoc.exists) {
-          globalCommissionRate = Number(commDoc.data()?.globalRate) || 0;
-        }
-      } catch (err) {
-        safeLogger.warn("Failed retrieving global commission", { err: err instanceof Error ? err.message : String(err) });
-      }
-
       const ordersData: Array<{
         id: string;
         orderRef: firestore.DocumentReference;
         data: Record<string, unknown>;
-        targetSellerUid: string;
-        sellerCommissionRate: number;
         productSnaps?: firestore.DocumentSnapshot[];
       }> = [];
 
@@ -88,26 +76,14 @@ export class OrderStatusService {
           throw new BusinessError(403, `Accès non autorisé pour la commande #${id}.`);
         }
 
-        const actualSellerId = (sellerIds && sellerIds[0]) || (data.sellerId as string) || sellerId;
-        const targetSellerUid = isUserAdmin ? actualSellerId : sellerId;
 
         const currentStatus = (data.status as string) || "NEW";
         const targetStatus = status;
         const cStatus = currentStatus.toLowerCase();
         const tStatus = targetStatus.toLowerCase();
 
-        let sellerCommissionRate = globalCommissionRate;
         let productSnaps: firestore.DocumentSnapshot[] = [];
 
-        if (tStatus === "delivered" && cStatus !== "delivered") {
-          const sellerSnap = await t.get(db.collection("users").doc(targetSellerUid));
-          if (sellerSnap.exists) {
-            const sellerData = sellerSnap.data();
-            if (typeof sellerData?.commissionRate === "number") {
-              sellerCommissionRate = sellerData.commissionRate;
-            }
-          }
-        }
 
         if ((tStatus === "returned" || tStatus === "canceled") && !data.restocked) {
           const items = (data.items as Array<{ id?: string; quantity?: number; selectedVariant?: string }>) || [];
@@ -129,14 +105,12 @@ export class OrderStatusService {
           id,
           orderRef,
           data,
-          targetSellerUid,
-          sellerCommissionRate,
           productSnaps,
         });
       }
 
       for (const orderInfo of ordersData) {
-        const { id, orderRef, data, sellerCommissionRate, productSnaps } = orderInfo;
+        const { id, orderRef, data, productSnaps } = orderInfo;
 
         const sellerIds = data.sellerIds as string[] | undefined;
         const isUserSeller = sellerIds?.includes(sellerId) || data.sellerId === sellerId;
@@ -167,7 +141,7 @@ export class OrderStatusService {
         const tStatus = targetStatus.toLowerCase();
 
         if (isUserSeller && !isUserAdmin) {
-          const allowedBySeller = ['confirmed', 'processing', 'preparing', 'shipped', 'picked_up', 'in_transit', 'delivered', 'canceled', 'returned', 'return_requested', 'returning'];
+          const allowedBySeller = ['confirmed', 'processing', 'preparing', 'shipped', 'picked_up', 'in_transit', 'delivered', 'canceled', 'returned', 'return_requested', 'return_approved', 'return_rejected', 'returning'];
           if (!allowedBySeller.includes(tStatus)) {
             throw new BusinessError(403, "Statut non autorisé.");
           }
@@ -242,13 +216,12 @@ export class OrderStatusService {
         }
 
         if (tStatus === "delivered" && cStatus !== "delivered") {
-          const subtotal = Number(data.subtotal || 0);
-          const commissionToDeduct = (subtotal * sellerCommissionRate) / 100;
-          const amountToCredit = Number(data.total || 0) - commissionToDeduct;
+          const sellerRevenue = Math.max(0, Number(data.total ?? data.sellerEarned ?? 0));
 
-          updatePayload.commissionRateApplied = sellerCommissionRate;
-          updatePayload.commissionAmount = commissionToDeduct;
-          updatePayload.payoutAmount = amountToCredit;
+          updatePayload.commissionRateApplied = 0;
+          updatePayload.commissionAmount = 0;
+          updatePayload.sellerEarned = sellerRevenue;
+          updatePayload.payoutAmount = sellerRevenue;
           updatePayload.paymentStatus = "paid";
 
           if (deliveryPhoto) {

@@ -5,7 +5,6 @@ import {
   SubscriptionRequest,
   SellerSubscription,
   SubscriptionStatusSummary,
-  PaymentProof
 } from "../subscription.types";
 import { listAllPlans } from "../../admin/services/adminSubscription.service";
 
@@ -34,20 +33,8 @@ export async function getSellerSubscriptionStatus(sellerId: string): Promise<Sub
     }
   }
 
-  const reqSnap = await db
-    .collection(REQUESTS_COLLECTION)
-    .where("sellerId", "==", sellerId)
-    .orderBy("createdAt", "desc")
-    .limit(1)
-    .get();
-
-  let pendingRequest: SubscriptionRequest | null = null;
-  if (!reqSnap.empty) {
-    const rData = reqSnap.docs[0].data() as SubscriptionRequest;
-    if (["pending", "payment_requested", "payment_declared", "payment_confirmed"].includes(rData.status)) {
-      pendingRequest = { ...rData, id: reqSnap.docs[0].id };
-    }
-  }
+  // Legacy paid subscription requests are not part of the free seller access flow.
+  const pendingRequest: SubscriptionRequest | null = null;
 
   return {
     hasActiveSubscription: Boolean(activeSub),
@@ -61,7 +48,7 @@ export async function getSellerSubscriptionStatus(sellerId: string): Promise<Sub
 
 export async function getPublicPlans(): Promise<SubscriptionPlan[]> {
   const all = await listAllPlans();
-  return all.filter((p) => p.isActive);
+  return all.filter((p) => p.isActive && Number(p.price) === 0);
 }
 
 export async function createSubscriptionRequest(
@@ -72,98 +59,44 @@ export async function createSubscriptionRequest(
 ): Promise<SubscriptionRequest> {
   const plans = await listAllPlans();
   const selectedPlan = plans.find((p) => p.id === planId && p.isActive);
-  if (!selectedPlan) {
-    throw new Error("Le forfait sélectionné est indisponible.");
-  }
-
-  const existingPending = await db
-    .collection(REQUESTS_COLLECTION)
-    .where("sellerId", "==", sellerId)
-    .where("status", "in", ["pending", "payment_requested", "payment_declared"])
-    .limit(1)
-    .get();
-
-  if (!existingPending.empty) {
-    throw new Error("Vous avez déjà une demande d'abonnement en cours de traitement.");
+  if (!selectedPlan || Number(selectedPlan.price) !== 0) {
+    throw new Error("Les offres payantes ne sont pas disponibles. L’accès vendeur standard est gratuit.");
   }
 
   const now = new Date().toISOString();
-  const reqRef = db.collection(REQUESTS_COLLECTION).doc();
-
-  const newRequest: SubscriptionRequest = {
-    id: reqRef.id,
-    sellerId,
-    shopName,
-    sellerEmail,
-    planId: selectedPlan.id,
-    planSnapshot: {
-      name: selectedPlan.name,
-      price: selectedPlan.price,
-      currency: selectedPlan.currency,
-      durationDays: selectedPlan.durationDays,
-      features: selectedPlan.features,
-      limits: selectedPlan.limits
-    },
-    status: "pending",
-    createdAt: now,
-    updatedAt: now
+  const subscriptionId = `sub_${sellerId}_${selectedPlan.id}`;
+  const subscriptionRef = db.collection(SUBSCRIPTIONS_COLLECTION).doc(subscriptionId);
+  const existing = await subscriptionRef.get();
+  if (existing.exists) {
+    const current = existing.data() as SellerSubscription;
+    if (current.status === "active" && new Date(current.endDate).getTime() > Date.now()) {
+      return {
+        id: subscriptionId, sellerId, shopName, sellerEmail, planId: selectedPlan.id,
+        planSnapshot: { name: selectedPlan.name, price: 0, currency: selectedPlan.currency, durationDays: selectedPlan.durationDays, features: selectedPlan.features, limits: selectedPlan.limits },
+        status: "granted", createdAt: current.createdAt, updatedAt: now
+      };
+    }
+  }
+  const endDate = new Date(Date.now() + selectedPlan.durationDays * 24 * 60 * 60 * 1000).toISOString();
+  const subscription: SellerSubscription = {
+    id: subscriptionId, sellerId, planId: selectedPlan.id, planName: selectedPlan.name,
+    status: "active", permissions: selectedPlan.features, limits: selectedPlan.limits,
+    startDate: now, endDate, createdAt: now, updatedAt: now
   };
-
-  await reqRef.set(newRequest);
-
+  await subscriptionRef.set(subscription);
   await db.collection(AUDIT_LOGS_COLLECTION).add({
-    action: "subscription_request_submitted",
-    sellerId,
-    planId: selectedPlan.id,
-    targetId: reqRef.id,
-    timestamp: now
+    action: "free_seller_access_activated", sellerId, planId: selectedPlan.id, targetId: subscriptionId, timestamp: now
   });
-
-  safeLogger.info(`[SellerSubscriptions] 🟢 Request submitted [${reqRef.id}] for seller [${sellerId}]`);
-  return newRequest;
+  safeLogger.info(`[SellerSubscriptions] Free access activated for seller [${sellerId}]`);
+  return {
+    id: subscriptionId, sellerId, shopName, sellerEmail, planId: selectedPlan.id,
+    planSnapshot: { name: selectedPlan.name, price: 0, currency: selectedPlan.currency, durationDays: selectedPlan.durationDays, features: selectedPlan.features, limits: selectedPlan.limits },
+    status: "granted", createdAt: now, updatedAt: now
+  };
 }
 
-export async function declarePayment(
-  requestId: string,
-  sellerId: string,
-  proofData: Omit<PaymentProof, "submittedAt">
-): Promise<SubscriptionRequest> {
-  const reqRef = db.collection(REQUESTS_COLLECTION).doc(requestId);
-  const snap = await reqRef.get();
-  if (!snap.exists) {
-    throw new Error("Demande d'abonnement introuvable.");
-  }
-  const data = snap.data() as SubscriptionRequest;
-  if (data.sellerId !== sellerId) {
-    throw new Error("Accès refusé. Cette demande ne vous appartient pas.");
-  }
-  if (data.status !== "payment_requested") {
-    throw new Error(`Impossible de déclarer un reçu sur une demande au statut [${data.status}].`);
-  }
-
-  const now = new Date().toISOString();
-  const proof: PaymentProof = {
-    ...proofData,
-    submittedAt: now
-  };
-
-  await reqRef.update({
-    status: "payment_declared",
-    paymentProof: proof,
-    updatedAt: now
-  });
-
-  await db.collection(AUDIT_LOGS_COLLECTION).add({
-    action: "subscription_payment_declared",
-    sellerId,
-    targetId: requestId,
-    transactionReference: proof.transactionReference,
-    timestamp: now
-  });
-
-  safeLogger.info(`[SellerSubscriptions] 🟢 Payment declared on request [${requestId}] by seller [${sellerId}]`);
-  const updated = await reqRef.get();
-  return { ...(updated.data() as SubscriptionRequest), id: updated.id };
+export async function declarePayment(): Promise<never> {
+  throw new Error("Les paiements d'abonnement vendeur ne sont pas activés.");
 }
 
 export async function getSellerRequestHistory(sellerId: string): Promise<SubscriptionRequest[]> {

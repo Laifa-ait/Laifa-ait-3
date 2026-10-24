@@ -48,14 +48,13 @@ interface CachedShippingSettings {
   dynWilayaFees: Record<string, number>;
   matrixFees: Record<string, Record<string, number>>;
   globalBaseFee: number;
-  globalCommissionRate: number;
   cachedAt: number;
 }
 
 let cachedSettings: CachedShippingSettings | null = null;
 const SETTINGS_CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes TTL
 
-async function getCachedShippingAndCommissionSettings() {
+async function getCachedShippingSettings() {
   const now = Date.now();
   if (cachedSettings && (now - cachedSettings.cachedAt) < SETTINGS_CACHE_TTL_MS) {
     return cachedSettings;
@@ -64,7 +63,6 @@ async function getCachedShippingAndCommissionSettings() {
   let dynWilayaFees: Record<string, number> = {};
   let matrixFees: Record<string, Record<string, number>> = {};
   let globalBaseFee = 600;
-  let globalCommissionRate = 0;
 
   try {
     const settingsDoc = await db.collection("settings").doc("shipping").get();
@@ -75,10 +73,6 @@ async function getCachedShippingAndCommissionSettings() {
       globalBaseFee = d.globalBaseFee || 600;
     }
 
-    const commDoc = await db.collection("settings").doc("commission").get();
-    if (commDoc && commDoc.exists) {
-      globalCommissionRate = commDoc.data()?.globalRate ?? 0;
-    }
   } catch {
     // Fallback defaults
   }
@@ -87,7 +81,6 @@ async function getCachedShippingAndCommissionSettings() {
     dynWilayaFees,
     matrixFees,
     globalBaseFee,
-    globalCommissionRate,
     cachedAt: now,
   };
 
@@ -110,8 +103,8 @@ export class OrderPlacementService {
     } = input;
 
     const sellerIdsSet = new Set<string>();
-    const { dynWilayaFees, matrixFees, globalBaseFee, globalCommissionRate } =
-      await getCachedShippingAndCommissionSettings();
+    const { dynWilayaFees, matrixFees, globalBaseFee } =
+      await getCachedShippingSettings();
 
     const uniqueProductIds: string[] = Array.from(new Set(cart.map((item) => item.id)));
     if (uniqueProductIds.length === 0) throw new Error("Panier vide.");
@@ -596,9 +589,9 @@ export class OrderPlacementService {
             const sellerGrandTotal =
               Math.max(0, sellerSubtotal - sellerDiscount - sellerCashbackApp) + sellerShippingCost;
 
-            const commissionRate = typeof shop?.commissionRate === "number" ? shop.commissionRate : globalCommissionRate;
-            const commissionAmount = (sellerSubtotal * commissionRate) / 100;
-            const sellerEarned = sellerGrandTotal - commissionAmount;
+            const commissionRate = 0;
+            const commissionAmount = 0;
+            const sellerEarned = sellerGrandTotal;
 
             const subOrderRef = db.collection("orders").doc();
             const subOrderData = {

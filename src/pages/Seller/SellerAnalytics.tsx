@@ -30,6 +30,7 @@ interface SellerAnalyticsData {
   totalOrders: number;
   aov: number;
   conversionRate: number;
+  trackingAvailable: boolean;
   storeViews: number;
   productViews: number;
   cartAdds: number;
@@ -68,7 +69,8 @@ export const SellerAnalytics: React.FC = () => {
     chartData: [],
     followersCount: 0,
     reviewsCount: 0,
-    averageRating: 5.0,
+    averageRating: 0,
+    trackingAvailable: false,
   });
 
   useEffect(() => {
@@ -94,7 +96,7 @@ export const SellerAnalytics: React.FC = () => {
   }, [currentUser, period]);
 
   const sb = data.statusBreakdown || { created: 0, confirmed: 0, shipped: 0, delivered: 0, cancelled: 0, returned: 0 };
-  const ts = data.trafficSources || { direct: 40, search: 30, social: 20, sponsored: 10 };
+  const ts = data.trafficSources || { direct: 0, search: 0, social: 0, sponsored: 0 };
 
   return (
     <div className="space-y-8 pb-12">
@@ -166,12 +168,18 @@ export const SellerAnalytics: React.FC = () => {
                 <TrendingUp className="w-5 h-5" />
               </div>
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Taux de Conversion</p>
-              <h3 className="text-2xl font-black text-orange-600">{data.conversionRate.toFixed(2)}%</h3>
-              <span className="text-[10px] text-slate-500 font-medium">{data.storeViews} visites boutique</span>
+              <h3 className="text-2xl font-black text-orange-600">{data.trackingAvailable ? `${data.conversionRate.toFixed(2)}%` : "—"}</h3>
+              <span className="text-[10px] text-slate-500 font-medium">{data.trackingAvailable ? `${data.storeViews} visites boutique` : t("seller.analytics.tracking_unavailable", "Suivi des visites non disponible")}</span>
             </motion.div>
           </div>
 
-          <AnalyticsFunnelSection storeViews={data.storeViews} productViews={data.productViews} cartAdds={data.cartAdds} statusBreakdown={sb} />
+          {data.trackingAvailable ? (
+            <AnalyticsFunnelSection storeViews={data.storeViews} productViews={data.productViews} cartAdds={data.cartAdds} statusBreakdown={sb} />
+          ) : (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 text-sm text-amber-900">
+              {t("seller.analytics.funnel_unavailable", "Le suivi des visites et des ajouts au panier n’est pas encore activé. Ces statistiques ne sont pas affichées.")}
+            </div>
+          )}
 
           <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6">
             <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 mb-6">Évolution des Ventes : CA Livré vs Commandé</h3>
@@ -205,7 +213,7 @@ export const SellerAnalytics: React.FC = () => {
                         <span className="font-bold text-slate-800 line-clamp-1">{prod.name}</span>
                       </div>
                       <div className="flex items-center gap-4 text-slate-500 font-semibold shrink-0">
-                        <span>{prod.viewsCount} vues</span>
+                        {data.trackingAvailable && <span>{prod.viewsCount} vues</span>}
                         <span className="text-emerald-700 font-black">{prod.salesCount} ventes ({formatPrice(prod.revenue)})</span>
                       </div>
                     </div>
@@ -230,8 +238,7 @@ export const SellerAnalytics: React.FC = () => {
                 </div>
                 <div className="pt-2 text-[11px] text-slate-500 space-y-1">
                   <p className="font-bold uppercase tracking-wider text-slate-400 text-[10px]">Sources de trafic</p>
-                  <p>Direct : {ts.direct}% | Recherche : {ts.search}%</p>
-                  <p>Réseaux : {ts.social}% | Sponsorisé : {ts.sponsored}%</p>
+                  {data.trackingAvailable ? <><p>Direct : {ts.direct}% | Recherche : {ts.search}%</p><p>Réseaux : {ts.social}% | Sponsorisé : {ts.sponsored}%</p></> : <p>{t("seller.analytics.traffic_unavailable", "Sources de trafic non suivies pour le moment.")}</p>}
                 </div>
               </div>
             </div>

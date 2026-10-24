@@ -48,7 +48,7 @@ export const useSellerOrders = () => {
     let cancelled = false;
     const timeout = setTimeout(async () => {
       try {
-        const res = await apiPost<{ calculatedOrders: CalculatedOrder[] }>("/api/v1/calculate-commissions", { orders });
+        const res = await apiPost<{ calculatedOrders: CalculatedOrder[] }>("/api/v1/calculate-order-totals", { orders });
         if (!cancelled) {
           const map: Record<string, CalculatedOrder> = {};
           res.calculatedOrders?.forEach((co) => { map[co.id] = co; });
@@ -56,7 +56,7 @@ export const useSellerOrders = () => {
         }
       } catch (err) {
         console.error(err);
-        if (!cancelled) toast.error("Erreur calcul commissions");
+        if (!cancelled) toast.error("Erreur de chargement des montants");
       }
     }, 500);
     return () => { cancelled = true; clearTimeout(timeout); };
@@ -205,15 +205,11 @@ export const useSellerOrders = () => {
     }
   };
 
-  const commissionRate =
-    userProfile?.role === "seller" && typeof userProfile.commissionRate === "number"
-      ? userProfile.commissionRate
-      : 10;
+
 
   return {
     currentUser,
     userProfile,
-    commissionRate,
     orders,
     loading,
     searchTerm,

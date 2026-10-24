@@ -82,7 +82,7 @@ describe("PHASE 6 — Analytics Vendeur & Fidélisation (Olmart COD)", () => {
       expect(Number.isFinite(rate)).toBe(true);
     });
 
-    it("calcule avec précision le ratio commandes / visites en pourcentage arrondi à 2 décimales", () => {
+    it("calcule avec précision le ratio commandes / visites en pourcentage arrondi à 2 décimales quand le suivi existe", () => {
       // 12 commandes pour 400 visites = (12/400)*100 = 3.00%
       const rate1 = SellerAnalyticsService.calculateConversionRate(12, 400);
       expect(rate1).toBe(3);

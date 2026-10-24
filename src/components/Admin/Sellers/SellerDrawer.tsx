@@ -123,45 +123,6 @@ export const SellerDrawer: React.FC<SellerDrawerProps> = ({
 
             <div className="space-y-4">
               <p className="text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-2">
-                {t("Commission Partenaire (%)")}
-              </p>
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={selectedSeller.commissionRate !== undefined ? selectedSeller.commissionRate : 10}
-                  onChange={(e) => {
-                    const val = Math.min(Math.max(Number(e.target.value), 0), 100);
-                    setSelectedSeller({ ...selectedSeller, commissionRate: val });
-                  }}
-                  className="w-24 bg-white border border-zinc-200 rounded-2xl p-4 font-bold text-sm text-zinc-950 outline-none shadow-sm"
-                />
-                <button
-                  onClick={async () => {
-                    try {
-                      await apiPatch(`/api/v1/admin/sellers/${selectedSeller.id}/details`, {
-                        commissionRate: selectedSeller.commissionRate ?? 10,
-                      });
-                      toast.success(t("Taux de commission mis à jour !"));
-                      setSellers(
-                        sellers.map((s) =>
-                          s.id === selectedSeller.id ? { ...s, commissionRate: selectedSeller.commissionRate } : s
-                        )
-                      );
-                    } catch {
-                      toast.error(t("Erreur de sauvegarde"));
-                    }
-                  }}
-                  className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[2rem] text-[10px] font-bold uppercase tracking-widest cursor-pointer active:scale-95 transition-all text-center border-none"
-                >
-                  {t("Sauvegarder")}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <p className="text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-2">
                 {t("Actions de Modération")}
               </p>
 

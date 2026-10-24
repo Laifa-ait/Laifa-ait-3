@@ -13,14 +13,12 @@ export interface CalculatedOrder {
 export const useOrdersCommissions = (filteredOrders: Order[]) => {
   const { currentUser } = useAuth();
   const [totalVolume, setTotalVolume] = useState(0);
-  const [totalCommission, setTotalCommission] = useState(0);
   const [sellersNetPayout, setSellersNetPayout] = useState(0);
   const [calculatedOrdersMap, setCalculatedOrdersMap] = useState<Record<string, CalculatedOrder>>({});
 
   useEffect(() => {
     if (filteredOrders.length === 0) {
       setTotalVolume(0);
-      setTotalCommission(0);
       setSellersNetPayout(0);
       setCalculatedOrdersMap({});
       return;
@@ -29,7 +27,7 @@ export const useOrdersCommissions = (filteredOrders: Order[]) => {
     const calculateCommissions = async () => {
       try {
         const token = await currentUser?.getIdToken();
-        const response = await fetch("/api/v1/calculate-commissions", {
+        const response = await fetch("/api/v1/calculate-order-totals", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ orders: filteredOrders }),
@@ -38,7 +36,6 @@ export const useOrdersCommissions = (filteredOrders: Order[]) => {
         const data = await response.json();
 
         setTotalVolume(data.totalVolume);
-        setTotalCommission(data.totalCommission);
         setSellersNetPayout(data.sellersNetPayout);
 
         const map: Record<string, CalculatedOrder> = {};
@@ -47,7 +44,7 @@ export const useOrdersCommissions = (filteredOrders: Order[]) => {
         });
         setCalculatedOrdersMap(map);
       } catch (err: unknown) {
-        console.error("Failed to calculate server commissions", err instanceof Error ? err.message : err);
+        console.error("Failed to load order totals", err instanceof Error ? err.message : err);
       }
     };
 
@@ -59,7 +56,6 @@ export const useOrdersCommissions = (filteredOrders: Order[]) => {
 
   return {
     totalVolume,
-    totalCommission,
     sellersNetPayout,
     calculatedOrdersMap,
   };

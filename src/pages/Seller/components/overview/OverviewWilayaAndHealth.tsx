@@ -59,7 +59,7 @@ export const OverviewWilayaAndHealth: React.FC<OverviewWilayaAndHealthProps> = (
           {t("seller.overview.account_health", "Santé du Compte")}
         </h4>
         <p className="text-[10px] font-bold text-zinc-400 uppercase mb-6">
-          {t("seller.overview.excellent", "Excellente")}
+          {t("seller.overview.health_based_on_available_data", "État selon les données disponibles")}
         </p>
 
         <div className="w-full space-y-4">
@@ -73,17 +73,17 @@ export const OverviewWilayaAndHealth: React.FC<OverviewWilayaAndHealthProps> = (
           </div>
           <div className="flex justify-between text-[10px] font-bold uppercase tracking-tight rtl:tracking-normal">
             <span className="text-zinc-400">{t("seller.overview.return_rate", "Taux de retour")}</span>
-            <span className="text-emerald-500">0.4%</span>
+            <span className="text-zinc-400">{t("seller.overview.not_available", "Non disponible")}</span>
           </div>
           <div className="flex justify-between text-[10px] font-bold uppercase tracking-tight rtl:tracking-normal">
             <span className="text-zinc-400">{t("seller.overview.shipping_delay", "Délai d'expédition")}</span>
-            <span className="text-zinc-950">{t("seller.overview.delay_val", "1.2 jours")}</span>
+            <span className="text-zinc-400">{t("seller.overview.not_available", "Non disponible")}</span>
           </div>
         </div>
 
         <div className="mt-8 pt-8 border-t border-zinc-50 w-full">
           <p className="text-[10px] text-zinc-500 font-medium leading-relaxed italic">
-            {t("seller.overview.top_5", '"Votre boutique est dans le top 5% des vendeurs OLMART."')}
+            {t("seller.overview.performance_not_ranked", "Les indicateurs de retour, délai d’expédition et classement ne sont pas encore calculés.")}
           </p>
         </div>
       </div>
