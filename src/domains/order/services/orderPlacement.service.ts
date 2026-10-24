@@ -7,7 +7,6 @@ import { CouponService, ProductItemForCoupon } from "../../marketing/coupon.serv
 import { OrderEmailSubOrder } from "./orderEmailNotifier";
 
 import { traceTransactionExecution } from "../../../utils/transactionTrace";
-import { isPurchasable } from "../../product/product.status";
 import { isSellerSellable, SellerSellableCheckInput } from "../../user/user.status";
 
 export interface PlaceOrderInput {
@@ -267,7 +266,7 @@ export class OrderPlacementService {
             const productId = productSnap.id;
             const productData = productInMemoryStates.get(productId)!;
 
-            if (!isPurchasable(productData as { status?: string; stock?: number })) {
+            if (productData.status !== "active") {
               throw new Error(
                 `Le produit "${productData.name || productId}" n'est pas disponible à l'achat (statut: ${productData.status || "inconnu"}).`
               );
