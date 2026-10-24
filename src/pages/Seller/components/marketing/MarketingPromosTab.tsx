@@ -1,7 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Tag, Plus, Calendar, ShoppingBag, Trash2 } from "lucide-react";
-import { SellerPromoCampaign } from "../../services/sellerMarketing.service";
+import { SellerPromoCampaign } from "../../../../domains/seller/services/sellerMarketing.service";
 
 interface MarketingPromosTabProps {
   promos: SellerPromoCampaign[];

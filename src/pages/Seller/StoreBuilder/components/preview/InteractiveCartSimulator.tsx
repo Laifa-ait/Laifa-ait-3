@@ -71,11 +71,11 @@ export const InteractiveCartSimulator: React.FC<InteractiveCartSimulatorProps> =
                 >
                   <img
                     src={prod.images?.[0] || "https://images.unsplash.com/photo-1523275335684-37898b6baf30"}
-                    alt={prod.title}
+                    alt={prod.name}
                     className="w-12 h-12 rounded-lg object-cover bg-white"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-gray-900 truncate">{prod.title}</p>
+                    <p className="text-xs font-bold text-gray-900 truncate">{prod.name}</p>
                     <p className="text-xs font-mono text-orange-600 font-bold mt-0.5">
                       {prod.price?.toLocaleString()} DZD
                     </p>

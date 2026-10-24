@@ -10,7 +10,7 @@ interface OrderCustomerInfoProps {
 export const OrderCustomerInfo: React.FC<OrderCustomerInfoProps> = ({ order }) => {
   const { t } = useTranslation();
 
-  const shipping = order.shippingAddress as Record<string, unknown> | undefined;
+  const shipping = order.shippingAddress as unknown as Record<string, unknown> | undefined;
   const clientName = (shipping?.name as string) || (shipping?.fullName as string) || "Acheteur Olmart";
   const clientEmail = (shipping?.email as string) || "";
   const clientPhone = (shipping?.phone as string) || "";

@@ -1,14 +1,15 @@
 import React from "react";
 import { PropertiesInspector } from "./PropertiesInspector";
-import { StudioNavMode } from "./SectionTreePanel";
-import { CustomPageSection, CustomPageTheme, SellerStoreConfig } from "../../../../../domains/seller/customPage.types";
+import { StudioNavMode } from "./studio.types";
+import { CustomPageSection, CustomPageTheme, MediaGalleryItem, SellerStoreConfig } from "../../../../../domains/seller/customPage.types";
+import { Product } from "../../../../../domains/product/product.types";
 
 interface MobilePropertiesProps {
   navMode: StudioNavMode | "identity";
   selectedSection: CustomPageSection | null;
-  products?: unknown[];
+  products?: Product[];
   storeConfig?: SellerStoreConfig | null;
-  mediaGallery?: unknown[];
+  mediaGallery?: MediaGalleryItem[];
   onUpdateSection: (id: string, updatedData: Partial<CustomPageSection>) => void;
   onSaveTheme: (theme: CustomPageTheme) => Promise<void>;
   onThemeChangeLive: (theme: CustomPageTheme) => void;

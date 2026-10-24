@@ -137,7 +137,7 @@ describe("Search API Contract & GlobalSearchModal Integration Suite", () => {
         hasMore: false,
       };
 
-      const performSearchSpy = vi.spyOn(ProductSearchService, "performSearch").mockResolvedValue(mockResultData);
+      const performSearchSpy = vi.spyOn(ProductSearchService, "performSearch").mockResolvedValue(mockResultData as Awaited<ReturnType<typeof ProductSearchService.performSearch>>);
 
       const response = await fetch(`${serverBaseUrl}/api/v1/search?q=MacBook&limit=5`);
       expect(response.status).toBe(200);
@@ -193,7 +193,7 @@ describe("Search API Contract & GlobalSearchModal Integration Suite", () => {
         hasMore: false,
       };
 
-      const performSearchSpy = vi.spyOn(ProductSearchService, "performSearch").mockResolvedValue(mockResultData);
+      const performSearchSpy = vi.spyOn(ProductSearchService, "performSearch").mockResolvedValue(mockResultData as Awaited<ReturnType<typeof ProductSearchService.performSearch>>);
 
       // Render Modal
       act(() => {
@@ -237,7 +237,7 @@ describe("Search API Contract & GlobalSearchModal Integration Suite", () => {
         hasMore: false,
       };
 
-      const performSearchSpy = vi.spyOn(ProductSearchService, "performSearch").mockResolvedValue(emptyResultData);
+      const performSearchSpy = vi.spyOn(ProductSearchService, "performSearch").mockResolvedValue(emptyResultData as Awaited<ReturnType<typeof ProductSearchService.performSearch>>);
 
       act(() => {
         root?.render(<GlobalSearchModal />);

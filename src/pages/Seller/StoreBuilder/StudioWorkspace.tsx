@@ -8,7 +8,7 @@ import { PropertiesInspector } from "./components/studio/PropertiesInspector";
 import { MobileStudioHeader } from "./components/studio/MobileStudioHeader";
 import { MobileStudioNavigation, MobileStudioColumn } from "./components/studio/MobileStudioNavigation";
 import { StudioMobileMenu } from "./components/studio/StudioMobileMenu";
-import { StudioNavMode } from "./components/studio/SectionTreePanel";
+import { StudioNavMode } from "./components/studio/studio.types";
 import { SaveStatus } from "./hooks/useSellerStudio";
 import { applyMediaToSection } from "./utils/studioMediaHandler";
 import {

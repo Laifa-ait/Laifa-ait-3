@@ -13,6 +13,7 @@ interface StoreSectionRendererProps {
   isEditable?: boolean;
   isSelected?: boolean;
   onSelectSection?: (sectionId: string) => void;
+  previewViewport?: "mobile" | "tablet" | "desktop";
 }
 
 export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({

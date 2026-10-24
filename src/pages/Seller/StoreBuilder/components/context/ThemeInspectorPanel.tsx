@@ -90,8 +90,8 @@ export const ThemeInspectorPanel: React.FC<ThemeInspectorPanelProps> = ({
     label: string,
     field: "primaryColor" | "secondaryColor" | "accentColor" | "accentBadgeColor" | "canvasColor" | "surfaceColor",
   ) => {
-    const color = theme[field] || DEFAULT_THEME[field];
-    const pickerColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color) ? color : DEFAULT_THEME[field];
+    const color: string = theme[field] || DEFAULT_THEME[field] || "#B85B35";
+    const pickerColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color) ? color : (DEFAULT_THEME[field] || "#B85B35");
     return (
       <label key={field} className="space-y-1.5">
         <span className="text-[12px] font-medium text-[#475467]">{label}</span>

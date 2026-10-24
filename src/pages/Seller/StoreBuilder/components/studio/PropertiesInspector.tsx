@@ -5,7 +5,7 @@ import { MediaInspectorPanel } from "../context/MediaInspectorPanel";
 import { StoreSettingsInspectorPanel } from "../context/StoreSettingsInspectorPanel";
 import { PagesInspectorPanel } from "../context/PagesInspectorPanel";
 import { StoreIdentityEditor } from "../identity/StoreIdentityEditor";
-import { StudioNavMode } from "./SectionTreePanel";
+import { StudioNavMode } from "./studio.types";
 import { CustomPageSection, CustomPageTheme, MediaGalleryItem, SellerStoreConfig } from "../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../domains/product/product.types";
 

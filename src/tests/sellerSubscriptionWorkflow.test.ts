@@ -23,7 +23,8 @@ vi.mock("../middlewares/auth", () => ({
   require2FA: (_req: Request, _res: Response, next: NextFunction) => next()
 }));
 
-const mockStore: Record<string, Record<string, unknown>> = {
+interface MockSubscriptionRecord { status?: string; [key: string]: unknown; }
+const mockStore: Record<string, Record<string, MockSubscriptionRecord>> = {
   subscription_plans: {}, subscription_requests: {}, seller_subscriptions: {}, audit_logs: {}, user_notifications: {}
 };
 

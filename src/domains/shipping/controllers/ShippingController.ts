@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import { ALGERIA_WILAYAS, ALGERIA_SHIPPING_DATA } from "../../../constants";
 import { safeLogger } from "../../../utils/logger";
+import { ALGERIA_REGIONS } from "../../../data/algeriaRegions";
+import { SUPPORTED_ALGERIAN_CARRIERS, CARRIERS_WITHOUT_ONLINE_PRICING } from "../services/algerianCarriersData";
+import { calculateCarrierShippingRates } from "../services/shippingCalculatorService";
 
 // Standard Wilayas mapped to standard format
 const FALLBACK_WILAYAS = ALGERIA_WILAYAS.map((w: string, index: number) => {
@@ -70,3 +73,23 @@ export const calculateShippingRates = async (req: Request, res: Response) => {
   }
 };
 
+
+
+export const getCarriers = async (_req: Request, res: Response) =>
+  res.json({ success: true, data: { carriers: SUPPORTED_ALGERIAN_CARRIERS, unsupportedCarriers: CARRIERS_WITHOUT_ONLINE_PRICING } });
+
+export const getDairas = async (req: Request, res: Response) => {
+  const wilaya = String(req.query.wilaya || "");
+  const region = Object.values(ALGERIA_REGIONS).find((item) => item.code === wilaya || item.name.toLowerCase() === wilaya.toLowerCase());
+  return res.json({ success: true, data: region ? Object.keys(region.dairas) : [] });
+};
+
+export const getCommunes = async (req: Request, res: Response) => {
+  const wilaya = String(req.query.wilaya || "");
+  const daira = String(req.query.daira || "");
+  const region = Object.values(ALGERIA_REGIONS).find((item) => item.code === wilaya || item.name.toLowerCase() === wilaya.toLowerCase());
+  return res.json({ success: true, data: region?.dairas[daira] || [] });
+};
+
+export const calculateCarrierRate = async (req: Request, res: Response) =>
+  res.json({ success: true, data: calculateCarrierShippingRates(req.body) });

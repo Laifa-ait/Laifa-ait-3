@@ -2,8 +2,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { CreditCard } from "lucide-react";
 import { Product } from "../../../../domains/product/product.types";
-import { AdSpotConfig } from "../../services/sellerMarketing.service";
-import { SponsorshipTier } from "../../sponsorship.types";
+import { AdSpotConfig } from "../../../../domains/seller/services/sellerMarketing.service";
+import { SponsorshipTier } from "../../../../domains/seller/sponsorship.types";
 
 interface MarketingSponsoModalProps {
   isOpen: boolean;

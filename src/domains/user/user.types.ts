@@ -44,6 +44,9 @@ export type UserProfile = ZodUserProfile & {
   capabilities?: string[];
   sellerOnboardingCompleted?: boolean;
   shopSlug?: string;
+  shopDescription?: string;
+  logoUrl?: string;
+  bannerUrl?: string;
 };
 
 export { ROLES } from "../../constants/roles";

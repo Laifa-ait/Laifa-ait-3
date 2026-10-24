@@ -107,7 +107,7 @@ export const MarketingCouponsTab: React.FC<MarketingCouponsTabProps> = ({
                   </span>
                 </div>
                 <p className="text-xs font-bold text-zinc-800">
-                  {c.type === "percentage" ? `-${c.value}%` : `-${c.value} DZD`} de réduction
+                  {c.discountType === "percentage" ? `-${c.discountValue}%` : `-${c.discountValue} DZD`} de réduction
                 </p>
                 <p className="text-[10px] text-zinc-500">Utilisé {c.usageCount || 0} fois</p>
               </div>

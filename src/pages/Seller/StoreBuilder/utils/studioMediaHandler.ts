@@ -1,5 +1,5 @@
 import { toast } from "react-hot-toast";
-import { CustomPageSection } from "../../../domains/seller/customPage.types";
+import { CustomPageSection } from "../../../../domains/seller/customPage.types";
 
 export const applyMediaToSection = (
   selectedSection: CustomPageSection | null,

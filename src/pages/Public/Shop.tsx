@@ -962,8 +962,6 @@ export const Shop: React.FC = () => {
         selectedFacets={selectedFacets}
         availableFacets={availableFacets}
         toggleFacet={toggleFacet}
-        setBooleanFacet={setBooleanFacet}
-        setMinRating={setMinRating}
         setPriceRange={setPriceRange}
         resetFilters={resetFilters}
         totalCount={totalCount}

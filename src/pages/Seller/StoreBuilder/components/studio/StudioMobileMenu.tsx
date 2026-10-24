@@ -9,7 +9,7 @@ import {
   Store,
   Sparkles,
 } from "lucide-react";
-import { StudioNavMode } from "./SectionTreePanel";
+import { StudioNavMode } from "./studio.types";
 
 interface StudioMobileMenuProps {
   isOpen: boolean;

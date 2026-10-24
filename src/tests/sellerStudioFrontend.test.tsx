@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import React from "react";
 import { StoreSectionRenderer } from "../components/Store/sections/StoreSectionRenderer";
 import { CustomPageSection, CustomPageTheme } from "../domains/seller/customPage.types";
+import { Product } from "../domains/product/product.types";
 
 describe("Store Studio Frontend Components (Phase 2B)", () => {
   const mockTheme: CustomPageTheme = {

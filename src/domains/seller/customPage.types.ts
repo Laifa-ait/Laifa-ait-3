@@ -18,9 +18,13 @@ export type CustomPageSectionType =
 export interface CustomPageSectionStyles {
   backgroundColor?: string;
   textColor?: string;
-  paddingY?: "sm" | "md" | "lg" | "xl";
-  containerWidth?: "contained" | "full";
+  paddingY?: "sm" | "md" | "lg" | "xl" | number;
+  paddingX?: number;
+  containerWidth?: "contained" | "full" | "narrow";
   borderRadius?: "none" | "sm" | "md" | "lg";
+  divider?: "none" | "wave" | "slant" | "curve";
+  animation?: "none" | "fade" | "slide-up" | "zoom";
+  shadow?: "none" | "sm" | "floating" | "brutal";
 }
 
 export interface HeroBannerSettings {
@@ -232,6 +236,8 @@ export interface StoreConfig {
   };
   updatedAt: string;
 }
+
+export type SellerStoreConfig = StoreConfig;
 
 export interface StoreLayoutVersion {
   versionNumber: number;

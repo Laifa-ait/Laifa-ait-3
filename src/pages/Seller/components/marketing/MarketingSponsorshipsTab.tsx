@@ -1,8 +1,8 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Sparkles } from "lucide-react";
-import { AdSpotConfig } from "../../services/sellerMarketing.service";
-import { SponsorshipRequest } from "../../sponsorship.types";
+import { AdSpotConfig } from "../../../../domains/seller/services/sellerMarketing.service";
+import { SponsorshipRequest } from "../../../../domains/seller/sponsorship.types";
 
 interface MarketingSponsorshipsTabProps {
   adSpots?: AdSpotConfig[];

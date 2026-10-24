@@ -106,6 +106,7 @@ export interface Order {
   total: number;
 
   status: OrderStatus;
+  returnStatus?: string;
   paymentStatus?: string;
   paymentMethod?: string;
   deliveredAt?: AppTimestamp;

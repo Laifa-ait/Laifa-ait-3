@@ -8,7 +8,7 @@ import { AddSectionModal } from "../AddSectionModal";
 import { SectionCard } from "./SectionCard";
 import { DeleteSectionModal } from "./DeleteSectionModal";
 import { StudioSidebar } from "./StudioSidebar";
-import { StudioNavMode } from "./SectionTreePanel";
+import { StudioNavMode } from "./studio.types";
 
 interface SectionTreePanelProps {
   sections: CustomPageSection[];

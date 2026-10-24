@@ -1,7 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { BarChart3 } from "lucide-react";
-import { AdSpotConfig } from "../../services/sellerMarketing.service";
+import { AdSpotConfig } from "../../../../domains/seller/services/sellerMarketing.service";
 
 interface MarketingOverviewTabProps {
   overview: {

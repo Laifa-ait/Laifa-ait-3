@@ -7,7 +7,7 @@ import {
   Settings,
   Store,
 } from "lucide-react";
-import { StudioNavMode } from "./SectionTreePanel";
+import { StudioNavMode } from "./studio.types";
 
 interface StudioSidebarProps {
   navMode: StudioNavMode | "identity";
