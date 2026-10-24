@@ -157,16 +157,33 @@ jobs:
           if-no-files-found: ignore
 
   cloud-run-health-check:
-    name: "Post-Deployment Cloud Run Health Verification"
+    name: "Post-Deployment Cloud Run Health & Live E2E Verification"
     needs: [lint-typecheck-test-build, docker-build-verification, firestore-concurrency-emulator, e2e-tests]
     if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && !cancelled() }}
     runs-on: ubuntu-latest
     environment: staging-e2e
     env:
-      CLOUD_RUN_URL: ${{ vars.CLOUD_RUN_URL }}
+      CLOUD_RUN_URL: https://olmart-staging-207154734313.europe-west2.run.app
       EXPECTED_COMMIT_SHA: ${{ github.sha }}
+      PLAYWRIGHT_BASE_URL: https://olmart-staging-207154734313.europe-west2.run.app
+      USE_REAL_FIREBASE: 'true'
 
     steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium Browser
+        run: npx playwright install --with-deps chromium
+
       - name: Wait for Cloud Build deployment and verify Cloud Run health
         shell: bash
         run: |
@@ -208,3 +225,6 @@ jobs:
           echo "Readiness response:"
           cat "$ready_body" || true
           exit 1
+
+      - name: Run live Playwright tests against staging Cloud Run
+        run: npm run test:e2e
