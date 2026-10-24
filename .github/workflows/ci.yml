@@ -110,3 +110,88 @@ jobs:
       - name: Run Real Firestore Concurrency Test in Emulator
         run: npm run test:emulator:concurrency
 
+  e2e-tests:
+    name: "Playwright E2E & Critical Journey Verification"
+    needs: [lint-typecheck-test-build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (v22.23.2)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium Browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Application (SPA + Server) for E2E
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY || 'AIzaSyFakeKeyForCiTesting1234567890' }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN || 'olmart-staging-e2e.firebaseapp.com' }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID || 'olmart-staging-e2e' }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET || 'olmart-staging-e2e.appspot.com' }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID || '207154734313' }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID || '1:207154734313:web:e2estaging' }}
+        run: npm run build
+
+      - name: Execute Playwright E2E Test Suite
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY || 'AIzaSyFakeKeyForCiTesting1234567890' }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN || 'olmart-staging-e2e.firebaseapp.com' }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID || 'olmart-staging-e2e' }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET || 'olmart-staging-e2e.appspot.com' }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID || '207154734313' }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID || '1:207154734313:web:e2estaging' }}
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID || 'olmart-staging-e2e' }}
+        run: npm run test:e2e
+
+      - name: Upload Playwright Test Report Artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+
+  cloud-run-health-check:
+    name: "Post-Deployment Cloud Run Health Verification"
+    needs: [e2e-tests, docker-build-verification]
+    if: ${{ vars.CLOUD_RUN_URL != '' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Probe Cloud Run Live & Ready Endpoints
+        run: |
+          TARGET_URL="${{ vars.CLOUD_RUN_URL }}"
+          echo "🔍 Executing health probes against Cloud Run URL: ${TARGET_URL}"
+
+          # 1. Probe Liveness Endpoint
+          echo "--> Probing Liveness Endpoint (${TARGET_URL}/api/v1/health/live)..."
+          LIVE_CODE=$(curl -s -o /tmp/live_res.json -w "%{http_code}" --max-time 10 "${TARGET_URL}/api/v1/health/live" || echo "000")
+          echo "Liveness HTTP Status: ${LIVE_CODE}"
+          cat /tmp/live_res.json || true
+          if [ "${LIVE_CODE}" -ne 200 ]; then
+            echo "❌ Cloud Run Liveness probe failed with status ${LIVE_CODE}"
+            exit 1
+          fi
+
+          # 2. Probe Health / Readiness Endpoint
+          echo "--> Probing Health & Readiness Endpoint (${TARGET_URL}/api/v1/health)..."
+          HEALTH_CODE=$(curl -s -o /tmp/health_res.json -w "%{http_code}" --max-time 15 "${TARGET_URL}/api/v1/health" || echo "000")
+          echo "Health HTTP Status: ${HEALTH_CODE}"
+          cat /tmp/health_res.json || true
+          if [ "${HEALTH_CODE}" -ne 200 ]; then
+            echo "❌ Cloud Run Health probe failed with status ${HEALTH_CODE}"
+            exit 1
+          fi
+
+          echo "🟢 [Cloud Run Verification Success] Service is fully operational and responsive at ${TARGET_URL}"
+
+

@@ -3,16 +3,19 @@ import { test, expect } from '@playwright/test';
 test.describe('Parcours E2E Critiques OLMART', () => {
 
   test.beforeEach(async ({ page }) => {
-    // Intercepter et bloquer toutes les requêtes sortantes vers les APIs Google Firebase / Telemetry en mode test
-    // afin d'éviter les erreurs HTTP 403 (Forbidden) lors de l'utilisation de fausses clés
-    await page.route(/.*(googleapis\.com|firebaseio\.com|google-analytics\.com|googletagmanager\.com).*/, route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ ok: true, documents: [], users: [] }),
+    // Intercepter et bloquer les requêtes uniquement si le mode simulateur / mock est actif
+    // (Si USE_REAL_FIREBASE=true, les requêtes réelles vers Olmart Staging E2E sont autorisées)
+    if (process.env.USE_REAL_FIREBASE !== 'true') {
+      await page.route(/.*(googleapis\.com|firebaseio\.com|google-analytics\.com|googletagmanager\.com).*/, route => {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ok: true, documents: [], users: [] }),
+        });
       });
-    });
+    }
   });
+
 
   test('1. Visiteur — Homepage, Header & Navigation', async ({ page }) => {
     page.on('console', msg => console.log('BROWSER LOG:', msg.text()));
@@ -87,4 +90,27 @@ test.describe('Parcours E2E Critiques OLMART', () => {
     await page.waitForLoadState('domcontentloaded');
   });
 
+  test('7. Probes Santé API & Sécurité — Health Checks & CSRF Endpoint', async ({ request }) => {
+    // 1. Probe Liveness Express / Cloud Run
+    const liveRes = await request.get('/api/v1/health/live');
+    expect(liveRes.status()).toBe(200);
+    const liveData = await liveRes.json();
+    expect(liveData.status).toBe('alive');
+
+    // 2. Probe Health / Status global
+    const healthRes = await request.get('/api/v1/health');
+    expect(healthRes.status()).toBe(200);
+    const healthData = await healthRes.json();
+    expect(['healthy', 'degraded']).toContain(healthData.status);
+    expect(healthData).toHaveProperty('timestamp');
+    expect(healthData).toHaveProperty('uptime');
+
+    // 3. Endpoint CSRF Token
+    const csrfRes = await request.get('/api/v1/csrf-token');
+    expect(csrfRes.status()).toBe(200);
+    const csrfData = await csrfRes.json();
+    expect(csrfData).toHaveProperty('csrfToken');
+  });
+
 });
+
