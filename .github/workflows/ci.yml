@@ -164,6 +164,7 @@ jobs:
     environment: staging-e2e
     env:
       CLOUD_RUN_URL: ${{ vars.CLOUD_RUN_URL }}
+      EXPECTED_COMMIT_SHA: ${{ github.sha }}
 
     steps:
       - name: Wait for Cloud Build deployment and verify Cloud Run health
@@ -188,10 +189,10 @@ jobs:
             echo "Attempt ${attempt}/20 — live: ${live_code:-000}, ready: ${ready_code:-000}"
             if [[ "${live_code}" == "200" && "${ready_code}" == "200" ]] &&
               jq -e '.status == "alive"' "$live_body" >/dev/null &&
-              jq -e '.status == "ready" and .firebase == "ok" and .frontend == "ok"' "$ready_body" >/dev/null; then
+              jq -e --arg commit "$EXPECTED_COMMIT_SHA" '.status == "ready" and .firebase == "ok" and .frontend == "ok" and .commit == $commit' "$ready_body" >/dev/null; then
               cat "$live_body"
               cat "$ready_body"
-              echo "Cloud Run service is ready at ${target_url}"
+              echo "Cloud Run deployed commit ${EXPECTED_COMMIT_SHA} is ready at ${target_url}"
               exit 0
             fi
 
@@ -200,7 +201,7 @@ jobs:
             fi
           done
 
-          echo "Cloud Run did not become ready within five minutes at ${target_url}."
+          echo "Cloud Run did not become ready on expected commit ${EXPECTED_COMMIT_SHA} within five minutes at ${target_url}."
           echo "Liveness response:"
           cat "$live_body" || true
           echo
