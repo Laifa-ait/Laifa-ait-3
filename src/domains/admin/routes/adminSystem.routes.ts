@@ -199,7 +199,7 @@ router.get("/admin/users", authenticateToken, authorizeAdmin, async (req: Authen
     if (!parseResult.success) {
       return res.status(400).json({
         error: "Paramètres de requête invalides.",
-        details: parseResult.error.errors,
+        details: parseResult.error.issues,
       });
     }
 

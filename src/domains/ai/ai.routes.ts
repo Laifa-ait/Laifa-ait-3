@@ -47,7 +47,7 @@ router.post(
   async (req: AuthenticatedRequest, res: Response) => {
     const parseResult = translateTextSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({ error: "Corps de requête invalide", details: parseResult.error.errors });
+      return res.status(400).json({ error: "Corps de requête invalide", details: parseResult.error.issues });
     }
 
     try {
@@ -68,7 +68,7 @@ router.post(
   async (req: AuthenticatedRequest, res: Response) => {
     const parseResult = translateSingleKeySchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({ error: "Corps de requête invalide", details: parseResult.error.errors });
+      return res.status(400).json({ error: "Corps de requête invalide", details: parseResult.error.issues });
     }
 
     try {

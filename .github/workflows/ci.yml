@@ -114,6 +114,17 @@ jobs:
     name: "Playwright E2E & Critical Journey Verification"
     needs: [lint-typecheck-test-build]
     runs-on: ubuntu-latest
+    environment: staging-e2e
+    env:
+      # e2e/critical.spec.ts mocks Firebase requests, so no real Firebase credential is needed.
+      VITE_FIREBASE_API_KEY: E2E_NO_REAL_API_KEY
+      VITE_FIREBASE_APP_ID: E2E_NO_REAL_APP_ID
+      VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN || 'olmart-staging-e2e.firebaseapp.com' }}
+      VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID || 'olmart-staging-e2e' }}
+      VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET || 'olmart-staging-e2e.firebasestorage.app' }}
+      VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID || '207154734313' }}
+      VITE_FIREBASE_DATABASE_ID: ${{ vars.VITE_FIREBASE_DATABASE_ID || '(default)' }}
+      FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID || 'olmart-staging-e2e' }}
 
     steps:
       - name: Checkout Source Code
@@ -132,24 +143,9 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Build Application (SPA + Server) for E2E
-        env:
-          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY || 'AIzaSyFakeKeyForCiTesting1234567890' }}
-          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN || 'olmart-staging-e2e.firebaseapp.com' }}
-          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID || 'olmart-staging-e2e' }}
-          VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET || 'olmart-staging-e2e.appspot.com' }}
-          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID || '207154734313' }}
-          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID || '1:207154734313:web:e2estaging' }}
         run: npm run build
 
       - name: Execute Playwright E2E Test Suite
-        env:
-          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY || 'AIzaSyFakeKeyForCiTesting1234567890' }}
-          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN || 'olmart-staging-e2e.firebaseapp.com' }}
-          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID || 'olmart-staging-e2e' }}
-          VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET || 'olmart-staging-e2e.appspot.com' }}
-          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID || '207154734313' }}
-          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID || '1:207154734313:web:e2estaging' }}
-          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID || 'olmart-staging-e2e' }}
         run: npm run test:e2e
 
       - name: Upload Playwright Test Report Artifacts
@@ -162,36 +158,45 @@ jobs:
 
   cloud-run-health-check:
     name: "Post-Deployment Cloud Run Health Verification"
-    needs: [e2e-tests, docker-build-verification]
-    if: ${{ vars.CLOUD_RUN_URL != '' }}
+    needs: [lint-typecheck-test-build, docker-build-verification, firestore-concurrency-emulator, e2e-tests]
+    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && !cancelled() }}
     runs-on: ubuntu-latest
+    environment: staging-e2e
+    env:
+      CLOUD_RUN_URL: ${{ vars.CLOUD_RUN_URL }}
 
     steps:
-      - name: Probe Cloud Run Live & Ready Endpoints
+      - name: Wait for Cloud Build deployment and verify Cloud Run health
+        shell: bash
         run: |
-          TARGET_URL="${{ vars.CLOUD_RUN_URL }}"
-          echo "🔍 Executing health probes against Cloud Run URL: ${TARGET_URL}"
+          set -euo pipefail
 
-          # 1. Probe Liveness Endpoint
-          echo "--> Probing Liveness Endpoint (${TARGET_URL}/api/v1/health/live)..."
-          LIVE_CODE=$(curl -s -o /tmp/live_res.json -w "%{http_code}" --max-time 10 "${TARGET_URL}/api/v1/health/live" || echo "000")
-          echo "Liveness HTTP Status: ${LIVE_CODE}"
-          cat /tmp/live_res.json || true
-          if [ "${LIVE_CODE}" -ne 200 ]; then
-            echo "❌ Cloud Run Liveness probe failed with status ${LIVE_CODE}"
+          if [[ -z "${CLOUD_RUN_URL:-}" ]]; then
+            echo "CLOUD_RUN_URL is not configured in the staging-e2e environment."
             exit 1
           fi
 
-          # 2. Probe Health / Readiness Endpoint
-          echo "--> Probing Health & Readiness Endpoint (${TARGET_URL}/api/v1/health)..."
-          HEALTH_CODE=$(curl -s -o /tmp/health_res.json -w "%{http_code}" --max-time 15 "${TARGET_URL}/api/v1/health" || echo "000")
-          echo "Health HTTP Status: ${HEALTH_CODE}"
-          cat /tmp/health_res.json || true
-          if [ "${HEALTH_CODE}" -ne 200 ]; then
-            echo "❌ Cloud Run Health probe failed with status ${HEALTH_CODE}"
-            exit 1
-          fi
+          target_url="${CLOUD_RUN_URL%/}"
+          for attempt in $(seq 1 20); do
+            live_code=$(curl -sS -o /tmp/live-health.json -w '%{http_code}' --max-time 10 "${target_url}/api/v1/health/live" || true)
+            ready_code=$(curl -sS -o /tmp/ready-health.json -w '%{http_code}' --max-time 15 "${target_url}/api/v1/health" || true)
 
-          echo "🟢 [Cloud Run Verification Success] Service is fully operational and responsive at ${TARGET_URL}"
+            echo "Attempt ${attempt}/20 — live: ${live_code:-000}, ready: ${ready_code:-000}"
+            if [[ "${live_code}" == "200" && "${ready_code}" == "200" ]]; then
+              cat /tmp/live-health.json
+              cat /tmp/ready-health.json
+              echo "Cloud Run service is healthy at ${target_url}"
+              exit 0
+            fi
+
+            if [[ "${attempt}" -lt 20 ]]; then
+              sleep 15
+            fi
+          done
+
+          echo "Cloud Run did not become healthy within five minutes at ${target_url}."
+          cat /tmp/live-health.json || true
+          cat /tmp/ready-health.json || true
+          exit 1
 
 

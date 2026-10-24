@@ -19,7 +19,7 @@ router.get(["/admin/subscriptions/plans", "/api/v1/admin/subscriptions/plans"], 
     const plans = await listAllPlans();
     return res.json({ success: true, data: plans });
   } catch (error) {
-    safeLogger.error("[AdminSubscriptions] ❌ Error fetching plans", error);
+    safeLogger.error("[AdminSubscriptions] ❌ Error fetching plans", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: "Erreur lors de la récupération des forfaits." });
   }
 });
@@ -32,7 +32,7 @@ router.post(["/admin/subscriptions/plans", "/api/v1/admin/subscriptions/plans"],
     const plan = await upsertPlan(planId, req.body, adminId);
     return res.json({ success: true, data: plan });
   } catch (error) {
-    safeLogger.error("[AdminSubscriptions] ❌ Error creating plan", error);
+    safeLogger.error("[AdminSubscriptions] ❌ Error creating plan", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: "Erreur lors de la création du forfait." });
   }
 });
@@ -44,7 +44,7 @@ router.put(["/admin/subscriptions/plans/:id", "/api/v1/admin/subscriptions/plans
     const plan = await upsertPlan(id, req.body, adminId);
     return res.json({ success: true, data: plan });
   } catch (error) {
-    safeLogger.error("[AdminSubscriptions] ❌ Error updating plan", error);
+    safeLogger.error("[AdminSubscriptions] ❌ Error updating plan", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: "Erreur lors de la mise à jour du forfait." });
   }
 });
@@ -55,7 +55,7 @@ router.get(["/admin/subscriptions/requests", "/api/v1/admin/subscriptions/reques
     const requests = await listSubscriptionRequests(status);
     return res.json({ success: true, data: requests });
   } catch (error) {
-    safeLogger.error("[AdminSubscriptions] ❌ Error fetching requests", error);
+    safeLogger.error("[AdminSubscriptions] ❌ Error fetching requests", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: "Erreur lors de la récupération des demandes." });
   }
 });
@@ -88,7 +88,7 @@ router.post(["/admin/subscriptions/requests/:id/request-payment", "/api/v1/admin
 
     return res.json({ success: true, data: updated });
   } catch (error) {
-    safeLogger.error("[AdminSubscriptions] ❌ Error requesting payment", error);
+    safeLogger.error("[AdminSubscriptions] ❌ Error requesting payment", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: "Erreur lors de l'envoi des instructions bancaires." });
   }
 });
@@ -107,7 +107,7 @@ router.post(["/admin/subscriptions/requests/:id/confirm-payment", "/api/v1/admin
     const updated = await confirmPaymentReceived(id, Number(confirmedAmount), adminId, notes);
     return res.json({ success: true, data: updated });
   } catch (error) {
-    safeLogger.error("[AdminSubscriptions] ❌ Error confirming payment", error);
+    safeLogger.error("[AdminSubscriptions] ❌ Error confirming payment", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: "Erreur lors de la confirmation du paiement." });
   }
 });
@@ -127,7 +127,7 @@ router.post(["/admin/subscriptions/requests/:id/grant", "/api/v1/admin/subscript
     });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Erreur lors de l'accord de l'abonnement.";
-    safeLogger.error("[AdminSubscriptions] ❌ Error granting subscription", error);
+    safeLogger.error("[AdminSubscriptions] ❌ Error granting subscription", { err: error instanceof Error ? error.message : String(error) });
     return res.status(400).json({ error: msg });
   }
 });
@@ -141,7 +141,7 @@ router.post(["/admin/subscriptions/requests/:id/reject", "/api/v1/admin/subscrip
     const updated = await rejectSubscriptionRequest(id, reason || "Dossier non validé", adminId);
     return res.json({ success: true, data: updated });
   } catch (error) {
-    safeLogger.error("[AdminSubscriptions] ❌ Error rejecting request", error);
+    safeLogger.error("[AdminSubscriptions] ❌ Error rejecting request", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: "Erreur lors du rejet de la demande." });
   }
 });
