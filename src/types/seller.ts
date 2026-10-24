@@ -74,6 +74,7 @@ export interface SellerProduct {
   video?: string;
   colors?: string[];
   sizes?: string[];
+  variants?: ProductVariant[];
   sizeType?: string;
   weight?: number;
   dimensions?: string;
@@ -217,7 +218,7 @@ export interface SellerUserProfile {
   rating?: number;
   sellerTrustScore?: number;
   phone?: string;
-  phoneNumber?: string;
+  phoneNumber?: string | null;
   logoUrl?: string;
   photoURL?: string;
   address?: string;

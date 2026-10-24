@@ -137,7 +137,7 @@ export const MarketingCenter: React.FC = () => {
 
       <MarketingPromoModal isOpen={showPromoModal} onClose={() => setShowPromoModal(false)} products={products} promoForm={promoForm} setPromoForm={setPromoForm} onSubmit={handleCreatePromo} />
       <MarketingSponsoModal isOpen={showSponsoModal} onClose={() => { setShowSponsoModal(false); setSelectedSpot(null); }} selectedSpot={selectedSpot} products={products} sponsoForm={sponsoForm} setSponsoForm={setSponsoForm} onSubmit={handleCreateSponso} />
-      {showCouponModal && <SellerCouponModal isOpen={showCouponModal} onClose={() => { setShowCouponModal(false); fetchData(); }} onSuccess={fetchData} />}
+      {showCouponModal && <SellerCouponModal isOpen={showCouponModal} onClose={() => { setShowCouponModal(false); fetchData(); }} onCreated={() => fetchData()} />}
     </div>
   );
 };

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, SlidersHorizontal, RotateCcw, ShieldCheck, MapPin, Tag, Palette, CheckCircle2, Star } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getCategoryTranslation } from "../../utils/translations";
-import { AvailableFacets, SelectedFacets } from "../../hooks/useFacetedFilters";
+import { AvailableFacets, ArrayFacetKey, SelectedFacets } from "../../hooks/useFacetedFilters";
 
 interface DynamicFilterPanelProps {
   isOpen: boolean;
@@ -11,7 +11,7 @@ interface DynamicFilterPanelProps {
   activeCategory: string;
   selectedFacets: SelectedFacets;
   availableFacets: AvailableFacets;
-  toggleFacet: (facetKey: keyof Omit<SelectedFacets, "priceRange">, value: string) => void;
+  toggleFacet: (facetKey: ArrayFacetKey, value: string) => void;
   setPriceRange: (range: [number, number]) => void;
   resetFilters: () => void;
   totalCount: number;

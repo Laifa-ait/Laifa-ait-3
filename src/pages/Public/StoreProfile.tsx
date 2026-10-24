@@ -13,6 +13,7 @@ import { SellerCouponBanner } from '../../components/Shop/SellerCouponBanner';
 import { StoreSectionRenderer } from '../../components/Store/sections/StoreSectionRenderer';
 import { useStoreProfile } from './hooks/useStoreProfile';
 import { apiPost } from '../../lib/api';
+import type { CustomPageSeo, CustomPageTheme } from '../../domains/seller/customPage.types';
 
 export interface PublicStoreInfo {
   id: string;
@@ -45,8 +46,8 @@ export interface PublicStoreInfo {
   sellerBanner?: string;
   bannerImage?: string;
   brand?: string;
-  theme?: Record<string, unknown>;
-  seo?: Record<string, unknown>;
+  theme?: CustomPageTheme;
+  seo?: CustomPageSeo;
 }
 
 export const StoreProfile: React.FC = () => {

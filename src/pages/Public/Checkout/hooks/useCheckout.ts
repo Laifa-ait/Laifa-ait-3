@@ -35,7 +35,7 @@ export const useCheckout = () => {
   const [shippingData, setShippingData] = useState<{
     wilayas: ShippingLocation[];
     communes: Array<{ id: number; wilaya_id: number; name: string }>;
-    centers: Array<{ id: number; wilaya_id: number; name: string }>;
+    centers: string[];
   }>({ wilayas: [], communes: [], centers: [] });
   const [shippingRate, setShippingRate] = useState<ShippingRateDetail | null>(null);
 
@@ -95,7 +95,7 @@ export const useCheckout = () => {
       if (!formData.wilaya) return [];
       const wilayaObj = shippingData.wilayas.find(w => w.name === formData.wilaya);
       if (!wilayaObj) return [];
-      return shippingData.centers.filter(c => c.wilaya_id === wilayaObj.id).map(c => c.name);
+      return shippingData.centers;
   }, [formData.wilaya, shippingData]);
 
   // Pre-select commune by default when wilaya changes for smooth UX & no empty selection
