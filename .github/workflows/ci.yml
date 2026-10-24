@@ -177,15 +177,21 @@ jobs:
           fi
 
           target_url="${CLOUD_RUN_URL%/}"
+          live_body="$(mktemp)"
+          ready_body="$(mktemp)"
+          trap 'rm -f "$live_body" "$ready_body"' EXIT
+
           for attempt in $(seq 1 20); do
-            live_code=$(curl -sS -o /tmp/live-health.json -w '%{http_code}' --max-time 10 "${target_url}/api/v1/health/live" || true)
-            ready_code=$(curl -sS -o /tmp/ready-health.json -w '%{http_code}' --max-time 15 "${target_url}/api/v1/health" || true)
+            live_code="$(curl -sS -o "$live_body" -w '%{http_code}' --max-time 10 "${target_url}/api/v1/health/live" || true)"
+            ready_code="$(curl -sS -o "$ready_body" -w '%{http_code}' --max-time 15 "${target_url}/api/v1/health/ready" || true)"
 
             echo "Attempt ${attempt}/20 — live: ${live_code:-000}, ready: ${ready_code:-000}"
-            if [[ "${live_code}" == "200" && "${ready_code}" == "200" ]]; then
-              cat /tmp/live-health.json
-              cat /tmp/ready-health.json
-              echo "Cloud Run service is healthy at ${target_url}"
+            if [[ "${live_code}" == "200" && "${ready_code}" == "200" ]] &&
+              jq -e '.status == "alive"' "$live_body" >/dev/null &&
+              jq -e '.status == "ready" and .firebase == "ok" and .frontend == "ok"' "$ready_body" >/dev/null; then
+              cat "$live_body"
+              cat "$ready_body"
+              echo "Cloud Run service is ready at ${target_url}"
               exit 0
             fi
 
@@ -194,9 +200,10 @@ jobs:
             fi
           done
 
-          echo "Cloud Run did not become healthy within five minutes at ${target_url}."
-          cat /tmp/live-health.json || true
-          cat /tmp/ready-health.json || true
+          echo "Cloud Run did not become ready within five minutes at ${target_url}."
+          echo "Liveness response:"
+          cat "$live_body" || true
+          echo
+          echo "Readiness response:"
+          cat "$ready_body" || true
           exit 1
-
-
