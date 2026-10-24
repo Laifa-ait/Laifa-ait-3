@@ -80,6 +80,7 @@ router.get(["/api/health/ready", "/api/v1/health/ready"], async (req: Request, r
   const body: Record<string, unknown> = {
     status: ready ? "ready" : "degraded",
     firebase,
+    commit: process.env.DEPLOYED_COMMIT_SHA || "unknown",
     timestamp: new Date().toISOString(),
   };
   if (frontend !== undefined) {

@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "demo-olmart-test"
+    "default": "original-micron-7sjh2",
+    "staging": "olmart-staging-e2e"
   }
 }
