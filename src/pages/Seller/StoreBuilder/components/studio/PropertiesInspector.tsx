@@ -67,7 +67,7 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
         </div>
       ) : navMode === "settings" ? (
         <StoreSettingsInspectorPanel
-          storeConfig={storeConfig}
+          storeConfig={storeConfig ?? null}
           onSaveConfig={onSaveConfig}
         />
       ) : (

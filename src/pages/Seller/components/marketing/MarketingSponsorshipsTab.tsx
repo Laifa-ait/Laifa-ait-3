@@ -76,14 +76,14 @@ export const MarketingSponsorshipsTab: React.FC<MarketingSponsorshipsTabProps> =
                   <span className="text-xs font-bold text-zinc-900">Demande #{req.id.substring(0, 8)}</span>
                   <span
                     className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                      req.status === "approved" || req.status === "active"
+                      req.status === "approved"
                         ? "bg-emerald-100 text-emerald-800"
                         : req.status === "rejected"
                         ? "bg-rose-100 text-rose-800"
                         : "bg-amber-100 text-amber-800"
                     }`}
                   >
-                    {req.status === "approved" || req.status === "active"
+                    {req.status === "approved"
                       ? "ACTIVE / APPROUVÉE"
                       : req.status === "rejected"
                       ? "REFUSÉE"
@@ -92,12 +92,7 @@ export const MarketingSponsorshipsTab: React.FC<MarketingSponsorshipsTabProps> =
                 </div>
 
                 <div className="text-xs text-zinc-600 space-y-1">
-                  <p>Prix : <strong>{req.priceAmount} DZD</strong> ({req.durationDays} jours)</p>
-                  {req.rejectionReason && (
-                    <p className="text-rose-600 font-bold bg-rose-50 p-2 rounded-lg mt-2">
-                      Motif du refus : {req.rejectionReason}
-                    </p>
-                  )}
+                  <p>Prix : <strong>{req.price} DZD</strong> ({req.durationDays} jours)</p>
                 </div>
               </div>
             ))}

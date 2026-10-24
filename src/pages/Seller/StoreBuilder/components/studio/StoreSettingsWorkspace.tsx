@@ -14,7 +14,7 @@ export const StoreSettingsWorkspace: React.FC<StoreSettingsWorkspaceProps> = ({
   return (
     <div className="flex-1 flex flex-col h-full bg-[#FFFFFF] overflow-y-auto">
       <StoreSettingsInspectorPanel
-        storeConfig={storeConfig}
+        storeConfig={storeConfig ?? null}
         onSaveConfig={onSaveConfig}
       />
     </div>
