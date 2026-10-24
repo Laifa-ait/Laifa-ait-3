@@ -25,6 +25,9 @@ test.describe('Parcours E2E Critiques OLMART', () => {
     await page.goto('/');
     await expect(page).toHaveTitle(/Olma/i);
 
+    // Confirm that the client rendered the actual homepage, not just the server shell.
+    await expect(page.getByRole('heading', { name: /Olma Marketplace/i }).first()).toBeVisible({ timeout: 15000 });
+
     // 2. Vérifier que la navbar principale et les éléments d'accueil sont chargés
     await expect(page.locator('body')).toBeVisible();
     await page.waitForLoadState('domcontentloaded');
@@ -113,4 +116,3 @@ test.describe('Parcours E2E Critiques OLMART', () => {
   });
 
 });
-
