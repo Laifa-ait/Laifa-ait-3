@@ -75,15 +75,22 @@ export class StoreLayoutService {
     });
 
     const mediaGallery: MediaGalleryItem[] = [];
-    if (storeConfig.logoUrl) {
+    if (Array.isArray(storeConfig.mediaGallery)) {
+      storeConfig.mediaGallery.forEach((item) => {
+        if (item && item.url && !mediaGallery.some((m) => m.id === item.id)) {
+          mediaGallery.push(item);
+        }
+      });
+    }
+    if (storeConfig.logoUrl && !mediaGallery.some((m) => m.url === storeConfig.logoUrl)) {
       mediaGallery.push({ id: "logo", url: storeConfig.logoUrl, type: "image", name: "Logo officiel", uploadedAt: storeConfig.updatedAt });
     }
-    if (storeConfig.bannerUrl) {
+    if (storeConfig.bannerUrl && !mediaGallery.some((m) => m.url === storeConfig.bannerUrl)) {
       mediaGallery.push({ id: "banner", url: storeConfig.bannerUrl, type: "image", name: "Bannière d'en-tête", uploadedAt: storeConfig.updatedAt });
     }
     productsSnap.docs.forEach((d) => {
       const p = d.data();
-      if (p.image && typeof p.image === "string") {
+      if (p.image && typeof p.image === "string" && !mediaGallery.some((m) => m.url === p.image)) {
         mediaGallery.push({ id: `prod_${d.id}`, url: p.image, type: "image", name: String(p.name || "Produit"), uploadedAt: storeConfig.updatedAt });
       }
     });

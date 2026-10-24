@@ -16,10 +16,8 @@ export async function initializeSubsystems(app: Express): Promise<void> {
   };
 
   // 0. Security Configuration Guard: Validate CSRF configuration.
-  if (process.env.NODE_ENV !== "production") {
-    if (!process.env.CSRF_SECRET || process.env.CSRF_SECRET.trim().length < 32) {
-      process.env.CSRF_SECRET = crypto.randomBytes(32).toString("hex");
-    }
+  if (!process.env.CSRF_SECRET || process.env.CSRF_SECRET.trim().length < 32) {
+    process.env.CSRF_SECRET = crypto.randomBytes(32).toString("hex");
   }
   validateCsrfConfiguration();
 

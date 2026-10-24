@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import "./studio-tokens.css";
 import { StudioTopBar } from "./components/studio/StudioTopBar";
-import { StudioSidebar } from "./components/studio/StudioSidebar";
 import { SectionTreePanel } from "./components/studio/SectionTreePanel";
 import { StudioPreview } from "./components/studio/StudioPreview";
 import { PropertiesInspector } from "./components/studio/PropertiesInspector";
@@ -17,42 +16,46 @@ import {
   CustomPageTheme,
   SellerStoreConfig,
   StoreLayoutVersion,
+  StoreHistoryEntry,
   MediaGalleryItem,
 } from "../../../domains/seller/customPage.types";
-import { SubscriptionRequest } from "../../../domains/seller/subscription.types";
 import { Product } from "../../../domains/product/product.types";
 
 interface StudioWorkspaceProps {
   saveStatus: SaveStatus;
   storeConfig?: SellerStoreConfig | null;
   publishedLayout?: StoreLayoutVersion | null;
-  hasActiveSubscription?: boolean;
   sections: CustomPageSection[];
   products?: Product[];
+  historyList?: StoreHistoryEntry[];
   mediaGallery?: MediaGalleryItem[];
   onUploadMedia?: (file: File) => Promise<MediaGalleryItem>;
   onDeleteMedia?: (id: string) => Promise<void>;
   selectedSectionId: string | null;
   setSelectedSectionId: (id: string | null) => void;
-  addSection: (type: CustomPageSectionType, defaultSettings: Record<string, unknown>, defaultTitle?: string) => void;
+  addSection: (
+    type: CustomPageSectionType,
+    defaultSettings: Record<string, unknown>,
+    defaultTitle?: string
+  ) => void;
   updateSection: (id: string, updatedData: Partial<CustomPageSection>) => void;
   reorderSections: (fromIndex: number, toIndex: number) => void;
   deleteSection: (id: string) => void;
   duplicateSection?: (id: string) => void;
   toggleVisibility: (id: string) => void;
   saveStoreConfig: (updatedConfig: Partial<SellerStoreConfig>) => Promise<void>;
-  publishStudio: () => void;
-  pendingRequest?: SubscriptionRequest | null;
-  onRequestPublication?: () => void;
+  onSaveDraft?: () => void;
+  publishStudio: (changeSummary?: string) => void;
+  onRollback?: (versionNumber: number) => void;
 }
 
 export const StudioWorkspace: React.FC<StudioWorkspaceProps> = ({
   saveStatus,
   storeConfig,
   publishedLayout,
-  hasActiveSubscription = false,
   sections,
   products = [],
+  historyList = [],
   mediaGallery = [],
   onUploadMedia,
   onDeleteMedia,
@@ -65,18 +68,19 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = ({
   duplicateSection,
   toggleVisibility,
   saveStoreConfig,
+  onSaveDraft,
   publishStudio,
-  pendingRequest,
-  onRequestPublication,
+  onRollback,
 }) => {
-  const [navMode, setNavMode] = useState<StudioNavMode | "identity">("sections");
+  const [navMode, setNavMode] = useState<StudioNavMode>("sections");
   const [viewport, setViewport] = useState<"mobile" | "tablet" | "desktop">("desktop");
   const [mobileColumn, setMobileColumn] = useState<MobileStudioColumn>("canvas");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [liveThemeOverride, setLiveThemeOverride] = useState<CustomPageTheme | null>(null);
 
   const selectedSection = sections.find((sec) => sec.id === selectedSectionId) || null;
-  const currentTheme: CustomPageTheme = liveThemeOverride ||
+  const currentTheme: CustomPageTheme =
+    liveThemeOverride ||
     storeConfig?.theme || {
       sector: "artisanat",
       primaryColor: "#B85B35",
@@ -87,14 +91,14 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = ({
       fontFamily: "'Plus Jakarta Sans', sans-serif",
     };
 
-  const isPublished = Boolean(publishedLayout && hasActiveSubscription);
+  const isPublished = Boolean(publishedLayout && publishedLayout.sections?.length > 0);
 
   const handleSaveTheme = async (updatedTheme: CustomPageTheme) => {
     setLiveThemeOverride(updatedTheme);
     await saveStoreConfig({ theme: updatedTheme });
   };
 
-  const handleSelectNavMode = (mode: StudioNavMode | "identity") => {
+  const handleSelectNavMode = (mode: StudioNavMode) => {
     setNavMode(mode);
     setMobileColumn(mode === "sections" ? "tree" : "inspector");
   };
@@ -107,7 +111,7 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full md:h-[calc(100vh-10px)] bg-[#F7F8FA] text-[#17191C] overflow-hidden select-none min-w-0 min-h-0">
+    <div className="flex flex-col flex-1 h-full bg-[#F7F8FA] text-[#17191C] overflow-hidden select-none min-w-0 min-h-0">
       <div className="hidden md:block shrink-0">
         <StudioTopBar
           viewport={viewport}
@@ -116,10 +120,10 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = ({
           shopName={storeConfig?.shopName || "Ma Boutique"}
           shopSlug={storeConfig?.shopSlug}
           isPublished={isPublished}
-          hasActiveSubscription={hasActiveSubscription}
-          pendingRequest={pendingRequest}
+          historyList={historyList}
+          onSaveDraft={onSaveDraft}
           onPublish={publishStudio}
-          onRequestPublication={onRequestPublication}
+          onRollback={onRollback}
         />
       </div>
 
@@ -127,9 +131,7 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = ({
         <MobileStudioHeader
           shopName={storeConfig?.shopName || "Ma Boutique"}
           isPublished={isPublished}
-          hasActiveSubscription={hasActiveSubscription}
-          hasPendingRequest={Boolean(pendingRequest)}
-          onPublish={hasActiveSubscription ? publishStudio : onRequestPublication || publishStudio}
+          onPublish={() => publishStudio()}
           onOpenMenu={() => setIsMobileMenuOpen(true)}
         />
         <MobileStudioNavigation
@@ -148,13 +150,12 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = ({
       />
 
       <div className="flex-1 flex overflow-hidden min-w-0 min-h-0">
-        <div className="h-full shrink-0 hidden xl:block w-[260px] min-w-[260px] max-w-[260px] border-r border-[#E5E7EB]">
-          <StudioSidebar navMode={navMode} onSelectNavMode={handleSelectNavMode} />
-        </div>
-
+        {/* Left Column: Unified Navigation + Section Tree */}
         <div
           className={`h-full min-w-0 ${
-            mobileColumn === "tree" ? "block w-full flex-1" : "hidden md:block md:w-[280px] md:shrink-0"
+            mobileColumn === "tree"
+              ? "block w-full flex-1"
+              : "hidden md:block md:w-[290px] lg:w-[300px] md:shrink-0"
           }`}
         >
           <SectionTreePanel
@@ -175,6 +176,7 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = ({
           />
         </div>
 
+        {/* Center Column: Live Storefront Canvas */}
         <div
           className={`h-full flex-1 min-w-0 overflow-hidden ${
             mobileColumn === "canvas" ? "block w-full" : "hidden md:block"
@@ -196,14 +198,18 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = ({
           />
         </div>
 
+        {/* Right Column: Contextual Inspector */}
         <div
           className={`h-full min-w-0 ${
-            mobileColumn === "inspector" ? "block w-full flex-1" : "hidden md:block md:w-[320px] md:shrink-0"
+            mobileColumn === "inspector"
+              ? "block w-full flex-1"
+              : "hidden md:block md:w-[330px] md:shrink-0"
           }`}
         >
           <PropertiesInspector
             navMode={navMode}
             selectedSection={selectedSection}
+            sections={sections}
             products={products}
             storeConfig={storeConfig}
             currentTheme={currentTheme}
@@ -212,6 +218,7 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = ({
             onUploadMedia={onUploadMedia}
             onDeleteMedia={onDeleteMedia}
             onUpdateSection={updateSection}
+            onAddSection={addSection}
             onSaveTheme={handleSaveTheme}
             onThemeChangeLive={(newTheme) => setLiveThemeOverride(newTheme)}
             onSaveConfig={saveStoreConfig}

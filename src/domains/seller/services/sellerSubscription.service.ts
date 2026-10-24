@@ -81,7 +81,7 @@ export async function createSubscriptionRequest(
   const subscription: SellerSubscription = {
     id: subscriptionId, sellerId, planId: selectedPlan.id, planName: selectedPlan.name,
     status: "active", permissions: selectedPlan.features, limits: selectedPlan.limits,
-    startDate: now, endDate, createdAt: now, updatedAt: now
+    startDate: now, endDate, grantedByAdminId: "system", createdAt: now, updatedAt: now
   };
   await subscriptionRef.set(subscription);
   await db.collection(AUDIT_LOGS_COLLECTION).add({

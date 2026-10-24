@@ -6,115 +6,75 @@ import {
   Image as ImageIcon,
   Settings,
   Store,
+  ShoppingBag,
+  ClipboardList,
 } from "lucide-react";
 import { StudioNavMode } from "./studio.types";
 
 interface StudioSidebarProps {
-  navMode: StudioNavMode | "identity";
-  onSelectNavMode: (mode: StudioNavMode | "identity") => void;
+  navMode: StudioNavMode;
+  onSelectNavMode: (mode: StudioNavMode) => void;
 }
+
+const CREATION_ITEMS: Array<{ id: StudioNavMode; label: string; icon: React.ElementType }> = [
+  { id: "sections", label: "Sections", icon: Layers },
+  { id: "theme", label: "Thème", icon: Palette },
+  { id: "identity", label: "Identité", icon: Store },
+  { id: "pages", label: "Pages", icon: FileText },
+];
+
+const MANAGEMENT_ITEMS: Array<{ id: StudioNavMode; label: string; icon: React.ElementType }> = [
+  { id: "catalog", label: "Catalogue", icon: ShoppingBag },
+  { id: "orders", label: "Commandes", icon: ClipboardList },
+  { id: "media", label: "Médias", icon: ImageIcon },
+  { id: "settings", label: "Réglages", icon: Settings },
+];
 
 export const StudioSidebar: React.FC<StudioSidebarProps> = ({
   navMode,
   onSelectNavMode,
 }) => {
+  const renderButton = (item: { id: StudioNavMode; label: string; icon: React.ElementType }) => {
+    const Icon = item.icon;
+    const isActive = navMode === item.id;
+    return (
+      <button
+        key={item.id}
+        type="button"
+        onClick={() => onSelectNavMode(item.id)}
+        className={`h-9 px-2.5 rounded-lg text-[12px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer truncate ${
+          isActive
+            ? "bg-[#FFF1E7] text-[#EA580C] border border-[#FDBA74] shadow-2xs"
+            : "bg-[#F9FAFB] text-[#344054] hover:bg-[#F1F5F9] border border-[#E5E7EB]"
+        }`}
+      >
+        <Icon className="w-3.5 h-3.5 text-[#F97316] shrink-0" />
+        <span className="truncate">{item.label}</span>
+      </button>
+    );
+  };
+
   return (
     <aside className="w-full bg-[#FFFFFF] flex flex-col shrink-0 select-none">
-      <div className="p-2 sm:p-3 space-y-2">
+      <div className="p-3 space-y-2.5">
         <div>
-          <span className="block text-[9px] sm:text-[10px] font-bold uppercase text-[#667085] tracking-wider mb-1 px-1">
-            Création
+          <span className="block text-[10px] font-bold uppercase text-[#667085] tracking-wider mb-1.5 px-0.5">
+            Design & Vitrine
           </span>
-          <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-col sm:space-y-1">
-            <button
-              type="button"
-              onClick={() => onSelectNavMode("sections")}
-              className={`h-[36px] sm:h-[40px] px-2 rounded-lg text-[11px] sm:text-[13px] font-semibold flex items-center justify-center sm:justify-start gap-1 transition-colors cursor-pointer truncate ${
-                navMode === "sections"
-                  ? "bg-[#FFF1E7] text-[#F97316] border border-[#FDBA74]"
-                  : "bg-[#F9FAFB] sm:bg-transparent text-[#344054] hover:bg-[#F7F8FA] border border-[#E5E7EB] sm:border-transparent"
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5 text-[#F97316] shrink-0" />
-              <span className="truncate">Structure</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onSelectNavMode("pages")}
-              className={`h-[36px] sm:h-[40px] px-2 rounded-lg text-[11px] sm:text-[13px] font-semibold flex items-center justify-center sm:justify-start gap-1 transition-colors cursor-pointer truncate ${
-                navMode === "pages"
-                  ? "bg-[#FFF1E7] text-[#F97316] border border-[#FDBA74]"
-                  : "bg-[#F9FAFB] sm:bg-transparent text-[#344054] hover:bg-[#F7F8FA] border border-[#E5E7EB] sm:border-transparent"
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5 text-[#F97316] shrink-0" />
-              <span className="truncate">Pages</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onSelectNavMode("theme")}
-              className={`h-[36px] sm:h-[40px] px-2 rounded-lg text-[11px] sm:text-[13px] font-semibold flex items-center justify-center sm:justify-start gap-1 transition-colors cursor-pointer truncate ${
-                navMode === "theme"
-                  ? "bg-[#FFF1E7] text-[#F97316] border border-[#FDBA74]"
-                  : "bg-[#F9FAFB] sm:bg-transparent text-[#344054] hover:bg-[#F7F8FA] border border-[#E5E7EB] sm:border-transparent"
-              }`}
-            >
-              <Palette className="w-3.5 h-3.5 text-[#F97316] shrink-0" />
-              <span className="truncate">Thèmes</span>
-            </button>
+          <div className="grid grid-cols-2 gap-1.5">
+            {CREATION_ITEMS.map(renderButton)}
           </div>
         </div>
 
         <div>
-          <span className="block text-[9px] sm:text-[10px] font-bold uppercase text-[#667085] tracking-wider mb-1 px-1">
-            Gestion
+          <span className="block text-[10px] font-bold uppercase text-[#667085] tracking-wider mb-1.5 px-0.5">
+            Boutique & Activité
           </span>
-          <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-col sm:space-y-1">
-            <button
-              type="button"
-              onClick={() => onSelectNavMode("media")}
-              className={`h-[36px] sm:h-[40px] px-2 rounded-lg text-[11px] sm:text-[13px] font-semibold flex items-center justify-center sm:justify-start gap-1 transition-colors cursor-pointer truncate ${
-                navMode === "media"
-                  ? "bg-[#FFF1E7] text-[#F97316] border border-[#FDBA74]"
-                  : "bg-[#F9FAFB] sm:bg-transparent text-[#344054] hover:bg-[#F7F8FA] border border-[#E5E7EB] sm:border-transparent"
-              }`}
-            >
-              <ImageIcon className="w-3.5 h-3.5 text-[#F97316] shrink-0" />
-              <span className="truncate">Médias</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onSelectNavMode("identity")}
-              className={`h-[36px] sm:h-[40px] px-2 rounded-lg text-[11px] sm:text-[13px] font-semibold flex items-center justify-center sm:justify-start gap-1 transition-colors cursor-pointer truncate ${
-                navMode === "identity"
-                  ? "bg-[#FFF1E7] text-[#F97316] border border-[#FDBA74]"
-                  : "bg-[#F9FAFB] sm:bg-transparent text-[#344054] hover:bg-[#F7F8FA] border border-[#E5E7EB] sm:border-transparent"
-              }`}
-            >
-              <Store className="w-3.5 h-3.5 text-[#F97316] shrink-0" />
-              <span className="truncate">Identité</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onSelectNavMode("settings")}
-              className={`h-[36px] sm:h-[40px] px-2 rounded-lg text-[11px] sm:text-[13px] font-semibold flex items-center justify-center sm:justify-start gap-1 transition-colors cursor-pointer truncate ${
-                navMode === "settings"
-                  ? "bg-[#FFF1E7] text-[#F97316] border border-[#FDBA74]"
-                  : "bg-[#F9FAFB] sm:bg-transparent text-[#344054] hover:bg-[#F7F8FA] border border-[#E5E7EB] sm:border-transparent"
-              }`}
-            >
-              <Settings className="w-3.5 h-3.5 text-[#F97316] shrink-0" />
-              <span className="truncate">Réglages</span>
-            </button>
+          <div className="grid grid-cols-2 gap-1.5">
+            {MANAGEMENT_ITEMS.map(renderButton)}
           </div>
         </div>
       </div>
     </aside>
   );
 };
-
-

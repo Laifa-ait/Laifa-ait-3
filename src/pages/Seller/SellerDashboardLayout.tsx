@@ -82,12 +82,14 @@ export const SellerDashboardLayout: React.FC = () => {
         currentUser={currentUser}
       />
 
-      {/* Desktop Persistent Sidebar */}
-      <SellerDesktopSidebar navItems={navItems} currentUser={currentUser} onStartTour={() => setForceTour(true)} />
+      {/* Desktop Persistent Sidebar - Hidden automatically in Studio to maximize workspace */}
+      {!isStudio && (
+        <SellerDesktopSidebar navItems={navItems} currentUser={currentUser} onStartTour={() => setForceTour(true)} />
+      )}
 
       {/* Main Content Area */}
       <main
-        className={`flex-1 overflow-y-auto bg-[#faf8fb] ${isStudio ? "h-full pt-0" : "pt-14 lg:pt-0"}`}
+        className={`flex-1 bg-[#faf8fb] ${isStudio ? "h-full overflow-hidden pt-0" : "overflow-y-auto pt-14 lg:pt-0"}`}
         id="seller-main-content"
       >
         {!isStudio && (
@@ -98,7 +100,7 @@ export const SellerDashboardLayout: React.FC = () => {
           </div>
         )}
 
-        <div className={isStudio ? "h-full" : "p-4 sm:p-8 lg:p-12 space-y-6"}>
+        <div className={isStudio ? "h-full overflow-hidden" : "p-4 sm:p-8 lg:p-12 space-y-6"}>
           {!isStudio && <SellerDashboardAlerts userProfile={userProfile} />}
           <Outlet />
         </div>

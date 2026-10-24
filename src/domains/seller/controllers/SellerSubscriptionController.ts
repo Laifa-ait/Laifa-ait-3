@@ -55,10 +55,14 @@ router.post(
     try {
       const sellerId = req.user?.uid;
       if (!sellerId) return res.status(401).json({ error: "Authentification requise." });
-      const plans = await getPublicPlans();
-      const plan = plans[0];
-      if (!plan) return res.status(503).json({ error: "L'offre vendeur gratuite est indisponible." });
-      const result = await createSubscriptionRequest(sellerId, plan.id, "Boutique Olmart", req.user?.email || "");
+      const requestedPlanId = typeof req.body?.planId === "string" && req.body.planId.trim() ? req.body.planId.trim() : undefined;
+      let targetPlanId = requestedPlanId;
+      if (!targetPlanId) {
+        const plans = await getPublicPlans();
+        targetPlanId = plans[0]?.id;
+      }
+      if (!targetPlanId) return res.status(503).json({ error: "L'offre vendeur gratuite est indisponible." });
+      const result = await createSubscriptionRequest(sellerId, targetPlanId, "Boutique Olmart", req.user?.email || "");
       return res.json({ success: true, message: "Votre demande pour l’offre vendeur gratuite a été enregistrée.", data: result });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Erreur lors de l'activation de l'offre gratuite.";

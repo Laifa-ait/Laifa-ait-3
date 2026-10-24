@@ -59,7 +59,6 @@ export const useOrdersAdmin = (showConfirmModal: (msg: string) => Promise<boolea
 
   const {
     totalVolume,
-    totalCommission,
     sellersNetPayout,
     calculatedOrdersMap,
   } = useOrdersCommissions(filters.filteredOrders);
@@ -174,7 +173,6 @@ export const useOrdersAdmin = (showConfirmModal: (msg: string) => Promise<boolea
     setRefreshTrigger,
     filters,
     totalVolume,
-    totalCommission,
     sellersNetPayout,
     calculatedOrdersMap,
     selectedOrderIds,

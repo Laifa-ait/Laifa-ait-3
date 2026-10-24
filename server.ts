@@ -40,9 +40,16 @@ if (isDirectRun) {
   } else if (!isTsxRunner && fs.existsSync(buildServer)) {
     require(buildServer);
   } else if (!isTsxRunner) {
-    const { execSync } = await import("node:child_process");
     try {
-      execSync("npx esbuild server.core.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/server.cjs", { stdio: "inherit" });
+      const esbuild = await import("esbuild");
+      esbuild.buildSync({
+        entryPoints: ["server.core.ts"],
+        bundle: true,
+        platform: "node",
+        format: "cjs",
+        packages: "external",
+        outfile: distServer,
+      });
       if (fs.existsSync(distServer)) {
         require(distServer);
       } else {

@@ -208,6 +208,16 @@ export interface CustomPageSeo {
   ogImage?: string;
 }
 
+export interface StoreCustomPageItem {
+  id: string;
+  title: string;
+  slug: string;
+  isHome?: boolean;
+  isPublished?: boolean;
+  sectionIds?: string[];
+  updatedAt: string;
+}
+
 export interface StoreConfig {
   sellerId: string;
   shopName: string;
@@ -224,6 +234,8 @@ export interface StoreConfig {
   theme: CustomPageTheme;
   seo: CustomPageSeo;
   previousSlugs?: string[];
+  customPages?: StoreCustomPageItem[];
+  mediaGallery?: MediaGalleryItem[];
   socialLinks?: {
     instagram?: string;
     facebook?: string;

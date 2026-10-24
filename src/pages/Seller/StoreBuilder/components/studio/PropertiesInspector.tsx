@@ -4,14 +4,23 @@ import { ThemeInspectorPanel } from "../context/ThemeInspectorPanel";
 import { MediaInspectorPanel } from "../context/MediaInspectorPanel";
 import { StoreSettingsInspectorPanel } from "../context/StoreSettingsInspectorPanel";
 import { PagesInspectorPanel } from "../context/PagesInspectorPanel";
+import { CatalogInspectorPanel } from "../context/CatalogInspectorPanel";
+import { OrdersInspectorPanel } from "../context/OrdersInspectorPanel";
 import { StoreIdentityEditor } from "../identity/StoreIdentityEditor";
 import { StudioNavMode } from "./studio.types";
-import { CustomPageSection, CustomPageTheme, MediaGalleryItem, SellerStoreConfig } from "../../../../../domains/seller/customPage.types";
+import {
+  CustomPageSection,
+  CustomPageSectionType,
+  CustomPageTheme,
+  MediaGalleryItem,
+  SellerStoreConfig,
+} from "../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../domains/product/product.types";
 
 interface PropertiesInspectorProps {
-  navMode: StudioNavMode | "identity";
+  navMode: StudioNavMode;
   selectedSection: CustomPageSection | null;
+  sections?: CustomPageSection[];
   products?: Product[];
   storeConfig?: SellerStoreConfig | null;
   currentTheme?: CustomPageTheme;
@@ -20,6 +29,11 @@ interface PropertiesInspectorProps {
   onUploadMedia?: (file: File) => Promise<MediaGalleryItem>;
   onDeleteMedia?: (id: string) => Promise<void>;
   onUpdateSection: (id: string, updatedData: Partial<CustomPageSection>) => void;
+  onAddSection?: (
+    type: CustomPageSectionType,
+    defaultSettings: Record<string, unknown>,
+    defaultTitle?: string
+  ) => void;
   onSaveTheme: (theme: CustomPageTheme) => Promise<void>;
   onThemeChangeLive: (theme: CustomPageTheme) => void;
   onSaveConfig: (updatedConfig: Partial<SellerStoreConfig>) => Promise<void>;
@@ -28,6 +42,7 @@ interface PropertiesInspectorProps {
 export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
   navMode,
   selectedSection,
+  sections = [],
   products = [],
   storeConfig,
   currentTheme,
@@ -36,14 +51,19 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
   onUploadMedia,
   onDeleteMedia,
   onUpdateSection,
+  onAddSection,
   onSaveTheme,
   onThemeChangeLive,
   onSaveConfig,
 }) => {
   return (
-    <aside className="w-full md:w-[320px] md:min-w-[320px] md:max-w-[320px] bg-[#FFFFFF] border-l border-[#E5E7EB] flex flex-col h-full shrink-0 overflow-y-auto min-w-0 min-h-0">
+    <aside className="w-full md:w-[330px] md:min-w-[330px] md:max-w-[330px] bg-[#FFFFFF] border-l border-[#E5E7EB] flex flex-col h-full shrink-0 overflow-y-auto min-w-0 min-h-0">
       {navMode === "pages" ? (
-        <PagesInspectorPanel />
+        <PagesInspectorPanel
+          storeConfig={storeConfig}
+          sections={sections}
+          onSaveConfig={onSaveConfig}
+        />
       ) : navMode === "theme" ? (
         <ThemeInspectorPanel
           storeConfig={storeConfig}
@@ -59,12 +79,23 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
           onDeleteMedia={onDeleteMedia}
         />
       ) : navMode === "identity" ? (
-        <div className="p-4">
-          <StoreIdentityEditor
-            storeConfig={storeConfig}
-            onSave={onSaveConfig}
-          />
+        <div className="p-2">
+          <StoreIdentityEditor storeConfig={storeConfig} onSave={onSaveConfig} />
         </div>
+      ) : navMode === "catalog" ? (
+        <CatalogInspectorPanel
+          products={products}
+          sections={sections}
+          onUpdateSection={onUpdateSection}
+          onAddSection={
+            onAddSection ||
+            (() => {
+              /* fallback no-op */
+            })
+          }
+        />
+      ) : navMode === "orders" ? (
+        <OrdersInspectorPanel />
       ) : navMode === "settings" ? (
         <StoreSettingsInspectorPanel
           storeConfig={storeConfig ?? null}
@@ -80,4 +111,3 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
     </aside>
   );
 };
-

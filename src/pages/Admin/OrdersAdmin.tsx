@@ -143,7 +143,6 @@ export const OrdersAdmin: React.FC = () => {
         selectedOrder={selectedOrder}
         setSelectedOrder={setSelectedOrder}
         statusLabels={statusLabels}
-        calculatedOrdersMap={calculatedOrdersMap}
         isUpdatingStatus={isUpdatingStatus}
         handleUpdateOrderStatus={handleUpdateOrderStatus}
         setSelectedOrderIds={setSelectedOrderIds}

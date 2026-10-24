@@ -1,49 +1,54 @@
 import React from "react";
 import { Send, CheckCircle2, Menu, ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 interface MobileStudioHeaderProps {
   shopName?: string;
   isPublished?: boolean;
-  hasActiveSubscription?: boolean;
-  hasPendingRequest?: boolean;
   onPublish: () => void;
   onOpenMenu?: () => void;
 }
 
 export const MobileStudioHeader: React.FC<MobileStudioHeaderProps> = ({
   isPublished,
-  hasActiveSubscription = false,
-  hasPendingRequest = false,
   onPublish,
   onOpenMenu,
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleBack = () => {
+    const target = location.pathname.startsWith("/dashboard/seller")
+      ? "/dashboard/seller"
+      : "/seller";
+    navigate(target);
+  };
 
   return (
     <div className="md:hidden h-[52px] min-h-[52px] bg-[#FFFFFF] border-b border-[#E5E7EB] px-3 flex items-center justify-between z-20 select-none shrink-0">
-      {/* Left: Back button + Menu Studio */}
+      {/* Left: Clear Back button + Menu Studio */}
       <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
-          onClick={() => navigate("/seller")}
-          className="w-9 h-9 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] active:bg-[#FFF1E7] text-[#475467] hover:text-[#17191C] flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-2xs"
+          onClick={handleBack}
+          className="h-9 px-2.5 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] active:bg-[#FFF1E7] text-[#17191C] hover:text-[#EA580C] font-semibold text-[12px] flex items-center gap-1 shrink-0 transition-colors cursor-pointer shadow-2xs"
           title="Retour au Tableau de Bord"
           aria-label="Retour au Tableau de Bord"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4 text-[#F97316]" />
+          <span>Retour</span>
         </button>
 
         {onOpenMenu && (
           <button
             type="button"
             onClick={onOpenMenu}
-            className="h-9 px-3 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] active:bg-[#FFF1E7] text-[#17191C] font-bold text-[13px] flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs shrink-0"
+            className="h-9 px-3 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] active:bg-[#FFF1E7] text-[#17191C] font-bold text-[12px] flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs shrink-0"
             title="Ouvrir le menu de navigation Studio"
             aria-label="Ouvrir le menu Studio"
           >
             <Menu className="w-4 h-4 text-[#F97316]" />
-            <span>Menu Studio</span>
+            <span>Outils</span>
           </button>
         )}
       </div>
@@ -52,33 +57,22 @@ export const MobileStudioHeader: React.FC<MobileStudioHeaderProps> = ({
       <button
         type="button"
         onClick={onPublish}
-        className={`h-9 px-3.5 rounded-lg text-[13px] font-bold text-white flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs shrink-0 ${
+        className={`h-9 px-3.5 rounded-lg text-[12px] font-bold text-white flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs shrink-0 ${
           isPublished ? "bg-[#16A34A] hover:bg-[#15803D]" : "bg-[#F97316] hover:bg-[#EA580C]"
         }`}
       >
-        {hasPendingRequest && !hasActiveSubscription ? (
+        {isPublished ? (
           <>
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Suivi</span>
-          </>
-        ) : isPublished ? (
-          <>
-            <Send className="w-4 h-4" />
+            <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Mettre à jour</span>
-          </>
-        ) : hasActiveSubscription ? (
-          <>
-            <Send className="w-4 h-4" />
-            <span>Publier</span>
           </>
         ) : (
           <>
-            <Send className="w-4 h-4" />
-            <span>Activer</span>
+            <Send className="w-3.5 h-3.5" />
+            <span>Publier</span>
           </>
         )}
       </button>
     </div>
   );
 };
-

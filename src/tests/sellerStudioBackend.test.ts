@@ -142,6 +142,55 @@ describe("Seller Studio Backend & Zod Validation (Phase 2A)", () => {
       expect(rollbackLayoutSchema.safeParse({ versionNumber: 2 }).success).toBe(true);
       expect(rollbackLayoutSchema.safeParse({ versionNumber: -1 }).success).toBe(false);
     });
+
+    it("validates advanced Inspector styles, responsive flags, and Canva featured_categories presets", () => {
+      const canvaCategorySection = {
+        id: "sec_cat_canva",
+        type: "featured_categories",
+        title: "Navigation par Catégories",
+        settings: {
+          title: "Nos Rayons",
+          subtitle: "Découvrez nos univers",
+          layout: "bento",
+          aspectRatio: "4/5",
+          borderRadius: "lg",
+          hoverEffect: "zoom",
+          textPosition: "overlay-bottom",
+          textTransform: "uppercase",
+          overlayOpacity: 40,
+          glassmorphism: true,
+          showBadge: true,
+          showItemCount: true,
+          showIcon: false,
+          gapSize: "normal",
+          hideOnMobile: false,
+          anchorId: "rayons",
+          categories: [
+            {
+              id: "cat_1",
+              name: "Artisanat",
+              slug: "artisanat",
+              badge: "Populaire",
+              itemCount: 12,
+              colSpan: 2,
+            },
+          ],
+        },
+        styles: {
+          containerWidth: "narrow",
+          paddingY: 48,
+          paddingX: 24,
+          borderRadius: "lg",
+          divider: "wave",
+          animation: "fade",
+          shadow: "floating",
+        },
+        isVisible: true,
+        order: 0,
+      };
+
+      expect(customPageSectionSchema.safeParse(canvaCategorySection).success).toBe(true);
+    });
   });
 
   describe("2. LegacyStoreAdapter Synthesis", () => {

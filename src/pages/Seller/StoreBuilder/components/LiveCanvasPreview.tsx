@@ -200,6 +200,9 @@ export const LiveCanvasPreview: React.FC<LiveCanvasPreviewProps> = ({
         onClose={() => setIsAuditModalOpen(false)}
         sections={sections}
         theme={theme}
+        products={products}
+        shopName={shopName}
+        shopSlug={shopSlug}
       />
     </div>
   );

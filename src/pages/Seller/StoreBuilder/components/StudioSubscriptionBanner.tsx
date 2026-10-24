@@ -1,71 +1,54 @@
 import React from "react";
-import { Sparkles, CheckCircle2 } from "lucide-react";
-import { SubscriptionRequest } from "../../../../domains/seller/subscription.types";
+import { useNavigate } from "react-router-dom";
+import { Sparkles, CheckCircle2, Megaphone, ShieldCheck } from "lucide-react";
 
 interface StudioSubscriptionBannerProps {
-  daysRemaining: number;
-  pendingRequest?: SubscriptionRequest | null;
   isPublished: boolean;
-  hasActiveSubscription: boolean;
+  versionNumber?: number;
   sectionCount: number;
-  sectionLimit?: number;
-  onOpenSubModal: () => void;
+  productCount?: number;
 }
 
 export const StudioSubscriptionBanner: React.FC<StudioSubscriptionBannerProps> = ({
-  daysRemaining,
-  pendingRequest,
   isPublished,
-  hasActiveSubscription,
+  versionNumber = 1,
   sectionCount,
-  sectionLimit,
-  onOpenSubModal,
+  productCount = 0,
 }) => {
-  const overSectionLimit = hasActiveSubscription && typeof sectionLimit === "number" && sectionCount > sectionLimit;
+  const navigate = useNavigate();
+
   return (
-    <div className="hidden md:flex bg-[#FFFFFF] border-b border-[#E4E7EC] px-4 py-2 flex-col sm:flex-row items-center justify-between text-[13px] shrink-0 gap-2">
-      <div className="flex items-center gap-2">
-        {hasActiveSubscription ? (
-          <span className="px-2 py-0.5 bg-[#F0FDF4] border border-[#86EFAC] text-[#15803D] rounded-md font-semibold text-[11px] flex items-center gap-1">
+    <div className="hidden md:flex bg-[#FFFFFF] border-b border-[#E4E7EC] px-4 py-1.5 items-center justify-between text-[12px] shrink-0 gap-3 select-none">
+      <div className="flex items-center gap-2.5 min-w-0">
+        {isPublished ? (
+          <span className="px-2 py-0.5 bg-[#F0FDF4] border border-[#86EFAC] text-[#15803D] rounded-md font-semibold text-[11px] flex items-center gap-1 shrink-0">
             <CheckCircle2 className="w-3 h-3" />
-            Abonnement actif
+            <span>Boutique en ligne (v{versionNumber})</span>
           </span>
         ) : (
-          <span className="px-2 py-0.5 bg-[#FFF7ED] border border-[#FDBA74] text-[#F97316] rounded-md font-semibold text-[11px] flex items-center gap-1">
+          <span className="px-2 py-0.5 bg-[#FFF7ED] border border-[#FDBA74] text-[#EA580C] rounded-md font-semibold text-[11px] flex items-center gap-1 shrink-0">
             <Sparkles className="w-3 h-3 text-[#F97316]" />
-            Studio gratuit en brouillon
+            <span>Mode Brouillon</span>
           </span>
         )}
-        <span className={overSectionLimit ? "text-red-700" : "text-[#667085]"}>
-          {hasActiveSubscription
-            ? `${daysRemaining} jour${daysRemaining > 1 ? "s" : ""} restant${daysRemaining > 1 ? "s" : ""} à votre formule · ${sectionCount}${typeof sectionLimit === "number" ? ` / ${sectionLimit}` : ""} sections.`
-            : `${sectionCount} section${sectionCount > 1 ? "s" : ""} dans votre brouillon gratuit. Un abonnement actif est requis pour la publier.`}
-          {overSectionLimit && ` Retirez ${sectionCount - sectionLimit} section${sectionCount - sectionLimit > 1 ? "s" : ""} pour publier.`}
+        <span className="text-[#475467] truncate">
+          {sectionCount} section{sectionCount > 1 ? "s" : ""} configurée{sectionCount > 1 ? "s" : ""} ·{" "}
+          {productCount} produit{productCount > 1 ? "s" : ""} au catalogue
+        </span>
+        <span className="hidden lg:inline-flex items-center gap-1 text-[#15803D] bg-[#F0FDF4] px-2 py-0.5 rounded text-[11px] font-medium">
+          <ShieldCheck className="w-3 h-3" />
+          <span>0% commission sur vos ventes · Publication 100% gratuite</span>
         </span>
       </div>
-      <div>
-        {pendingRequest && !hasActiveSubscription ? (
-          <span className="px-2.5 py-1 bg-[#FFFBEB] border border-[#B45309]/30 text-[#B45309] rounded-md font-medium text-[12px]">
-            {pendingRequest.status === "payment_requested"
-              ? "Coordonnées de paiement reçues"
-              : pendingRequest.status === "payment_declared" || pendingRequest.status === "payment_confirmed"
-              ? "Paiement en vérification"
-              : "Demande reçue · instructions à venir"}
-          </span>
-        ) : isPublished ? (
-          <span className="px-2.5 py-1 bg-[#F0FDF4] border border-[#15803D]/30 text-[#15803D] rounded-md font-medium text-[12px] flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5 text-[#15803D]" />
-            Boutique en ligne active
-          </span>
-        ) : (
-          <button
-            onClick={onOpenSubModal}
-            className="h-[32px] px-3 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg font-medium text-[12px] transition-colors cursor-pointer"
-          >
-            Choisir un abonnement
-          </button>
-        )}
-      </div>
+
+      <button
+        type="button"
+        onClick={() => navigate("/dashboard/seller/sponsorships")}
+        className="h-7 px-2.5 bg-[#FFF7ED] hover:bg-[#FFEDD5] text-[#C2410C] border border-[#FDBA74] rounded-lg font-semibold text-[11px] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+      >
+        <Megaphone className="w-3 h-3 text-[#F97316]" />
+        <span>Booster ma visibilité (Pub)</span>
+      </button>
     </div>
   );
 };
