@@ -19,8 +19,9 @@ node_modules
 *.suo
 
 # Build outputs
-dist
-build
+!dist
+!dist/
+!dist/**
 dist-ssr
 .aistudio
 bun.lock

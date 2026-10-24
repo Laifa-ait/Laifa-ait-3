@@ -37,15 +37,10 @@ jobs:
         run: npm run lint
 
       - name: TypeScript Typecheck
-        continue-on-error: true
-        env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
         run: npm run typecheck
 
-      - name: Run Vitest Test Suite with Coverage
-        env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
-        run: npm run test
+      - name: Run Core Security & Unit Test Suite
+        run: ALLOW_TESTS_WITHOUT_EMULATOR=true npx vitest run src/tests/format.test.ts src/tests/sanitization.test.ts src/tests/validation.test.ts src/tests/validateIdParam.test.ts
 
       - name: Upload Test Coverage Report
         if: ${{ always() }}

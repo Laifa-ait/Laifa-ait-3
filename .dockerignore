@@ -8,7 +8,6 @@ docs
 coverage
 playwright-report
 test-results
-dist
 .husky
 *.md
 *.map

@@ -55,9 +55,10 @@ export async function setupViteAndStaticServing(app: Express): Promise<void> {
   // Dedicated, fail-safe /locales/:lang.json handler: registered FIRST so it works in both dev & prod
   // and NEVER falls through to Vite middlewares or SPA HTML serving.
   app.get("/locales/:lang.json", async (req, res) => {
-    const lang = req.params.lang;
+    const rawLang = req.params.lang || "fr";
+    const lang = rawLang.split("-")[0].toLowerCase();
     if (!["fr", "ar", "en"].includes(lang)) {
-      return res.status(404).json({ error: `Langue non supportée: ${lang}` });
+      return res.status(404).json({ error: `Langue non supportée: ${rawLang}` });
     }
 
     try {
@@ -79,20 +80,32 @@ export async function setupViteAndStaticServing(app: Express): Promise<void> {
     }
   });
 
-  // Fail-safe handler for service worker cleanup in dev / preview environments
-  app.get(["/sw.js", "/registerSW.js"], (req, res) => {
+  // Self-destructing Service Worker to purge stale Workbox caches and unregister old SWs
+  app.get("/sw.js", (_req, res) => {
     res.setHeader("Content-Type", "application/javascript; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     return res.send(
-      "self.addEventListener('install', function(e) { self.skipWaiting(); });\n" +
-      "self.addEventListener('activate', function(e) { self.registration.unregister(); });\n"
+      "self.addEventListener('install', function() { self.skipWaiting(); });\n" +
+      "self.addEventListener('activate', function(event) {\n" +
+      "  event.waitUntil(caches.keys().then(function(keys) { return Promise.all(keys.map(function(k) { return caches.delete(k); })); })\n" +
+      "    .then(function() { return self.registration.unregister(); })\n" +
+      "    .then(function() { return self.clients.matchAll({ type: 'window' }); })\n" +
+      "    .then(function(clients) { clients.forEach(function(c) { if (c.url && 'navigate' in c) c.navigate(c.url); }); }));\n" +
+      "});\n"
     );
   });
 
-  // Serve static assets from public/ directory
-  app.use(express.static(path.join(process.cwd(), "public")));
+  app.get("/registerSW.js", (_req, res) => {
+    res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    return res.send(
+      "if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(function(regs) {\n" +
+      "  regs.forEach(function(r) { if (!r.active || !r.active.scriptURL.includes('firebase-messaging-sw.js')) r.unregister(); });\n" +
+      "}).catch(function() {}); }\n"
+    );
+  });
 
-  // Serve compiled assets from dist/assets if they exist
+  app.use(express.static(path.join(process.cwd(), "public")));
   if (existsSync(path.join(distPath, "assets"))) {
     app.use("/assets", express.static(path.join(distPath, "assets"), { maxAge: "1d" }));
   }
@@ -101,14 +114,12 @@ export async function setupViteAndStaticServing(app: Express): Promise<void> {
     return;
   }
 
-
   const indexHtmlPath = path.join(distPath, "index.html");
-
   app.use("/locales", express.static(path.join(distPath, "locales"), { maxAge: "1h", immutable: false, setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate"); } }));
   app.use("/locales", express.static(path.join(process.cwd(), "public", "locales"), { maxAge: "1h", immutable: false, setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate"); } }));
   app.use("/avatars", express.static(path.join(distPath, "avatars"), { maxAge: "7d" }));
   app.use("/avatars", express.static(path.join(process.cwd(), "public", "avatars"), { maxAge: "7d" }));
-  app.get(["/", "/index.html"], async (req, res) => {
+  app.get(["/", "/index.html"], async (_req, res) => {
     await sendOptimizedHtml(res, cachedHtmlTemplate);
   });
 
@@ -121,8 +132,6 @@ export async function setupViteAndStaticServing(app: Express): Promise<void> {
           res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         } else if (filePath.includes("/assets/")) {
           res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-        } else if (filePath.includes("/locales/")) {
-          res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate");
         } else {
           res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate");
         }

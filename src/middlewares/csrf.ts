@@ -118,20 +118,27 @@ function isTrustedOrigin(originString: string): boolean {
     return true;
   }
 
-  if (process.env.NODE_ENV === "production" && process.env.ALLOW_PREVIEW_ORIGINS !== "true") {
-    return false;
-  }
-
   try {
     const url = new URL(originClean);
     const hostname = url.hostname.toLowerCase();
-    const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
-    const isPreview =
+    const isPreviewOrCloudRun =
       hostname === "ai.studio" ||
+      hostname === "aistudio.google.com" ||
       hostname.endsWith(".ai.studio") ||
       hostname.endsWith(".aistudio.google.com") ||
-      (hostname.startsWith("ais-") && hostname.endsWith(".run.app"));
-    return isLocal || isPreview;
+      hostname.endsWith(".run.app") ||
+      hostname.endsWith(".googleusercontent.com");
+
+    if (isPreviewOrCloudRun) {
+      return true;
+    }
+
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_PREVIEW_ORIGINS !== "true") {
+      return false;
+    }
+
+    const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+    return isLocal;
   } catch {
     return false;
   }

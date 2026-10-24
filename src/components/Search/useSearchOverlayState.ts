@@ -34,7 +34,7 @@ export function useSearchOverlayState(debouncedQuery: string) {
 
   useEffect(() => {
     const controller = new AbortController();
-    const query = debouncedQuery.trim();
+    const query = String(debouncedQuery || "").trim();
     if (!query) {
       setResults([]);
       setMatchedStores([]);
@@ -80,7 +80,7 @@ export function useSearchOverlayState(debouncedQuery: string) {
   }, [debouncedQuery]);
 
   const saveSearchTerm = useCallback((term: string) => {
-    const trimmed = term.trim();
+    const trimmed = String(term || "").trim();
     if (!trimmed) return;
     setRecentSearches((prev) => {
       const updated = [trimmed, ...prev.filter((s) => s !== trimmed)].slice(0, 5);

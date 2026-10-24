@@ -9,8 +9,13 @@ export async function attachDevViteMiddleware(app: Express): Promise<boolean> {
   const distIndexPath = path.join(process.cwd(), "dist", "index.html");
   const hasStaticDist = existsSync(distIndexPath);
 
-  // Only disable Vite dev middleware in true Cloud Run container deployments with pre-built client
-  if (process.env.NODE_ENV === "production" && isCloudRun && hasStaticDist) {
+  // Serve pre-built dist/ in Cloud Run or production to avoid the 174-request unbundled module waterfall stall
+  if (
+    hasStaticDist &&
+    (isCloudRun || process.env.NODE_ENV === "production") &&
+    process.env.NODE_ENV !== "test" &&
+    process.env.FORCE_VITE_DEV !== "true"
+  ) {
     return false;
   }
 
