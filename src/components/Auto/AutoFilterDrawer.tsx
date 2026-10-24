@@ -15,6 +15,7 @@ export interface AutoFilterDrawerProps {
   filters: VehicleFilterParams;
   onChange: (updated: Partial<VehicleFilterParams>) => void;
   onReset: () => void;
+  onApply: () => void;
   totalResults?: number;
 }
 
@@ -24,6 +25,7 @@ export const AutoFilterDrawer: React.FC<AutoFilterDrawerProps> = ({
   filters,
   onChange,
   onReset,
+  onApply,
   totalResults,
 }) => {
   if (!isOpen) return null;
@@ -167,7 +169,7 @@ export const AutoFilterDrawer: React.FC<AutoFilterDrawerProps> = ({
             </button>
             <button
               type="button"
-              onClick={onClose}
+              onClick={onApply}
               className="flex-2 py-2.5 px-4 bg-[#D9F66F] hover:bg-[#C5E94F] text-[#0B1730] font-bold rounded-lg text-xs sm:text-sm transition-colors shadow-xs min-h-[44px] cursor-pointer"
             >
               Appliquer {totalResults !== undefined ? `(${totalResults} annonces)` : ""}

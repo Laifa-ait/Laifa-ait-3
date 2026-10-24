@@ -3,6 +3,7 @@ import { db, admin } from "../../../config/firebase-admin";
 import { safeLogger } from "../../../utils/logger";
 import { sendTwoFactorOtpEmail } from "../../order/services/orderEmailNotifier";
 import { generateBackupCodes } from "../../../utils/twoFactor";
+import type { UpdateData } from "firebase-admin/firestore";
 
 export interface TwoFactorVerifyResult {
   success: boolean;
@@ -81,8 +82,8 @@ export class TwoFactorService {
 
     const executeVerification = async (
       getBackup: () => Promise<FirebaseFirestore.DocumentSnapshot>,
-      updateBackup: (data: Record<string, unknown>) => Promise<unknown>,
-      updateUser: (data: Record<string, unknown>) => Promise<unknown>,
+      updateBackup: (data: UpdateData<FirebaseFirestore.DocumentData>) => Promise<unknown>,
+      updateUser: (data: UpdateData<FirebaseFirestore.DocumentData>) => Promise<unknown>,
       deleteSecret: () => Promise<unknown>
     ): Promise<TwoFactorVerifyResult> => {
       const backupSnap = await getBackup();
@@ -191,9 +192,9 @@ export class TwoFactorService {
 
     const processOtp = async (
       getSecret: () => Promise<FirebaseFirestore.DocumentSnapshot>,
-      updateSecret: (d: Record<string, unknown>) => Promise<unknown>,
+      updateSecret: (d: UpdateData<FirebaseFirestore.DocumentData>) => Promise<unknown>,
       deleteSecret: () => Promise<unknown>,
-      updateUser: (d: Record<string, unknown>) => Promise<unknown>
+      updateUser: (d: UpdateData<FirebaseFirestore.DocumentData>) => Promise<unknown>
     ): Promise<TwoFactorVerifyResult> => {
       const secretSnap = await getSecret();
       if (!secretSnap.exists) {

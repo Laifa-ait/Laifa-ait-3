@@ -25,7 +25,7 @@ router.get(
       const status = await getSellerSubscriptionStatus(sellerId);
       return res.json({ success: true, data: status });
     } catch (error) {
-      safeLogger.error("[SellerSubscriptionController] ❌ Error fetching status", error);
+      safeLogger.error("[SellerSubscriptionController] ❌ Error fetching status", { err: error instanceof Error ? error.message : String(error) });
       return res.status(500).json({ error: "Erreur lors de la récupération du statut d'abonnement." });
     }
   }
@@ -41,7 +41,7 @@ router.get(
       const plans = await getPublicPlans();
       return res.json({ success: true, data: plans });
     } catch (error) {
-      safeLogger.error("[SellerSubscriptionController] ❌ Error fetching plans", error);
+      safeLogger.error("[SellerSubscriptionController] ❌ Error fetching plans", { err: error instanceof Error ? error.message : String(error) });
       return res.status(500).json({ error: "Erreur lors de la récupération des forfaits disponibles." });
     }
   }
@@ -74,7 +74,7 @@ router.post(
       });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Erreur lors de la demande d'abonnement.";
-      safeLogger.error("[SellerSubscriptionController] ❌ Error creating request", error);
+      safeLogger.error("[SellerSubscriptionController] ❌ Error creating request", { err: error instanceof Error ? error.message : String(error) });
       return res.status(400).json({ error: msg });
     }
   }
@@ -128,7 +128,7 @@ router.post(
       });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Erreur lors de la déclaration du paiement.";
-      safeLogger.error("[SellerSubscriptionController] ❌ Error declaring payment", error);
+      safeLogger.error("[SellerSubscriptionController] ❌ Error declaring payment", { err: error instanceof Error ? error.message : String(error) });
       return res.status(400).json({ error: msg });
     }
   }
@@ -148,7 +148,7 @@ router.get(
       const history = await getSellerRequestHistory(sellerId);
       return res.json({ success: true, data: history });
     } catch (error) {
-      safeLogger.error("[SellerSubscriptionController] ❌ Error fetching history", error);
+      safeLogger.error("[SellerSubscriptionController] ❌ Error fetching history", { err: error instanceof Error ? error.message : String(error) });
       return res.status(500).json({ error: "Erreur lors de la récupération de l'historique." });
     }
   }

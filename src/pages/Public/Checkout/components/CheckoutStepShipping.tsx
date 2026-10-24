@@ -6,6 +6,7 @@ import { toast } from "react-hot-toast";
 import { CheckoutDeliveryMethods } from "./CheckoutDeliveryMethods";
 import { CheckoutLocationSelector } from "./CheckoutLocationSelector";
 import { ShippingLocation } from "../../../../services/shippingClient";
+import type { CheckoutFormData } from "../types";
 
 interface CheckoutStepShippingProps {
   activeAccordion: number;
@@ -13,26 +14,8 @@ interface CheckoutStepShippingProps {
   isStep1Completed: boolean;
   isStep2Completed: boolean;
   isValidPhone: boolean;
-  formData: {
-    fullName: string;
-    email: string;
-    phone: string;
-    wilaya: string;
-    daira?: string;
-    commune: string;
-    address: string;
-  };
-  setFormData: React.Dispatch<
-    React.SetStateAction<{
-      fullName: string;
-      email: string;
-      phone: string;
-      wilaya: string;
-      daira?: string;
-      commune: string;
-      address: string;
-    }>
-  >;
+  formData: CheckoutFormData;
+  setFormData: React.Dispatch<React.SetStateAction<CheckoutFormData>>;
   deliveryMethod: "domicile" | "stopdesk";
   setDeliveryMethod: (method: "domicile" | "stopdesk") => void;
   selectedAgency: string;

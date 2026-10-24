@@ -4,32 +4,15 @@ import { motion, AnimatePresence } from "motion/react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { User } from "firebase/auth";
+import type { CheckoutFormData } from "../types";
 
 interface CheckoutStepIdentityProps {
   activeAccordion: number;
   setActiveAccordion: (step: number) => void;
   isStep1Completed: boolean;
   isValidPhone: boolean;
-  formData: {
-    fullName: string;
-    email: string;
-    phone: string;
-    wilaya: string;
-    daira?: string;
-    commune: string;
-    address: string;
-  };
-  setFormData: React.Dispatch<
-    React.SetStateAction<{
-      fullName: string;
-      email: string;
-      phone: string;
-      wilaya: string;
-      daira?: string;
-      commune: string;
-      address: string;
-    }>
-  >;
+  formData: CheckoutFormData;
+  setFormData: React.Dispatch<React.SetStateAction<CheckoutFormData>>;
   currentUser: User | null;
 }
 

@@ -214,6 +214,7 @@ export const VehicleCatalogPage: React.FC = () => {
           filters={filters}
           onChange={updateFilters}
           onReset={resetFilters}
+          onApply={() => setDrawerOpen(false)}
           totalResults={total}
         />
 

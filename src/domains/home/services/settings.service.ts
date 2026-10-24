@@ -1,4 +1,4 @@
-import { db } from "../../../config/firebase-admin";
+import { admin, db } from "../../../config/firebase-admin";
 import { safeLogger } from "../../../utils/logger";
 
 const settingsCache = new Map<string, { data: unknown; expiry: number }>();

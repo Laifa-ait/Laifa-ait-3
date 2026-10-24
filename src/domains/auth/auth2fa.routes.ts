@@ -6,6 +6,7 @@ import { pinLimiter } from "../../middlewares/rateLimiters";
 import { safeLogger } from "../../utils/logger";
 import { sendTwoFactorOtpEmail } from "../order/services/orderEmailNotifier";
 import { generateBackupCodes } from "../../utils/twoFactor";
+import type { UpdateData } from "firebase-admin/firestore";
 
 const router = Router();
 
@@ -98,9 +99,9 @@ export class TwoFactorService {
 
     const processVerification = async (
       getSecret: () => Promise<FirebaseFirestore.DocumentSnapshot>,
-      updateSecret: (data: Record<string, unknown>) => Promise<unknown>,
+      updateSecret: (data: UpdateData<FirebaseFirestore.DocumentData>) => Promise<unknown>,
       deleteSecret: () => Promise<unknown>,
-      updateUser: (data: Record<string, unknown>) => Promise<unknown>
+      updateUser: (data: UpdateData<FirebaseFirestore.DocumentData>) => Promise<unknown>
     ): Promise<{ success: boolean; error?: string; status?: number; backupCodes?: string[] }> => {
       const secretSnap = await getSecret();
 

@@ -9,22 +9,13 @@ import {
   searchAlgerianLocations,
   LocationSearchResult,
 } from "../../../../data/algerianCommunesDatabase";
+import type { CheckoutFormData } from "../types";
 
 interface CheckoutLocationSelectorProps {
   wilaya: string;
   daira?: string;
   commune: string;
-  setFormData: React.Dispatch<
-    React.SetStateAction<{
-      fullName: string;
-      email: string;
-      phone: string;
-      wilaya: string;
-      daira?: string;
-      commune: string;
-      address: string;
-    }>
-  >;
+  setFormData: React.Dispatch<React.SetStateAction<CheckoutFormData>>;
   availableCommunes?: string[];
   shippingData?: { wilayas: unknown[] };
 }

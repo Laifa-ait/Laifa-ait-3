@@ -48,7 +48,7 @@ export class SellerAnalyticsService {
   /**
    * Calcul déterministe et pur des métriques de revenus COD
    */
-  static calculateRevenueBreakdown(orders: Array<{ total?: number; totalPrice?: number; status?: string }>): {
+  static calculateRevenueBreakdown(orders: Array<{ total?: unknown; totalPrice?: unknown; status?: unknown }>): {
     orderedRevenue: number;
     deliveredRevenue: number;
     statusBreakdown: OrderStatusBreakdown;
@@ -67,7 +67,7 @@ export class SellerAnalyticsService {
 
     orders.forEach((o) => {
       const amount = Number(o.total ?? o.totalPrice) || 0;
-      const status = (o.status || "created").toLowerCase();
+      const status = (typeof o.status === "string" ? o.status : "created").toLowerCase();
 
       if (status === "delivered") {
         deliveredRevenue += amount;
@@ -125,7 +125,14 @@ export class SellerAnalyticsService {
         .limit(500)
         .get();
 
-      const orders = ordersSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const orders = ordersSnap.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          total: data.total,
+          totalPrice: data.totalPrice,
+          status: data.status,
+        };
+      });
       const { orderedRevenue, deliveredRevenue, statusBreakdown } = this.calculateRevenueBreakdown(orders);
 
       const totalOrders = orders.length;

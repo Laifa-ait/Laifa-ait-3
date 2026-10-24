@@ -15,6 +15,7 @@ import { analyticsEngine } from '../../../../utils/analyticsEngine';
 import { CartItem } from '../../../../domains/product/product.types';
 import { Coupon, CouponDateType } from '../../../../domains/marketing/coupon.types';
 import { generateRandomAlphanumeric } from '../../../../utils/secureCrypto';
+import type { CheckoutFormData } from "../types";
 
 export interface CheckoutOrderSummary {
   id: string;
@@ -46,7 +47,7 @@ export const useCheckout = () => {
      }).catch(e => console.error("Could not fetch shipping locations", e));
   }, []);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CheckoutFormData>({
     fullName: currentUser?.displayName || '',
     email: currentUser?.email || '',
     phone: '',

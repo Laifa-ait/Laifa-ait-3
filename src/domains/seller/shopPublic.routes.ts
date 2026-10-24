@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { db } from "../../config/firebase-admin";
+import { admin, db } from "../../config/firebase-admin";
 import { safeLogger } from "../../utils/logger";
 import { PublicShopDTO } from "./shop.types";
 import { buildWhitelistedShopDTO } from "./shopPublic.projection";
@@ -252,7 +252,7 @@ router.post(["/api/v1/public/stores/:sellerId/follow", "/api/v1/public/shops/:se
     if (!followerUid && req.headers.authorization?.startsWith("Bearer ")) {
       try {
         const token = req.headers.authorization.split("Bearer ")[1];
-        const decoded = await auth.verifyIdToken(token);
+        const decoded = await admin.auth().verifyIdToken(token);
         followerUid = decoded.uid;
       } catch {
         // ignore
