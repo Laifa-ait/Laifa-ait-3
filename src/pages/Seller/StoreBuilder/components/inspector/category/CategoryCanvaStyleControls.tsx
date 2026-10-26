@@ -1,225 +1,285 @@
 import React from "react";
+import { Columns, ChevronRight, Palette, Maximize2 } from "lucide-react";
 import {
   CATEGORY_LAYOUT_OPTIONS,
-  CATEGORY_ASPECT_RATIOS,
-  CATEGORY_HOVER_EFFECTS,
   CATEGORY_RADIUS_OPTIONS,
 } from "../../../constants/categoryCanvaOptions";
-import {
-  CategoryLayoutType,
-  CategoryAspectRatio,
-  CategoryHoverEffect,
-  CategoryCardRadius,
-  CategoryTextPosition,
-} from "../../../constants/categoryPresets";
+import { VisualLayoutPicker } from "../controls/VisualLayoutPicker";
+import { CategoryOverlayAndFinishControls } from "./CategoryOverlayAndFinishControls";
 
 interface CategoryCanvaStyleControlsProps {
   settings: Record<string, unknown>;
-  onSettingsChange: (field: string, value: unknown) => void;
+  onSettingsChange: (
+    fieldOrPatch: string | Record<string, unknown>,
+    value?: unknown
+  ) => void;
 }
+
+const SHOPIFY_CARD_SKINS = [
+  { id: "editorial", label: "Standard Épuré", desc: "Sans cadre (Norme)" },
+  { id: "framed", label: "Carte Encadrée", desc: "Bordure fine & fond blanc" },
+  { id: "soft-tint", label: "Pastel Doux", desc: "Fond poudré léger" },
+  { id: "dark-glass", label: "Mode Sombre", desc: "Fond anthracite" },
+];
+
+const CARD_SIZES = [
+  { id: "compact", label: "Compacte", desc: "Fines & 2 col. mobile" },
+  { id: "balanced", label: "Équilibrée", desc: "Proportion standard" },
+  { id: "large", label: "Grande", desc: "Impact lookbook" },
+];
 
 export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProps> = ({
   settings,
   onSettingsChange,
 }) => {
-  const currentLayout = (settings.layout as CategoryLayoutType) || "grid";
-  const currentRatio = (settings.aspectRatio as CategoryAspectRatio) || "1/1";
-  const currentRadius = (settings.borderRadius as CategoryCardRadius) || "md";
-  const currentHover = (settings.hoverEffect as CategoryHoverEffect) || "zoom";
-  const currentTextPos = (settings.textPosition as CategoryTextPosition) || "below";
-  const overlayOpacity = typeof settings.overlayOpacity === "number" ? settings.overlayOpacity : 30;
+  const currentLayout = String(settings.layout || "grid");
+  const currentAspect = String(settings.aspectRatio || "4/5");
+  const currentRadius = String(settings.borderRadius || "md");
+  const currentHover = String(settings.hoverEffect || "zoom");
+  const currentTextPos = String(settings.textPosition || "below");
+  const overlayOpacity = Number(settings.overlayOpacity ?? 40);
+  const columnsDesktop = Number(settings.columnsDesktop ?? 4);
+  const columnsMobile = Number(settings.columnsMobile ?? 2);
+  const bubbleRing = String(settings.bubbleRing || "gradient");
+  const pillShowImage = settings.pillShowImage !== false;
+  const cardSkin = String(settings.cardSkin || "editorial");
+  const cardSize = String(settings.cardSize || "balanced");
+
+  const handleSelectLayout = (newLayout: string) => {
+    const patch: Record<string, unknown> = { layout: newLayout };
+    if (newLayout === "bubbles") {
+      patch.aspectRatio = "circle";
+      patch.borderRadius = "full";
+      if (currentTextPos !== "none") patch.textPosition = "below";
+      patch.glassmorphism = false;
+    } else if (newLayout === "pills") {
+      patch.borderRadius = "full";
+      patch.textPosition = "card-inside";
+      patch.glassmorphism = false;
+    } else if (newLayout === "overlay" || newLayout === "bento") {
+      if (currentAspect === "circle") patch.aspectRatio = "4/5";
+      if (currentRadius === "full" || currentRadius === "lg") patch.borderRadius = "md";
+      if (currentTextPos === "below") patch.textPosition = "overlay-bottom";
+    } else {
+      if (currentAspect === "circle") patch.aspectRatio = "4/5";
+      if (currentRadius === "full" || currentRadius === "lg") patch.borderRadius = "md";
+      if (currentTextPos !== "none") patch.textPosition = "below";
+    }
+    onSettingsChange(patch);
+  };
+
+  const selectedLayoutMeta =
+    CATEGORY_LAYOUT_OPTIONS.find((o) => o.id === currentLayout) || CATEGORY_LAYOUT_OPTIONS[0];
+
+  const isOverlayActive =
+    currentLayout === "overlay" ||
+    currentLayout === "bento" ||
+    ((currentLayout === "grid" || currentLayout === "carousel") &&
+      (currentTextPos === "overlay-bottom" || currentTextPos === "overlay-center"));
+
+  const harmoniousCardRadii = CATEGORY_RADIUS_OPTIONS.filter((o) => o.id !== "full");
 
   return (
-    <div className="space-y-4">
-      {/* 1. Layout Mode */}
-      <div className="space-y-1.5">
-        <label className="text-[12px] font-bold text-slate-800 uppercase tracking-wider block">
-          Disposition & Structure Canva
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-          {CATEGORY_LAYOUT_OPTIONS.map((opt) => {
-            const Icon = opt.icon;
-            const active = currentLayout === opt.id;
-            return (
+    <div className="space-y-3.5 select-none">
+      {/* ÉTAPE 1 : MODÈLE DE CARTE, DIMENSION & FINITION */}
+      <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-extrabold text-[#011C40] uppercase tracking-wider flex items-center gap-1.5">
+            <span className="w-5 h-5 rounded-full bg-[#023859] text-white text-[10px] font-black flex items-center justify-center">
+              1
+            </span>
+            Modèle & Dimension des Cartes
+          </span>
+          <span className="text-[10px] font-bold text-[#023859] bg-[#F0F7FA] px-2.5 py-0.5 rounded-full border border-[#B8D8E8]">
+            {selectedLayoutMeta.label}
+          </span>
+        </div>
+
+        <VisualLayoutPicker
+          mode="category"
+          activeLayout={currentLayout}
+          aspectRatio={currentAspect}
+          columnsDesktop={columnsDesktop}
+          onSelectLayout={handleSelectLayout}
+          onChangeAspectRatio={(r) => onSettingsChange("aspectRatio", r)}
+          onChangeColumnsDesktop={(cols) => onSettingsChange("columnsDesktop", cols)}
+        />
+
+        <div className="pt-2.5 border-t border-slate-100 space-y-1.5">
+          <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+            <Maximize2 className="w-3 h-3 text-[#26658C]" />
+            <span>Dimension & Taille des Cartes</span>
+          </label>
+          <div className="grid grid-cols-3 gap-1.5">
+            {CARD_SIZES.map((sz) => (
               <button
-                key={opt.id}
+                key={sz.id}
                 type="button"
-                onClick={() => onSettingsChange("layout", opt.id)}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
-                  active
-                    ? "bg-orange-50 border-orange-500 text-orange-950 ring-1 ring-orange-400"
-                    : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                onClick={() => onSettingsChange("cardSize", sz.id)}
+                className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
+                  cardSize === sz.id
+                    ? "border-[#023859] bg-[#023859] text-white shadow-2xs"
+                    : "border-slate-200 bg-slate-50/70 hover:bg-white text-slate-700"
                 }`}
               >
-                <div
-                  className={`p-1.5 rounded-lg shrink-0 ${
-                    active ? "bg-orange-500 text-white" : "bg-slate-100 text-slate-600"
+                <span className="block text-[10px] font-extrabold leading-tight">{sz.label}</span>
+                <span
+                  className={`block text-[9px] mt-0.5 ${
+                    cardSize === sz.id ? "text-white/80" : "text-slate-500"
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-bold truncate">{opt.label}</div>
-                  <div className="text-[10px] text-slate-500 truncate">{opt.sublabel}</div>
-                </div>
+                  {sz.desc}
+                </span>
               </button>
-            );
-          })}
+            ))}
+          </div>
+        </div>
+
+        <div className="pt-2.5 border-t border-slate-100 space-y-1.5">
+          <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+            <Palette className="w-3 h-3 text-[#26658C]" />
+            <span>Style de Bordure & Fond</span>
+          </label>
+          <div className="grid grid-cols-2 gap-1.5">
+            {SHOPIFY_CARD_SKINS.map((skin) => (
+              <button
+                key={skin.id}
+                type="button"
+                onClick={() => onSettingsChange("cardSkin", skin.id)}
+                className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
+                  cardSkin === skin.id
+                    ? "border-[#023859] bg-[#F0F7FA] text-[#011C40] ring-1 ring-[#023859]/20"
+                    : "border-slate-200 bg-slate-50/70 hover:bg-white text-slate-700"
+                }`}
+              >
+                <span className="block text-[10px] font-extrabold leading-tight">{skin.label}</span>
+                <span className="block text-[9px] text-slate-500 mt-0.5">{skin.desc}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* 2. Aspect Ratio */}
-      <div className="space-y-1.5 pt-3 border-t border-slate-100">
-        <label className="text-[12px] font-bold text-slate-800 uppercase tracking-wider block">
-          Format des Visuels
-        </label>
-        <div className="grid grid-cols-3 gap-1.5">
-          {CATEGORY_ASPECT_RATIOS.map((ratio) => (
-            <button
-              key={ratio.id}
-              type="button"
-              onClick={() => onSettingsChange("aspectRatio", ratio.id)}
-              className={`py-2 px-2 rounded-lg border text-xs font-semibold text-center transition-all cursor-pointer ${
-                currentRatio === ratio.id
-                  ? "bg-orange-50 border-orange-500 text-orange-600"
-                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {ratio.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 3. Corners & Radius */}
-      <div className="space-y-1.5 pt-3 border-t border-slate-100">
-        <label className="text-[12px] font-bold text-slate-800 uppercase tracking-wider block">
-          Arrondi des Cartes
-        </label>
-        <div className="grid grid-cols-5 gap-1">
-          {CATEGORY_RADIUS_OPTIONS.map((rad) => (
-            <button
-              key={rad.id}
-              type="button"
-              onClick={() => onSettingsChange("borderRadius", rad.id)}
-              className={`py-1.5 px-1 rounded-lg border text-[11px] font-medium text-center transition-all cursor-pointer truncate ${
-                currentRadius === rad.id
-                  ? "bg-orange-500 border-orange-500 text-white font-bold"
-                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {rad.label.split(" ")[0]}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 4. Hover Effects */}
-      <div className="space-y-1.5 pt-3 border-t border-slate-100">
-        <label className="text-[12px] font-bold text-slate-800 uppercase tracking-wider block">
-          Animation au Survol
-        </label>
-        <div className="grid grid-cols-3 gap-1.5">
-          {CATEGORY_HOVER_EFFECTS.map((eff) => (
-            <button
-              key={eff.id}
-              type="button"
-              onClick={() => onSettingsChange("hoverEffect", eff.id)}
-              className={`py-1.5 px-2 rounded-lg border text-xs text-center transition-all cursor-pointer ${
-                currentHover === eff.id
-                  ? "bg-orange-50 border-orange-500 text-orange-600 font-bold"
-                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {eff.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 5. Typography & Position */}
-      <div className="space-y-2 pt-3 border-t border-slate-100">
-        <label className="text-[12px] font-bold text-slate-800 uppercase tracking-wider block">
-          Position du Titre
-        </label>
-        <div className="grid grid-cols-3 gap-1.5">
-          {[
-            { id: "below", label: "En dessous" },
-            { id: "overlay-bottom", label: "Overlay Bas" },
-            { id: "card-inside", label: "Sur la Carte" },
-          ].map((pos) => (
-            <button
-              key={pos.id}
-              type="button"
-              onClick={() => onSettingsChange("textPosition", pos.id)}
-              className={`py-1.5 px-2 rounded-lg border text-xs text-center transition-all cursor-pointer ${
-                currentTextPos === pos.id
-                  ? "bg-orange-50 border-orange-500 text-orange-600 font-bold"
-                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {pos.label}
-            </button>
-          ))}
+      {/* ÉTAPE 2 : GRILLE & COINS */}
+      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-extrabold text-[#011C40] uppercase tracking-wider flex items-center gap-1.5">
+            <span className="w-5 h-5 rounded-full bg-[#011C40] text-white text-[10px] font-black flex items-center justify-center">
+              2
+            </span>
+            Grille & Arrondi ({selectedLayoutMeta.label})
+          </span>
+          <ChevronRight className="w-3.5 h-3.5 text-[#26658C]" />
         </div>
 
-        {/* Contrast overlay slider */}
-        {currentTextPos !== "below" && (
-          <div className="space-y-1 pt-2">
-            <div className="flex justify-between text-xs text-slate-600 font-medium">
-              <span>Opacité du filtre sombre</span>
-              <span className="font-mono text-orange-600 font-bold">{overlayOpacity}%</span>
-            </div>
+        {currentLayout === "bubbles" ? (
+          <div className="grid grid-cols-3 gap-1.5">
+            {[
+              { id: "gradient", label: "Bague Luxe" },
+              { id: "solid", label: "Anneau Fin" },
+              { id: "none", label: "Épuré" },
+            ].map((ring) => (
+              <button
+                key={ring.id}
+                type="button"
+                onClick={() => onSettingsChange("bubbleRing", ring.id)}
+                className={`py-2 px-1.5 rounded-lg border text-[10px] font-bold cursor-pointer ${
+                  bubbleRing === ring.id
+                    ? "border-[#023859] bg-[#F0F7FA] text-[#011C40]"
+                    : "border-slate-200 bg-white text-slate-700"
+                }`}
+              >
+                {ring.label}
+              </button>
+            ))}
+          </div>
+        ) : currentLayout === "pills" ? (
+          <label className="flex items-center justify-between p-2.5 bg-white rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 cursor-pointer">
+            <span>Miniature photo dans la capsule</span>
             <input
-              type="range"
-              min={0}
-              max={90}
-              step={5}
-              value={overlayOpacity}
-              onChange={(e) => onSettingsChange("overlayOpacity", parseInt(e.target.value, 10))}
-              className="w-full accent-orange-500 cursor-pointer"
+              type="checkbox"
+              checked={pillShowImage}
+              onChange={(e) => onSettingsChange("pillShowImage", e.target.checked)}
+              className="w-4 h-4 accent-[#023859] cursor-pointer"
             />
+          </label>
+        ) : (
+          <div className="space-y-2.5">
+            {currentLayout !== "carousel" && currentLayout !== "mesh-3d" && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-600 flex items-center gap-1">
+                    <Columns className="w-3 h-3 text-[#26658C]" />
+                    Colonnes PC
+                  </span>
+                  <div className="grid grid-cols-4 gap-1">
+                    {[1, 2, 3, 4].map((col) => (
+                      <button
+                        key={col}
+                        type="button"
+                        onClick={() => onSettingsChange("columnsDesktop", col)}
+                        className={`py-1.5 rounded-lg border text-xs font-bold cursor-pointer ${
+                          columnsDesktop === col
+                            ? "border-[#023859] bg-[#023859] text-white"
+                            : "border-slate-200 bg-white text-slate-700"
+                        }`}
+                      >
+                        {col}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-600 block">Sur Mobile</span>
+                  <div className="grid grid-cols-2 gap-1">
+                    {[1, 2].map((col) => (
+                      <button
+                        key={col}
+                        type="button"
+                        onClick={() => onSettingsChange("columnsMobile", col)}
+                        className={`py-1.5 rounded-lg border text-[10px] font-bold cursor-pointer ${
+                          columnsMobile === col
+                            ? "border-[#023859] bg-[#023859] text-white"
+                            : "border-slate-200 bg-white text-slate-700"
+                        }`}
+                      >
+                        {col === 1 ? "1 Col." : "2 Col."}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-4 gap-1">
+              {harmoniousCardRadii.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => onSettingsChange("borderRadius", opt.id)}
+                  className={`py-1.5 rounded-lg border text-[10px] font-bold cursor-pointer ${
+                    currentRadius === opt.id
+                      ? "border-[#023859] bg-[#F0F7FA] text-[#011C40]"
+                      : "border-slate-200 bg-white text-slate-600"
+                  }`}
+                >
+                  {opt.label.split(" ")[0]}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
 
-      {/* 6. Smart Toggles (Badges, Counters, Glassmorphism) */}
-      <div className="space-y-2 pt-3 border-t border-slate-100">
-        <label className="text-[12px] font-bold text-slate-800 uppercase tracking-wider block">
-          Affichages & Badges
-        </label>
-        <div className="space-y-2">
-          <label className="flex items-center justify-between p-2 rounded-lg border border-slate-200 bg-white cursor-pointer hover:bg-slate-50">
-            <span className="text-xs font-medium text-slate-800">Afficher les badges Promo/Tendance</span>
-            <input
-              type="checkbox"
-              checked={Boolean(settings.showBadge !== false)}
-              onChange={(e) => onSettingsChange("showBadge", e.target.checked)}
-              className="w-4 h-4 accent-orange-500 rounded cursor-pointer"
-            />
-          </label>
-
-          <label className="flex items-center justify-between p-2 rounded-lg border border-slate-200 bg-white cursor-pointer hover:bg-slate-50">
-            <span className="text-xs font-medium text-slate-800">Compteur d'articles (ex: 24 articles)</span>
-            <input
-              type="checkbox"
-              checked={Boolean(settings.showItemCount !== false)}
-              onChange={(e) => onSettingsChange("showItemCount", e.target.checked)}
-              className="w-4 h-4 accent-orange-500 rounded cursor-pointer"
-            />
-          </label>
-
-          <label className="flex items-center justify-between p-2 rounded-lg border border-slate-200 bg-white cursor-pointer hover:bg-slate-50">
-            <span className="text-xs font-medium text-slate-800">Effet Dépoli / Glassmorphism</span>
-            <input
-              type="checkbox"
-              checked={Boolean(settings.glassmorphism)}
-              onChange={(e) => onSettingsChange("glassmorphism", e.target.checked)}
-              className="w-4 h-4 accent-orange-500 rounded cursor-pointer"
-            />
-          </label>
-        </div>
-      </div>
+      <CategoryOverlayAndFinishControls
+        settings={settings}
+        currentLayout={currentLayout}
+        currentTextPos={currentTextPos}
+        currentHover={currentHover}
+        overlayOpacity={overlayOpacity}
+        isOverlayActive={isOverlayActive}
+        onSettingsChange={onSettingsChange}
+      />
     </div>
   );
 };

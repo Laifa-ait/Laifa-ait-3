@@ -93,6 +93,7 @@ router.get(["/api/v1/public/stores/:slugOrId", "/api/v1/public/shops/:slugOrId"]
         sellerId: storefrontData.sellerId,
         canonicalSlug: storefrontData.canonicalSlug,
         redirectToSlug: storefrontData.redirectToSlug,
+        hasPaidStudioSubscription: storefrontData.hasPaidStudioSubscription,
         shopName: storefrontData.storeConfig.shopName,
         shopSlug: storefrontData.storeConfig.shopSlug,
         shopDescription: storefrontData.storeConfig.shopDescription,
@@ -104,11 +105,14 @@ router.get(["/api/v1/public/stores/:slugOrId", "/api/v1/public/shops/:slugOrId"]
         returnPolicy: storefrontData.storeConfig.returnPolicy,
         avgPreparationTime: storefrontData.storeConfig.avgPreparationTime,
         legalStatus: storefrontData.storeConfig.legalStatus,
+        followersCount: storefrontData.trustMetrics.followersCount,
+        rating: storefrontData.trustMetrics.ratingAverage,
         theme: storefrontData.storeConfig.theme,
         seo: storefrontData.storeConfig.seo,
         publishedLayout: storefrontData.publishedLayout,
         trustMetrics: storefrontData.trustMetrics,
       },
+      products: storefrontData.products,
       storefront: storefrontData,
     });
   } catch (error: unknown) {
@@ -118,26 +122,15 @@ router.get(["/api/v1/public/stores/:slugOrId", "/api/v1/public/shops/:slugOrId"]
   }
 });
 
-// GET public products for shop
-router.get("/api/v1/public/shops/:sellerId/products", async (req: Request, res: Response) => {
+// GET public products for shop (supports both seller UID and shopSlug)
+router.get(["/api/v1/public/shops/:sellerId/products", "/api/v1/public/stores/:sellerId/products"], async (req: Request, res: Response) => {
   const { sellerId } = req.params;
   try {
     if (!sellerId) {
       return res.status(400).json({ success: false, error: "Missing sellerId parameter" });
     }
 
-    const productMap = new Map<string, Record<string, unknown>>();
-    const candidateFields = ["sellerId", "sellerUid", "userId", "storeId", "shopId"];
-    for (const f of candidateFields) {
-      try {
-        const snap = await db.collection("products").where(f, "==", sellerId).limit(100).get();
-        snap.docs.forEach((doc) => productMap.set(doc.id, { id: doc.id, ...doc.data() }));
-      } catch {
-        // Ignore single field query error
-      }
-    }
-
-    const products = Array.from(productMap.values());
+    const products = await StorePublicService.fetchSellerPublicProducts(sellerId);
     return res.json({ success: true, products, count: products.length });
   } catch (error: unknown) {
     safeLogger.error("Error fetching shop products", { sellerId, err: error instanceof Error ? error.message : String(error) });

@@ -1,10 +1,25 @@
-import React from "react";
-import { Image as ImageIcon, Link as LinkIcon } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import {
+  BannerContentPosition,
+  CustomPageSection,
+  HeroSubElement,
+} from "../../../../../../domains/seller/customPage.types";
+import { Product } from "../../../../../../domains/product/product.types";
+import { HeroSubPanelSelector } from "./HeroSubPanelSelector";
+import { HeroBackgroundSubEditor } from "./HeroBackgroundSubEditor";
+import { HeroTypographySubEditor } from "./HeroTypographySubEditor";
+import { AlignmentMatrix3x3 } from "../controls/AlignmentMatrix3x3";
+import { useStudioStore } from "../../../store/useStudioStore";
 
 interface HeroContentEditorProps {
   sectionType?: string;
   settings: Record<string, unknown>;
-  onSettingsChange: (field: string, value: unknown) => void;
+  sections?: CustomPageSection[];
+  products?: Product[];
+  onSettingsChange: (
+    fieldOrPatch: string | Record<string, unknown>,
+    value?: unknown
+  ) => void;
   inputClass: string;
   labelClass: string;
 }
@@ -12,93 +27,116 @@ interface HeroContentEditorProps {
 export const HeroContentEditor: React.FC<HeroContentEditorProps> = ({
   sectionType,
   settings,
+  sections = [],
+  products = [],
   onSettingsChange,
   inputClass,
   labelClass,
 }) => {
-  const renderText = (field: string, label: string, placeholder = "") => (
-    <label key={field} className={labelClass}>
-      <span>{label}</span>
-      <input
-        type="text"
-        value={typeof settings[field] === "string" ? (settings[field] as string) : ""}
-        placeholder={placeholder}
-        onChange={(event) => onSettingsChange(field, event.target.value)}
-        className={inputClass}
-      />
-    </label>
-  );
+  const selectedSubElement = useStudioStore((s) => s.selectedSubElement);
+  const storeViewport = useStudioStore((s) => s.viewport);
 
-  const renderUrl = (field: string, label: string, optional = true) => (
-    <label key={field} className={labelClass}>
-      <span>{label}</span>
-      <input
-        type="url"
-        value={typeof settings[field] === "string" ? (settings[field] as string) : ""}
-        onChange={(event) => onSettingsChange(field, optional && !event.target.value ? undefined : event.target.value)}
-        placeholder="https://..."
-        className={`${inputClass} font-mono text-[12px]`}
-      />
-    </label>
-  );
+  const [activeSubPanel, setActiveSubPanel] = useState<HeroSubElement>("title");
+  const [posDevice, setPosDevice] = useState<"desktop" | "tablet" | "mobile">(storeViewport);
+
+  useEffect(() => {
+    if (!selectedSubElement) return;
+    if (selectedSubElement === "cta" || selectedSubElement === "ctaPrimary") {
+      setActiveSubPanel("ctaPrimary");
+    } else if (selectedSubElement === "ctaSecondary") {
+      setActiveSubPanel("ctaSecondary");
+    } else if (
+      selectedSubElement === "background" ||
+      selectedSubElement === "badge" ||
+      selectedSubElement === "title" ||
+      selectedSubElement === "subtitle"
+    ) {
+      setActiveSubPanel(selectedSubElement);
+    }
+  }, [selectedSubElement]);
+
+  useEffect(() => {
+    setPosDevice(storeViewport);
+  }, [storeViewport]);
+
+  if (sectionType !== "hero_banner" && sectionType !== "showcase_video") {
+    return null;
+  }
+
+  if (sectionType === "showcase_video") {
+    return (
+      <div className="space-y-3 bg-[#F9FAFB] p-3 rounded-xl border border-[#E4E7EC]">
+        <label className={labelClass}>
+          <span>Titre de la vidéo</span>
+          <input
+            type="text"
+            value={typeof settings.title === "string" ? settings.title : ""}
+            onChange={(e) => onSettingsChange("title", e.target.value)}
+            className={inputClass}
+          />
+        </label>
+        <label className={labelClass}>
+          <span>URL de la vidéo (MP4 / WebM)</span>
+          <input
+            type="url"
+            value={typeof settings.videoUrl === "string" ? settings.videoUrl : ""}
+            onChange={(e) => onSettingsChange("videoUrl", e.target.value)}
+            placeholder="https://..."
+            className={`${inputClass} font-mono text-xs`}
+          />
+        </label>
+      </div>
+    );
+  }
+
+  const contentPosition = settings.contentPosition as BannerContentPosition | undefined;
+  const textAlignment = (settings.textAlignment as "left" | "center" | "right") || "center";
+  const verticalAlignment = (settings.verticalAlignment as "top" | "center" | "bottom") || "center";
 
   return (
     <div className="space-y-4">
-      {"title" in settings && renderText("title", "Titre de la section")}
-      {"subtitle" in settings && renderText("subtitle", "Sous-titre")}
-      {"badgeText" in settings && renderText("badgeText", "Petit badge au-dessus du titre", "Ex. Fabrication locale")}
+      {/* Sub-element selector tab bar */}
+      <HeroSubPanelSelector
+        activeSubPanel={activeSubPanel}
+        onSelectSubPanel={(panel) => setActiveSubPanel(panel)}
+      />
 
-      {"imageUrl" in settings && (
-        <div className="space-y-1.5">
-          <span className="flex items-center gap-1.5 text-[12px] font-medium text-[#475467]">
-            <ImageIcon className="h-3.5 w-3.5 text-[#F97316]" />
-            Image principale
-          </span>
-          {renderUrl("imageUrl", "Adresse de l'image", sectionType !== "hero_banner")}
-        </div>
-      )}
-      {"mobileImageUrl" in settings && renderUrl("mobileImageUrl", "Image optimisée pour mobile (facultatif)")}
-      {"overlayOpacity" in settings && (
-        <label className="block space-y-2">
-          <span className="flex items-center justify-between text-[12px] font-medium text-[#475467]">
-            <span>Voile sombre sur l'image</span>
-            <span className="font-mono text-[#F97316]">{Number(settings.overlayOpacity || 0)}%</span>
-          </span>
-          <input
-            type="range"
-            min={0}
-            max={80}
-            step={5}
-            value={typeof settings.overlayOpacity === "number" ? settings.overlayOpacity : 30}
-            onChange={(event) => onSettingsChange("overlayOpacity", Number(event.target.value))}
-            className="w-full accent-[#F97316]"
-          />
-        </label>
-      )}
+      {/* 3x3 Alignment Matrix for Banner Text & Buttons */}
+      <AlignmentMatrix3x3
+        value={contentPosition}
+        horizontalFallback={textAlignment}
+        verticalFallback={verticalAlignment}
+        label="Position du bloc texte & boutons"
+        onChange={(pos, h, v) =>
+          onSettingsChange({
+            contentPosition: pos,
+            textAlignment: h,
+            verticalAlignment: v,
+          })
+        }
+      />
 
-      {sectionType === "showcase_video" && renderUrl("videoUrl", "Adresse de la vidéo")}
-      {sectionType === "showcase_video" && renderUrl("posterUrl", "Image de couverture de la vidéo")}
-      {"autoplay" in settings && (
-        <label className="flex items-center gap-2 rounded-lg border border-[#E4E7EC] p-3 text-[12px] text-[#475467]">
-          <input
-            type="checkbox"
-            checked={Boolean(settings.autoplay)}
-            onChange={(event) => onSettingsChange("autoplay", event.target.checked)}
-            className="accent-[#F97316]"
-          />
-          Lecture automatique
-        </label>
-      )}
-
-      {"ctaText" in settings && (
-        <div className="space-y-3 border-t border-[#E4E7EC] pt-4">
-          <h3 className="flex items-center gap-1.5 text-[12px] font-semibold text-[#17191C]">
-            <LinkIcon className="h-3.5 w-3.5 text-[#F97316]" />
-            Bouton d'action
-          </h3>
-          {renderText("ctaText", "Texte du bouton", "Découvrir")}
-          {renderText("ctaLink", "Lien du bouton", "#catalog")}
-        </div>
+      {/* Background Sub-Editor */}
+      {activeSubPanel === "background" ? (
+        <HeroBackgroundSubEditor
+          settings={settings}
+          onSettingsChange={(f, v) => onSettingsChange(f, v)}
+          inputClass={inputClass}
+          labelClass={labelClass}
+          posDevice={posDevice}
+          setPosDevice={setPosDevice}
+        />
+      ) : (
+        /* Typography / CTA Sub-Editor */
+        <HeroTypographySubEditor
+          activeSubPanel={activeSubPanel}
+          settings={settings}
+          sections={sections}
+          products={products}
+          onSettingsChange={(f, v) => onSettingsChange(f, v)}
+          inputClass={inputClass}
+          labelClass={labelClass}
+        />
       )}
     </div>
   );

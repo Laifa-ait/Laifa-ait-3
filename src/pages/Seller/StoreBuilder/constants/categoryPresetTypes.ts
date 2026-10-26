@@ -4,13 +4,20 @@ export interface CategoryItem {
   subtitle?: string;
   imageUrl?: string;
   slug: string;
+  link?: string;
   iconName?: string;
   badge?: string;
   badgeColor?: string;
   itemCount?: number | string;
   colSpan?: 1 | 2;
   accentColor?: string;
+  productIds?: string[];
+  categoryFilter?: string;
+  description?: string;
+  hidden?: boolean;
 }
+
+export type CategoryCardSize = "compact" | "balanced" | "large";
 
 export type CategoryLayoutType =
   | "grid"
@@ -18,11 +25,12 @@ export type CategoryLayoutType =
   | "bubbles"
   | "overlay"
   | "carousel"
-  | "pills";
+  | "pills"
+  | "mesh-3d";
 
 export type CategoryAspectRatio = "1/1" | "4/5" | "16/9" | "circle" | "4/3";
 export type CategoryHoverEffect = "zoom" | "lift" | "glow" | "shine" | "grayscale-reveal" | "none";
-export type CategoryTextPosition = "below" | "overlay-bottom" | "overlay-center" | "card-inside";
+export type CategoryTextPosition = "below" | "overlay-bottom" | "overlay-center" | "card-inside" | "none";
 export type CategoryCardRadius = "none" | "sm" | "md" | "lg" | "full";
 
 export interface CategoryPreset {
@@ -42,6 +50,7 @@ export interface CategoryPreset {
     textTransform: "none" | "uppercase" | "capitalize";
     overlayOpacity: number;
     glassmorphism: boolean;
+    showTitle?: boolean;
     showBadge: boolean;
     showItemCount: boolean;
     showIcon: boolean;

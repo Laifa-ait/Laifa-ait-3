@@ -34,7 +34,7 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
     return (
       <section onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={sectionStyle}>
         <div
-          className={`${maxWidth} rounded-2xl border border-black/5 p-6 text-center md:p-8`}
+          className={`${maxWidth} rounded-2xl border border-black/5 p-6 text-center @md:p-8`}
           style={{ backgroundColor: theme.surfaceColor || "#FFFFFF", borderRadius: `${theme.borderRadiusPx ?? 16}px` }}
         >
           <span
@@ -55,7 +55,7 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
             </p>
           )}
           {tariffs.length > 0 && (
-            <div className="mt-5 grid gap-2 text-left sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-5 grid gap-2 text-left @sm:grid-cols-2 @lg:grid-cols-3">
               {tariffs.map((tariff, index) => (
                 <div key={index} className="rounded-xl border border-black/5 bg-white/70 p-3 text-sm">
                   <p className="font-semibold">{String(tariff.wilayaName || "Wilaya")}</p>
@@ -157,7 +157,7 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
     return (
       <section onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={sectionStyle}>
         <div
-          className={`${maxWidth} flex flex-col gap-5 border-t border-black/10 pt-6 sm:flex-row sm:items-start sm:justify-between`}
+          className={`${maxWidth} flex flex-col gap-5 border-t border-black/10 pt-6 @sm:flex-row @sm:items-start @sm:justify-between`}
         >
           <div>
             <h2 className="text-lg font-bold" style={{ color: theme.primaryColor }}>
@@ -171,7 +171,7 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
               <p className="mt-2 text-sm opacity-70">{settings.workingHours}</p>
             )}
           </div>
-          <div className="text-sm sm:text-right">
+          <div className="text-sm @sm:text-right">
             {typeof settings.shopPhone === "string" && settings.shopPhone && (
               <p>
                 <a href={`tel:${settings.shopPhone}`} className="font-semibold">
@@ -184,7 +184,7 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
                 <a href={`mailto:${settings.shopEmail}`}>{settings.shopEmail}</a>
               </p>
             )}
-            <div className="mt-2 flex gap-3 sm:justify-end">
+            <div className="mt-2 flex gap-3 @sm:justify-end">
               {socialLinks.map(([label, value]) => (
                 <span key={label} className="font-medium" style={{ color: theme.primaryColor }}>
                   {label}: {String(value)}

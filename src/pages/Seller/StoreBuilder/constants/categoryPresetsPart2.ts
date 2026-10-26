@@ -18,8 +18,8 @@ export const CATEGORY_PRESETS_PART2: CategoryPreset[] = [
       textTransform: "none",
       overlayOpacity: 0,
       glassmorphism: false,
-      showBadge: true,
-      showItemCount: true,
+      showBadge: false,
+      showItemCount: false,
       showIcon: true,
       gapSize: "normal",
       categories: [
@@ -87,8 +87,8 @@ export const CATEGORY_PRESETS_PART2: CategoryPreset[] = [
       textTransform: "none",
       overlayOpacity: 0,
       glassmorphism: false,
-      showBadge: true,
-      showItemCount: true,
+      showBadge: false,
+      showItemCount: false,
       showIcon: true,
       gapSize: "compact",
       categories: [
@@ -145,8 +145,8 @@ export const CATEGORY_PRESETS_PART2: CategoryPreset[] = [
       textTransform: "uppercase",
       overlayOpacity: 0,
       glassmorphism: false,
-      showBadge: true,
-      showItemCount: true,
+      showBadge: false,
+      showItemCount: false,
       showIcon: true,
       gapSize: "normal",
       categories: [

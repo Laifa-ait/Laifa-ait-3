@@ -1,8 +1,8 @@
 import React from "react";
 import {
-  Monitor,
-  Tablet,
   Smartphone,
+  Tablet,
+  Monitor,
   RotateCw,
   ZoomIn,
   ZoomOut,
@@ -11,9 +11,11 @@ import {
   Sparkles,
   Play,
   Edit3,
-  Moon,
-  Sun,
   Grid,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
 
 export type PreviewDevice = "mobile" | "tablet" | "desktop";
@@ -36,6 +38,10 @@ interface PreviewControlToolbarProps {
   toggleFullscreen: () => void;
   onOpenQrModal: () => void;
   onOpenAuditModal: () => void;
+  showLeftSidebar?: boolean;
+  onToggleLeftSidebar?: () => void;
+  showRightSidebar?: boolean;
+  onToggleRightSidebar?: () => void;
 }
 
 export const PreviewControlToolbar: React.FC<PreviewControlToolbarProps> = ({
@@ -47,92 +53,142 @@ export const PreviewControlToolbar: React.FC<PreviewControlToolbarProps> = ({
   setZoom,
   isInteractiveMode,
   setIsInteractiveMode,
-  isDarkMode,
-  setIsDarkMode,
   showGrid,
   setShowGrid,
   isFullscreen,
   toggleFullscreen,
   onOpenQrModal,
   onOpenAuditModal,
+  showLeftSidebar = true,
+  onToggleLeftSidebar,
+  showRightSidebar = true,
+  onToggleRightSidebar,
 }) => {
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.1, 1.5));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.1, 0.5));
+  const handleZoomIn = () =>
+    setZoom((prev) => Math.min(Number((prev + 0.1).toFixed(2)), 1.4));
+  const handleZoomOut = () =>
+    setZoom((prev) => Math.max(Number((prev - 0.1).toFixed(2)), 0.6));
   const handleZoomReset = () => setZoom(1);
 
-  const deviceBtns = [
-    { id: "desktop" as const, label: "Bureau", icon: Monitor },
-    { id: "tablet" as const, label: "Tablette", icon: Tablet },
-    { id: "mobile" as const, label: "Mobile", icon: Smartphone },
-  ];
-
   return (
-    <div className="w-full bg-[#FFFFFF] border-b border-[#E5E7EB] px-3 py-2 flex flex-wrap items-center justify-between gap-2 shadow-2xs z-20 select-none">
-      {/* Device Viewport Switcher & Orientation */}
-      <div className="flex items-center gap-1 bg-[#F5F6F8] p-1 rounded-xl border border-[#E5E7EB]">
-        {deviceBtns.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setDevice(id)}
-            className={`h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
-              device === id ? "bg-[#FFFFFF] text-[#17191C] shadow-2xs" : "text-[#667085] hover:text-[#17191C]"
-            }`}
-            title={`Vue ${label}`}
-          >
-            <Icon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{label}</span>
-          </button>
-        ))}
-
-        {device !== "desktop" && (
+    <div className="w-full h-11 min-h-[44px] bg-white border-b border-slate-200 px-3 flex items-center justify-between gap-2 z-20 select-none overflow-x-auto no-scrollbar">
+      {/* Left: Desktop Sidebar Toggle + Interactive Viewport Selector */}
+      <div className="flex items-center gap-2 shrink-0">
+        {onToggleLeftSidebar && (
           <button
             type="button"
-            onClick={toggleOrientation}
-            className={`h-8 px-2 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer ${
-              orientation === "landscape" ? "bg-[#FFF1E7] text-[#F97316]" : "text-[#667085] hover:text-[#17191C]"
+            onClick={onToggleLeftSidebar}
+            className={`hidden md:inline-flex h-8 px-2.5 rounded-lg border text-xs font-semibold items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+              !showLeftSidebar
+                ? "bg-[#F8FBFC] border-[#54ACBF] text-[#023859]"
+                : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
             }`}
-            title="Pivoter Portrait / Paysage"
+            title={showLeftSidebar ? "Masquer le panneau gauche" : "Afficher les sections"}
           >
-            <RotateCw className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">{orientation === "landscape" ? "Paysage" : "Portrait"}</span>
+            {showLeftSidebar ? (
+              <PanelLeftClose className="w-3.5 h-3.5 text-[#023859]" />
+            ) : (
+              <PanelLeftOpen className="w-3.5 h-3.5 text-[#023859]" />
+            )}
+            <span className="hidden xl:inline">Sections</span>
           </button>
         )}
+
+        {/* Segmented Viewport Switcher */}
+        <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200/80">
+          <button
+            type="button"
+            onClick={() => setDevice("mobile")}
+            className={`h-7 px-2 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap ${
+              device === "mobile"
+                ? "bg-white text-[#011C40] shadow-2xs font-bold"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+            title="Aperçu Mobile (390px)"
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Mobile</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setDevice("tablet")}
+            className={`h-7 px-2 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap ${
+              device === "tablet"
+                ? "bg-white text-[#011C40] shadow-2xs font-bold"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+            title="Aperçu Tablette (768px)"
+          >
+            <Tablet className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Tablette</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setDevice("desktop")}
+            className={`h-7 px-2 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap ${
+              device === "desktop"
+                ? "bg-white text-[#011C40] shadow-2xs font-bold"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+            title="Aperçu Ordinateur"
+          >
+            <Monitor className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">PC</span>
+          </button>
+
+          {device !== "desktop" && (
+            <button
+              type="button"
+              onClick={toggleOrientation}
+              className="h-7 px-2 rounded-md text-xs font-semibold text-[#023859] hover:bg-white/60 flex items-center gap-1 cursor-pointer"
+              title="Pivoter Portrait / Paysage"
+            >
+              <RotateCw className="w-3 h-3" />
+              <span className="hidden lg:inline">
+                {orientation === "landscape" ? "Paysage" : "Portrait"}
+              </span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Mode Interactif (Visiteur réel) vs Mode Édition */}
-      <div className="flex items-center gap-1 bg-[#F5F6F8] p-1 rounded-xl border border-[#E5E7EB]">
+      {/* Center: Mode Édition vs Test Client */}
+      <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200/80 shrink-0">
         <button
           type="button"
           onClick={() => setIsInteractiveMode(false)}
-          className={`h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
-            !isInteractiveMode ? "bg-[#FFFFFF] text-[#F97316] shadow-2xs font-bold" : "text-[#667085] hover:text-[#17191C]"
+          className={`h-7 px-2.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+            !isInteractiveMode
+              ? "bg-[#023859] text-white shadow-2xs font-bold"
+              : "text-slate-600 hover:text-slate-900"
           }`}
-          title="Mode Édition : sélectionner et modifier"
         >
-          <Edit3 className="w-3.5 h-3.5" />
+          <Edit3 className="w-3 h-3" />
           <span>Édition</span>
         </button>
         <button
           type="button"
           onClick={() => setIsInteractiveMode(true)}
-          className={`h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
-            isInteractiveMode ? "bg-[#16A34A] text-[#FFFFFF] shadow-2xs font-bold" : "text-[#667085] hover:text-[#17191C]"
+          className={`h-7 px-2.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+            isInteractiveMode
+              ? "bg-emerald-600 text-white shadow-2xs font-bold"
+              : "text-slate-600 hover:text-slate-900"
           }`}
-          title="Tester la boutique comme un vrai client"
         >
-          <Play className="w-3.5 h-3.5 fill-current" />
-          <span>Test Visiteur</span>
+          <Play className="w-3 h-3 fill-current" />
+          <span>Test Client</span>
         </button>
       </div>
 
-      {/* Zoom & Visual Canvas Helpers */}
-      <div className="flex items-center gap-1.5">
-        <div className="hidden sm:flex items-center bg-[#F5F6F8] p-0.5 rounded-lg border border-[#E5E7EB]">
+      {/* Right: Clean Helpers & Inspector Toggle */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <div className="hidden lg:flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/80">
           <button
             type="button"
             onClick={handleZoomOut}
-            className="w-7 h-7 flex items-center justify-center text-[#667085] hover:text-[#17191C] rounded cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center text-slate-600 hover:text-slate-900 rounded cursor-pointer"
             title="Zoom arrière"
           >
             <ZoomOut className="w-3.5 h-3.5" />
@@ -140,78 +196,85 @@ export const PreviewControlToolbar: React.FC<PreviewControlToolbarProps> = ({
           <button
             type="button"
             onClick={handleZoomReset}
-            className="px-1.5 text-[11px] font-mono font-bold text-[#17191C] hover:text-[#F97316] cursor-pointer"
-            title="Réinitialiser zoom"
+            className="px-1.5 text-[11px] font-mono font-bold text-slate-800 hover:text-[#023859] cursor-pointer tabular-nums"
+            title="Réinitialiser zoom (100%)"
           >
             {Math.round(zoom * 100)}%
           </button>
           <button
             type="button"
             onClick={handleZoomIn}
-            className="w-7 h-7 flex items-center justify-center text-[#667085] hover:text-[#17191C] rounded cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center text-slate-600 hover:text-slate-900 rounded cursor-pointer"
             title="Zoom avant"
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Toggle Dark Simulator */}
-        <button
-          type="button"
-          onClick={() => setIsDarkMode(!isDarkMode)}
-          className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors cursor-pointer ${
-            isDarkMode ? "bg-[#1E293B] border-[#0F172A] text-[#F8FAFC]" : "bg-[#FFFFFF] border-[#E5E7EB] text-[#667085]"
-          }`}
-          title="Simuler Mode Sombre / Mode Clair"
-        >
-          {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-        </button>
-
-        {/* Toggle Grid Aligners */}
         <button
           type="button"
           onClick={() => setShowGrid(!showGrid)}
-          className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors cursor-pointer ${
-            showGrid ? "bg-[#FFF1E7] border-[#FDBA74] text-[#F97316]" : "bg-[#FFFFFF] border-[#E5E7EB] text-[#667085]"
+          className={`h-7 px-2 rounded-lg flex items-center gap-1 border text-xs font-semibold transition-colors cursor-pointer ${
+            showGrid
+              ? "bg-[#F8FBFC] border-[#54ACBF] text-[#023859]"
+              : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
           }`}
-          title="Grille et repères d'alignement"
+          title="Afficher la grille d'alignement"
         >
-          <Grid className="w-4 h-4" />
+          <Grid className="w-3.5 h-3.5" />
         </button>
 
-        {/* QR Code Phone Preview */}
         <button
           type="button"
           onClick={onOpenQrModal}
-          className="h-8 px-2.5 rounded-lg bg-[#FFFFFF] border border-[#E5E7EB] hover:bg-[#FFF7ED] hover:border-[#FDBA74] hover:text-[#F97316] text-[#475467] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-          title="Tester en direct sur votre smartphone via QR Code"
+          className="h-7 px-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+          title="Tester sur téléphone via QR Code"
         >
-          <QrCode className="w-3.5 h-3.5 text-[#F97316]" />
-          <span className="hidden lg:inline">Aperçu Mobile</span>
+          <QrCode className="w-3.5 h-3.5 text-[#023859]" />
         </button>
 
-        {/* Pre-flight Audit & Score */}
         <button
           type="button"
           onClick={onOpenAuditModal}
-          className="h-8 px-2.5 rounded-lg bg-[#F0FDF4] border border-[#BBF7D0] hover:bg-[#DCFCE7] text-[#16A34A] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-          title="Auditer la qualité, le contraste et la vitesse"
+          className="h-7 px-2.5 rounded-lg bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
+          title="Audit Qualité de la vitrine"
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span className="hidden lg:inline">Audit Qualité</span>
+          <span className="hidden sm:inline">Audit</span>
         </button>
 
-        {/* Fullscreen Immersion */}
         <button
           type="button"
           onClick={toggleFullscreen}
-          className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-colors cursor-pointer shadow-2xs ${
-            isFullscreen ? "bg-[#FFF1E7] border-[#FDBA74] text-[#F97316]" : "bg-[#FFFFFF] border-[#E5E7EB] text-[#475467]"
+          className={`h-7 px-2 rounded-lg border flex items-center justify-center transition-colors cursor-pointer ${
+            isFullscreen
+              ? "bg-[#F8FBFC] border-[#54ACBF] text-[#023859]"
+              : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
           }`}
-          title={isFullscreen ? "Quitter Plein Écran" : "Mode Immersion Plein Écran"}
+          title={isFullscreen ? "Quitter Plein Écran" : "Aperçu Plein Écran"}
         >
           <Maximize2 className="w-3.5 h-3.5" />
         </button>
+
+        {onToggleRightSidebar && (
+          <button
+            type="button"
+            onClick={onToggleRightSidebar}
+            className={`hidden md:inline-flex h-8 px-2.5 rounded-lg border text-xs font-semibold items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+              !showRightSidebar
+                ? "bg-[#F8FBFC] border-[#54ACBF] text-[#023859]"
+                : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+            }`}
+            title={showRightSidebar ? "Masquer l'inspecteur" : "Afficher l'inspecteur"}
+          >
+            <span className="hidden xl:inline">Inspecteur</span>
+            {showRightSidebar ? (
+              <PanelRightClose className="w-3.5 h-3.5 text-[#023859]" />
+            ) : (
+              <PanelRightOpen className="w-3.5 h-3.5 text-[#023859]" />
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

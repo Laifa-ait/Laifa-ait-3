@@ -21,14 +21,14 @@ export const CategoryBentoGrid: React.FC<CategoryBentoGridProps> = ({
   showCount,
 }) => {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+    <div className="grid grid-cols-2 @md:grid-cols-4 gap-3 @sm:gap-4">
       {categories.map((cat, i) => {
         const isHero = i === 0 || cat.colSpan === 2;
         return (
           <div
             key={cat.id || i}
             className={`relative overflow-hidden group cursor-pointer ${radiusClass} ${hoverClass} ${
-              isHero ? "col-span-2 row-span-2 min-h-[260px] md:min-h-[340px]" : "col-span-1 min-h-[140px] md:min-h-[160px]"
+              isHero ? "col-span-2 row-span-2 min-h-[260px] @md:min-h-[340px]" : "col-span-1 min-h-[140px] @md:min-h-[160px]"
             }`}
             style={{ backgroundColor: surfaceColor || "#FFFFFF" }}
           >
@@ -57,7 +57,7 @@ export const CategoryBentoGrid: React.FC<CategoryBentoGridProps> = ({
                 )}
               </div>
               <div>
-                <h3 className={`font-bold drop-shadow-sm ${isHero ? "text-lg sm:text-2xl" : "text-sm sm:text-base"}`}>
+                <h3 className={`font-bold drop-shadow-sm ${isHero ? "text-lg @sm:text-2xl" : "text-sm @sm:text-base"}`}>
                   {cat.name}
                 </h3>
                 {Boolean(cat.subtitle) && (

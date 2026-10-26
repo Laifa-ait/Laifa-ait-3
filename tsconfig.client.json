@@ -51,6 +51,14 @@
     "build",
     "coverage",
     "**/*.tsbuildinfo",
-    "*.d.ts"
+    "*.d.ts",
+    "src/server/**/*",
+    "src/tests/**/*",
+    "src/domains/**/routes/**/*",
+    "src/domains/**/services/**/*",
+    "src/domains/**/controllers/**/*",
+    "src/domains/**/repositories/**/*",
+    "src/services/SellerService.ts",
+    "src/services/googleDriveBackup.service.ts"
   ]
 }

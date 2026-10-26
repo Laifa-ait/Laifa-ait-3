@@ -1,0 +1,1 @@
+import{n as e}from"./api-C9HLSMEl.js";var t={getGlobalSettings:async()=>e(`/api/v1/settings/global`),getShippingSettings:async()=>e(`/api/v1/settings/shipping`)};export{t};

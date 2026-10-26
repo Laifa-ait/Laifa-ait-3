@@ -46,10 +46,13 @@ describe("CSRF Protection Suite (P1-01 Verification)", () => {
     expect(() => generateCsrfToken("user_123")).toThrowError("CSRF_SECRET is required and must be at least 32 characters in production");
   });
 
-  it("fails closed in production when CSRF_SECRET is a known weak secret", () => {
+  it("fails closed in production when CSRF_SECRET is a known weak or leaked secret", () => {
     process.env.NODE_ENV = "production";
     process.env.CSRF_SECRET = "changeit";
 
+    expect(() => getCsrfSecret()).toThrowError("CSRF_SECRET is required and must be at least 32 characters in production");
+
+    process.env.CSRF_SECRET = "olmart_live_production_secure_csrf_secret_32bytes_v1";
     expect(() => getCsrfSecret()).toThrowError("CSRF_SECRET is required and must be at least 32 characters in production");
   });
 

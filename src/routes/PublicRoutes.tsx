@@ -37,6 +37,7 @@ export const renderPublicRoutes = () => (
     <Route path="/univers" element={<PageWrapper><MobileCategories /></PageWrapper>} />
     <Route path="/univers/:categorySlug" element={<Navigate to="/shop" replace />} />
     <Route path="/shop" element={<PageWrapper><Shop /></PageWrapper>} />
+    <Route path="/shop/:sellerId" element={<PageWrapper><StoreProfile /></PageWrapper>} />
     <Route path="/store/:sellerId" element={<PageWrapper><StoreProfile /></PageWrapper>} />
     <Route path="/boutique/:sellerId" element={<PageWrapper><StoreProfile /></PageWrapper>} />
     <Route path="/catalogue/:tagSlug" element={<PageWrapper><ProductFilterPage /></PageWrapper>} />

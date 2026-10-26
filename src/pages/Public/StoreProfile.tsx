@@ -1,19 +1,24 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Store, Package, SearchX, AlertTriangle, Layout } from 'lucide-react';
+import { Store, Package, SearchX, AlertTriangle, Layout, Plus } from 'lucide-react';
 import { ProductCard } from '../../components/Product/ProductCard';
 import { StoreProductsFilter } from '../../components/Store/StoreProductsFilter';
 import { StoreAboutView } from '../../components/Store/StoreAboutView';
 import { StoreProfileHeader } from '../../components/Store/StoreProfileHeader';
 import { StoreBoutiqueNavbar } from '../../components/Store/StoreBoutiqueNavbar';
-import { StoreTrustBadges } from '../../components/Store/StoreTrustBadges';
 import { StoreProfileModals } from '../../components/Store/StoreProfileModals';
 import { StoreLoadingState, StoreErrorState } from '../../components/Store/StoreProfileStates';
 import { SellerCouponBanner } from '../../components/Shop/SellerCouponBanner';
 import { StoreSectionRenderer } from '../../components/Store/sections/StoreSectionRenderer';
+import { StoreCollectionPageView } from '../../components/Store/StoreCollectionPageView';
 import { useStoreProfile } from './hooks/useStoreProfile';
 import { apiPost } from '../../lib/api';
-import type { CustomPageSeo, CustomPageTheme } from '../../domains/seller/customPage.types';
+import type {
+  CategoryItem,
+  CollectionPageDesignConfig,
+  CustomPageSeo,
+  CustomPageTheme,
+} from '../../domains/seller/customPage.types';
 
 export interface PublicStoreInfo {
   id: string;
@@ -46,8 +51,10 @@ export interface PublicStoreInfo {
   sellerBanner?: string;
   bannerImage?: string;
   brand?: string;
+  hasPaidStudioSubscription?: boolean;
   theme?: CustomPageTheme;
   seo?: CustomPageSeo;
+  collectionPageConfig?: CollectionPageDesignConfig;
 }
 
 export const StoreProfile: React.FC = () => {
@@ -92,17 +99,81 @@ export const StoreProfile: React.FC = () => {
     handleSaveAbout,
     errorType,
     productsError,
-    reloadStore
+    reloadStore,
   } = useStoreProfile();
+
+  const [activeRayonView, setActiveRayonView] = React.useState<CategoryItem | null>(null);
+  const [isCollectionViewOpen, setIsCollectionViewOpen] = React.useState<boolean>(false);
+
+  const hasPaidCustomStore = Boolean(
+    storeInfo?.hasPaidStudioSubscription &&
+      publishedLayout &&
+      Array.isArray(publishedLayout.sections) &&
+      publishedLayout.sections.length > 0
+  );
+
+  const allStoreRayons = React.useMemo<CategoryItem[]>(() => {
+    if (!hasPaidCustomStore) return [];
+    const sections = publishedLayout?.sections || [];
+    const catSec = sections.find((s) => s.type === 'featured_categories');
+    if (!catSec) return [];
+    const raw = (catSec.settings as { categories?: CategoryItem[] }).categories;
+    return Array.isArray(raw) ? raw : [];
+  }, [hasPaidCustomStore, publishedLayout?.sections]);
+
+  React.useEffect(() => {
+    const handler = (event: Event) => {
+      const custom = event as CustomEvent<{
+        viewMode?: string;
+        categorySlug?: string;
+        categoryItem?: CategoryItem;
+      }>;
+      const detail = custom.detail || {};
+      if (detail.viewMode === 'category') {
+        const found =
+          detail.categoryItem ||
+          allStoreRayons.find((c) => c.slug === detail.categorySlug) ||
+          null;
+        setActiveRayonView(found);
+        setIsCollectionViewOpen(true);
+      } else if (detail.viewMode === 'collection') {
+        setActiveRayonView(null);
+        setIsCollectionViewOpen(true);
+      }
+    };
+    window.addEventListener('studio:navigate-page', handler);
+    return () => window.removeEventListener('studio:navigate-page', handler);
+  }, [allStoreRayons]);
 
   React.useEffect(() => {
     if (storeInfo?.sellerId) {
       apiPost(`/api/v1/public/stores/${encodeURIComponent(storeInfo.sellerId)}/track`, {
-        eventType: "store_view",
-        source: new URLSearchParams(window.location.search).get("src") || "direct",
+        eventType: 'store_view',
+        source: new URLSearchParams(window.location.search).get('src') || 'direct',
       }).catch(() => {});
     }
   }, [storeInfo?.sellerId]);
+
+  const storeTheme = storeInfo?.theme;
+  const storeThemeStyles: React.CSSProperties = React.useMemo(() => {
+    const primary = storeTheme?.primaryColor || '#023859';
+    const secondary = storeTheme?.secondaryColor || '#26658C';
+    const accent = storeTheme?.accentColor || '#54ACBF';
+    const canvas = storeTheme?.canvasColor || '#F8FBFC';
+    const surface = storeTheme?.surfaceColor || '#FFFFFF';
+    const borderRadius = storeTheme?.borderRadiusPx ? `${storeTheme.borderRadiusPx}px` : '16px';
+
+    return {
+      backgroundColor: canvas,
+      fontFamily:
+        storeTheme?.fontFamily || "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+      ['--store-primary' as string]: primary,
+      ['--store-secondary' as string]: secondary,
+      ['--store-accent' as string]: accent,
+      ['--store-surface' as string]: surface,
+      ['--store-border-radius' as string]: borderRadius,
+    };
+  }, [storeTheme]);
 
   if (loading) {
     return <StoreLoadingState message={d('loading')} />;
@@ -119,12 +190,12 @@ export const StoreProfile: React.FC = () => {
     );
   }
 
-  // Filter products by category and searchQuery
-  const filteredProducts = products.filter(p => {
-    const matchesQuery = searchQuery === '' || 
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredProducts = products.filter((p) => {
+    const matchesQuery =
+      searchQuery === '' ||
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+
     const matchesCategory = !selectedCategory || p.category === selectedCategory;
 
     return matchesQuery && matchesCategory;
@@ -132,20 +203,32 @@ export const StoreProfile: React.FC = () => {
 
   const visibleProducts = filteredProducts.slice(0, displayLimit);
   const hasMore = displayLimit < filteredProducts.length;
+  const totalProductsCount = totalCount ?? products.length;
 
   const seoTitle = storeInfo.seo?.metaTitle || `${storeInfo.shopName} | Olmart Algérie`;
-  const seoDesc = storeInfo.seo?.metaDescription || storeInfo.shopDescription || `Découvrez les créations de ${storeInfo.shopName} sur Olmart Algérie.`;
+  const seoDesc =
+    storeInfo.seo?.metaDescription ||
+    storeInfo.shopDescription ||
+    `Découvrez les articles de ${storeInfo.shopName} sur Olmart Algérie.`;
   const seoImage = storeInfo.seo?.ogImage || storeInfo.bannerUrl || storeInfo.logoUrl;
   const canonicalUrl = `https://olmart.dz/store/${storeInfo.shopSlug || storeInfo.sellerId || storeInfo.id}`;
 
   const theme = storeInfo.theme || {
     sector: 'mode',
-    primaryColor: '#5B3765',
-    fontFamily: 'Inter, sans-serif'
+    primaryColor: '#023859',
+    secondaryColor: '#26658C',
+    accentColor: '#54ACBF',
+    canvasColor: '#F8FBFC',
+    surfaceColor: '#FFFFFF',
+    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/60 pb-16 font-sans">
+    <div
+      id="storefront-root"
+      style={storeThemeStyles}
+      className="@container/store @container min-h-screen pb-16 font-sans transition-colors"
+    >
       <Helmet>
         <title>{seoTitle}</title>
         <meta name="description" content={seoDesc} />
@@ -155,13 +238,14 @@ export const StoreProfile: React.FC = () => {
         {seoImage && <meta property="og:image" content={seoImage} />}
       </Helmet>
 
-      {/* 1. Dedicated Boutique Top Navigation (Replaces Global Bars) */}
+      {/* 1. Dedicated Boutique Top Navigation */}
       <StoreBoutiqueNavbar storeInfo={storeInfo} />
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
-        {/* 2. Store Header Hero */}
+        {/* 2. Store Header with Integrated Reassurance Bar */}
         <StoreProfileHeader
           storeInfo={storeInfo}
+          productsCount={totalProductsCount}
           isOwner={isOwner}
           uploadingBanner={uploadingBanner}
           uploadingLogo={uploadingLogo}
@@ -173,28 +257,25 @@ export const StoreProfile: React.FC = () => {
           onFollowToggle={handleFollowToggle}
         />
 
-        {/* 3. Trust Highlights row */}
-        <StoreTrustBadges storeInfo={storeInfo} />
-
-        {/* 4. Discrete Seller Promo Coupon Banner */}
+        {/* 3. Seller Promo Coupon Banner (if any active coupons) */}
         <SellerCouponBanner
           sellerId={storeInfo.sellerId || storeInfo.id || storeInfo.uid}
           className="my-4"
         />
 
-        {/* 5. Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-slate-200 mb-6 pb-2.5 overflow-x-auto">
-          {publishedLayout && publishedLayout.sections && publishedLayout.sections.length > 0 && (
+        {/* 4. Clean Navigation Tabs */}
+        <div className="flex items-center gap-2 border-b border-[#26658C]/15 mb-5 pb-2.5 overflow-x-auto no-scrollbar">
+          {hasPaidCustomStore && (
             <button
               type="button"
               onClick={() => setActiveTab('home' as unknown as 'products' | 'about')}
-              className={`px-4 sm:px-5 py-2.5 rounded-2xl font-black text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 ${
                 (activeTab as string) === 'home'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  ? 'bg-[#023859] text-white shadow-2xs'
+                  : 'text-[#023859]/80 hover:bg-[#A7EBF2]/20 hover:text-[#011C40]'
               }`}
             >
-              <Layout className="w-4 h-4" />
+              <Layout className="w-4 h-4 text-[#54ACBF]" />
               <span>Accueil Vitrine</span>
             </button>
           )}
@@ -202,37 +283,54 @@ export const StoreProfile: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('products')}
-            className={`px-4 sm:px-5 py-2.5 rounded-2xl font-black text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 ${
               activeTab === 'products'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                ? 'bg-[#023859] text-white shadow-2xs'
+                : 'text-[#023859]/80 hover:bg-[#A7EBF2]/20 hover:text-[#011C40]'
             }`}
           >
-            <Package className="w-4 h-4" />
+            <Package className="w-4 h-4 text-[#54ACBF]" />
             <span>{d('articles')}</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              activeTab === 'products' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-            }`}>
-              {totalCount ?? products.length}
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold tabular-nums ${
+                activeTab === 'products'
+                  ? 'bg-[#54ACBF]/30 text-[#A7EBF2]'
+                  : 'bg-[#26658C]/10 text-[#023859]'
+              }`}
+            >
+              {totalProductsCount}
             </span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('about')}
-            className={`px-4 sm:px-5 py-2.5 rounded-2xl font-black text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 ${
               activeTab === 'about'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                ? 'bg-[#023859] text-white shadow-2xs'
+                : 'text-[#023859]/80 hover:bg-[#A7EBF2]/20 hover:text-[#011C40]'
             }`}
           >
-            <Store className="w-4 h-4" />
+            <Store className="w-4 h-4 text-[#54ACBF]" />
             <span>À propos</span>
           </button>
         </div>
 
-        {/* 6. Active Tab Content */}
-        {(activeTab as string) === 'home' && publishedLayout && publishedLayout.sections && publishedLayout.sections.length > 0 ? (
+        {/* 5. Active Tab Content */}
+        {isCollectionViewOpen ? (
+          <StoreCollectionPageView
+            activeCategory={activeRayonView}
+            allCategories={allStoreRayons}
+            products={products}
+            theme={theme}
+            config={storeInfo.collectionPageConfig}
+            onSelectCategory={(cat) => setActiveRayonView(cat)}
+            onBackToHome={() => {
+              setIsCollectionViewOpen(false);
+              setActiveRayonView(null);
+            }}
+          />
+        ) : (activeTab as string) === 'home' && hasPaidCustomStore && publishedLayout ? (
           <div className="space-y-6">
             {publishedLayout.sections.map((section) => (
               <StoreSectionRenderer
@@ -245,38 +343,66 @@ export const StoreProfile: React.FC = () => {
             ))}
           </div>
         ) : activeTab === 'products' ? (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <StoreProductsFilter
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
               selectedCategory={selectedCategory}
               setSelectedCategory={setSelectedCategory}
-              storeCategories={Array.from(new Set(products.map(p => p.category).filter(Boolean)))}
-              getCategoryCount={(cat) => products.filter(p => p.category === cat).length}
+              storeCategories={Array.from(
+                new Set(products.map((p) => p.category).filter(Boolean))
+              )}
+              getCategoryCount={(cat) => products.filter((p) => p.category === cat).length}
               filteredCount={filteredProducts.length}
               isRTL={isRTL}
             />
 
             {productsError ? (
-              <div className="bg-white rounded-3xl p-8 sm:p-12 text-center border border-red-200/60 shadow-xs space-y-3">
-                <AlertTriangle className="w-12 h-12 text-red-500 mx-auto" />
-                <h3 className="text-lg font-bold text-slate-800">{d('productsError')}</h3>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">{d('productsErrorDesc')}</p>
+              <div className="bg-white rounded-3xl p-8 sm:p-12 text-center border border-red-200/60 shadow-2xs space-y-3">
+                <AlertTriangle className="w-10 h-10 text-red-500 mx-auto" />
+                <h3 className="text-base sm:text-lg font-bold text-[#011C40]">
+                  {d('productsError')}
+                </h3>
+                <p className="text-xs text-[#26658C]/80 max-w-sm mx-auto">
+                  {d('productsErrorDesc')}
+                </p>
                 <div className="pt-2">
                   <button
                     type="button"
                     onClick={reloadStore}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-600 text-white rounded-xl text-xs font-bold hover:bg-orange-700 transition-all cursor-pointer"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#023859] text-white rounded-xl text-xs font-bold hover:bg-[#011C40] transition-colors cursor-pointer"
                   >
                     <span>{d('retry')}</span>
                   </button>
                 </div>
               </div>
             ) : visibleProducts.length === 0 ? (
-              <div className="bg-white rounded-3xl p-8 sm:p-12 text-center border border-slate-200/60 shadow-xs space-y-3">
-                <SearchX className="w-12 h-12 text-slate-400 mx-auto" />
-                <h3 className="text-lg font-bold text-slate-800">{d('emptyStore')}</h3>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">{d('emptyDesc')}</p>
+              <div className="bg-white rounded-3xl p-8 sm:p-12 text-center border border-[#26658C]/15 shadow-2xs space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-[#A7EBF2]/25 flex items-center justify-center mx-auto text-[#023859]">
+                  <SearchX className="w-7 h-7" />
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-[#011C40]">
+                  {searchQuery || selectedCategory
+                    ? 'Aucun article ne correspond à votre recherche'
+                    : d('emptyStore')}
+                </h3>
+                <p className="text-xs sm:text-sm text-[#26658C]/80 max-w-sm mx-auto">
+                  {searchQuery || selectedCategory
+                    ? 'Essayez avec d’autres mots-clés ou affichez tous les rayons.'
+                    : d('emptyDesc')}
+                </p>
+                {isOwner && !searchQuery && !selectedCategory && (
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/seller/catalog?action=new')}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#023859] hover:bg-[#011C40] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                    >
+                      <Plus className="w-4 h-4 text-[#A7EBF2]" />
+                      <span>Ajouter un article au catalogue</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <>
@@ -287,11 +413,11 @@ export const StoreProfile: React.FC = () => {
                 </div>
 
                 {hasMore && (
-                  <div className="text-center pt-8">
+                  <div className="text-center pt-6">
                     <button
                       type="button"
-                      onClick={() => setDisplayLimit(prev => prev + LOAD_MORE_LIMIT)}
-                      className="px-8 py-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer hover:scale-102"
+                      onClick={() => setDisplayLimit((prev) => prev + LOAD_MORE_LIMIT)}
+                      className="px-7 py-2.5 bg-white hover:bg-[#F8FBFC] border border-[#26658C]/20 text-[#023859] hover:border-[#54ACBF] rounded-xl font-bold text-xs sm:text-sm shadow-2xs transition-colors cursor-pointer"
                     >
                       {d('loadMore')}
                     </button>
@@ -310,7 +436,7 @@ export const StoreProfile: React.FC = () => {
             editForm={editForm}
             setEditForm={setEditForm}
             saveAboutInfo={handleSaveAbout}
-            totalCount={totalCount ?? products.length}
+            totalCount={totalProductsCount}
             isRTL={isRTL}
             d={d}
             t={t}

@@ -35,6 +35,7 @@ export interface LayoutOptionItem {
 }
 
 export const CATEGORY_LAYOUT_OPTIONS: LayoutOptionItem[] = [
+  { id: "mesh-3d", label: "Cartes Split Studio", sublabel: "Format horizontal photo & texte", icon: Sparkles },
   { id: "grid", label: "Grille Moderne", sublabel: "2 à 6 colonnes fluides", icon: Grid },
   { id: "bento", label: "Bento Grid", sublabel: "Carte vedette asymétrique", icon: Columns3 },
   { id: "bubbles", label: "Stories Instagram", sublabel: "Bulles rondes animées", icon: CircleDot },
@@ -64,12 +65,10 @@ export interface HoverEffectOption {
 }
 
 export const CATEGORY_HOVER_EFFECTS: HoverEffectOption[] = [
-  { id: "zoom", label: "Zoom Doux", effectClass: "group-hover:scale-105" },
-  { id: "lift", label: "Élévation 3D", effectClass: "group-hover:-translate-y-1.5 shadow-md" },
-  { id: "glow", label: "Halo Lumineux", effectClass: "group-hover:ring-2 ring-orange-500" },
-  { id: "shine", label: "Reflet Métallique", effectClass: "overflow-hidden" },
-  { id: "grayscale-reveal", label: "N&B vers Couleur", effectClass: "grayscale group-hover:grayscale-0" },
-  { id: "none", label: "Aucun", effectClass: "" },
+  { id: "lift", label: "Standard (Élévation)", effectClass: "hover:-translate-y-0.5 hover:shadow-md" },
+  { id: "zoom", label: "Subtil (1.02x)", effectClass: "group-hover:scale-[1.02]" },
+  { id: "glow", label: "Bordure Nette", effectClass: "hover:border-slate-900" },
+  { id: "none", label: "Statique (Aucun)", effectClass: "" },
 ];
 
 export interface RadiusOption {

@@ -1,0 +1,1 @@
+import"./rolldown-runtime-B0Z9INg1.js";import{i as e,r as t}from"./vendor-animations-C6iVO7UL.js";e();var n=t(),r=({children:e,className:t=``})=>(0,n.jsx)(`div`,{className:`w-full max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 pt-8 md:pt-12 lg:pt-16 pb-16 md:pb-24 lg:pb-32 ${t}`,children:e});export{r as t};

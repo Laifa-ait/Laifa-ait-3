@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { Store, X } from "lucide-react";
+import { Store, X, Home } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SellerNavItem } from "./SellerNavConfig";
 import { User } from "firebase/auth";
@@ -39,8 +39,16 @@ export const SellerMobileDrawer: React.FC<SellerMobileDrawerProps> = ({ isOpen, 
             id="seller-mobile-drawer-panel"
           >
             <div className="p-6 border-b border-[#eee8ef] bg-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#5b4865] flex items-center justify-center text-white shadow-[0_6px_14px_rgba(54,39,61,0.2)]">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  navigate("/");
+                }}
+                className="flex items-center gap-3 text-left border-none bg-transparent p-0 cursor-pointer group"
+                title={t("Retour à l'accueil Olmart")}
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#5b4865] group-hover:bg-[#4a3a52] flex items-center justify-center text-white shadow-[0_6px_14px_rgba(54,39,61,0.2)] transition-colors">
                   <Store className="w-5 h-5" />
                 </div>
                 <div>
@@ -51,7 +59,7 @@ export const SellerMobileDrawer: React.FC<SellerMobileDrawerProps> = ({ isOpen, 
                     {t("Seller Space")}
                   </p>
                 </div>
-              </div>
+              </button>
               <button
                 type="button"
                 id="seller-mobile-drawer-close-btn"
@@ -93,6 +101,19 @@ export const SellerMobileDrawer: React.FC<SellerMobileDrawerProps> = ({ isOpen, 
               >
                 <Store className="w-4.5 h-4.5" />
                 {t("Voir ma vitrine")}
+              </button>
+
+              <button
+                type="button"
+                id="seller-mobile-back-to-home-btn"
+                onClick={() => {
+                  onClose();
+                  navigate("/");
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 mt-2 rounded-xl text-xs font-sans font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors cursor-pointer text-start shadow-2xs"
+              >
+                <Home className="w-4.5 h-4.5 text-[#F97316]" />
+                <span>{t("Retour à l'accueil Olmart")}</span>
               </button>
             </nav>
 

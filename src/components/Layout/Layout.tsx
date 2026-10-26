@@ -75,9 +75,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isImmoPage =
     location.pathname.startsWith("/immo") ||
     location.pathname.startsWith("/olma-immo");
+  const isShopStorePage = location.pathname.startsWith("/shop/") && location.pathname !== "/shop";
   const isStorePage =
     location.pathname.startsWith("/store") ||
-    location.pathname.startsWith("/boutique");
+    location.pathname.startsWith("/boutique") ||
+    isShopStorePage;
   const isAutoPage =
     location.pathname.startsWith("/auto") ||
     location.pathname.startsWith("/dashboard/seller/auto");
@@ -152,6 +154,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             "/olma-immo",
             "/store",
             "/boutique",
+            "/shop/",
             "/auto",
             "/dashboard/seller/auto",
           ]}

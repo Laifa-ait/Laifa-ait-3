@@ -1,13 +1,16 @@
 import { Response, Router } from "express";
 import { authenticateToken, AuthenticatedRequest } from "../../middlewares/auth";
 import { loginLimiter } from "../../middlewares/rateLimiters";
-import { admin, db } from "../../config/firebase-admin";
+import { admin, db, isFirebaseReady } from "../../config/firebase-admin";
 import { ALGERIA_WILAYAS, ALGERIA_SHIPPING_DATA } from "../../constants";
 import { safeLogger } from "../../utils/logger";
 
 const authSyncRouter = Router();
 
 authSyncRouter.post("/sync-user-claims", loginLimiter, authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  if (!isFirebaseReady() || !db) {
+    return res.status(503).json({ error: "Service Firebase Admin non initialisé." });
+  }
   const uid = req.user?.uid || "";
   try {
     const userDoc = await db.collection('users').doc(uid).get();
@@ -47,6 +50,9 @@ authSyncRouter.post("/sync-user-claims", loginLimiter, authenticateToken, async 
 });
 
 authSyncRouter.post("/sync", loginLimiter, authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  if (!isFirebaseReady() || !db) {
+    return res.status(503).json({ error: "Service Firebase Admin non initialisé." });
+  }
   const uid = req.user?.uid || "";
   const { displayName, email, photoURL, role, lastAuthMethod } = req.body;
   try {
@@ -54,6 +60,8 @@ authSyncRouter.post("/sync", loginLimiter, authenticateToken, async (req: Authen
     const userDoc = await userRef.get();
 
     if (!userDoc.exists) {
+      // STRICT SECURITY ENFORCEMENT: Registration role hint can only ever initialize 'seller' (pending verification) or 'buyer'.
+      // Never allow 'admin', 'superadmin', or arbitrary roles from client payload.
       const userRole = role === "seller" ? "seller" : "buyer";
       const userStatus = userRole === "seller" ? "pending_verification" : "active";
 

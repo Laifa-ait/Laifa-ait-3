@@ -79,7 +79,7 @@ export class OrderStatusService {
 
         const currentStatus = (data.status as string) || "NEW";
         const targetStatus = status;
-        const cStatus = currentStatus.toLowerCase();
+        const _cStatus = currentStatus.toLowerCase();
         const tStatus = targetStatus.toLowerCase();
 
         let productSnaps: firestore.DocumentSnapshot[] = [];

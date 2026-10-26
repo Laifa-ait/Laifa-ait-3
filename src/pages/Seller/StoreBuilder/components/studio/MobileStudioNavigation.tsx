@@ -15,14 +15,14 @@ export const MobileStudioNavigation: React.FC<MobileStudioNavigationProps> = ({
   sectionCount,
 }) => {
   return (
-    <nav className="md:hidden h-[52px] bg-[#FFFFFF] border-b border-[#E5E7EB] px-2 flex items-center justify-around z-10 shrink-0">
+    <nav className="md:hidden h-[52px] bg-white border-b border-slate-200 px-2 flex items-center justify-around z-10 shrink-0">
       <button
         type="button"
         onClick={() => setMobileColumn("canvas")}
-        className={`flex-1 h-[44px] min-h-[44px] mx-1 rounded-[10px] text-[13px] font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+        className={`flex-1 h-[40px] mx-1 rounded-xl text-[13px] font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
           mobileColumn === "canvas"
-            ? "bg-[#FFF1E7] text-[#F97316] font-semibold border border-[#FDBA74]"
-            : "text-[#667085] hover:bg-[#F7F8FA] hover:text-[#17191C]"
+            ? "bg-[#F8FBFC] text-[#023859] font-bold border border-[#26658C]/30"
+            : "text-slate-500 hover:bg-slate-50 hover:text-[#011C40]"
         }`}
       >
         <Eye className="w-4 h-4" />
@@ -32,10 +32,10 @@ export const MobileStudioNavigation: React.FC<MobileStudioNavigationProps> = ({
       <button
         type="button"
         onClick={() => setMobileColumn("tree")}
-        className={`flex-1 h-[44px] min-h-[44px] mx-1 rounded-[10px] text-[13px] font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+        className={`flex-1 h-[40px] mx-1 rounded-xl text-[13px] font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
           mobileColumn === "tree"
-            ? "bg-[#FFF1E7] text-[#F97316] font-semibold border border-[#FDBA74]"
-            : "text-[#667085] hover:bg-[#F7F8FA] hover:text-[#17191C]"
+            ? "bg-[#F8FBFC] text-[#023859] font-bold border border-[#26658C]/30"
+            : "text-slate-500 hover:bg-slate-50 hover:text-[#011C40]"
         }`}
       >
         <Layers className="w-4 h-4" />
@@ -45,10 +45,10 @@ export const MobileStudioNavigation: React.FC<MobileStudioNavigationProps> = ({
       <button
         type="button"
         onClick={() => setMobileColumn("inspector")}
-        className={`flex-1 h-[44px] min-h-[44px] mx-1 rounded-[10px] text-[13px] font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+        className={`flex-1 h-[40px] mx-1 rounded-xl text-[13px] font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
           mobileColumn === "inspector"
-            ? "bg-[#FFF1E7] text-[#F97316] font-semibold border border-[#FDBA74]"
-            : "text-[#667085] hover:bg-[#F7F8FA] hover:text-[#17191C]"
+            ? "bg-[#F8FBFC] text-[#023859] font-bold border border-[#26658C]/30"
+            : "text-slate-500 hover:bg-slate-50 hover:text-[#011C40]"
         }`}
       >
         <SlidersHorizontal className="w-4 h-4" />
@@ -57,4 +57,3 @@ export const MobileStudioNavigation: React.FC<MobileStudioNavigationProps> = ({
     </nav>
   );
 };
-

@@ -1,0 +1,1 @@
+import{a as e}from"./rolldown-runtime-B0Z9INg1.js";import{i as t}from"./vendor-animations-C6iVO7UL.js";var n=e(t(),1);function r(e,t){let[r,i]=(0,n.useState)(e),a=(0,n.useRef)(!0);return(0,n.useEffect)(()=>{if(a.current){a.current=!1;return}let n=setTimeout(()=>{i(e)},t);return()=>{clearTimeout(n)}},[e,t]),r}export{r as t};

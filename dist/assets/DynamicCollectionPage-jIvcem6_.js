@@ -1,0 +1,1 @@
+import"./rolldown-runtime-B0Z9INg1.js";import{i as e,r as t}from"./vendor-animations-C6iVO7UL.js";import{wn as n}from"./vendor-react-CEcaIB7O.js";import{PremiumCollection as r}from"./PremiumCollection-BES0F96t.js";e();var i=t(),a=()=>{let{collectionName:e}=n();return(0,i.jsx)(r,{forcedCollectionName:e})};export{a as DynamicCollectionPage};

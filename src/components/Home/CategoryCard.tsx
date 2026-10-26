@@ -6,6 +6,7 @@ import {
   CategoryCardData,
   getCategoryTheme,
 } from "./categoryThemes";
+import { Category3DIllustration } from "./Category3DIllustration";
 
 export type { CategoryCardData };
 
@@ -25,10 +26,10 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
   const { t } = useTranslation();
   const theme = getCategoryTheme(card.key, index);
   const IconComponent = theme.icon;
-  const num = (index + 1).toString().padStart(2, "0");
 
   const displayTitle = card.title ? t(card.title, card.title) : theme.defaultTitle;
   const displaySubtitle = card.subtitle ? t(card.subtitle, card.subtitle) : theme.defaultSubtitle;
+  const itemCount = theme.defaultCount;
 
   // Interactive 3D Glide & Magnetic Follow state
   const [isHovered, setIsHovered] = useState(false);
@@ -36,15 +37,14 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    // Normalized coordinates from card center (-1 to 1)
     const normX = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
     const normY = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
 
     setIsHovered(true);
     setGlideCoords({
-      x: Math.max(-24, Math.min(24, normX * 20)),
-      y: Math.max(-18, Math.min(18, normY * 16)),
-      rotate: Math.max(-16, Math.min(16, normX * 16)),
+      x: Math.max(-14, Math.min(14, normX * 12)),
+      y: Math.max(-10, Math.min(10, normY * 10)),
+      rotate: Math.max(-8, Math.min(8, normX * 8)),
     });
   };
 
@@ -53,107 +53,94 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
     setGlideCoords({ x: 0, y: 0, rotate: 0 });
   };
 
-  // Combine local pointer glide with carousel scroll-swipe impulse
   const isInteracting = isHovered || Math.abs(scrollVelocity) > 0.4;
-  const currentX = glideCoords.x - scrollVelocity * 1.5;
-  const currentRotate = glideCoords.rotate + scrollVelocity * 1.1;
+  const currentX = glideCoords.x - scrollVelocity * 1.2;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 14 }}
+      initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.35, delay: index * 0.035 }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      transition={{ duration: 0.35, delay: index * 0.04 }}
+      whileHover={{ y: -5, transition: { duration: 0.22 } }}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
       onPointerCancel={handlePointerLeave}
       onClick={() => onSelect(card.key)}
-      className={`relative flex flex-col justify-between w-[78vw] sm:w-[320px] md:w-[350px] h-[190px] sm:h-[205px] p-5 sm:p-6 rounded-3xl cursor-pointer shadow-xs hover:shadow-md transition-shadow duration-300 shrink-0 snap-start group border overflow-hidden select-none touch-pan-x ${theme.bgCard} ${theme.border}`}
+      className={`relative flex flex-col justify-between w-[80vw] sm:w-[310px] md:w-[340px] h-[170px] sm:h-[180px] p-4 sm:p-5 rounded-3xl cursor-pointer shadow-sm hover:shadow-lg transition-all duration-300 shrink-0 snap-start group border overflow-visible select-none touch-pan-x ${theme.bgCard} ${theme.border}`}
     >
-      {/* Top-Right Decorative Blob & Dynamic Moving Logo */}
-      <div className="absolute -top-3 -end-3 w-32 h-32 sm:w-36 sm:h-36 rounded-full flex flex-col items-center justify-center pointer-events-none z-0">
-        {/* Parallax accent circle background */}
+      {/* Ambient Radial Mesh Glow */}
+      <div
+        className={`absolute inset-0 rounded-3xl pointer-events-none ${theme.radialGlow} transition-opacity duration-300 group-hover:opacity-100 opacity-70`}
+      />
+
+      {/* Top Section: 3D Floating Illustration (Left) & Frosted Glass Disc with Count Badge (Right) */}
+      <div className="relative z-10 flex items-start justify-between w-full h-[85px] sm:h-[90px]">
+        {/* 3D Floating Illustration Popping from Top-Left */}
         <motion.div
           animate={
             isInteracting
-              ? { x: -glideCoords.x * 0.3, y: -glideCoords.y * 0.3, scale: 1.06 }
-              : { x: 0, y: 0, scale: 1 }
+              ? {
+                  x: currentX,
+                  y: glideCoords.y - 3,
+                  rotate: glideCoords.rotate,
+                  scale: 1.08,
+                }
+              : {
+                  x: 0,
+                  y: [0, -4, 0],
+                  rotate: 0,
+                  scale: 1,
+                }
           }
-          transition={{ type: "spring", stiffness: 260, damping: 24 }}
-          className={`w-full h-full rounded-full ${theme.bgBlob} opacity-90`}
-        />
+          transition={
+            isInteracting
+              ? { type: "spring", stiffness: 320, damping: 22 }
+              : {
+                  y: { repeat: Infinity, duration: 3.5, ease: "easeInOut" },
+                  type: "spring",
+                  stiffness: 240,
+                  damping: 24,
+                }
+          }
+          className="absolute -top-3.5 -left-1.5 sm:-left-1 pointer-events-none"
+        >
+          <Category3DIllustration categoryKey={card.key} className="w-36 h-28 sm:w-40 sm:h-30" />
+        </motion.div>
 
-        {/* Dynamic Animated Logo reacting to glide gestures, swipes, and idle levitation */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pt-2 pe-2">
-          <motion.div
-            animate={
-              isInteracting
-                ? {
-                    x: currentX,
-                    y: glideCoords.y,
-                    rotate: currentRotate,
-                    scale: 1.16,
-                  }
-                : {
-                    x: 0,
-                    y: [0, -5, 0],
-                    rotate: 0,
-                    scale: 1,
-                  }
-            }
-            transition={
-              isInteracting
-                ? {
-                    type: "spring",
-                    stiffness: 340,
-                    damping: 20,
-                    mass: 0.5,
-                  }
-                : {
-                    y: {
-                      repeat: Infinity,
-                      duration: 3,
-                      ease: "easeInOut",
-                    },
-                    type: "spring",
-                    stiffness: 240,
-                    damping: 24,
-                  }
-            }
-            className={`transition-colors duration-300 drop-shadow-xs ${theme.iconColor}`}
+        {/* Top-Right Frosted Glass Capsule / Disc & Count Badge */}
+        <div className="ml-auto relative flex items-center justify-center">
+          <div
+            className={`w-13 h-13 sm:w-14 sm:h-14 rounded-full flex items-center justify-center ${theme.discBg} transition-transform duration-300 group-hover:scale-105`}
           >
-            <IconComponent className="w-12 h-12 sm:w-13 sm:h-13 stroke-[1.9]" />
-          </motion.div>
+            <IconComponent className={`w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] ${theme.iconColor}`} />
+          </div>
 
-          {/* Editorial Index Number inside the accent circle */}
+          {/* Small item count badge at bottom right of the disc */}
           <span
-            className={`absolute bottom-6 end-8 text-[11px] font-mono font-bold tracking-wider select-none ${theme.numColor}`}
+            className="absolute -bottom-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full bg-white/70 backdrop-blur-md border border-white/60 text-[10px] font-mono font-bold flex items-center justify-center shadow-xs text-slate-800"
           >
-            {num}
+            {itemCount}
           </span>
         </div>
       </div>
 
-      {/* Spacer pushing text to bottom */}
-      <div className="flex-1" />
-
-      {/* Bottom Content Row: Title, Subtitle, and Action Button */}
-      <div className="flex items-end justify-between relative z-10 gap-3 pt-3">
-        <div className="space-y-1 max-w-[76%]">
-          <h3 className="font-serif font-bold text-slate-900 text-lg sm:text-xl tracking-tight leading-snug line-clamp-1">
+      {/* Bottom Content Row: Title, Subtitle, and Action Arrow Button */}
+      <div className="relative z-10 flex items-end justify-between gap-3 pt-1">
+        <div className="space-y-0.5 max-w-[76%]">
+          <h3 className="font-bold text-slate-900 text-base sm:text-lg tracking-tight leading-snug line-clamp-1 font-sans">
             {displayTitle}
           </h3>
-          <p className="font-sans font-medium text-slate-600 text-xs line-clamp-1 leading-normal">
+          <p className="font-medium text-slate-700/80 text-[11px] sm:text-xs line-clamp-1 leading-normal font-sans">
             {displaySubtitle}
           </p>
         </div>
 
         {/* Circular Action Arrow Button */}
         <div
-          className={`w-11 h-11 rounded-full text-white flex items-center justify-center shrink-0 shadow-sm transition-transform duration-200 group-hover:scale-108 active:scale-95 ${theme.btnBg}`}
+          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full text-white flex items-center justify-center shrink-0 shadow-md transition-all duration-200 group-hover:scale-110 active:scale-95 group-hover:shadow-lg cursor-pointer ${theme.btnBg}`}
         >
-          <ArrowRight className="w-5 h-5 rtl:rotate-180 stroke-[2.2]" />
+          <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 rtl:rotate-180 stroke-[2.4]" />
         </div>
       </div>
     </motion.div>

@@ -37,6 +37,8 @@ interface PropertiesInspectorProps {
   onSaveTheme: (theme: CustomPageTheme) => Promise<void>;
   onThemeChangeLive: (theme: CustomPageTheme) => void;
   onSaveConfig: (updatedConfig: Partial<SellerStoreConfig>) => Promise<void>;
+  onApplyFullArchetype?: (sections: CustomPageSection[], theme: CustomPageTheme) => Promise<void> | void;
+  onReplaceSections?: (sections: CustomPageSection[]) => void;
 }
 
 export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
@@ -55,6 +57,8 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
   onSaveTheme,
   onThemeChangeLive,
   onSaveConfig,
+  onApplyFullArchetype,
+  onReplaceSections,
 }) => {
   return (
     <aside className="w-full md:w-[330px] md:min-w-[330px] md:max-w-[330px] bg-[#FFFFFF] border-l border-[#E5E7EB] flex flex-col h-full shrink-0 overflow-y-auto min-w-0 min-h-0">
@@ -68,8 +72,14 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
         <ThemeInspectorPanel
           storeConfig={storeConfig}
           currentTheme={currentTheme}
+          sections={sections}
+          mediaGallery={mediaGallery}
+          onUploadMedia={onUploadMedia}
+          onUpdateSection={onUpdateSection}
+          onReplaceSections={onReplaceSections}
           onSaveTheme={onSaveTheme}
           onThemeChangeLive={onThemeChangeLive}
+          onApplyFullArchetype={onApplyFullArchetype}
         />
       ) : navMode === "media" ? (
         <MediaInspectorPanel
@@ -104,7 +114,9 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
       ) : (
         <SectionInspectorPanel
           section={selectedSection}
+          sections={sections}
           products={products}
+          currentTheme={currentTheme}
           onUpdateSection={onUpdateSection}
         />
       )}

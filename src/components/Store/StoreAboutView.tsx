@@ -54,18 +54,18 @@ export const StoreAboutView: React.FC<StoreAboutViewProps> = ({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in text-left">
       {/* Left Column: Brand Story */}
       <div className="lg:col-span-5 space-y-6">
-        <div className="bg-white border border-zinc-100 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+        <div className="bg-white border border-[#26658C]/15 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
+          <div className="flex items-center justify-between border-b border-[#26658C]/10 pb-4">
             <div className="flex items-center gap-3">
-              <Store className="w-5 h-5 text-orange-500" />
-              <h3 className="text-sm font-sans font-bold uppercase text-zinc-900 tracking-wider">
+              <Store className="w-5 h-5 text-[#26658C]" />
+              <h3 className="text-sm font-sans font-bold uppercase text-[#011C40] tracking-wider">
                 {isRTL ? 'عن العلامة التجارية' : `La Boutique ${storeInfo.shopName || 'Boutique'}`}
               </h3>
             </div>
             {isOwner && (
               <button
                 onClick={() => setIsEditingAbout(!isEditingAbout)}
-                className="text-[10px] font-sans font-bold uppercase tracking-widest text-orange-600 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-lg transition-colors border border-orange-100"
+                className="text-[10px] font-sans font-bold uppercase tracking-widest text-[#023859] hover:text-[#011C40] bg-[#A7EBF2]/20 hover:bg-[#A7EBF2]/40 px-3 py-1.5 rounded-lg transition-colors border border-[#54ACBF]/30 cursor-pointer"
               >
                 {isEditingAbout ? (isRTL ? 'إلغاء التعديل' : 'Annuler') : isRTL ? 'تعديل' : 'Modifier'}
               </button>
@@ -142,7 +142,7 @@ export const StoreAboutView: React.FC<StoreAboutViewProps> = ({
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="text-zinc-400 font-bold">{isRTL ? 'المتابعون' : 'Abonnés vérifiés'}</span>
-              <span className="text-indigo-600 font-extrabold">{storeInfo.followersCount || 0}</span>
+              <span className="text-[#023859] font-extrabold">{storeInfo.followersCount || 0}</span>
             </div>
           </div>
         </div>

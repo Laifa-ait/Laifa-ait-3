@@ -15,9 +15,26 @@ export type CustomPageSectionType =
   | "faq_accordion"
   | "contact_footer";
 
+export type StudioColorSchemeId = "scheme_1" | "scheme_2" | "scheme_3" | "scheme_4" | "custom";
+
+export type BannerContentPosition =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "center-left"
+  | "center"
+  | "center-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
+
 export interface CustomPageSectionStyles {
   backgroundColor?: string;
   textColor?: string;
+  colorScheme?: StudioColorSchemeId;
+  buttonBgColor?: string;
+  buttonTextColor?: string;
+  buttonStyle?: "solid" | "outline" | "inverse";
   paddingY?: "sm" | "md" | "lg" | "xl" | number;
   paddingX?: number;
   containerWidth?: "contained" | "full" | "narrow";
@@ -26,6 +43,15 @@ export interface CustomPageSectionStyles {
   animation?: "none" | "fade" | "slide-up" | "zoom";
   shadow?: "none" | "sm" | "floating" | "brutal";
 }
+
+export type HeroSubElement =
+  | "background"
+  | "badge"
+  | "title"
+  | "subtitle"
+  | "cta"
+  | "ctaPrimary"
+  | "ctaSecondary";
 
 export interface HeroBannerSettings {
   title: string;
@@ -36,33 +62,76 @@ export interface HeroBannerSettings {
   ctaText?: string;
   ctaLink?: string;
   textAlignment?: "left" | "center" | "right";
-  overlayOpacity?: number; // 0 to 80
+  verticalAlignment?: "top" | "center" | "bottom";
+  contentPosition?: BannerContentPosition;
+  overlayOpacity?: number;
+  // Per-device image focal point positioning ("50% 50%", "50% 0%", etc.)
+  imagePositionDesktop?: string;
+  imagePositionTablet?: string;
+  imagePositionMobile?: string;
+  imageFit?: "cover" | "contain";
+  bannerHeightDesktop?: "sm" | "md" | "lg" | "xl";
+  bannerHeightMobile?: "sm" | "md" | "lg";
+  // Individual sub-component styling
+  badgeBgColor?: string;
+  badgeTextColor?: string;
+  titleColor?: string;
+  subtitleColor?: string;
+  ctaBgColor?: string;
+  ctaTextColor?: string;
+  ctaStyle?: "solid" | "outline" | "pill" | "glass";
+  showBadge?: boolean;
+  showSubtitle?: boolean;
+  showCta?: boolean;
+  // E-Commerce 2.2 Studio Features
+  socialProofBadge?: string;
+  secondaryCtaText?: string;
+  secondaryCtaLink?: string;
+  secondaryCtaStyle?: "solid" | "outline" | "pill" | "glass";
 }
 
 export interface PromoSlide {
   id: string;
   imageUrl: string;
   title?: string;
+  subtitle?: string;
+  ctaText?: string;
   link?: string;
+  contentPosition?: BannerContentPosition;
 }
 
 export interface PromoCarouselSettings {
   slides: PromoSlide[];
   autoplay?: boolean;
   intervalSec?: number;
+  contentPosition?: BannerContentPosition;
+  textAlignment?: "left" | "center" | "right";
+  verticalAlignment?: "top" | "center" | "bottom";
 }
 
 export interface CategoryItem {
   id: string;
   name: string;
+  subtitle?: string;
   imageUrl?: string;
   slug: string;
+  link?: string;
+  iconName?: string;
+  badge?: string;
+  badgeColor?: string;
+  itemCount?: number | string;
+  colSpan?: 1 | 2;
+  accentColor?: string;
+  productIds?: string[];
+  categoryFilter?: string;
+  description?: string;
 }
 
 export interface FeaturedCategoriesSettings {
   title?: string;
+  subtitle?: string;
   categories: CategoryItem[];
-  layout?: "grid" | "carousel";
+  layout?: "grid" | "bento" | "bubbles" | "overlay" | "carousel" | "pills";
 }
 
 export interface CuratedCollectionItem {
@@ -77,18 +146,58 @@ export interface CuratedCollectionsSettings {
   collections: CuratedCollectionItem[];
 }
 
-export interface ProductFeedSettings {
+export type ProductFeedLayoutMode = "grid" | "carousel" | "vertical";
+export type ProductCardStyleVariant = "modern" | "minimal" | "bordered" | "elevated";
+export type ProductCardAspectRatio = "1/1" | "4/5" | "4/3";
+
+export interface ProductCardDesignSettings {
+  cardStyle?: ProductCardStyleVariant;
+  cardAspectRatio?: ProductCardAspectRatio;
+  cardImagePosition?: "top" | "center" | "bottom";
+  cardImageFit?: "cover" | "contain";
+  columnsDesktop?: 2 | 3 | 4;
+  cardAccentColor?: string;
+  showStockBadge?: boolean;
+  showCategory?: boolean;
+  showCtaButton?: boolean;
+  ctaLabel?: string;
+  textAlignment?: "left" | "center" | "right";
+  // E-Commerce 2.2 Studio Features
+  showCountdown?: boolean;
+  countdownLabel?: string;
+  countdownSubtitle?: string;
+  countdownEndDate?: string;
+  countdownStyle?: "dark-pro" | "minimal-pill" | "warm-sunset" | "nordic-fresh" | "y2k-pink" | "theme-match";
+  countdownBgColor?: string;
+  countdownTextColor?: string;
+  countdownAccentColor?: string;
+  showColorSwatches?: boolean;
+  colorSwatches?: string[];
+  showSizeChips?: boolean;
+  showSizes?: boolean;
+  sizeChips?: string[];
+  showStockProgress?: boolean;
+  showCompareAtPrice?: boolean;
+  soldCount?: number;
+  totalStock?: number;
+  showWishlistButton?: boolean;
+  showRatingStars?: boolean;
+  ratingValue?: number;
+}
+
+export interface ProductFeedSettings extends ProductCardDesignSettings {
   title?: string;
   subtitle?: string;
   maxItems?: number;
-  layout?: "grid" | "carousel";
+  layout?: ProductFeedLayoutMode;
   filterCategoryId?: string;
 }
 
-export interface FeaturedProductsSettings {
+export interface FeaturedProductsSettings extends ProductCardDesignSettings {
   title?: string;
+  subtitle?: string;
   productIds: string[];
-  layout?: "grid" | "carousel";
+  layout?: ProductFeedLayoutMode;
 }
 
 export interface BrandStorySettings {
@@ -208,10 +317,28 @@ export interface CustomPageSeo {
   ogImage?: string;
 }
 
+export interface CollectionPageDesignConfig {
+  headerStyle?: "hero-image" | "minimal" | "split-banner";
+  headerHeight?: "sm" | "md" | "lg";
+  headerOverlayOpacity?: number;
+  showSearch?: boolean;
+  showSortDropdown?: boolean;
+  showCategoryPills?: boolean;
+  columnsDesktop?: 2 | 3 | 4;
+  cardStyle?: ProductCardStyleVariant;
+  cardAspectRatio?: ProductCardAspectRatio;
+  showStockBadge?: boolean;
+  showCtaButton?: boolean;
+  ctaLabel?: string;
+}
+
 export interface StoreCustomPageItem {
   id: string;
   title: string;
   slug: string;
+  subtitle?: string;
+  bannerUrl?: string;
+  productIds?: string[];
   isHome?: boolean;
   isPublished?: boolean;
   sectionIds?: string[];
@@ -235,6 +362,7 @@ export interface StoreConfig {
   seo: CustomPageSeo;
   previousSlugs?: string[];
   customPages?: StoreCustomPageItem[];
+  collectionPageConfig?: CollectionPageDesignConfig;
   mediaGallery?: MediaGalleryItem[];
   socialLinks?: {
     instagram?: string;

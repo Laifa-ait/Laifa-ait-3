@@ -1,4 +1,5 @@
 import React from "react";
+import { CustomPageSection } from "../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../domains/product/product.types";
 import { HeroContentEditor } from "./content/HeroContentEditor";
 import { ProductSelectionEditor } from "./content/ProductSelectionEditor";
@@ -9,17 +10,22 @@ import { CategoryContentEditor } from "./content/CategoryContentEditor";
 interface SectionContentTabProps {
   sectionType?: string;
   settings: Record<string, unknown>;
+  sections?: CustomPageSection[];
   products: Product[];
-  onSettingsChange: (field: string, value: unknown) => void;
+  onSettingsChange: (
+    fieldOrPatch: string | Record<string, unknown>,
+    value?: unknown
+  ) => void;
 }
 
 const inputClass =
-  "h-10 w-full rounded-lg border border-[#E4E7EC] bg-white px-3 text-[13px] text-[#17191C] focus:border-[#F97316] focus:outline-none";
-const labelClass = "block space-y-1.5 text-[12px] font-medium text-[#475467]";
+  "h-9 w-full rounded-lg border border-[#E4E7EC] bg-white px-3 text-[12px] text-[#17191C] focus:border-[#F97316] focus:outline-none";
+const labelClass = "block space-y-1 text-[12px] font-semibold text-[#475467]";
 
 export const SectionContentTab: React.FC<SectionContentTabProps> = ({
   sectionType,
   settings,
+  sections = [],
   products,
   onSettingsChange,
 }) => {
@@ -29,6 +35,7 @@ export const SectionContentTab: React.FC<SectionContentTabProps> = ({
     return (
       <CategoryContentEditor
         settings={settings}
+        sections={sections}
         products={products}
         onSettingsChange={onSettingsChange}
         inputClass={inputClass}
@@ -41,30 +48,36 @@ export const SectionContentTab: React.FC<SectionContentTabProps> = ({
       <HeroContentEditor
         sectionType={sectionType}
         settings={settings}
-        onSettingsChange={onSettingsChange}
+        sections={sections}
+        products={products}
+        onSettingsChange={(f, v) => onSettingsChange(f, v)}
         inputClass={inputClass}
         labelClass={labelClass}
       />
 
       <ProductSelectionEditor
+        sectionType={sectionType}
         settings={settings}
         products={products}
-        onSettingsChange={onSettingsChange}
+        onSettingsChange={(f, v) => onSettingsChange(f, v)}
         inputClass={inputClass}
         labelClass={labelClass}
       />
 
       <ListContentEditor
+        sectionType={sectionType}
         settings={settings}
+        sections={sections}
         products={products}
-        onSettingsChange={onSettingsChange}
+        onSettingsChange={(f, v) => onSettingsChange(f, v)}
         inputClass={inputClass}
       />
 
       <InfoContentEditor
         sectionType={sectionType}
         settings={settings}
-        onSettingsChange={onSettingsChange}
+        products={products}
+        onSettingsChange={(f, v) => onSettingsChange(f, v)}
         inputClass={inputClass}
         labelClass={labelClass}
       />

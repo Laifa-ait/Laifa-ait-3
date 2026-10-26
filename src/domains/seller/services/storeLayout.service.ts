@@ -217,15 +217,8 @@ export class StoreLayoutService {
       const snap = await db.collection("products").where(admin.firestore.FieldPath.documentId(), "in", chunk).get();
       snap.docs.forEach((doc) => {
         const prod = doc.data();
-        if (prod.sellerId !== sellerId) {
+        if (prod.sellerId && prod.sellerId !== sellerId) {
           throw new Error(`Violation d'accès : Le produit '${doc.id}' n'appartient pas à votre boutique.`);
-        }
-      });
-      // Ensure all requested IDs exist in database
-      const foundIds = new Set(snap.docs.map((d) => d.id));
-      chunk.forEach((id) => {
-        if (!foundIds.has(id)) {
-          throw new Error(`Le produit sélectionné '${id}' est introuvable.`);
         }
       });
     }

@@ -281,8 +281,10 @@ export function useStoreProfile() {
       let fetchedShop: PublicStoreInfo | null = null;
 
       try {
+        let initialProductsFromShop: Product[] | null = null;
+
         try {
-          const res = await apiGet<PublicShopResponse>(`/api/v1/public/shops/${sellerId}`);
+          const res = await apiGet<PublicShopResponse & { products?: Product[] }>(`/api/v1/public/shops/${encodeURIComponent(sellerId)}`);
           
           if (!isSubscribed) return;
 
@@ -290,23 +292,30 @@ export function useStoreProfile() {
             const shop = res.shop as PublicStoreInfo & {
               canonicalSlug?: string;
               redirectToSlug?: string;
-              publishedLayout?: StoreLayoutVersion;
+              hasPaidStudioSubscription?: boolean;
+              publishedLayout?: StoreLayoutVersion | null;
               activeCoupons?: unknown[];
               trustMetrics?: unknown;
             };
 
+            const currentPathPrefix = window.location.pathname.startsWith("/shop/") ? "/shop" : "/store";
             if (shop.redirectToSlug) {
-              navigate(`/store/${shop.redirectToSlug}`, { replace: true });
+              navigate(`${currentPathPrefix}/${shop.redirectToSlug}`, { replace: true });
               return;
-            }
-
-            if (shop.canonicalSlug && shop.canonicalSlug !== sellerId) {
-              navigate(`/store/${shop.canonicalSlug}`, { replace: true });
             }
 
             fetchedShop = shop;
             setStoreInfo(shop);
-            setPublishedLayout(shop.publishedLayout || null);
+
+            const validStudioLayout =
+              shop.hasPaidStudioSubscription &&
+              shop.publishedLayout &&
+              Array.isArray(shop.publishedLayout.sections) &&
+              shop.publishedLayout.sections.length > 0
+                ? shop.publishedLayout
+                : null;
+
+            setPublishedLayout(validStudioLayout);
             setActiveCoupons(shop.activeCoupons || []);
             setTrustMetrics(shop.trustMetrics || null);
             setErrorType(null);
@@ -318,6 +327,10 @@ export function useStoreProfile() {
               avgPreparationTime: shop.avgPreparationTime || '',
               returnPolicy: shop.returnPolicy || ''
             });
+
+            if (Array.isArray(res.products)) {
+              initialProductsFromShop = res.products;
+            }
           } else {
             setStoreInfo(null);
             setProducts([]);
@@ -343,45 +356,54 @@ export function useStoreProfile() {
           return;
         }
 
-        // If shop was successfully retrieved, attempt product fetching via API with Firestore fallback
+        // Load seller products using the resolved seller UID (never the slug)
         if (fetchedShop && isSubscribed) {
-          try {
-            const prodRes = await apiGet<{ success: boolean; products: Product[]; count?: number }>(
-              `/api/v1/public/shops/${encodeURIComponent(sellerId)}/products`
-            );
-            if (isSubscribed && prodRes && Array.isArray(prodRes.products)) {
-              setProducts(prodRes.products);
-              setTotalCount(typeof prodRes.count === "number" ? prodRes.count : prodRes.products.length);
-              setProductsError(false);
-            } else {
-              throw new Error("Invalid products response");
-            }
-          } catch {
-            // Fallback to direct Firestore query
-            try {
-              const productsQuery = query(
-                collection(db, 'products'),
-                where('sellerId', '==', sellerId),
-                where('status', '==', 'active')
-              );
-              const productsSnap = await getDocs(productsQuery);
+          const resolvedSellerId = fetchedShop.sellerId || fetchedShop.id || sellerId;
 
-              if (isSubscribed) {
-                const prods = productsSnap.docs.map(docSnap => ({
-                  id: docSnap.id,
-                  ...docSnap.data()
-                })) as Product[];
-                
-                setProducts(prods);
-                setTotalCount(prods.length);
+          if (initialProductsFromShop && initialProductsFromShop.length > 0) {
+            setProducts(initialProductsFromShop);
+            setTotalCount(initialProductsFromShop.length);
+            setProductsError(false);
+          } else {
+            try {
+              const prodRes = await apiGet<{ success: boolean; products: Product[]; count?: number }>(
+                `/api/v1/public/shops/${encodeURIComponent(resolvedSellerId)}/products`
+              );
+              if (isSubscribed && prodRes && Array.isArray(prodRes.products)) {
+                setProducts(prodRes.products);
+                setTotalCount(typeof prodRes.count === "number" ? prodRes.count : prodRes.products.length);
                 setProductsError(false);
+              } else {
+                throw new Error("Invalid products response");
               }
-            } catch (prodErr) {
-              if (isSubscribed) {
-                console.error("Error loading store products:", prodErr);
-                setProducts([]);
-                setTotalCount(0);
-                setProductsError(true);
+            } catch {
+              try {
+                const productsQuery = query(
+                  collection(db, 'products'),
+                  where('sellerId', '==', resolvedSellerId)
+                );
+                const productsSnap = await getDocs(productsQuery);
+
+                if (isSubscribed) {
+                  const hiddenStatuses = new Set(['draft', 'rejected', 'suspended', 'archived', 'pending_deletion']);
+                  const prods = productsSnap.docs
+                    .map(docSnap => ({
+                      id: docSnap.id,
+                      ...docSnap.data()
+                    }) as Product)
+                    .filter(p => !hiddenStatuses.has(String(p.status || '').toLowerCase().trim()));
+                  
+                  setProducts(prods);
+                  setTotalCount(prods.length);
+                  setProductsError(false);
+                }
+              } catch (prodErr) {
+                if (isSubscribed) {
+                  console.error("Error loading store products:", prodErr);
+                  setProducts([]);
+                  setTotalCount(0);
+                  setProductsError(true);
+                }
               }
             }
           }
@@ -398,18 +420,20 @@ export function useStoreProfile() {
     };
   }, [sellerId, reloadTrigger, isRTL, navigate]);
 
+  const resolvedTargetSellerId = storeInfo?.sellerId || storeInfo?.id || sellerId;
+
   useEffect(() => {
     async function checkFollow() {
-      if (!currentUser || !sellerId) return;
+      if (!currentUser || !resolvedTargetSellerId) return;
       try {
-        const following = await checkStoreFollowStatus(sellerId, currentUser.uid);
+        const following = await checkStoreFollowStatus(resolvedTargetSellerId, currentUser.uid);
         setIsFollowing(following);
       } catch (err) {
         console.error("Follow status check error:", err);
       }
     }
     checkFollow();
-  }, [currentUser, sellerId]);
+  }, [currentUser, resolvedTargetSellerId]);
 
   const handleFollowToggle = async () => {
     if (!currentUser) {
@@ -418,7 +442,7 @@ export function useStoreProfile() {
       return;
     }
 
-    if (!sellerId) return;
+    if (!resolvedTargetSellerId) return;
 
     if (isFollowing) {
       setShowConfirm(true);
@@ -429,7 +453,7 @@ export function useStoreProfile() {
   };
 
   const executeFollowAction = async (followState: boolean) => {
-    if (!currentUser || !sellerId) return;
+    if (!currentUser || !resolvedTargetSellerId) return;
 
     setFollowLoading(true);
     const toastId = toast.loading(
@@ -439,7 +463,7 @@ export function useStoreProfile() {
     );
 
     try {
-      await toggleStoreFollow(sellerId, currentUser.uid, followState, {
+      await toggleStoreFollow(resolvedTargetSellerId, currentUser.uid, followState, {
         name: storeInfo?.shopName || storeInfo?.displayName || "Boutique",
         logo: storeInfo?.logoUrl || null,
         location: storeInfo?.wilaya || "Algérie"

@@ -121,6 +121,8 @@ try {
   }
 }
 
+export const isFirebaseInitialized = Boolean(auth && typeof auth.onAuthStateChanged === "function");
+
 export { app, auth, storage, db };
 
 // FINOPS FIX: Emulators disabled for AI Studio preview environment

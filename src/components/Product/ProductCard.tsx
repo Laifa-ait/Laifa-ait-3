@@ -196,8 +196,8 @@ export const ProductCard = React.memo(
 
           {/* Ligne inférieure : Prix */}
           <div className="pt-2 border-t border-slate-100 flex items-baseline justify-between gap-2 mt-auto">
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-sans font-black text-sm sm:text-base tracking-tight tabular-nums text-emerald-700">
+            <div className="flex flex-wrap items-baseline gap-1.5 min-w-0">
+              <span className="font-sans font-black text-sm sm:text-base tracking-tight tabular-nums text-[#011C40]">
                 {formatPrice(currentPrice)}
               </span>
               {hasDiscount && (
@@ -206,9 +206,6 @@ export const ProductCard = React.memo(
                 </span>
               )}
             </div>
-            <span className="text-[10px] font-bold text-emerald-600 group-hover:text-emerald-800 transition-colors">
-              {t("details", "Voir")}
-            </span>
           </div>
         </div>
       </div>

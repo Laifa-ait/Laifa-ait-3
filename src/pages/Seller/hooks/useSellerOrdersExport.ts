@@ -2,9 +2,9 @@ import { useState, useCallback } from "react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../../context/AuthContext";
-import { apiGet, apiPost } from "../../../lib/api";
+import { apiGet } from "../../../lib/api";
 import { Order } from "../../../domains/order/order.types";
-import { CalculatedOrder, formatOrderDate } from "../components/orders/orderTypes";
+import { formatOrderDate } from "../components/orders/orderTypes";
 import { exportPremiumToSheets } from "../../../services/googleWorkspace";
 
 export const useSellerOrdersExport = () => {

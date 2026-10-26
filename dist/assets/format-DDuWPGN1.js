@@ -1,0 +1,1 @@
+var e=e=>`‎`+new Intl.NumberFormat(`en-US`).format(e)+`\xA0DA`,t=e=>typeof e!=`number`||isNaN(e)?`0 DZD`:`${new Intl.NumberFormat(`fr-DZ`,{maximumFractionDigits:0}).format(e)} DZD`;export{e as n,t};

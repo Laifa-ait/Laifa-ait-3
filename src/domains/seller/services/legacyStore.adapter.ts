@@ -62,10 +62,13 @@ export class LegacyStoreAdapter {
       legalStatus: userData.legalStatus || pubData.legalStatus || "Commerçant enregistré",
       theme: {
         sector: "mode",
-        primaryColor: "#5B3765",
-        secondaryColor: "#D4AF37",
-        fontFamily: "Inter, sans-serif",
-        accentBadgeColor: "#059669",
+        primaryColor: "#023859",
+        secondaryColor: "#26658C",
+        accentColor: "#54ACBF",
+        canvasColor: "#F8FBFC",
+        surfaceColor: "#FFFFFF",
+        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+        accentBadgeColor: "#54ACBF",
       },
       seo: {
         metaTitle: `${shopName} | Olmart Algérie`,

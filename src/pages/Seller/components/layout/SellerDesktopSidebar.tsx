@@ -21,19 +21,24 @@ export const SellerDesktopSidebar: React.FC<SellerDesktopSidebarProps> = ({ navI
       id="seller-desktop-sidebar"
     >
       <div className="p-8 border-b border-[#eee8ef]">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-[#5b4865] flex items-center justify-center text-white shadow-[0_6px_14px_rgba(54,39,61,0.2)]">
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          title={t("Retour à l'accueil Olmart")}
+          className="flex items-center gap-4 group cursor-pointer text-left border-none bg-transparent p-0 w-full"
+        >
+          <div className="w-10 h-10 rounded-xl bg-[#5b4865] group-hover:bg-[#4a3a52] flex items-center justify-center text-white shadow-[0_6px_14px_rgba(54,39,61,0.2)] transition-colors">
             <Store className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-sans font-bold tracking-tight rtl:tracking-normal text-[#302638]">
+            <h1 className="text-lg font-sans font-bold tracking-tight rtl:tracking-normal text-[#302638] group-hover:text-[#5b4865] transition-colors">
               {t("OLMA")}
             </h1>
             <p className="text-[9px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal leading-none">
               {t("Seller Space")}
             </p>
           </div>
-        </div>
+        </button>
       </div>
 
       <nav className="flex-1 p-6 space-y-2 overflow-y-auto">

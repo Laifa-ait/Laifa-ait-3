@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { Store, Menu } from "lucide-react";
+import { Store, Menu, Home } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { getSellerNavItems } from "./components/layout/SellerNavConfig";
@@ -33,26 +33,42 @@ export const SellerDashboardLayout: React.FC = () => {
           className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-b border-[#e8e1e9] px-4 py-3 flex items-center justify-between"
           id="seller-mobile-header"
         >
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#5b4865] flex items-center justify-center text-white shadow-sm">
+          <button
+            type="button"
+            id="seller-mobile-header-home-btn"
+            onClick={() => navigate("/")}
+            title={t("Retour à l'accueil Olmart")}
+            className="flex items-center gap-2.5 text-left border-none bg-transparent p-0 cursor-pointer group active:scale-95 transition-transform"
+          >
+            <div className="w-8 h-8 rounded-lg bg-[#5b4865] group-hover:bg-[#4a3a52] flex items-center justify-center text-white shadow-sm transition-colors">
               <Store className="w-4 h-4" />
             </div>
             <div>
-              <h1 className="text-sm font-sans font-bold tracking-tight rtl:tracking-normal text-[#302638] leading-none">
+              <h1 className="text-sm font-sans font-bold tracking-tight rtl:tracking-normal text-[#302638] group-hover:text-[#5b4865] leading-none transition-colors">
                 {t("OLMA")}
               </h1>
               <p className="text-[8px] font-sans font-bold text-slate-400 uppercase tracking-widest rtl:tracking-normal mt-0.5">
                 {t("Seller Space")}
               </p>
             </div>
-          </div>
+          </button>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              id="seller-mobile-header-home-direct-btn"
+              onClick={() => navigate("/")}
+              title={t("Accueil Olmart")}
+              className="p-2 rounded-xl text-[#5b4865] bg-[#f1edf4] hover:bg-[#e9e1ec] transition-colors border-none cursor-pointer"
+            >
+              <Home className="w-4 h-4" />
+            </button>
             {currentUser && (
               <button
                 type="button"
                 id="seller-mobile-header-store-btn"
                 onClick={() => navigate(`/store/${currentUser.uid}`)}
+                title={t("Ma Boutique Publique")}
                 className="p-2 rounded-xl text-[#5b4865] bg-[#f1edf4] hover:bg-[#e9e1ec] transition-colors border-none cursor-pointer"
               >
                 <Store className="w-4 h-4" />

@@ -33,7 +33,7 @@ export const OrderTable: React.FC<OrderTableProps> = ({
   loading,
   filteredOrders,
   selectedOrderIds,
-  calculatedOrdersMap,
+  calculatedOrdersMap: _calculatedOrdersMap,
   statusLabels,
   handleSelectAll,
   handleSelectOrder,

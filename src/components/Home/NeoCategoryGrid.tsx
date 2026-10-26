@@ -80,33 +80,33 @@ export const NeoCategoryGrid: React.FC<{
   return (
     <section className="w-full max-w-[90rem] mx-auto px-4 sm:px-6 md:px-8 mb-8 sm:mb-12 pt-2 relative z-20">
       {/* Title block matching reference screenshot */}
-      <div className="flex items-center justify-between mb-4 sm:mb-6">
+      <div className="flex items-center justify-between mb-4 sm:mb-5">
         <div className="space-y-1">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-serif font-bold text-slate-900 tracking-tight">
-            {t("home.categories.explore_by", "Un univers pour chaque envie")}
+            {t("home.categories.explore_by", "Explorer par catégories")}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 font-medium">
             {t("home.categories.swipe_hint", "Faites défiler horizontalement pour tout explorer")}
           </p>
         </div>
 
-        {/* Desktop Slider Arrows */}
-        <div className="hidden md:flex items-center gap-2">
+        {/* Slider Arrows matching screenshot circle style */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => handleManualScroll("left")}
-            className="w-10 h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-700 hover:bg-slate-100 hover:text-emerald-700 active:scale-95 transition-all shadow-2xs cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-200/90 bg-white flex items-center justify-center text-slate-700 hover:bg-slate-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
             aria-label="Previous categories"
           >
-            <ChevronLeft className={`w-5 h-5 ${isRTL ? "rotate-180" : ""}`} />
+            <ChevronLeft className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`} />
           </button>
           <button
             type="button"
             onClick={() => handleManualScroll("right")}
-            className="w-10 h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-700 hover:bg-slate-100 hover:text-emerald-700 active:scale-95 transition-all shadow-2xs cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-200/90 bg-white flex items-center justify-center text-slate-700 hover:bg-slate-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
             aria-label="Next categories"
           >
-            <ChevronRight className={`w-5 h-5 ${isRTL ? "rotate-180" : ""}`} />
+            <ChevronRight className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`} />
           </button>
         </div>
       </div>

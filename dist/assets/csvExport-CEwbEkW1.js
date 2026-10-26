@@ -1,0 +1,3 @@
+function e(e,t,n){let r=e=>{if(e==null)return``;let t=String(e);return(t.includes(`"`)||t.includes(`,`)||t.includes(`;`)||t.includes(`
+`)||t.includes(`\r`))&&(t=`"`+t.replace(/"/g,`""`)+`"`),t},i=[e.map(r).join(`;`),...t.map(e=>e.map(r).join(`;`))].join(`\r
+`),a=new Blob([`﻿`+i],{type:`text/csv;charset=utf-8;`}),o=URL.createObjectURL(a),s=document.createElement(`a`);s.setAttribute(`href`,o);let c=n.endsWith(`.xlsx`)?n.replace(/\.xlsx$/,`.csv`):n;s.setAttribute(`download`,c),s.style.visibility=`hidden`,document.body.appendChild(s),s.click(),document.body.removeChild(s),URL.revokeObjectURL(o)}export{e as t};

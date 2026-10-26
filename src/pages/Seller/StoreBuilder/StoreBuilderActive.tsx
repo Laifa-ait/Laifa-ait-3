@@ -45,20 +45,25 @@ export const StoreBuilderActive: React.FC<StoreBuilderActiveProps> = () => {
     deleteSection,
     duplicateSection,
     toggleVisibility,
+    replaceSections,
     saveStoreConfig,
     uploadMedia,
     deleteMedia,
     publishStudio,
     rollbackVersion,
     triggerAutoSave,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   } = useSellerStudio();
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[500px] h-full bg-[#F7F8FA]">
         <div className="text-center space-y-3 p-8 bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] shadow-xs">
-          <RefreshCw className="w-8 h-8 text-[#F97316] animate-spin mx-auto" />
-          <p className="text-[14px] font-semibold text-[#17191C]">
+          <RefreshCw className="w-8 h-8 text-[#023859] animate-spin mx-auto" />
+          <p className="text-[14px] font-semibold text-[#011C40]">
             Initialisation du Studio Olmart...
           </p>
           <p className="text-[13px] text-[#667085]">
@@ -100,8 +105,13 @@ export const StoreBuilderActive: React.FC<StoreBuilderActiveProps> = () => {
         toggleVisibility={toggleVisibility}
         saveStoreConfig={saveStoreConfig}
         onSaveDraft={() => triggerAutoSave(sections)}
+        onReplaceSections={replaceSections}
         publishStudio={(changeSummary) => void publishStudio(changeSummary)}
         onRollback={(versionNumber) => void rollbackVersion(versionNumber)}
+        undo={undo}
+        redo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
       />
     </div>
   );

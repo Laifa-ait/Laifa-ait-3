@@ -30,7 +30,7 @@ export default tseslint.config(
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
     },
@@ -155,7 +155,9 @@ export default tseslint.config(
         "src/components/bricolage/**",
         "src/pages/Public/OlmaBricolage.tsx",
         "src/components/OlmaImmo/SearchFilters.tsx",
-        "src/pages/OlmaImmo/**"
+        "src/pages/OlmaImmo/**",
+        "src/components/Store/**",
+        "src/pages/Seller/StoreBuilder/**"
     ],
     rules: {
       "max-lines": "off"

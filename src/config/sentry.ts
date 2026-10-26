@@ -12,19 +12,16 @@ if (isProduction) {
         integrations: [
           Sentry.browserTracingIntegration(),
           Sentry.replayIntegration({
-            maskAllText: false,
-            blockAllMedia: false,
+            maskAllText: true,
+            blockAllMedia: true,
           }),
         ],
         tracesSampleRate: 0.1, // 10% des transactions
         replaysSessionSampleRate: 0.01, // 1% des sessions
         replaysOnErrorSampleRate: 1.0, // 100% des sessions avec erreur
       });
-    } else {
-      // Skipped Sentry initialization (no real DSN provided)
     }
   } catch (error) {
     safeLogger.error("[Sentry] Failed to initialize safely", { err: error instanceof Error ? error.message : String(error) });
   }
 }
-

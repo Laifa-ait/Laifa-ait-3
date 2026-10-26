@@ -72,7 +72,6 @@ export class SellerService {
     try {
       const summaryDoc = await db.collection("financial_summary").doc(uid).get();
       if (summaryDoc.exists) {
-        const data = summaryDoc.data();
         // Recompute from order statuses because legacy summaries may include pending orders.
         orderCount = allOrders.length;
         totalSales = allOrders.reduce((sum, order) => String(order.status || '').toLowerCase() === 'delivered' ? sum + (Number(order.total) || 0) : sum, 0);
