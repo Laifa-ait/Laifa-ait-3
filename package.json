@@ -59,7 +59,7 @@
     "@googleapis/drive": "^21.0.0",
     "@googleapis/sheets": "^14.0.0",
     "@icons-pack/react-simple-icons": "^13.15.1",
-    "@sentry/node": "^10.62.0",
+    "@sentry/node": "^11.9.0",
     "@sentry/react": "^10.62.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query": "^5.101.2",
