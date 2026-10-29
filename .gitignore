@@ -35,6 +35,7 @@ blob-report
 coverage
 tmp/
 /tmp/
+public/assets/aistudio/
 
 # Lockfiles
 !package-lock.json
