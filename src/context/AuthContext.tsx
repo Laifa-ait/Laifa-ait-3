@@ -33,7 +33,7 @@ interface AuthContextType {
   signInWithEmail: (email: string, pass: string) => Promise<void>;
   signUpWithEmail: (email: string, pass: string, name: string, role: string) => Promise<void>;
   logout: () => Promise<void>;
-  updateUserProfile?: (data: Partial<UserProfile>) => Promise<void>;
+  updateUserProfile: (data?: Partial<UserProfile>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -160,7 +160,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await signOut(auth);
   };
 
-  const updateUserProfile = useCallback(async (data: Partial<UserProfile>) => {
+  const updateUserProfile = useCallback(async (data: Partial<UserProfile> = {}) => {
     if (!currentUser) return;
     const response = await apiPost<{ success: boolean; profile?: UserProfile; data?: UserProfile }>("/api/v1/auth/sync", {
       ...data,

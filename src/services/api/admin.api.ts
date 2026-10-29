@@ -8,6 +8,7 @@ export interface CategoryItem {
   image?: string;
   banner?: string;
   parentId?: string | null;
+  commissionRate?: number;
 }
 
 export interface AdminCategoriesResponse {

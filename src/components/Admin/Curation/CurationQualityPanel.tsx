@@ -1,11 +1,11 @@
 import React from "react";
 import { Sparkles, Info, Layers, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Product } from "../../../types";
+import { Product } from "../../../domains/product/product.types";
 
 interface CurationQualityPanelProps {
   calculatedScore: number;
-  activeProduct: Product;
+  activeProduct: Omit<Partial<Product>, "promoPrice"> & { promoPrice?: string | number };
   relatedProductsCount: number;
   duplicates: Product[];
   selectedProductId: string;

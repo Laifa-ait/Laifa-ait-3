@@ -213,6 +213,7 @@ export interface SellerUserProfile {
   name?: string;
   shopName?: string;
   role?: string;
+  status?: string;
   isVerified?: boolean;
   wilaya?: string;
   rating?: number;

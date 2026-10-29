@@ -9,6 +9,7 @@ export interface AuditLog {
   adminId?: string;
   adminEmail?: string;
   targetId?: string;
+  targetType?: string;
   resourceType?: string;
   resourceId?: string;
   details?: Record<string, unknown> | string | null;

@@ -43,6 +43,8 @@ export type UserProfile = ZodUserProfile & {
   phoneNumber?: string | null;
   capabilities?: string[];
   sellerOnboardingCompleted?: boolean;
+  sellerRequested?: boolean;
+  twoFactorEnabled?: boolean;
   shopSlug?: string;
   shopDescription?: string;
   logoUrl?: string;
@@ -62,6 +64,12 @@ export interface AuthUser {
   phoneNumber?: string | null;
   isAnonymous?: boolean;
   tenantId?: string | null;
+  providerData?: Array<{
+    providerId: string;
+    photoURL?: string | null;
+    displayName?: string | null;
+    email?: string | null;
+  }>;
 }
 
 export type User = UserProfile;

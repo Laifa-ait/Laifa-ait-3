@@ -30,6 +30,7 @@ export const ContactRevealModal: React.FC<ContactRevealModalProps> = ({
     if (isEphemeral) {
       setRevealed({
         listingId,
+        sellerDisplayName,
         phoneNumber: "+213 550 12 34 56",
         whatsappUrl: "https://wa.me/213550123456",
         expiresInSeconds: 900,

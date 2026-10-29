@@ -59,7 +59,6 @@
     "dist",
     "build",
     "coverage",
-    "app",
     "functions",
     "**/*.tsbuildinfo"
   ]
