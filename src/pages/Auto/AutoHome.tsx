@@ -152,33 +152,21 @@ export const AutoHome: React.FC = () => {
             </span>
 
             {filters.brand && (
-              <button
-                type="button"
-                onClick={() => updateFilters({ brand: undefined })}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-600 text-white text-xs font-bold cursor-pointer border-none"
-              >
+              <button type="button" onClick={() => updateFilters({ brand: undefined })} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-600 text-white text-xs font-bold cursor-pointer border-none">
                 <span>{filters.brand}</span>
                 <X className="w-3 h-3" />
               </button>
             )}
 
             {filters.wilayaId && (
-              <button
-                type="button"
-                onClick={() => updateFilters({ wilayaId: undefined })}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 text-white text-xs font-bold cursor-pointer border-none"
-              >
+              <button type="button" onClick={() => updateFilters({ wilayaId: undefined })} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 text-white text-xs font-bold cursor-pointer border-none">
                 <span>{getWilayaNameById(filters.wilayaId)}</span>
                 <X className="w-3 h-3" />
               </button>
             )}
 
             {(activeFilterCount > 0 || whatTerm) && (
-              <button
-                type="button"
-                onClick={resetAllFilters}
-                className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 cursor-pointer bg-transparent border-none px-1.5 py-1"
-              >
+              <button type="button" onClick={resetAllFilters} className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 cursor-pointer bg-transparent border-none px-1.5 py-1">
                 <RotateCcw className="w-3 h-3" />
                 <span>Effacer</span>
               </button>

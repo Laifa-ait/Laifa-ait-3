@@ -5,6 +5,12 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      load_test_base_url:
+        description: 'Target URL for k6 load test (Staging Cloud Run by default)'
+        required: false
+        default: 'https://olmart-staging-207154734313.europe-west2.run.app'
 
 jobs:
   lint-typecheck-test-build:
@@ -36,11 +42,34 @@ jobs:
       - name: ESLint Code Quality
         run: npm run lint
 
+      - name: Firestore Rules Coherence Check
+        run: npm run lint:firestore-rules
+
+      - name: Seller i18n Translations Coverage Check
+        run: npm run check:translations
+
       - name: TypeScript Typecheck
         run: npm run typecheck
 
-      - name: Run Core Security & Unit Test Suite
-        run: ALLOW_TESTS_WITHOUT_EMULATOR=true npx vitest run src/tests/format.test.ts src/tests/sanitization.test.ts src/tests/validation.test.ts src/tests/validateIdParam.test.ts
+      - name: Run Core Security, Domains & Unit Test Suite
+        run: |
+          ALLOW_TESTS_WITHOUT_EMULATOR=true npx vitest run \
+            src/tests/format.test.ts \
+            src/tests/sanitization.test.ts \
+            src/tests/validation.test.ts \
+            src/tests/validateIdParam.test.ts \
+            src/tests/paymentWebhooks.test.ts \
+            src/tests/firestoreRulesCoherence.test.ts \
+            src/tests/Checkout.test.ts \
+            src/tests/artisanService.test.ts \
+            src/tests/sellerStudioBackend.test.ts \
+            src/tests/aiService.test.ts \
+            src/tests/aiRoutes.test.ts \
+            src/tests/adversarialHardeningAudit.test.ts \
+            src/tests/auto*.test.* \
+            src/tests/olma*.test.* \
+            src/tests/realEstate*.test.* \
+            src/tests/studio*.test.*
 
       - name: Upload Test Coverage Report
         if: ${{ always() }}
@@ -116,7 +145,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging-e2e
     env:
-      # e2e/critical.spec.ts mocks Firebase requests, so no real Firebase credential is needed.
       VITE_FIREBASE_API_KEY: E2E_NO_REAL_API_KEY
       VITE_FIREBASE_APP_ID: E2E_NO_REAL_APP_ID
       VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN || 'olmart-staging-e2e.firebaseapp.com' }}
@@ -139,8 +167,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Cache Playwright Chromium Binaries
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install Playwright Chromium Browser
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright OS Dependencies (Cache Hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - name: Build Application (SPA + Server) for E2E
         run: npm run build
@@ -181,8 +223,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Cache Playwright Chromium Binaries
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install Playwright Chromium Browser
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright OS Dependencies (Cache Hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - name: Wait for Cloud Build deployment and verify Cloud Run health
         shell: bash
@@ -248,8 +304,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Cache Playwright Chromium Binaries
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install Playwright Chromium Browser
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright OS Dependencies (Cache Hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - name: Wait for primary Cloud Run deployment and verify readiness
         shell: bash
@@ -290,3 +360,19 @@ jobs:
 
       - name: Verify the production homepage renders
         run: npx playwright test e2e/critical.spec.ts -g 'Homepage, Header & Navigation'
+
+  k6-load-test:
+    name: "k6 Load & Stress Test (On-Demand Staging)"
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: ${{ github.event.inputs.load_test_base_url || 'https://olmart-staging-207154734313.europe-west2.run.app' }}
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Run k6 Load Test Suite
+        uses: grafana/k6-action@v0.3.1
+        with:
+          filename: k6/load-test.js

@@ -17,7 +17,7 @@ export const options = {
   },
 };
 
-const BASE_URL = 'http://localhost:3000'; // Replace with staging/production URL as needed
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
 
 export default function () {
   // 1. Load Homepage
@@ -27,13 +27,16 @@ export default function () {
   });
   sleep(1);
 
-  // 2. Search Products
-  const resSearch = http.get(`${BASE_URL}/api/products?q=test`);
+  // 2. API v1 Liveness Probe
+  const resHealth = http.get(`${BASE_URL}/api/v1/health/live`);
+  check(resHealth, {
+    'health/live status is 200': (r) => r.status === 200,
+  });
+
+  // 3. Search Products via API v1
+  const resSearch = http.get(`${BASE_URL}/api/v1/products?limit=20`);
   check(resSearch, {
-    'search status is 200': (r) => r.status === 200,
+    'api/v1/products status is 200': (r) => r.status === 200,
   });
   sleep(1);
-
-  // 3. (Simulated) Add to Cart / Checkout would go here
-  // Requires auth tokens and complex state for full end-to-end load testing.
 }

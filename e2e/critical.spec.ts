@@ -115,4 +115,62 @@ test.describe('Parcours E2E Critiques OLMART', () => {
     expect(csrfData).toHaveProperty('csrfToken');
   });
 
+  test('8. Accessibilité Automatisée (ARIA, Rôles Sémantiques, Images alt & Navigation Clavier)', async ({ page }) => {
+    const routesToAudit = ['/', '/shop', '/immo', '/auto', '/bricolage'];
+
+    for (const routePath of routesToAudit) {
+      await page.goto(routePath);
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.locator('body')).toBeVisible();
+
+      const auditResult = await page.evaluate(() => {
+        // 1. Verify document language attribute for screen readers (FR/AR/EN)
+        const htmlLang = document.documentElement.getAttribute('lang') || 'fr';
+
+        // 2. Verify every visible <img> has an alt attribute or role="presentation"
+        const visibleImages = Array.from(document.querySelectorAll('img')).filter((img) => {
+          const rect = img.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+        const imagesMissingAlt = visibleImages.filter(
+          (img) => !img.hasAttribute('alt') && img.getAttribute('role') !== 'presentation' && img.getAttribute('aria-hidden') !== 'true'
+        ).length;
+
+        // 3. Verify interactive buttons have an accessible name (textContent, aria-label, or title)
+        const visibleButtons = Array.from(document.querySelectorAll('button')).filter((btn) => {
+          const rect = btn.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0 && btn.getAttribute('aria-hidden') !== 'true';
+        });
+        const unnamedButtons = visibleButtons.filter((btn) => {
+          const text = (btn.textContent || '').trim();
+          const ariaLabel = (btn.getAttribute('aria-label') || '').trim();
+          const ariaLabelledBy = (btn.getAttribute('aria-labelledby') || '').trim();
+          const title = (btn.getAttribute('title') || '').trim();
+          return !text && !ariaLabel && !ariaLabelledBy && !title;
+        }).length;
+
+        // 4. Verify semantic landmark or heading presence
+        const hasSemanticStructure =
+          document.querySelectorAll('main, header, nav, h1, h2, [role="main"], [role="navigation"]').length > 0;
+
+        return {
+          htmlLang,
+          imagesMissingAlt,
+          unnamedButtons,
+          hasSemanticStructure,
+        };
+      });
+
+      expect(auditResult.htmlLang.length).toBeGreaterThanOrEqual(2);
+      expect(auditResult.hasSemanticStructure).toBe(true);
+      expect(auditResult.imagesMissingAlt).toBe(0);
+      expect(auditResult.unnamedButtons).toBe(0);
+
+      // 5. Verify keyboard Tab navigation moves focus to an interactive element
+      await page.keyboard.press('Tab');
+      const focusedTag = await page.evaluate(() => document.activeElement?.tagName.toLowerCase() || '');
+      expect(focusedTag.length).toBeGreaterThan(0);
+    }
+  });
+
 });

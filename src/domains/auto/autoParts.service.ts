@@ -69,8 +69,12 @@ const SEED_PARTS: Omit<AutoPartDto, "id" | "createdAt">[] = [
 ];
 
 export class AutoPartsService {
+  private isOfflineTestMode(): boolean {
+    return !db || (process.env.NODE_ENV === "test" && process.env.FIREBASE_EMULATOR_ACTIVE === "false");
+  }
+
   private async ensureSeed() {
-    if (!db) return;
+    if (this.isOfflineTestMode() || !db) return;
     try {
       const snap = await db.collection("auto_parts").limit(1).get();
       if (snap.empty) {
@@ -93,7 +97,7 @@ export class AutoPartsService {
 
   async listParts(filters: AutoPartFilterParams): Promise<{ items: AutoPartDto[]; total: number }> {
     await this.ensureSeed();
-    if (!db) {
+    if (this.isOfflineTestMode() || !db) {
       return {
         items: SEED_PARTS.map((p, i) => ({ ...p, id: `seed_${i}`, createdAt: new Date().toISOString() })),
         total: SEED_PARTS.length,

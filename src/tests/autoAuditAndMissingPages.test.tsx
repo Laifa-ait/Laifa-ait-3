@@ -70,17 +70,17 @@ describe("Audit Olma Auto & Nouvelles Pages / Boutons", () => {
     it("renders estimation page with car controls and direct CTAs", () => {
       const html = renderToString(React.createElement(AutoEstimationPage));
       expect(html).toContain("Cote Argus Automobile en Algérie");
-      expect(html).toContain("Fourchette de prix estimée");
-      expect(html).toContain("Caractéristiques du véhicule");
-      expect(html).toContain("Déposer mon annonce à ce prix");
+      expect(html).toContain("Valeur marchande estimée");
+      expect(html).toContain("Caractéristiques techniques à évaluer");
+      expect(html).toContain("Étape 03 : Déposer");
     });
   });
 
   describe("3. Page Comparateur de Véhicules (AutoComparePage)", () => {
-    it("renders empty state when no vehicles are selected", () => {
+    it("renders vehicle comparator table with side-by-side specs", () => {
       const html = renderToString(React.createElement(AutoComparePage));
-      expect(html).toContain("Aucun véhicule à comparer");
-      expect(html).toContain("Explorer le catalogue");
+      expect(html).toContain("Comparateur de Véhicules");
+      expect(html).toContain("Retour aux véhicules");
     });
   });
 
@@ -140,7 +140,8 @@ describe("Audit Olma Auto & Nouvelles Pages / Boutons", () => {
       expect(html).toContain("Hilux");
       expect(html).toContain("Comparer ce véhicule");
       expect(html).toContain("Ajouter aux favoris");
-      expect(html).toContain("Contacter le vendeur");
+      expect(html).toContain("Contact direct vendeur");
+      expect(html).toContain("Voir l&#x27;annonce");
     });
   });
 });

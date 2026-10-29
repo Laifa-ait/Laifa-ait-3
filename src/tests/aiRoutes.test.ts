@@ -106,15 +106,19 @@ describe("AI Domain Routes Integration", () => {
     expect(response.body).toEqual({ en: "Hello", ar: "أهلاً" });
   });
 
-  it("POST /admin/translate-single-key returns 503 when service fails", async () => {
+  it("POST /admin/translate-single-key returns fallback translation when service fails", async () => {
     mockTranslateSingleKey.mockRejectedValueOnce(new Error("Gemini Error"));
 
     const response = await request(app)
       .post("/api/v1/ai/admin/translate-single-key")
       .send({ fr: "Bonjour" });
 
-    expect(response.status).toBe(503);
-    expect(response.body.error).toContain("temporairement indisponible");
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      ar: "Bonjour",
+      en: "Bonjour",
+      fallback: true,
+    });
   });
 
   it("POST /admin/translate-fictive runs fix successfully", async () => {

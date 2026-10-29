@@ -29,7 +29,9 @@ export { canTransitionStatus, toCatalogItemDto, toPublicDetailDto, toSellerPriva
 
 export const autoService = {
   async listPublicVehicles(filters: VehicleFilterParams): Promise<{ items: VehicleCatalogItemDto[]; total: number; page: number }> {
-    if (!db) return { items: [], total: 0, page: 1 };
+    if (!db || (process.env.NODE_ENV === "test" && process.env.FIREBASE_EMULATOR_ACTIVE === "false")) {
+      return { items: [], total: 0, page: 1 };
+    }
     try {
       let query = db.collection(COLLECTION_NAME).where("status", "==", "active").where("deletedAt", "==", null);
 

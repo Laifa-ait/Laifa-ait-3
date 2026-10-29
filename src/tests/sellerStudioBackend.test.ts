@@ -75,19 +75,15 @@ describe("Seller Studio Backend & Zod Validation (Phase 2A)", () => {
       expect(result.success).toBe(false);
     });
 
-    it("enforces array bounds on promo_carousel (max 5 slides)", () => {
+    it("enforces array bounds on promo_carousel (max 12 slides)", () => {
       const tooManySlides = {
         id: "promo_1",
         type: "promo_carousel",
         settings: {
-          slides: [
-            { id: "s1", imageUrl: "https://images.unsplash.com/1" },
-            { id: "s2", imageUrl: "https://images.unsplash.com/2" },
-            { id: "s3", imageUrl: "https://images.unsplash.com/3" },
-            { id: "s4", imageUrl: "https://images.unsplash.com/4" },
-            { id: "s5", imageUrl: "https://images.unsplash.com/5" },
-            { id: "s6", imageUrl: "https://images.unsplash.com/6" },
-          ],
+          slides: Array.from({ length: 13 }, (_, idx) => ({
+            id: `s${idx + 1}`,
+            imageUrl: `https://images.unsplash.com/${idx + 1}`,
+          })),
         },
         styles: {},
         isVisible: true,

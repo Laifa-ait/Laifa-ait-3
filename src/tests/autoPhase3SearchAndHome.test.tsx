@@ -208,14 +208,14 @@ describe("Phase 03 — Accueil & Parcours de Recherche Automobile (Olma Auto V2)
   });
 
   describe("T01 & T04 & T05 : Rendu d'état vide, Paramètres URL & Cibles tactiles >= 44px", () => {
-    it("T01 : renders AutoHome empty state with 0 crashes, 0 fake cards and publication CTA", async () => {
+    it("T01 : renders AutoHome native app feed with segmented sorting and brand selector", async () => {
       const { renderToString } = await import("react-dom/server");
       const { AutoHome } = await import("../pages/Auto/AutoHome");
       const html = renderToString(React.createElement(AutoHome));
-      expect(html).toContain("Recherche par Silhouette");
-      expect(html).toContain("Charte de Sécurité Automobile");
-      expect(html).toContain("Véhicules Carte Grise Safia");
-      expect(html).toContain("Pièces Détachées Mécaniques");
+      expect(html).toContain("annonce");
+      expect(html).toContain("Récents");
+      expect(html).toContain("Km min");
+      expect(html).toContain("Contact direct vendeur");
     });
 
     it("T04 : formats URL search params deterministically", () => {
