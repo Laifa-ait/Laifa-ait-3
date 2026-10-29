@@ -158,7 +158,7 @@ export const Home: React.FC = () => {
   }, [dbBanners, filterByTargeting, t]);
 
   return (
-    <div className="relative w-full overflow-hidden bg-[#f6f7f3] font-sans text-slate-950">
+    <div className="relative w-full overflow-hidden bg-[#FAF7F6] font-sans text-[#1A1836]">
       <Helmet>
         <title>{t("seo_home_title")}</title>
         <meta name="description" content={t("seo_home_description")} />
@@ -176,12 +176,12 @@ export const Home: React.FC = () => {
       <h1 className="sr-only">{t("home.sr_title")}</h1>
 
       {/* Marketplace landing hero */}
-      <section className="relative w-full overflow-hidden pb-7 pt-4 sm:pb-10 sm:pt-7 lg:pt-9">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-32 -top-40 h-[28rem] w-[28rem] rounded-full bg-[#E8DFEB]/55 blur-3xl" />
-        <div aria-hidden="true" className="pointer-events-none absolute -left-40 top-48 h-[22rem] w-[22rem] rounded-full bg-[#F3E9D1]/60 blur-3xl" />
+      <section className="relative w-full overflow-hidden pb-7 pt-4 sm:pb-10 sm:pt-7 lg:pt-8">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-32 -top-40 h-[28rem] w-[28rem] rounded-full bg-[#E0B4B2]/35 blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -left-40 top-48 h-[22rem] w-[22rem] rounded-full bg-[#E99856]/15 blur-3xl" />
         <div className="relative mx-auto w-full max-w-[96rem] px-4 sm:px-6 md:px-8">
           {isBannersLoading ? (
-            <div className="min-h-[460px] w-full animate-pulse rounded-[1.5rem] border border-white bg-white/80 shadow-sm sm:min-h-[430px] lg:min-h-[390px] 2xl:min-h-[410px]" />
+            <div className="min-h-[460px] w-full animate-pulse rounded-[1.5rem] border border-[#EFE6E6] bg-white/85 shadow-sm sm:min-h-[430px] lg:min-h-[390px] 2xl:min-h-[410px]" />
           ) : (
             <BentoHero banners={targetedHeroBanners} />
           )}

@@ -27,18 +27,25 @@ function isAllowedPreviewOrigin(origin: string): boolean {
   try {
     const url = new URL(origin);
     const hostname = url.hostname.toLowerCase();
-    const isGoogleOrCloudRun =
+    const isAiStudioOrGoogle =
       hostname === "ai.studio" ||
       hostname === "aistudio.google.com" ||
       hostname.endsWith(".ai.studio") ||
       hostname.endsWith(".aistudio.google.com") ||
       hostname === "google.com" ||
       hostname.endsWith(".google.com") ||
-      hostname.endsWith(".run.app") ||
       hostname.endsWith(".googleusercontent.com");
 
-    if (isGoogleOrCloudRun && (url.protocol === "https:" || url.protocol === "http:")) {
+    if (isAiStudioOrGoogle && url.protocol === "https:") {
       return true;
+    }
+
+    if (hostname.endsWith(".run.app") && url.protocol === "https:") {
+      const isAiStudioCloudRun = /^ais-(dev|pre)-[a-z0-9-]+\.[a-z0-9-]+\.run\.app$/.test(hostname);
+      if (isAiStudioCloudRun || process.env.NODE_ENV !== "production" || process.env.ALLOW_PREVIEW_ORIGINS === "true") {
+        return true;
+      }
+      return false;
     }
 
     if (process.env.NODE_ENV === "production") {
@@ -83,6 +90,9 @@ export function preventDirectCloudRunAccess(req: Request, res: Response, next: N
     if (
       req.path === "/health" ||
       req.path.startsWith("/health/") ||
+      req.path === "/healthz" ||
+      req.path === "/livez" ||
+      req.path === "/readyz" ||
       req.path.startsWith("/api/health") ||
       req.path.startsWith("/api/v1/health")
     ) {

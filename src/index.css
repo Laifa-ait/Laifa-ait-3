@@ -1,91 +1,89 @@
-@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=JetBrains+Mono:wght@500;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
 @theme {
   /* ========================================================
-     TYPOGRAPHY TOKENS (Inter, Playfair Display, Cairo)
-     Weights: 400 (regular), 600 (semibold), 700 (bold)
-     Scale: text-xs, text-sm, text-base, text-lg, text-2xl, text-4xl
+     TYPOGRAPHY TOKENS (2+1 Luxury Rule: Plus Jakarta Sans + Playfair Display + JetBrains Mono)
      ======================================================== */
   --font-sans:
-    "Inter", "Cairo", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Playfair Display", Georgia, serif;
+    "Plus Jakarta Sans", "Cairo", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Playfair Display", "Cormorant Garamond", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --font-arabic: "Cairo", system-ui, sans-serif;
 
   /* ========================================================
-     COLOR TOKENS — OLMART MARKETPLACE PALETTE
-     - Primary: Aubergine (#5B4865, #493852)
-     - Accent: Warm Gold (#D7B76C)
-     - Neutrals: Warm ivory and soft plum gray
+     COLOR TOKENS — MINDAZZLE TWILIGHT & SUNSET AMBER PALETTE
+     1. #E0B4B2 — Blush Rose (Soft warm highlight & border tint)
+     2. #E99856 — Sunset Amber (High-intent luxury warm accent & CTA)
+     3. #A54055 — Crimson Berry (Vibrant secondary accent & badge)
+     4. #622347 — Rich Mulberry (Primary interactive brand color)
+     5. #42164B — Royal Aubergine (Deep brand surface & active state)
+     6. #1A1836 — Midnight Indigo (Architectural dark canvas & ink)
      ======================================================== */
-  --color-palette-1: #f7f3f8;
-  --color-palette-2: #d8cbdd;
-  --color-palette-3: #9a87a1;
-  --color-palette-4: #5b4865;
-  --color-palette-5: #493852;
+  --color-palette-1: #e0b4b2;
+  --color-palette-2: #e99856;
+  --color-palette-3: #a54055;
+  --color-palette-4: #622347;
+  --color-palette-5: #42164b;
+  --color-palette-6: #1a1836;
 
-  --color-brand-primary: #5b4865;
-  --color-brand-primary-hover: #493852;
-  --color-brand-primary-dark: #36273d;
-  --color-brand-primary-light: #f1edf4;
-  --color-brand-accent: #d7b76c;
-  --color-brand-accent-hover: #b38d45;
-  --color-brand-accent-light: #f7f0df;
+  --color-brand-blush: #e0b4b2;
+  --color-brand-amber: #e99856;
+  --color-brand-crimson: #a54055;
+  --color-brand-plum: #622347;
+  --color-brand-aubergine: #42164b;
+  --color-brand-midnight: #1a1836;
+
+  --color-brand-primary: #622347;
+  --color-brand-primary-hover: #42164b;
+  --color-brand-primary-dark: #1a1836;
+  --color-brand-primary-light: #f9f2f4;
+  --color-brand-accent: #e99856;
+  --color-brand-accent-hover: #d4803d;
+  --color-brand-accent-light: #fdf4ec;
   --color-brand-trust: #059669;
   --color-brand-trust-hover: #047857;
   --color-brand-trust-light: #ecfdf5;
-  --color-brand-error: #dc2626;
-  --color-brand-error-light: #fee2e2;
+  --color-brand-error: #a54055;
+  --color-brand-error-light: #fceef1;
 
-  /* Semantic UI Surfaces */
+  /* Semantic 60-30-10 UI Surfaces */
   --color-surface: #ffffff;
-  --color-surface-subtle: #fbf9fc;
-  --color-surface-muted: #f5f1f6;
-  --color-border-subtle: #eee8ef;
-  --color-border-default: #e8e1e9;
-  --color-border-strong: #d8cfdc;
-  --color-text-primary: #302638;
-  --color-text-secondary: #514657;
-  --color-text-muted: #7c7481;
-  --color-text-subtle: #a094a7;
+  --color-surface-subtle: #faf7f6;
+  --color-surface-muted: #f4eded;
+  --color-border-subtle: #efe6e6;
+  --color-border-default: #e6d8d8;
+  --color-border-strong: #e0b4b2;
+  --color-text-primary: #1a1836;
+  --color-text-secondary: #42164b;
+  --color-text-muted: #6e5a6f;
+  --color-text-subtle: #9b879c;
 
-  /* ========================================================
-     OLMA AUTO V2 DESIGN TOKENS (Navy 950 / Lime 400 Palette)
-     ======================================================== */
-  --color-olma-navy-950: #0b1730;
-  --color-olma-navy-900: #101e3d;
-  --color-olma-navy-800: #172b4d;
-  --color-olma-navy-700: #23416a;
-  --color-olma-lime-400: #d9f66f;
-  --color-olma-lime-500: #c5e94f;
+  /* OLMA AUTO V2 DESIGN TOKENS */
+  --color-olma-navy-950: #1a1836;
+  --color-olma-navy-900: #271a3e;
+  --color-olma-navy-800: #42164b;
+  --color-olma-navy-700: #622347;
+  --color-olma-lime-400: #e99856;
+  --color-olma-lime-500: #d4803d;
   --color-olma-surface: #ffffff;
-  --color-olma-bg: #f5f7fa;
-  --color-olma-border: #e2e8f0;
+  --color-olma-bg: #faf7f6;
+  --color-olma-border: #efe6e6;
 
-  /* ========================================================
-     ELEVATION / SHADOW TOKENS (Strictly 2 Functional Levels)
-     - Subtile (cards at rest): 0 1px 3px rgba(0,0,0,.06)
-     - Marquée (interactive floating: menus, dropdowns, modals): 0 10px 25px -5px rgba(0,0,0,.1)
-     ======================================================== */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-floating: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
-  --shadow-xl: 0 14px 30px -5px rgba(0, 0, 0, 0.12), 0 10px 12px -6px rgba(0, 0, 0, 0.08);
-  --shadow-2xl: 0 16px 36px -5px rgba(0, 0, 0, 0.14), 0 12px 16px -6px rgba(0, 0, 0, 0.1);
+  /* ELEVATION / SHADOW TOKENS */
+  --shadow-sm: 0 1px 3px rgba(26, 24, 54, 0.05), 0 1px 2px rgba(26, 24, 54, 0.03);
+  --shadow-card: 0 2px 10px -2px rgba(26, 24, 54, 0.05);
+  --shadow-floating: 0 12px 28px -6px rgba(26, 24, 54, 0.14), 0 6px 12px -4px rgba(66, 22, 75, 0.08);
+  --shadow-md: 0 10px 25px -5px rgba(26, 24, 54, 0.1), 0 8px 10px -6px rgba(26, 24, 54, 0.06);
+  --shadow-lg: 0 14px 30px -5px rgba(26, 24, 54, 0.12), 0 8px 12px -6px rgba(26, 24, 54, 0.08);
+  --shadow-xl: 0 18px 36px -6px rgba(26, 24, 54, 0.16), 0 10px 14px -6px rgba(26, 24, 54, 0.08);
+  --shadow-2xl: 0 22px 44px -8px rgba(26, 24, 54, 0.2), 0 12px 18px -6px rgba(26, 24, 54, 0.1);
 
-  /* ========================================================
-     BORDER RADIUS TOKENS (Strictly 3 Canonical Levels)
-     - rounded-lg (inputs, small buttons, inner elements: 8px)
-     - rounded-2xl (cards, modals, containers: 16px)
-     - rounded-full (pills, badges, avatars)
-     ======================================================== */
-  --radius-lg: 0.5rem; /* 8px */
-  --radius-2xl: 1rem; /* 16px */
+  --radius-lg: 0.5rem;
+  --radius-2xl: 1rem;
   --radius-full: 9999px;
 
-  --animate-fade-in: fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-fade-in: fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 
   @keyframes fade-in {
     from {
@@ -100,14 +98,13 @@
 }
 
 body {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
+  background-color: #faf7f6 !important;
+  color: #1a1836 !important;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Hide scrollbar utility */
 .no-scrollbar::-webkit-scrollbar,
 .custom-scrollbar::-webkit-scrollbar {
   display: none !important;
@@ -120,7 +117,6 @@ body {
   scrollbar-width: none !important;
 }
 
-/* RTL overrides for global font families and text direction properties */
 html[dir="rtl"],
 [dir="rtl"] {
   --font-sans: "Cairo", sans-serif;
@@ -128,72 +124,54 @@ html[dir="rtl"],
   font-family: "Cairo", sans-serif;
 }
 
-/* Display Typography classes */
 .font-display {
   font-family: var(--font-display);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
 @layer utilities {
   .no-scroll {
     overflow: hidden;
   }
-  .scrollbar-hide::-webkit-scrollbar {
+  .scrollbar-hide::-webkit-scrollbar,
+  .desktop-scrollbar::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
     height: 0 !important;
   }
-  .scrollbar-hide {
+  .scrollbar-hide,
+  .desktop-scrollbar {
     -ms-overflow-style: none !important;
     scrollbar-width: none !important;
   }
-
-  .desktop-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .desktop-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
 }
 
-@media (min-width: 768px) {
-  .desktop-scrollbar {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .desktop-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-/* Standard subtle scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #e0b4b2;
   border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a54055;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 
 @layer components {
-  /* Canonical Primary Action Button */
   .btn-primary {
-    @apply bg-[#5B4865] hover:bg-[#493852] active:bg-[#36273D] text-white font-semibold text-sm px-6 py-3 rounded-xl shadow-xs hover:shadow-floating transition-all duration-200 focus-visible:ring-2 focus-visible:ring-[#6B5874] focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+    @apply bg-gradient-to-r from-[#42164B] via-[#622347] to-[#A54055] hover:from-[#622347] hover:to-[#E99856] active:bg-[#1A1836] text-white font-semibold text-sm px-6 py-3 rounded-xl shadow-xs hover:shadow-floating transition-all duration-200 focus-visible:ring-2 focus-visible:ring-[#A54055] focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
   }
 
-  /* Canonical Secondary Action Button */
   .btn-secondary {
-    @apply border border-[#E8E1E9] bg-white hover:bg-[#FBF9FC] active:bg-[#F5F1F6] text-[#514657] font-semibold text-sm px-6 py-3 rounded-xl shadow-xs transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-[#6B5874] focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+    @apply border border-[#E0B4B2]/60 bg-white hover:bg-[#FAF7F6] active:bg-[#F4EDED] text-[#1A1836] font-semibold text-sm px-6 py-3 rounded-xl shadow-xs transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-[#622347] focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
   }
 
-  /* Canonical Surface Card */
   .surface-card {
-    @apply bg-white rounded-2xl shadow-[0_1px_3px_rgba(15,23,42,0.04)] border border-slate-200/80 hover:border-slate-300 hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition-all duration-200 overflow-hidden;
+    @apply bg-white rounded-2xl shadow-[0_2px_10px_rgba(26,24,54,0.04)] border border-[#EFE6E6] hover:border-[#E0B4B2] hover:shadow-[0_12px_28px_rgba(26,24,54,0.09)] transition-all duration-200 overflow-hidden;
   }
 }
 
@@ -208,73 +186,30 @@ html[dir="rtl"],
   }
 }
 
-/* Scoped Olma Immo Theme Tokens */
 @import "./components/OlmaImmo/styles/theme.css";
 
-/* Buyer dashboard's older Google-blue components inherit the Olmart palette. */
-#buyer-dashboard-root [class*="text-[#1a73e8]"] {
-  color: #5b4865 !important;
-}
-#buyer-dashboard-root [class*="bg-[#1a73e8]"] {
-  background-color: #5b4865 !important;
-}
-#buyer-dashboard-root [class*="bg-[#e8f0fe]"] {
-  background-color: #f1edf4 !important;
-}
-#buyer-dashboard-root [class*="border-[#1a73e8]"] {
-  border-color: #6b5874 !important;
-}
-#buyer-dashboard-root [class*="ring-[#1a73e8]"] {
-  --tw-ring-color: rgb(107 88 116 / 20%) !important;
-}
-#buyer-dashboard-root [class*="hover:bg-[#e8f0fe]"]:hover {
-  background-color: #f1edf4 !important;
-}
-#buyer-dashboard-root [class*="border-[#dadce0]"] {
-  border-color: #e8e1e9 !important;
-}
-#buyer-dashboard-root [class*="bg-[#f8fafd]"],
-#buyer-dashboard-root [class*="bg-[#f0f4f9]"] {
-  background-color: #fbf9fc !important;
-}
-#buyer-dashboard-root [class*="bg-[#e9eef6]"] {
-  background-color: #f5f1f6 !important;
-}
-#buyer-dashboard-root [class*="hover:bg-[#f8fafd]"]:hover {
-  background-color: #fbf9fc !important;
-}
-
-/* Seller tools use Olmart plum for primary actions while keeping status colors intact. */
-#seller-dashboard-root [class~="bg-orange-600"] {
-  background-color: #5b4865 !important;
-}
-#seller-dashboard-root [class~="bg-orange-500"] {
-  background-color: #5b4865 !important;
-}
-#seller-dashboard-root [class~="hover:bg-orange-700"]:hover {
-  background-color: #493852 !important;
-}
-#seller-dashboard-root [class~="hover:bg-orange-600"]:hover {
-  background-color: #493852 !important;
-}
-#seller-dashboard-root [class~="bg-orange-50"] {
-  background-color: #f1edf4 !important;
-}
-#seller-dashboard-root [class~="hover:bg-orange-100"]:hover {
-  background-color: #e9e1ec !important;
-}
+/* Harmonize Buyer & Seller Dashboards with the Mindazzle Twilight Palette */
+#buyer-dashboard-root [class*="text-[#1a73e8]"],
 #seller-dashboard-root [class~="text-orange-600"] {
-  color: #5b4865 !important;
+  color: #622347 !important;
 }
-#seller-dashboard-root [class~="text-orange-700"] {
-  color: #493852 !important;
+#buyer-dashboard-root [class*="bg-[#1a73e8]"],
+#seller-dashboard-root [class~="bg-orange-600"],
+#seller-dashboard-root [class~="bg-orange-500"] {
+  background-color: #622347 !important;
+}
+#seller-dashboard-root [class~="hover:bg-orange-700"]:hover,
+#seller-dashboard-root [class~="hover:bg-orange-600"]:hover {
+  background-color: #42164b !important;
+}
+#buyer-dashboard-root [class*="bg-[#e8f0fe]"],
+#seller-dashboard-root [class~="bg-orange-50"] {
+  background-color: #f9f2f4 !important;
+}
+#buyer-dashboard-root [class*="border-[#1a73e8]"],
+#seller-dashboard-root [class~="border-orange-500"] {
+  border-color: #a54055 !important;
 }
 #seller-dashboard-root [class~="text-orange-500"] {
-  color: #8a6b35 !important;
-}
-#seller-dashboard-root [class~="border-orange-500"] {
-  border-color: #6b5874 !important;
-}
-#seller-dashboard-root [class~="hover:text-orange-700"]:hover {
-  color: #493852 !important;
+  color: #e99856 !important;
 }

@@ -9,6 +9,11 @@ import { CategoryShopifyBento } from "./category/CategoryShopifyBento";
 import { CategoryShopifyStories } from "./category/CategoryShopifyStories";
 import { CategoryShopifyPills } from "./category/CategoryShopifyPills";
 import { CategoryShopifyCards } from "./category/CategoryShopifyCards";
+import { CategoryEditorialModels } from "./category/CategoryEditorialModels";
+import {
+  resolveCategoryGridCols,
+  resolveCategoryGapClass,
+} from "./category/categoryResponsiveHelper";
 
 interface FeaturedCategoriesRendererProps {
   settings: Record<string, unknown>;
@@ -103,8 +108,13 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
   const effectiveOverlay =
     layout === "overlay" || textPosition === "overlay-bottom" || textPosition === "overlay-center";
   const cardRadiusClass = radiusClassMap[borderRadius] || "rounded-2xl";
-  const gapClass =
-    gapSize === "compact" ? "gap-2.5" : gapSize === "spacious" ? "gap-5" : "gap-3.5";
+  const containerGridColsClass = resolveCategoryGridCols(
+    columnsDesktop,
+    columnsMobile,
+    cardSize,
+    "desktop"
+  );
+  const gapClass = resolveCategoryGapClass(gapSize, cardSize);
 
   const sharedProps = {
     categories,
@@ -130,16 +140,16 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
   return (
     <section
       onClick={isEditable ? onSelect : undefined}
-      className={wrapperClass}
+      className={`@container ${wrapperClass}`}
       style={sectionStyle}
     >
       <div className={maxWidth}>
-        <div className="mb-6 text-center space-y-1">
+        <div className="mb-5 @[560px]:mb-6 text-center space-y-1">
           <h2 className={headingClass} style={headingStyle}>
             {String(settings.title || "Nos Rayons & Collections")}
           </h2>
           {Boolean(settings.subtitle) && (
-            <p className="text-xs @sm:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
+            <p className="text-xs @[560px]:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
               {String(settings.subtitle)}
             </p>
           )}
@@ -168,12 +178,21 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
           />
         ) : layout === "bento" ? (
           <CategoryShopifyBento {...sharedProps} />
+        ) : layout === "accordion" ||
+          layout === "arch" ||
+          layout === "polaroid" ||
+          layout === "magazine" ? (
+          <CategoryEditorialModels
+            {...sharedProps}
+            layout={layout}
+            containerGridColsClass={containerGridColsClass}
+          />
         ) : (
           <CategoryShopifyCards
             {...sharedProps}
             layout={layout}
             carouselRef={carouselRef}
-            containerGridColsClass="grid-cols-2 @sm:grid-cols-3 @lg:grid-cols-4"
+            containerGridColsClass={containerGridColsClass}
             aspectRatioClass={aspectClassMap[aspectRatio] || "aspect-[4/5]"}
             effectiveOverlay={effectiveOverlay}
             textPosition={textPosition}

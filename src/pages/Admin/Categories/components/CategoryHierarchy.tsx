@@ -23,8 +23,7 @@ export const CategoryHierarchy = () => {
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (categories) {
-      // Tri initial par ordre existant ou par défaut
+    if (categories && categories.length > 0) {
       const sorted = [...(categories as CategoryItem[])].sort(
         (a: CategoryItem, b: CategoryItem) => (a.order || 0) - (b.order || 0)
       );

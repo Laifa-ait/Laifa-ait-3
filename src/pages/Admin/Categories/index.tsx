@@ -1,49 +1,67 @@
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, Network } from 'lucide-react';
-import { CategoryVisuals } from './components/CategoryVisuals';
-import { CategoryHierarchy } from './components/CategoryHierarchy';
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Percent, Network, ImageIcon } from "lucide-react";
+import { CategoryVisuals } from "./components/CategoryVisuals";
+import { CategoryHierarchy } from "./components/CategoryHierarchy";
+import { CategoryPhotosAdmin } from "../CategoryPhotosAdmin";
 
-export const CategoriesAdmin = () => {
+export const CategoriesAdmin: React.FC = () => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<"visuals" | "hierarchy">("visuals");
+  const [activeTab, setActiveTab] = useState<"hierarchy" | "commissions" | "photos">("hierarchy");
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('Gestion des Catégories')}</h1>
-          <p className="text-sm text-gray-500">{t('Gérez la structure et les visuels de votre catalogue')}</p>
+          <h1 className="text-3xl font-sans font-bold text-zinc-950 uppercase tracking-tight">
+            {t("Catégories, Arborescence & Commissions")}
+          </h1>
+          <p className="text-sm text-zinc-500 font-medium mt-1">
+            {t("Pilotez l'ordre d'affichage des rayons, les taux de commission et les visuels de catégories.")}
+          </p>
         </div>
       </div>
 
-      <div className="flex space-x-1 bg-gray-100/50 p-1 rounded-xl w-max">
+      <div className="flex flex-wrap gap-2 bg-zinc-100 p-1.5 rounded-2xl w-max">
         <button
-          onClick={() => setActiveTab('visuals')}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-            activeTab === 'visuals'
-              ? 'bg-white text-orange-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
+          onClick={() => setActiveTab("hierarchy")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
+            activeTab === "hierarchy"
+              ? "bg-[#1A1836] text-white shadow-sm"
+              : "text-zinc-600 hover:text-zinc-900"
           }`}
         >
-          <LayoutDashboard className="w-4 h-4" />
-          {t('Visuels & Produits')}
+          <Network className="w-4 h-4 text-[#E99856]" />
+          {t("Hiérarchie & Ordre")}
         </button>
         <button
-          onClick={() => setActiveTab('hierarchy')}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-            activeTab === 'hierarchy'
-              ? 'bg-white text-orange-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
+          onClick={() => setActiveTab("commissions")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
+            activeTab === "commissions"
+              ? "bg-[#1A1836] text-white shadow-sm"
+              : "text-zinc-600 hover:text-zinc-900"
           }`}
         >
-          <Network className="w-4 h-4" />
-          {t('Hiérarchie (Arbre)')}
+          <Percent className="w-4 h-4 text-[#E99856]" />
+          {t("Taux de Commission")}
+        </button>
+        <button
+          onClick={() => setActiveTab("photos")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
+            activeTab === "photos"
+              ? "bg-[#1A1836] text-white shadow-sm"
+              : "text-zinc-600 hover:text-zinc-900"
+          }`}
+        >
+          <ImageIcon className="w-4 h-4 text-[#E99856]" />
+          {t("Visuels & Photos Rayons")}
         </button>
       </div>
 
       <div className="mt-6">
-        {activeTab === 'visuals' ? <CategoryVisuals /> : <CategoryHierarchy />}
+        {activeTab === "hierarchy" && <CategoryHierarchy />}
+        {activeTab === "commissions" && <CategoryVisuals />}
+        {activeTab === "photos" && <CategoryPhotosAdmin />}
       </div>
     </div>
   );

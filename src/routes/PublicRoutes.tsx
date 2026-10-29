@@ -59,9 +59,17 @@ export const renderPublicRoutes = () => (
     <Route path="/shipping-calculator" element={<PageWrapper><ShippingCalculatorPage /></PageWrapper>} />
     <Route path="/shops" element={<PageWrapper><ShopsDirectory /></PageWrapper>} />
     <Route path="/search" element={<Navigate to="/shop" replace />} />
+    <Route path="/comparator" element={<Navigate to="/compare" replace />} />
+    <Route path="/login" element={<Navigate to="/auth" replace />} />
+    <Route path="/register" element={<Navigate to="/auth" replace />} />
+    <Route path="/terms-of-service" element={<PageWrapper><PrivacyPolicy /></PageWrapper>} />
+    <Route path="/terms" element={<Navigate to="/terms-of-service" replace />} />
+    <Route path="/aide" element={<Navigate to="/support" replace />} />
+    <Route path="/olma-immo" element={<Navigate to="/immo" replace />} />
     <Route path="/verify-email" element={<PageWrapper><VerifyEmail /></PageWrapper>} />
     <Route path="/onboarding" element={<PageWrapper><Onboarding /></PageWrapper>} />
     <Route path="/seller-onboarding" element={<PageWrapper><SellerOnboarding /></PageWrapper>} />
+    <Route path="/become-seller" element={<Navigate to="/seller-onboarding" replace />} />
     <Route path="/checkout" element={<PageWrapper><Checkout /></PageWrapper>} />
   </>
 );

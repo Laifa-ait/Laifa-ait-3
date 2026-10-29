@@ -96,13 +96,13 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
       <div className="flex items-center gap-3">
         {/* Logo / identité Olmart */}
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-[#F97316] flex items-center justify-center text-white">
+          <div className="w-8 h-8 rounded-lg bg-[#023859] flex items-center justify-center text-white">
             <Sparkles className="w-4 h-4" />
           </div>
-          <span className="text-[20px] font-[600] text-[#17191C] tracking-tight">
+          <span className="text-[20px] font-[600] text-[#011C40] tracking-tight">
             OLMART
           </span>
-          <span className="text-[12px] font-semibold text-[#F97316] bg-[#FFF7ED] border border-[#FDBA74] px-2 py-0.5 rounded-lg">
+          <span className="text-[12px] font-semibold text-[#023859] bg-[#F0F7FA] border border-[#54ACBF]/40 px-2 py-0.5 rounded-lg">
             Studio
           </span>
         </div>
@@ -112,7 +112,7 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
 
         {/* Nom de la boutique */}
         <div className="hidden sm:block max-w-[180px] truncate">
-          <span className="text-[14px] font-semibold text-[#17191C] truncate block" title={shopName}>
+          <span className="text-[14px] font-semibold text-[#011C40] truncate block" title={shopName}>
             {shopName}
           </span>
         </div>
@@ -129,11 +129,12 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
       {/* Dispositif responsive (Bureau / Tablette / Mobile) */}
       <div className="hidden lg:flex items-center bg-[#F5F6F8] p-1 border border-[#E4E7EC] rounded-lg mr-3">
         <button
+          type="button"
           onClick={() => setViewport("desktop")}
           className={`h-[32px] px-2.5 rounded-md text-[13px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
             viewport === "desktop"
-              ? "bg-[#FFFFFF] text-[#F97316] shadow-xs"
-              : "text-[#667085] hover:text-[#17191C]"
+              ? "bg-[#023859] text-white shadow-xs font-bold"
+              : "text-[#667085] hover:text-[#011C40]"
           }`}
           title="Aperçu Ordinateur"
         >
@@ -141,11 +142,12 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
           <span>Bureau</span>
         </button>
         <button
+          type="button"
           onClick={() => setViewport("tablet")}
           className={`h-[32px] px-2.5 rounded-md text-[13px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
             viewport === "tablet"
-              ? "bg-[#FFFFFF] text-[#F97316] shadow-xs"
-              : "text-[#667085] hover:text-[#17191C]"
+              ? "bg-[#023859] text-white shadow-xs font-bold"
+              : "text-[#667085] hover:text-[#011C40]"
           }`}
           title="Aperçu Tablette"
         >
@@ -153,11 +155,12 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
           <span>Tablette</span>
         </button>
         <button
+          type="button"
           onClick={() => setViewport("mobile")}
           className={`h-[32px] px-2.5 rounded-md text-[13px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
             viewport === "mobile"
-              ? "bg-[#FFFFFF] text-[#F97316] shadow-xs"
-              : "text-[#667085] hover:text-[#17191C]"
+              ? "bg-[#023859] text-white shadow-xs font-bold"
+              : "text-[#667085] hover:text-[#011C40]"
           }`}
           title="Aperçu Mobile"
         >
@@ -173,18 +176,18 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
             href={`/store/${shopSlug}`}
             target="_blank"
             rel="noreferrer"
-            className="h-[40px] px-4 rounded-lg border border-[#E4E7EC] bg-[#FFFFFF] hover:bg-[#F5F6F8] text-[#17191C] text-[14px] font-[500] flex items-center gap-2 transition-colors cursor-pointer"
+            className="h-[40px] px-4 rounded-lg border border-[#E4E7EC] bg-[#FFFFFF] hover:bg-[#F0F7FA] text-[#011C40] text-[14px] font-[500] flex items-center gap-2 transition-colors cursor-pointer"
           >
-            <ExternalLink className="w-4 h-4 text-[#667085]" />
+            <ExternalLink className="w-4 h-4 text-[#023859]" />
             <span>Aperçu</span>
           </a>
         ) : (
           <button
             type="button"
             onClick={() => setViewport(viewport === "desktop" ? "mobile" : "desktop")}
-            className="h-[40px] px-4 rounded-lg border border-[#E4E7EC] bg-[#FFFFFF] hover:bg-[#F5F6F8] text-[#17191C] text-[14px] font-[500] flex items-center gap-2 transition-colors cursor-pointer"
+            className="h-[40px] px-4 rounded-lg border border-[#E4E7EC] bg-[#FFFFFF] hover:bg-[#F0F7FA] text-[#011C40] text-[14px] font-[500] flex items-center gap-2 transition-colors cursor-pointer"
           >
-            <ExternalLink className="w-4 h-4 text-[#667085]" />
+            <ExternalLink className="w-4 h-4 text-[#023859]" />
             <span>Aperçu</span>
           </button>
         )}
@@ -192,13 +195,14 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
         {/* Bouton Principal « Publier » */}
         {onRequestPublication ? (
           <button
+            type="button"
             onClick={onRequestPublication}
             className={`h-[40px] px-4 rounded-lg text-[14px] font-[500] text-white flex items-center gap-2 transition-colors cursor-pointer shadow-xs ${
               isPendingReview
                 ? "bg-[#B45309] hover:bg-[#92400E]"
                 : isPublished
                 ? "bg-[#15803D] hover:bg-[#166534]"
-                : "bg-[#F97316] hover:bg-[#EA580C]"
+                : "bg-[#023859] hover:bg-[#011C40]"
             }`}
           >
             {isPendingReview ? (
@@ -220,8 +224,9 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
           </button>
         ) : (
           <button
+            type="button"
             onClick={() => setShowDirectPublishModal(true)}
-            className="h-[40px] px-4 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg text-[14px] font-[500] flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
+            className="h-[40px] px-4 bg-[#023859] hover:bg-[#011C40] text-white rounded-lg text-[14px] font-[500] flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
           >
             <Send className="w-4 h-4" />
             <span>Publier</span>

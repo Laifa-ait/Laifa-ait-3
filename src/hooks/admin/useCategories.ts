@@ -1,5 +1,8 @@
+import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { adminApi } from '../../services/api/admin.api';
+import { adminApi, CategoryItem } from '../../services/api/admin.api';
+
+const EMPTY_CATEGORIES: CategoryItem[] = [];
 
 export function useCategories() {
   const queryClient = useQueryClient();
@@ -8,15 +11,16 @@ export function useCategories() {
     queryFn: adminApi.getAdminCategories,
   });
 
-  const mutate = async () => {
+  const mutate = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] });
-  };
+  }, [queryClient]);
 
   return {
-    categories: data?.categories || [],
+    categories: data?.categories ?? EMPTY_CATEGORIES,
     isLoading,
     isError: error,
     mutate,
     refetch,
   };
 }
+

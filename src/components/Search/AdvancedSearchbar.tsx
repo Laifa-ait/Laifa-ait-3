@@ -90,26 +90,32 @@ export const AdvancedSearchbar: React.FC<AdvancedSearchbarProps> = ({
 
   return (
     <>
-      {isOverlayActive && createPortal(
-        <div
-          onClick={() => {
-            setIsFocused(false);
-            setShowDropdown(false);
-            inputRef.current?.blur();
-          }}
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-[90] transition-opacity duration-200"
-        />,
-        document.body
-      )}
+      {isOverlayActive &&
+        createPortal(
+          <div
+            onClick={() => {
+              setIsFocused(false);
+              setShowDropdown(false);
+              inputRef.current?.blur();
+            }}
+            className="fixed inset-0 bg-[#1A1836]/45 backdrop-blur-xs z-[90] transition-opacity duration-200"
+          />,
+          document.body
+        )}
 
-      <div ref={containerRef} className={`relative w-full ${isOverlayActive ? "z-[105]" : "z-[10]"} ${className}`}>
-        <div className={`flex items-center w-full rounded-2xl transition-all duration-200 h-11 sm:h-12 p-1.5 ${
-          isOverlayActive
-            ? "bg-white border-2 border-orange-500 shadow-lg ring-4 ring-orange-500/15"
-            : "bg-slate-50/90 hover:bg-white border border-slate-200/90 hover:border-orange-300 shadow-2xs"
-        }`}>
-          <div className="flex items-center justify-center shrink-0 text-orange-500 ps-3 pe-2">
-            <Search className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.4]" />
+      <div
+        ref={containerRef}
+        className={`relative w-full ${isOverlayActive ? "z-[105]" : "z-[10]"} ${className}`}
+      >
+        <div
+          className={`flex items-center w-full rounded-2xl transition-all duration-200 h-11 sm:h-12 p-1.5 ${
+            isOverlayActive
+              ? "bg-white border-2 border-[#622347] shadow-lg ring-4 ring-[#A54055]/15"
+              : "bg-[#FAF7F6] hover:bg-white border border-[#EFE6E6] hover:border-[#E0B4B2] shadow-2xs"
+          }`}
+        >
+          <div className="flex items-center justify-center shrink-0 text-[#A54055] ps-3 pe-2">
+            <Search className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.3]" />
           </div>
 
           <div className="relative flex-1 h-full flex items-center overflow-hidden">
@@ -134,20 +140,25 @@ export const AdvancedSearchbar: React.FC<AdvancedSearchbarProps> = ({
                   inputRef.current?.blur();
                 }
               }}
-              placeholder={localQuery ? "" : t(ROTATING_HINTS[hintIndex], ROTATING_HINTS[hintIndex])}
+              placeholder={
+                localQuery ? "" : t(ROTATING_HINTS[hintIndex], ROTATING_HINTS[hintIndex])
+              }
               autoComplete="off"
               spellCheck="false"
-              className="bg-transparent border-none focus:outline-none w-full h-full px-1 font-semibold text-slate-900 placeholder:text-slate-400 text-[13px] sm:text-[14px]"
+              className="bg-transparent border-none focus:outline-none w-full h-full px-1 font-semibold text-[#1A1836] placeholder:text-[#6E5A6F]/75 text-[13px] sm:text-[14px]"
             />
           </div>
 
           {isSearching ? (
-            <Loader2 className="w-4 h-4 animate-spin mx-2 text-orange-500 shrink-0" />
+            <Loader2 className="w-4 h-4 animate-spin mx-2 text-[#A54055] shrink-0" />
           ) : localQuery ? (
             <button
               type="button"
-              onClick={() => { setLocalQuery(""); setResults([]); }}
-              className="p-1.5 rounded-full hover:bg-slate-200/70 text-slate-400 hover:text-slate-700 mx-1 cursor-pointer border-none bg-transparent"
+              onClick={() => {
+                setLocalQuery("");
+                setResults([]);
+              }}
+              className="p-1.5 rounded-full hover:bg-[#F4EDED] text-[#6E5A6F] hover:text-[#1A1836] mx-1 cursor-pointer border-none bg-transparent"
             >
               <X className="w-4 h-4" />
             </button>
@@ -156,25 +167,28 @@ export const AdvancedSearchbar: React.FC<AdvancedSearchbarProps> = ({
           <button
             type="button"
             onClick={handleSearchSubmit}
-            className="h-full px-4 sm:px-6 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white font-bold text-xs sm:text-[13px] rounded-xl shadow-sm shadow-orange-500/20 flex items-center justify-center gap-1.5 active:scale-95 transition-all shrink-0 cursor-pointer border-none"
+            className="h-full px-4 sm:px-6 bg-gradient-to-r from-[#42164B] via-[#622347] to-[#A54055] hover:from-[#622347] hover:via-[#A54055] hover:to-[#E99856] text-white font-bold text-xs sm:text-[13px] rounded-xl shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all duration-200 shrink-0 cursor-pointer border-none whitespace-nowrap"
           >
             <span>{t("Rechercher", "Rechercher")}</span>
           </button>
         </div>
 
         {isOverlayActive && (
-          <div className="absolute left-0 right-0 top-full mt-2 w-full md:left-1/2 md:-translate-x-1/2 md:w-[760px] lg:w-[860px] bg-white border border-slate-200/90 shadow-2xl z-[150] rounded-2xl md:rounded-3xl overflow-hidden max-h-[75vh] md:max-h-[80vh] overflow-y-auto">
+          <div className="absolute left-0 right-0 top-full mt-2 w-full md:left-1/2 md:-translate-x-1/2 md:w-[760px] lg:w-[860px] bg-white border border-[#EFE6E6] shadow-2xl z-[150] rounded-2xl md:rounded-3xl overflow-hidden max-h-[75vh] md:max-h-[80vh] overflow-y-auto">
             <div className="p-3.5 sm:p-5 space-y-3.5">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              <div className="flex items-center justify-between pb-2 border-b border-[#EFE6E6]">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#42164B]">
                   {String(localQuery || "").trim()
                     ? t("search_direct_results", "Résultats directs")
                     : t("explore_catalog", "Articles recommandés")}
                 </span>
                 <button
                   type="button"
-                  onClick={() => { setIsFocused(false); setShowDropdown(false); }}
-                  className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer border-none bg-transparent shrink-0"
+                  onClick={() => {
+                    setIsFocused(false);
+                    setShowDropdown(false);
+                  }}
+                  className="p-1 rounded-full hover:bg-[#FAF7F6] text-[#6E5A6F] hover:text-[#1A1836] cursor-pointer border-none bg-transparent shrink-0"
                   aria-label="Fermer"
                 >
                   <X className="w-4 h-4" />

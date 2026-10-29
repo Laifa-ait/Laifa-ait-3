@@ -85,21 +85,21 @@ export const ProductCard = React.memo(
 
     const getContainerStyles = () => {
       if (isGlass) {
-        return "bg-white/90 backdrop-blur-md border border-slate-200 shadow-sm hover:shadow-md";
+        return "bg-white/92 backdrop-blur-md border border-[#EFE6E6] shadow-xs hover:shadow-md";
       }
       if (isPremium) {
-        return "bg-white border-2 border-emerald-600 shadow-sm hover:shadow-md hover:-translate-y-0.5";
+        return "bg-white border-2 border-[#622347] shadow-xs hover:shadow-md hover:-translate-y-0.5";
       }
       if (isImmersive) {
-        return "bg-white border-2 border-slate-900 shadow-sm hover:shadow-md hover:-translate-y-0.5";
+        return "bg-white border-2 border-[#1A1836] shadow-xs hover:shadow-md hover:-translate-y-0.5";
       }
       if (isElevated) {
-        return "bg-white border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5";
+        return "bg-white border border-[#EFE6E6] shadow-xs hover:shadow-md hover:-translate-y-0.5";
       }
       if (isDark) {
-        return "bg-slate-900 border border-slate-800 text-white";
+        return "bg-[#1A1836] border border-[#42164B] text-white";
       }
-      return "bg-white border border-slate-200/80 hover:border-slate-300 shadow-[0_1px_3px_rgba(15,23,42,0.04)] hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] hover:-translate-y-0.5";
+      return "bg-white border border-[#EFE6E6] hover:border-[#E0B4B2] shadow-[0_2px_8px_rgba(26,24,54,0.04)] hover:shadow-[0_12px_28px_rgba(26,24,54,0.09)] hover:-translate-y-0.5";
     };
 
     return (
@@ -108,27 +108,28 @@ export const ProductCard = React.memo(
         onClick={() => defaultClick(product)}
       >
         {/* Photo Container */}
-        <div className="relative aspect-[3/4] sm:aspect-[4/5] w-full overflow-hidden bg-slate-50">
+        <div className="relative aspect-[3/4] sm:aspect-[4/5] w-full overflow-hidden bg-[#FAF7F6]">
           <img
             src={getOptimizedImageUrl(product.image, 600) || "/images/placeholders/product.svg"}
             alt={getTranslatedField(product, "name", lang)}
             loading="lazy"
             decoding="async"
+            referrerPolicy="no-referrer"
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             onError={(e) => {
               (e.currentTarget as HTMLImageElement).src = "/images/placeholders/product.svg";
             }}
           />
 
-          {/* Badges en haut à gauche */}
+          {/* Top-left single clean discount or energy indicator */}
           <div className="absolute top-2.5 start-2.5 z-20 flex flex-col items-start gap-1 pointer-events-none">
             {hasDiscount && discountPercent > 0 && (
-              <span className="flex items-center gap-1 bg-red-600 text-white font-sans font-extrabold text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full shadow-xs">
+              <span className="flex items-center gap-1 bg-[#A54055] text-white font-mono tabular-nums font-bold text-[10px] px-2 py-0.5 rounded-lg shadow-xs">
                 -{discountPercent}%
               </span>
             )}
-            {product.isSponsored && (
-              <span className="bg-slate-100 text-slate-700 border border-slate-200 font-sans font-bold text-[8px] sm:text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full">
+            {product.isSponsored && !hasDiscount && (
+              <span className="bg-[#1A1836]/85 backdrop-blur-sm text-[#E0B4B2] font-sans font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-md">
                 {t("Sponsorisé")}
               </span>
             )}
@@ -142,7 +143,7 @@ export const ProductCard = React.memo(
             )}
           </div>
 
-          {/* Actions flottantes en haut à droite */}
+          {/* Floating actions top-right */}
           <div className="absolute top-2.5 end-2.5 z-20 flex flex-col gap-1.5 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <button
               type="button"
@@ -151,9 +152,13 @@ export const ProductCard = React.memo(
                 e.stopPropagation();
                 toggleWishlist(product.id);
               }}
-              className="w-8 h-8 rounded-full bg-white/95 hover:bg-slate-100 backdrop-blur-sm flex items-center justify-center text-slate-700 hover:scale-105 active:scale-95 transition-all shadow-xs cursor-pointer border border-slate-200"
+              className="w-8 h-8 rounded-full bg-white/95 hover:bg-[#FAF7F6] backdrop-blur-sm flex items-center justify-center text-[#1A1836] hover:scale-105 active:scale-95 transition-all shadow-xs cursor-pointer border border-[#EFE6E6]"
             >
-              <Heart className={`w-3.5 h-3.5 ${wishlist.includes(product.id) ? "fill-red-500 text-red-500" : "stroke-[2]"}`} />
+              <Heart
+                className={`w-3.5 h-3.5 ${
+                  wishlist.includes(product.id) ? "fill-[#A54055] text-[#A54055]" : "stroke-[2]"
+                }`}
+              />
             </button>
             <button
               type="button"
@@ -165,8 +170,8 @@ export const ProductCard = React.memo(
               }}
               className={`w-8 h-8 rounded-full backdrop-blur-sm flex items-center justify-center shadow-xs hover:scale-105 active:scale-95 transition-all cursor-pointer border ${
                 isCompared
-                  ? "bg-slate-900 text-white border-transparent"
-                  : "bg-white/95 text-slate-700 hover:bg-slate-100 border-slate-200"
+                  ? "bg-[#622347] text-white border-transparent"
+                  : "bg-white/95 text-[#1A1836] hover:bg-[#FAF7F6] border-[#EFE6E6]"
               }`}
             >
               <Scale className="w-3.5 h-3.5" />
@@ -174,34 +179,34 @@ export const ProductCard = React.memo(
           </div>
         </div>
 
-        {/* Corps de la carte : Métadonnées, Titre et Prix */}
+        {/* Card Body: Metadata, Title, and Tabular Price */}
         <div className="p-3 sm:p-3.5 flex flex-col flex-1 justify-between gap-2 bg-white">
           <div className="space-y-1">
             <div className="flex items-center justify-between gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E5A6F] truncate">
                 {product.category || product.sellerName || "Olmart"}
               </span>
               {Number(product.rating || 0) > 0 && (
-                <div className="flex items-center gap-0.5 text-slate-700 text-[10px] font-bold shrink-0">
-                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                <div className="flex items-center gap-0.5 text-[#1A1836] text-[10px] font-mono tabular-nums font-bold shrink-0">
+                  <Star className="w-3 h-3 fill-[#E99856] text-[#E99856]" />
                   <span>{Number(product.rating).toFixed(1)}</span>
                 </div>
               )}
             </div>
 
-            <h3 className="font-sans font-semibold text-slate-900 group-hover:text-emerald-700 text-xs sm:text-sm leading-snug line-clamp-2 transition-colors">
+            <h3 className="font-sans font-semibold text-[#1A1836] group-hover:text-[#622347] text-xs sm:text-sm leading-snug line-clamp-2 transition-colors">
               {getTranslatedField(product, "name", lang)}
             </h3>
           </div>
 
-          {/* Ligne inférieure : Prix */}
-          <div className="pt-2 border-t border-slate-100 flex items-baseline justify-between gap-2 mt-auto">
+          {/* Bottom Row: Price */}
+          <div className="pt-2 border-t border-[#FAF7F6] flex items-baseline justify-between gap-2 mt-auto">
             <div className="flex flex-wrap items-baseline gap-1.5 min-w-0">
-              <span className="font-sans font-black text-sm sm:text-base tracking-tight tabular-nums text-[#011C40]">
+              <span className="font-sans font-extrabold text-sm sm:text-base tracking-tight tabular-nums text-[#1A1836]">
                 {formatPrice(currentPrice)}
               </span>
               {hasDiscount && (
-                <span className="font-sans text-[11px] text-slate-400 line-through tabular-nums">
+                <span className="font-sans text-[11px] text-[#9B879C] line-through tabular-nums">
                   {formatPrice(originalPrice)}
                 </span>
               )}

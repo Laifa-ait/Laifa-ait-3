@@ -25,7 +25,7 @@ const SECTION_BADGE_LABELS: Record<string, string> = {
   brand_story: "Notre Histoire",
   showcase_video: "Vidéo Vitrine",
   verified_reviews: "Avis Vérifiés",
-  delivery_info: "Livraison 58 Wilayas",
+  delivery_info: "Livraison 69 Wilayas",
   return_policy: "Retours & Échanges",
   faq_accordion: "Questions Fréquentes",
   contact_footer: "Contact & Horaires",
@@ -93,9 +93,14 @@ export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({
     e: React.MouseEvent
   ) => {
     e.stopPropagation();
-    selectSection(section.id, "inspector-open");
+    selectSection(section.id, null);
     setActiveInspectorTab(inspectorTab);
     if (onSelectSection) onSelectSection(section.id);
+    window.dispatchEvent(
+      new CustomEvent("studio:open-inspector-tab", {
+        detail: { sectionId: section.id, tab: inspectorTab },
+      })
+    );
   };
 
   const hiddenOpacityClass = !section.isVisible && isEditable ? "opacity-50 grayscale" : "";

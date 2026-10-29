@@ -8,7 +8,7 @@
 ![Tests: Vitest](https://img.shields.io/badge/tests-vitest_4.1-44a833.svg)
 ![License: Proprietary](https://img.shields.io/badge/license-Proprietary-red.svg)
 
-Plateforme e-commerce et marketplace de niveau industriel dédiée au marché algérien, couvrant l'ensemble des 69 wilayas. Ce système intègre une gestion multi-vendeurs robuste, des transactions ACID sécurisées, une messagerie directe, et le module d'annonces immobilières **Olma Immo**.
+Plateforme e-commerce et Super-App de niveau industriel dédiée au marché algérien, couvrant l'ensemble des 69 wilayas. Ce système intègre une gestion multi-vendeurs robuste, des transactions ACID sécurisées, une messagerie directe, ainsi que les applications dédiées **Olma Immo** (immobilier) et **Olma Auto** (recherche de véhicules par marque, petites annonces automobiles & pièces détachées).
 
 ---
 

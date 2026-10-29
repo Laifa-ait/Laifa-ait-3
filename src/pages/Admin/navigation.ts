@@ -1,8 +1,8 @@
+import React from "react";
 import {
   LayoutDashboard,
   Users,
   ShieldAlert,
-  PieChart,
   Megaphone,
   Settings,
   Database,
@@ -14,202 +14,222 @@ import {
   ImageIcon,
   LayoutTemplate,
   Tag,
-  BellRing,
   Bot,
   Languages,
-  Rocket,
   Download,
   Activity,
   ShieldCheck,
   Sparkles,
   Wrench,
   Car,
+  Building2,
+  CreditCard,
+  Network,
+  Store,
+  Award,
 } from "lucide-react";
 
-export const getNavGroups = (t: (key: string) => string) => [
+export interface AdminNavItem {
+  to: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  end?: boolean;
+  badge?: string;
+}
+
+export interface AdminNavGroup {
+  id: string;
+  title: string;
+  items: AdminNavItem[];
+}
+
+export const getNavGroups = (t: (key: string) => string): AdminNavGroup[] => [
   {
-    title: t("admin.sidebar.group_dashboard") !== "admin.sidebar.group_dashboard" ? t("admin.sidebar.group_dashboard") : "Tableau de Bord",
+    id: "pilotage",
+    title: t("Pilotage & Analytique"),
     items: [
       {
         to: "/dashboard/admin",
         icon: LayoutDashboard,
-        label: t("admin_analytics") !== "admin_analytics" ? t("admin_analytics") : "Analytics",
+        label: t("Vue d'Ensemble (KPIs)"),
         end: true,
       },
       {
         to: "/dashboard/admin/reports",
         icon: Download,
-        label: t("admin.sidebar.reports") !== "admin.sidebar.reports" ? t("admin.sidebar.reports") : "Exports & Rapports",
+        label: t("Exports & Rapports CSV"),
       },
     ],
   },
   {
-    title: t("admin.sidebar.group_gestion") !== "admin.sidebar.group_gestion" ? t("admin.sidebar.group_gestion") : "Gestion Commerciale",
+    id: "merchants",
+    title: t("Marchands, Comptes & Forfaits"),
     items: [
       {
-        to: "/dashboard/admin/orders",
-        icon: LayoutGrid,
-        label: t("admin.sidebar.orders") !== "admin.sidebar.orders" ? t("admin.sidebar.orders") : "Commandes & Achats",
+        to: "/dashboard/admin/sellers",
+        icon: Store,
+        label: t("Vendeurs & KYC"),
+      },
+      {
+        to: "/dashboard/admin/subscriptions",
+        icon: CreditCard,
+        label: t("Abonnements Studio (RIB)"),
+        badge: "PRO",
       },
       {
         to: "/dashboard/admin/users",
         icon: Users,
-        label: t("admin.sidebar.vip") !== "admin.sidebar.vip" ? t("admin.sidebar.vip") : "Clients VIP",
-      },
-      {
-        to: "/dashboard/admin/sellers",
-        icon: Users,
-        label: t("admin.sidebar.sellers") !== "admin.sidebar.sellers" ? t("admin.sidebar.sellers") : "Vendeurs",
-      },
-      {
-        to: "/dashboard/admin/artisans",
-        icon: Wrench,
-        label: "Artisans & Pros (Organisation)",
-      },
-      {
-        to: "/dashboard/admin/auto",
-        icon: Car,
-        label: "Modération Olma Auto",
-      },
-      {
-        to: "/dashboard/admin/disputes",
-        icon: AlertTriangle,
-        label: t("admin.sidebar.disputes") !== "admin.sidebar.disputes" ? t("admin.sidebar.disputes") : "Litiges & Retours",
-      },
-      {
-        to: "/dashboard/admin/support",
-        icon: MessageSquare,
-        label: t("admin.sidebar.support") !== "admin.sidebar.support" ? t("admin.sidebar.support") : "Messages Support",
-      },
-      {
-        to: "/dashboard/admin/reviews",
-        icon: MessageSquareWarning,
-        label: t("admin.sidebar.reviews") !== "admin.sidebar.reviews" ? t("admin.sidebar.reviews") : "Modération des Avis",
+        label: t("Utilisateurs, Rôles & B2B"),
       },
     ],
   },
   {
-    title: t("admin.sidebar.group_catalog") !== "admin.sidebar.group_catalog" ? t("admin.sidebar.group_catalog") : "Catalogue & Design",
+    id: "catalog",
+    title: t("Catalogue & Marketplace"),
     items: [
+      {
+        to: "/dashboard/admin/orders",
+        icon: LayoutGrid,
+        label: t("Commandes Globales"),
+      },
       {
         to: "/dashboard/admin/products-moderation",
         icon: ShieldAlert,
-        label: t("admin.sidebar.product_moderation") !== "admin.sidebar.product_moderation" ? t("admin.sidebar.product_moderation") : "Modération Produits",
+        label: t("Modération Produits"),
       },
       {
         to: "/dashboard/admin/curation",
         icon: Star,
-        label: t("admin.sidebar.curation") !== "admin.sidebar.curation" ? t("admin.sidebar.curation") : "Curation Produits",
+        label: t("Curation & Score IA"),
       },
       {
-        to: "/dashboard/admin/banners",
-        icon: ImageIcon,
-        label: t("admin.sidebar.banners") !== "admin.sidebar.banners" ? t("admin.sidebar.banners") : "Visuels & Bannières",
+        to: "/dashboard/admin/categories",
+        icon: Network,
+        label: t("Catégories & Commissions"),
       },
       {
-        to: "/dashboard/admin/shops",
-        icon: LayoutTemplate,
-        label: t("admin.sidebar.shops") !== "admin.sidebar.shops" ? t("admin.sidebar.shops") : "Boutiques Thématiques",
+        to: "/dashboard/admin/reviews",
+        icon: MessageSquareWarning,
+        label: t("Modération des Avis"),
+      },
+    ],
+  },
+  {
+    id: "ecosystem",
+    title: t("Écosystème Olma (Verticales)"),
+    items: [
+      {
+        to: "/dashboard/admin/artisans",
+        icon: Wrench,
+        label: t("Artisans & Services Pros"),
       },
       {
-        to: "/dashboard/admin/homepage",
-        icon: LayoutTemplate,
-        label: t("admin.sidebar.homepage") !== "admin.sidebar.homepage" ? t("admin.sidebar.homepage") : "Homepage Builder",
+        to: "/dashboard/admin/auto",
+        icon: Car,
+        label: t("Olma Auto (Véhicules)"),
       },
       {
-        to: "/dashboard/admin/megamenu",
-        icon: Settings,
-        label: t("admin.sidebar.megamenu") !== "admin.sidebar.megamenu" ? t("admin.sidebar.megamenu") : "Mega Menu",
-      },
-      {
-        to: "/dashboard/admin/search-index",
-        icon: Database,
-        label: t("admin.sidebar.search_index") !== "admin.sidebar.search_index" ? t("admin.sidebar.search_index") : "Indexation & Recherche",
+        to: "/dashboard/admin/immo",
+        icon: Building2,
+        label: t("Olma Immo & Agences"),
+        badge: "NEW",
       },
       {
         to: "/dashboard/admin/univers",
         icon: Sparkles,
-        label: "Applications Univers Olma",
+        label: t("Apps Univers Olma"),
       },
     ],
   },
   {
-    title: t("admin.sidebar.group_marketing") !== "admin.sidebar.group_marketing" ? t("admin.sidebar.group_marketing") : "Marketing & Promotions",
+    id: "mediation_growth",
+    title: t("Médiation, Vitrine & Croissance"),
     items: [
+      {
+        to: "/dashboard/admin/disputes",
+        icon: AlertTriangle,
+        label: t("Litiges & Arbitrage"),
+      },
+      {
+        to: "/dashboard/admin/support",
+        icon: MessageSquare,
+        label: t("Tickets Support"),
+      },
+      {
+        to: "/dashboard/admin/homepage",
+        icon: LayoutTemplate,
+        label: t("Homepage Studio"),
+      },
+      {
+        to: "/dashboard/admin/banners",
+        icon: ImageIcon,
+        label: t("Visuels & Bannières"),
+      },
+      {
+        to: "/dashboard/admin/sponsorships",
+        icon: Award,
+        label: t("Sponsoring & Packs"),
+      },
       {
         to: "/dashboard/admin/promotions",
         icon: Tag,
-        label: t("admin.sidebar.promo") !== "admin.sidebar.promo" ? t("admin.sidebar.promo") : "Codes Promo",
-      },
-      {
-        to: "/dashboard/admin/marketing",
-        icon: PieChart,
-        label: t("admin.sidebar.marketing") !== "admin.sidebar.marketing" ? t("admin.sidebar.marketing") : "Marketing",
+        label: t("Codes Promo"),
       },
       {
         to: "/dashboard/admin/newsletter",
         icon: Megaphone,
-        label: t("admin.sidebar.newsletter") !== "admin.sidebar.newsletter" ? t("admin.sidebar.newsletter") : "Newsletter 2.0",
-      },
-      {
-        to: "/dashboard/admin/push-notifications",
-        icon: BellRing,
-        label: t("admin.sidebar.push") !== "admin.sidebar.push" ? t("admin.sidebar.push") : "Notifications Push",
-      },
-      {
-        to: "/dashboard/admin/sponsorships",
-        icon: Star,
-        label: t("admin.sidebar.sponsorships") !== "admin.sidebar.sponsorships" ? t("admin.sidebar.sponsorships") : "Sponsoring",
+        label: t("Newsletter 2.0"),
       },
     ],
   },
   {
-    title: t("admin.sidebar.group_system") !== "admin.sidebar.group_system" ? t("admin.sidebar.group_system") : "Configuration Système",
+    id: "system",
+    title: t("Système, IA & Sécurité"),
     items: [
-      {
-        to: "/dashboard/admin/health",
-        icon: Activity,
-        label: t("admin.sidebar.health") !== "admin.sidebar.health" ? t("admin.sidebar.health") : "Santé du Système",
-      },
-      {
-        to: "/dashboard/admin/checkout-audit",
-        icon: ShieldCheck,
-        label: t("admin.sidebar.checkout_audit") !== "admin.sidebar.checkout_audit" ? t("admin.sidebar.checkout_audit") : "Audit UX / Accessibilité",
-      },
       {
         to: "/dashboard/admin/agents",
         icon: Bot,
-        label: t("admin.sidebar.agents") !== "admin.sidebar.agents" ? t("admin.sidebar.agents") : "Agents IA",
+        label: t("Agents IA & Sentinel"),
       },
       {
-        to: "/dashboard/admin/settings",
-        icon: Settings,
-        label: t("admin.sidebar.settings") !== "admin.sidebar.settings" ? t("admin.sidebar.settings") : "Paramètres Généraux",
-      },
-      {
-        to: "/dashboard/admin/audit-logs",
-        icon: ShieldAlert,
-        label: t("admin.sidebar.audit") !== "admin.sidebar.audit" ? t("admin.sidebar.audit") : "Audit & Sécurité",
+        to: "/dashboard/admin/search-index",
+        icon: Database,
+        label: t("Indexation & Recherche"),
       },
       {
         to: "/dashboard/admin/translations",
         icon: Languages,
-        label: t("admin.sidebar.translations") !== "admin.sidebar.translations" ? t("admin.sidebar.translations") : "Audit & Traductions",
+        label: t("Traductions (FR/AR/EN)"),
+      },
+      {
+        to: "/dashboard/admin/audit-logs",
+        icon: ShieldCheck,
+        label: t("Audit & Sécurité"),
+      },
+      {
+        to: "/dashboard/admin/health",
+        icon: Activity,
+        label: t("Santé du Système"),
       },
       {
         to: "/dashboard/admin/site-logs",
         icon: AlertTriangle,
-        label: t("admin.sidebar.errors") !== "admin.sidebar.errors" ? t("admin.sidebar.errors") : "Exceptions & Erreurs",
+        label: t("Exceptions & Erreurs"),
+      },
+      {
+        to: "/dashboard/admin/checkout-audit",
+        icon: ShieldCheck,
+        label: t("Audit UX Checkout"),
       },
       {
         to: "/dashboard/admin/seed",
         icon: Database,
-        label: t("admin.sidebar.seed") !== "admin.sidebar.seed" ? t("admin.sidebar.seed") : "Base Démo (Seed)",
+        label: t("Base Démo (Seed)"),
       },
       {
-        to: "/dashboard/admin/launch-checklist",
-        icon: Rocket,
-        label: t("admin.sidebar.launch") !== "admin.sidebar.launch" ? t("admin.sidebar.launch") : "Checklist de Lancement",
+        to: "/dashboard/admin/settings",
+        icon: Settings,
+        label: t("Paramètres & Légal"),
       },
     ],
   },

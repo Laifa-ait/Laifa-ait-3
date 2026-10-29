@@ -58,7 +58,7 @@ export const SellerDrawer: React.FC<SellerDrawerProps> = ({
   if (!selectedSeller) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -68,7 +68,7 @@ export const SellerDrawer: React.FC<SellerDrawerProps> = ({
       />
       <motion.div
         layoutId="seller-modal"
-        className="relative bg-white w-full max-w-5xl rounded-[4rem] shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]"
+        className="relative bg-white w-full max-w-5xl rounded-3xl md:rounded-[3.5rem] shadow-2xl overflow-y-auto md:overflow-hidden flex flex-col md:flex-row max-h-[90vh]"
       >
         <SellerDrawerDetails
           selectedSeller={selectedSeller}
@@ -80,14 +80,14 @@ export const SellerDrawer: React.FC<SellerDrawerProps> = ({
           setOcrResult={setOcrResult}
         />
 
-        <div className="w-full md:w-96 bg-zinc-50 p-12 flex flex-col justify-between border-l border-zinc-100">
-          <div className="space-y-10">
+        <div className="w-full md:w-96 bg-zinc-50 p-5 sm:p-8 md:p-10 flex flex-col justify-between border-t md:border-t-0 md:border-l border-zinc-100 md:overflow-y-auto shrink-0">
+          <div className="space-y-6 sm:space-y-8">
             <div>
-              <p className="text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-4">
+              <p className="text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-2">
                 {t("Statut Actuel")}
               </p>
               <h5
-                className={`text-2xl font-black uppercase tracking-tighter rtl:tracking-normal ${
+                className={`text-xl sm:text-2xl font-black uppercase tracking-tighter rtl:tracking-normal ${
                   selectedSeller.status === "active" ? "text-emerald-500" : "text-amber-500"
                 }`}
               >

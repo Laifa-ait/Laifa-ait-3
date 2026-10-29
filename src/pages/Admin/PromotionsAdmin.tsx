@@ -5,9 +5,11 @@ import toast from "react-hot-toast";
 import { apiGet, apiPut, apiDelete } from "../../lib/api";
 import { Coupon, CouponCard } from "../../components/Admin/CouponCard";
 import { CouponModal } from "../../components/Admin/CouponModal";
+import { useConfirm } from "../../hooks/useConfirm";
 
 export const PromotionsAdmin: React.FC = () => {
   const { t } = useTranslation();
+  const { confirm, ConfirmationDialog } = useConfirm();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [sellersList, setSellersList] = useState<{ id: string; name: string }[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -63,7 +65,8 @@ export const PromotionsAdmin: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm(t("Êtes-vous sûr de vouloir supprimer ce coupon ?"))) {
+    const ok = await confirm(t("Êtes-vous sûr de vouloir supprimer ce coupon promotionnel ?"));
+    if (ok) {
       try {
         await apiDelete(`/api/v1/admin/promotions/coupons/${id}`);
         setCoupons((prev) => prev.filter((c) => c.id !== id));
@@ -77,6 +80,7 @@ export const PromotionsAdmin: React.FC = () => {
 
   return (
     <div className="space-y-8 font-sans">
+      <ConfirmationDialog />
       {/* Header section with clean premium typography */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>

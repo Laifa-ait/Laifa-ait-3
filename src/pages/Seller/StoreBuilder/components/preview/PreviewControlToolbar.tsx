@@ -1,21 +1,8 @@
 import React from "react";
 import {
-  Smartphone,
-  Tablet,
-  Monitor,
-  RotateCw,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  QrCode,
-  Sparkles,
-  Play,
-  Edit3,
-  Grid,
-  PanelLeftClose,
-  PanelLeftOpen,
-  PanelRightClose,
-  PanelRightOpen,
+  Smartphone, Tablet, Monitor, RotateCw, ZoomIn, ZoomOut,
+  Maximize2, QrCode, Sparkles, Play, Edit3, Grid,
+  PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
 } from "lucide-react";
 
 export type PreviewDevice = "mobile" | "tablet" | "desktop";
@@ -45,29 +32,13 @@ interface PreviewControlToolbarProps {
 }
 
 export const PreviewControlToolbar: React.FC<PreviewControlToolbarProps> = ({
-  device,
-  setDevice,
-  orientation,
-  toggleOrientation,
-  zoom,
-  setZoom,
-  isInteractiveMode,
-  setIsInteractiveMode,
-  showGrid,
-  setShowGrid,
-  isFullscreen,
-  toggleFullscreen,
-  onOpenQrModal,
-  onOpenAuditModal,
-  showLeftSidebar = true,
-  onToggleLeftSidebar,
-  showRightSidebar = true,
-  onToggleRightSidebar,
+  device, setDevice, orientation, toggleOrientation, zoom, setZoom,
+  isInteractiveMode, setIsInteractiveMode, showGrid, setShowGrid,
+  isFullscreen, toggleFullscreen, onOpenQrModal, onOpenAuditModal,
+  showLeftSidebar = true, onToggleLeftSidebar, showRightSidebar = true, onToggleRightSidebar,
 }) => {
-  const handleZoomIn = () =>
-    setZoom((prev) => Math.min(Number((prev + 0.1).toFixed(2)), 1.4));
-  const handleZoomOut = () =>
-    setZoom((prev) => Math.max(Number((prev - 0.1).toFixed(2)), 0.6));
+  const handleZoomIn = () => setZoom((prev) => Math.min(Number((prev + 0.1).toFixed(2)), 1.4));
+  const handleZoomOut = () => setZoom((prev) => Math.max(Number((prev - 0.1).toFixed(2)), 0.6));
   const handleZoomReset = () => setZoom(1);
 
   return (
@@ -94,49 +65,34 @@ export const PreviewControlToolbar: React.FC<PreviewControlToolbarProps> = ({
           </button>
         )}
 
-        {/* Segmented Viewport Switcher */}
+        {/* Segmented Viewport Switcher (PC / Tablette / Mobile) */}
         <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200/80">
-          <button
-            type="button"
-            onClick={() => setDevice("mobile")}
-            className={`h-7 px-2 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap ${
-              device === "mobile"
-                ? "bg-white text-[#011C40] shadow-2xs font-bold"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-            title="Aperçu Mobile (390px)"
-          >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Mobile</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setDevice("tablet")}
-            className={`h-7 px-2 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap ${
-              device === "tablet"
-                ? "bg-white text-[#011C40] shadow-2xs font-bold"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-            title="Aperçu Tablette (768px)"
-          >
-            <Tablet className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Tablette</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setDevice("desktop")}
-            className={`h-7 px-2 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap ${
-              device === "desktop"
-                ? "bg-white text-[#011C40] shadow-2xs font-bold"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-            title="Aperçu Ordinateur"
-          >
-            <Monitor className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">PC</span>
-          </button>
+          {(
+            [
+              { id: "desktop" as const, label: "PC", title: "Aperçu Ordinateur", icon: Monitor },
+              { id: "tablet" as const, label: "Tablette", title: "Aperçu Tablette (768px)", icon: Tablet },
+              { id: "mobile" as const, label: "Mobile", title: "Aperçu Mobile (390px)", icon: Smartphone },
+            ]
+          ).map((vp) => {
+            const Icon = vp.icon;
+            const isAct = device === vp.id;
+            return (
+              <button
+                key={vp.id}
+                type="button"
+                onClick={() => setDevice(vp.id)}
+                className={`h-7 px-2 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap ${
+                  isAct
+                    ? "bg-[#023859] text-white shadow-2xs font-bold"
+                    : "text-slate-600 hover:text-[#011C40]"
+                }`}
+                title={vp.title}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{vp.label}</span>
+              </button>
+            );
+          })}
 
           {device !== "desktop" && (
             <button
@@ -216,7 +172,7 @@ export const PreviewControlToolbar: React.FC<PreviewControlToolbarProps> = ({
           onClick={() => setShowGrid(!showGrid)}
           className={`h-7 px-2 rounded-lg flex items-center gap-1 border text-xs font-semibold transition-colors cursor-pointer ${
             showGrid
-              ? "bg-[#F8FBFC] border-[#54ACBF] text-[#023859]"
+              ? "bg-[#F0F7FA] border-[#54ACBF] text-[#023859]"
               : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
           }`}
           title="Afficher la grille d'alignement"
@@ -227,10 +183,10 @@ export const PreviewControlToolbar: React.FC<PreviewControlToolbarProps> = ({
         <button
           type="button"
           onClick={onOpenQrModal}
-          className="h-7 px-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+          className="h-7 px-2 rounded-lg bg-white border border-slate-200 hover:bg-[#F0F7FA] text-[#023859] text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
           title="Tester sur téléphone via QR Code"
         >
-          <QrCode className="w-3.5 h-3.5 text-[#023859]" />
+          <QrCode className="w-3.5 h-3.5" />
         </button>
 
         <button
@@ -248,7 +204,7 @@ export const PreviewControlToolbar: React.FC<PreviewControlToolbarProps> = ({
           onClick={toggleFullscreen}
           className={`h-7 px-2 rounded-lg border flex items-center justify-center transition-colors cursor-pointer ${
             isFullscreen
-              ? "bg-[#F8FBFC] border-[#54ACBF] text-[#023859]"
+              ? "bg-[#F0F7FA] border-[#54ACBF] text-[#023859]"
               : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
           }`}
           title={isFullscreen ? "Quitter Plein Écran" : "Aperçu Plein Écran"}
@@ -262,7 +218,7 @@ export const PreviewControlToolbar: React.FC<PreviewControlToolbarProps> = ({
             onClick={onToggleRightSidebar}
             className={`hidden md:inline-flex h-8 px-2.5 rounded-lg border text-xs font-semibold items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
               !showRightSidebar
-                ? "bg-[#F8FBFC] border-[#54ACBF] text-[#023859]"
+                ? "bg-[#F0F7FA] border-[#54ACBF] text-[#023859]"
                 : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
             }`}
             title={showRightSidebar ? "Masquer l'inspecteur" : "Afficher l'inspecteur"}

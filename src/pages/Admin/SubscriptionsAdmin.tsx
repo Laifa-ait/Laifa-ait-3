@@ -6,8 +6,10 @@ import { SubscriptionRequestsTable } from "./Subscriptions/SubscriptionRequestsT
 import { PaymentInstructionsModal } from "./Subscriptions/PaymentInstructionsModal";
 import { ConfirmPaymentModal } from "./Subscriptions/ConfirmPaymentModal";
 import { SubscriptionPlansManager } from "./Subscriptions/SubscriptionPlansManager";
+import { useConfirm } from "../../hooks/useConfirm";
 
 export const SubscriptionsAdmin: React.FC = () => {
+  const { confirm, ConfirmationDialog } = useConfirm();
   const [activeTab, setActiveTab] = useState<"requests" | "plans">("requests");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [requests, setRequests] = useState<SubscriptionRequest[]>([]);
@@ -31,7 +33,7 @@ export const SubscriptionsAdmin: React.FC = () => {
       setError(null);
       const [reqsData, plansData] = await Promise.all([
         subscriptionApi.getAdminRequests(statusFilter),
-        subscriptionApi.getAdminPlans()
+        subscriptionApi.getAdminPlans(),
       ]);
       setRequests(reqsData);
       setPlans(plansData);
@@ -75,13 +77,14 @@ export const SubscriptionsAdmin: React.FC = () => {
   };
 
   const handleGrantSubscription = async (req: SubscriptionRequest) => {
-    if (!window.confirm(`Confirmez-vous l'accord officiel du forfait ${req.planSnapshot.name} pour la boutique ${req.shopName} ?`)) {
-      return;
-    }
+    const ok = await confirm(
+      `Confirmez-vous l'accord officiel du forfait ${req.planSnapshot.name} pour la boutique ${req.shopName} ?`
+    );
+    if (!ok) return;
     setActionLoading(true);
     try {
       await subscriptionApi.grantSubscription(req.id, "Validation administrative Olmart");
-      showToast(`🎉 Abonnement ${req.planSnapshot.name} accordé avec succès !`);
+      showToast(`Abonnement ${req.planSnapshot.name} accordé avec succès !`);
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur lors de l'attribution.");
@@ -91,11 +94,13 @@ export const SubscriptionsAdmin: React.FC = () => {
   };
 
   const handleReject = async (req: SubscriptionRequest) => {
-    const reason = window.prompt("Motif de rejet de la demande :", "Dossier bancaire non conforme");
-    if (!reason) return;
+    const ok = await confirm(
+      `Rejeter officiellement la demande d'abonnement de la boutique "${req.shopName}" (Dossier bancaire non conforme) ?`
+    );
+    if (!ok) return;
     setActionLoading(true);
     try {
-      await subscriptionApi.rejectRequest(req.id, reason);
+      await subscriptionApi.rejectRequest(req.id, "Dossier bancaire ou justificatif de virement non conforme");
       showToast("Demande rejetée.");
       await loadData();
     } finally {
@@ -116,14 +121,15 @@ export const SubscriptionsAdmin: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <ConfirmationDialog />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-orange-100 rounded-xl text-orange-600">
+            <div className="p-2 bg-[#A54055]/10 rounded-xl text-[#A54055]">
               <CreditCard className="w-5 h-5" />
             </div>
-            <h1 className="text-xl font-bold text-zinc-900">Abonnements & Forfaits Studio</h1>
+            <h1 className="text-xl font-bold text-[#1A1836]">Abonnements & Forfaits Studio</h1>
           </div>
           <p className="text-xs text-zinc-500 mt-1">
             Validation manuelle des virements bancaires réels et attribution des accès au Commerce Studio.
@@ -133,16 +139,15 @@ export const SubscriptionsAdmin: React.FC = () => {
         <button
           onClick={loadData}
           disabled={isLoading}
-          className="self-start sm:self-auto flex items-center gap-2 px-3 py-2 text-xs font-semibold text-zinc-700 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-xl transition-colors shadow-sm disabled:opacity-50"
+          className="self-start sm:self-auto flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-white bg-[#1A1836] hover:bg-[#42164B] rounded-xl transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`w-3.5 h-3.5 text-[#E99856] ${isLoading ? "animate-spin" : ""}`} />
           <span>Actualiser</span>
         </button>
       </div>
 
-      {/* Notifications / Feedback */}
       {toastMsg && (
-        <div className="flex items-center gap-2 p-3 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl animate-fade-in">
+        <div className="flex items-center gap-2 p-3 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>{toastMsg}</span>
         </div>
@@ -156,41 +161,40 @@ export const SubscriptionsAdmin: React.FC = () => {
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
+      <div className="flex items-center gap-2 border-b border-zinc-200 pb-3 overflow-x-auto scrollbar-hide flex-nowrap">
         <button
           onClick={() => setActiveTab("requests")}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors ${
-            activeTab === "requests" ? "bg-zinc-950 text-white" : "text-zinc-600 hover:bg-zinc-100"
+          className={`min-h-[40px] px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap shrink-0 transition-colors cursor-pointer tabular-nums ${
+            activeTab === "requests" ? "bg-[#1A1836] text-white" : "text-zinc-600 hover:bg-zinc-100"
           }`}
         >
           Demandes d'abonnement ({requests.length})
         </button>
         <button
           onClick={() => setActiveTab("plans")}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors ${
-            activeTab === "plans" ? "bg-zinc-950 text-white" : "text-zinc-600 hover:bg-zinc-100"
+          className={`min-h-[40px] px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap shrink-0 transition-colors cursor-pointer tabular-nums ${
+            activeTab === "plans" ? "bg-[#1A1836] text-white" : "text-zinc-600 hover:bg-zinc-100"
           }`}
         >
           Gestion des forfaits ({plans.length})
         </button>
       </div>
 
-      {/* Tab: Requests */}
       {activeTab === "requests" && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-zinc-100/80 rounded-xl w-fit">
+          <div className="flex items-center gap-1.5 p-1.5 bg-zinc-100/80 rounded-xl w-full sm:w-fit overflow-x-auto scrollbar-hide flex-nowrap">
             {[
               { id: "all", label: "Toutes" },
               { id: "pending", label: "1. En attente RIB" },
               { id: "payment_requested", label: "2. RIB envoyé" },
               { id: "payment_declared", label: "3. Reçu soumis" },
               { id: "payment_confirmed", label: "4. Fonds confirmés" },
-              { id: "granted", label: "5. Accordées" }
+              { id: "granted", label: "5. Accordées" },
             ].map((f) => (
               <button
                 key={f.id}
                 onClick={() => setStatusFilter(f.id)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                className={`min-h-[36px] px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                   statusFilter === f.id ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-900"
                 }`}
               >
@@ -210,16 +214,10 @@ export const SubscriptionsAdmin: React.FC = () => {
         </div>
       )}
 
-      {/* Tab: Plans */}
       {activeTab === "plans" && (
-        <SubscriptionPlansManager
-          plans={plans}
-          onSavePlan={handleSavePlan}
-          isLoading={actionLoading}
-        />
+        <SubscriptionPlansManager plans={plans} onSavePlan={handleSavePlan} isLoading={actionLoading} />
       )}
 
-      {/* Modals */}
       {instructTarget && (
         <PaymentInstructionsModal
           request={instructTarget}

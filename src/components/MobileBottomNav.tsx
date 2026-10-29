@@ -55,7 +55,13 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hideOnRoutes =
     ) {
       return "account";
     }
-    if (location.pathname === "/categories" || location.pathname.startsWith("/category")) {
+    if (
+      location.pathname === "/categories" ||
+      location.pathname.startsWith("/category") ||
+      location.pathname.startsWith("/univers") ||
+      location.pathname === "/shop" ||
+      location.pathname.startsWith("/catalogue")
+    ) {
       return "categories";
     }
     return "home";

@@ -20,7 +20,8 @@ router.get("/api/v1/public/home-data", async (_req: Request, res: Response) => {
     const data = await CoreService.getHomeData();
     return res.json(data);
   } catch (err: unknown) {
-    return res.status(500).json({ error: err instanceof Error ? err.message : "Erreur interne" });
+    safeLogger.error("[public.routes] /api/v1/public/home-data failed", { err: err instanceof Error ? err.message : String(err) });
+    return res.status(500).json({ error: "Erreur interne lors du chargement des données d'accueil" });
   }
 });
 
@@ -30,7 +31,8 @@ router.get("/api/v1/public/settings", async (_req: Request, res: Response) => {
     const data = await CoreService.getPublicSettings();
     return res.json(data);
   } catch (err: unknown) {
-    return res.status(500).json({ error: err instanceof Error ? err.message : "Erreur interne" });
+    safeLogger.error("[public.routes] /api/v1/public/settings failed", { err: err instanceof Error ? err.message : String(err) });
+    return res.status(500).json({ error: "Erreur interne lors du chargement de la configuration" });
   }
 });
 
@@ -40,7 +42,8 @@ router.post("/api/v1/logs/error", debugLimiter, async (req: Request, res: Respon
     await CoreService.logError(req.body as LogErrorBody);
     return res.json({ success: true });
   } catch (err: unknown) {
-    return res.status(500).json({ error: err instanceof Error ? err.message : "Erreur interne" });
+    safeLogger.error("[public.routes] /api/v1/logs/error failed", { err: err instanceof Error ? err.message : String(err) });
+    return res.status(500).json({ error: "Erreur interne lors de l'enregistrement du rapport" });
   }
 });
 

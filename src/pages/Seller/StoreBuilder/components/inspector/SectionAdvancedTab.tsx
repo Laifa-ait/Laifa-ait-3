@@ -26,7 +26,7 @@ export const SectionAdvancedTab: React.FC<SectionAdvancedTabProps> = ({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-[13px] font-medium text-[#17191C] block">
+        <label className="text-[13px] font-medium text-[#011C40] block">
           Ancre de navigation (#ID)
         </label>
         <input
@@ -34,7 +34,7 @@ export const SectionAdvancedTab: React.FC<SectionAdvancedTabProps> = ({
           value={(settings.anchorId as string) || ""}
           onChange={(e) => onSettingsChange("anchorId", e.target.value || undefined)}
           placeholder="ex: catalogue"
-          className="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#E4E7EC] rounded-lg text-[#17191C] text-[13px] font-mono focus:outline-none focus:border-[#F97316]"
+          className="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#E4E7EC] rounded-lg text-[#17191C] text-[13px] font-mono focus:outline-none focus:border-[#023859]"
         />
       </div>
     </div>

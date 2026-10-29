@@ -50,7 +50,7 @@ export const ProductAccordionShipping: React.FC<ProductAccordionShippingProps> =
             <div className="pb-4 pt-1 space-y-2.5 text-xs text-zinc-600 divide-y divide-zinc-100">
               <div className="pt-1">
                 <p className="font-bold text-zinc-900">
-                  {t("Livraison sur les 58 Wilayas d'Algérie")}
+                  {t("Livraison sur les 69 Wilayas d'Algérie")}
                 </p>
                 <p className="text-[11px] text-zinc-500 mt-0.5">
                   {product.deliveryPrice !== undefined && product.deliveryPrice !== null

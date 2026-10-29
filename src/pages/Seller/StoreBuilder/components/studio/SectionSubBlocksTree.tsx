@@ -38,10 +38,13 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
 
   const focusSubBlock = (subKey: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    window.dispatchEvent(new CustomEvent("studio:navigate-page", { detail: { viewMode: "home" } }));
     onSelectSection(sec.id);
     setActiveInspectorTab("content");
     selectSection(sec.id, subKey);
-    document.getElementById(`studio-section-${sec.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => {
+      document.getElementById(`studio-section-${sec.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 30);
   };
 
   const patchSettings = (patch: Record<string, unknown>) => {
@@ -50,7 +53,7 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
 
   if (sec.type === "hero_banner") {
     return (
-      <div className="mt-2 pl-4 pr-1 py-1 border-l-2 border-orange-200/80 space-y-1">
+      <div className="mt-2 pl-4 pr-1 py-1 border-l-2 border-[#54ACBF]/50 space-y-1">
         {HERO_SUB_BLOCKS.map((item) => {
           const Icon = item.icon;
           const isAct = selectedSectionId === sec.id && (selectedSubElement === item.key || (item.key === "ctaPrimary" && selectedSubElement === "cta"));
@@ -61,8 +64,8 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
               onMouseEnter={() => hoverElement(sec.id, item.key)}
               onMouseLeave={() => hoverElement(sec.id, null)}
               onClick={(e) => focusSubBlock(item.key, e)}
-              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-[11px] cursor-pointer ${
-                isAct ? "bg-[#F97316] text-white font-bold shadow-2xs" : "text-[#475467] hover:bg-orange-50 font-medium"
+              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-[11px] cursor-pointer transition-colors ${
+                isAct ? "bg-[#023859] text-white font-bold shadow-2xs" : "text-[#475467] hover:bg-[#F0F7FA] font-medium"
               }`}
             >
               <Icon className="w-3.5 h-3.5 shrink-0" />
@@ -77,15 +80,15 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
   if (sec.type === "promo_carousel") {
     const slides = Array.isArray(settings.slides) ? (settings.slides as PromoSlide[]) : [];
     return (
-      <div className="mt-2 pl-4 pr-1 py-1 border-l-2 border-amber-200/80 space-y-1" onClick={(e) => e.stopPropagation()}>
+      <div className="mt-2 pl-4 pr-1 py-1 border-l-2 border-[#54ACBF]/50 space-y-1" onClick={(e) => e.stopPropagation()}>
         {slides.map((slide, idx) => {
           const isAct = selectedSectionId === sec.id && selectedSubElement === `slide-${idx}`;
           return (
             <div
               key={slide.id || idx}
               onClick={(e) => focusSubBlock(`slide-${idx}`, e)}
-              className={`flex items-center justify-between gap-1 px-2 py-1.5 rounded-lg text-[11px] cursor-pointer ${
-                isAct ? "bg-[#F97316] text-white font-bold" : "text-[#475467] hover:bg-amber-50"
+              className={`flex items-center justify-between gap-1 px-2 py-1.5 rounded-lg text-[11px] cursor-pointer transition-colors ${
+                isAct ? "bg-[#023859] text-white font-bold" : "text-[#475467] hover:bg-[#F0F7FA]"
               }`}
             >
               <span className="flex items-center gap-1.5 truncate">
@@ -127,7 +130,7 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
               patchSettings({ slides: [...slides, { id: `slide_${Date.now()}`, imageUrl: products[0]?.images?.[0] || "", title: `Slide ${newIdx + 1}`, link: "#catalog" }] });
               focusSubBlock(`slide-${newIdx}`, e);
             }}
-            className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold text-[#EA580C] hover:bg-orange-50 cursor-pointer"
+            className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold text-[#023859] hover:bg-[#F0F7FA] cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>+ Ajouter une slide</span>
@@ -143,15 +146,15 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
       ? (Array.isArray(settings.categories) ? (settings.categories as CategoryItem[]) : [])
       : (Array.isArray(settings.collections) ? (settings.collections as CuratedCollectionItem[]) : []);
     return (
-      <div className="mt-2 pl-4 pr-1 py-1 border-l-2 border-blue-200/80 space-y-1" onClick={(e) => e.stopPropagation()}>
+      <div className="mt-2 pl-4 pr-1 py-1 border-l-2 border-[#54ACBF]/50 space-y-1" onClick={(e) => e.stopPropagation()}>
         {items.map((item, idx) => {
           const isAct = selectedSectionId === sec.id && (selectedSubElement === `cat-${idx}` || selectedSubElement === `category-items:${idx}`);
           return (
             <div
               key={item.id || idx}
               onClick={(e) => focusSubBlock(`cat-${idx}`, e)}
-              className={`flex items-center justify-between gap-1 px-2 py-1.5 rounded-lg text-[11px] cursor-pointer ${
-                isAct ? "bg-[#F97316] text-white font-bold" : "text-[#475467] hover:bg-blue-50"
+              className={`flex items-center justify-between gap-1 px-2 py-1.5 rounded-lg text-[11px] cursor-pointer transition-colors ${
+                isAct ? "bg-[#023859] text-white font-bold" : "text-[#475467] hover:bg-[#F0F7FA]"
               }`}
             >
               <span className="flex items-center gap-1.5 truncate">
@@ -185,7 +188,7 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
               );
               focusSubBlock(`cat-${newIdx}`, e);
             }}
-            className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold text-[#EA580C] hover:bg-orange-50 cursor-pointer"
+            className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold text-[#023859] hover:bg-[#F0F7FA] cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>+ Ajouter une catégorie</span>
@@ -198,15 +201,15 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
   if (sec.type === "faq_accordion") {
     const items = Array.isArray(settings.items) ? (settings.items as FaqItem[]) : [];
     return (
-      <div className="mt-2 pl-4 pr-1 py-1 border-l-2 border-indigo-200/80 space-y-1" onClick={(e) => e.stopPropagation()}>
+      <div className="mt-2 pl-4 pr-1 py-1 border-l-2 border-[#54ACBF]/50 space-y-1" onClick={(e) => e.stopPropagation()}>
         {items.map((faq, idx) => {
           const isAct = selectedSectionId === sec.id && selectedSubElement === `faq-${idx}`;
           return (
             <div
               key={idx}
               onClick={(e) => focusSubBlock(`faq-${idx}`, e)}
-              className={`flex items-center justify-between gap-1 px-2 py-1.5 rounded-lg text-[11px] cursor-pointer ${
-                isAct ? "bg-[#F97316] text-white font-bold" : "text-[#475467] hover:bg-indigo-50"
+              className={`flex items-center justify-between gap-1 px-2 py-1.5 rounded-lg text-[11px] cursor-pointer transition-colors ${
+                isAct ? "bg-[#023859] text-white font-bold" : "text-[#475467] hover:bg-[#F0F7FA]"
               }`}
             >
               <span className="flex items-center gap-1.5 truncate">
@@ -236,7 +239,7 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
               patchSettings({ items: [...items, { question: `Question #${newIdx + 1} ?`, answer: "Votre réponse détaillée ici." }] });
               focusSubBlock(`faq-${newIdx}`, e);
             }}
-            className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold text-[#EA580C] hover:bg-orange-50 cursor-pointer"
+            className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold text-[#023859] hover:bg-[#F0F7FA] cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>+ Ajouter une question</span>

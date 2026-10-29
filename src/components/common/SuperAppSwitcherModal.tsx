@@ -82,7 +82,7 @@ export const SuperAppSwitcherModal: React.FC<SuperAppSwitcherModalProps> = ({
       id: 'admin',
       title: 'Console Super-Admin',
       subtitle: 'Modération & Écosystème Global',
-      route: '/admin',
+      route: '/dashboard/admin',
       badge: 'Admin',
       iconName: 'ShieldCheck',
     });

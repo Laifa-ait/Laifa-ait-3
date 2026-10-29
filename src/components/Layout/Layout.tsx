@@ -15,6 +15,7 @@ import { useUI } from "../../context/UIContext";
 import { SearchOverlay } from "../Search/SearchOverlay";
 import { RecentlyViewedDrawer } from "../RecentlyViewed/RecentlyViewedDrawer";
 import { useAuth } from "../../context/AuthContext";
+import { apiPost } from "../../lib/api";
 import { WifiOff } from "lucide-react";
 import { VerificationModal } from "../Auth/VerificationModal";
 import { AuthModal } from "../Auth/AuthModal";
@@ -35,14 +36,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [verificationMethod, setVerificationMethod] = useState<"email" | "sms">("email");
 
   const openVerification = useCallback(async () => {
+    if (!currentUser) return;
     try {
-      const idToken = await currentUser?.getIdToken();
-      const res = await fetch("/api/v1/auth/2fa/send-code", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${idToken}` },
-      });
-      const data = await res.json();
-      setVerificationMethod(data.method || "email");
+      const data = await apiPost<{ method?: "email" | "sms" }>("/api/v1/auth/2fa/send-code", {});
+      setVerificationMethod(data?.method || "email");
       setIsVerificationModalOpen(true);
     } catch (e) {
       console.error("Failed to start verification", e);

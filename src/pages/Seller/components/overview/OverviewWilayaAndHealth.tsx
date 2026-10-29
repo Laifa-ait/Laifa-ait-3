@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, MapPin } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SellerUserProfile, SellerOverviewWilayaStat } from "../../../../types/seller";
 
@@ -17,74 +17,67 @@ export const OverviewWilayaAndHealth: React.FC<OverviewWilayaAndHealthProps> = (
   const maxCount = Math.max(...wilayaStats.map((x) => x.count), 1);
 
   return (
-    <div className="space-y-8 flex flex-col" id="seller-overview-wilaya-health">
-      {/* Wilaya Stats */}
-      <div className="bg-white rounded-[2.5rem] border border-zinc-100 shadow-sm p-8" id="seller-delivery-zones-card">
-        <h4 className="text-sm font-sans font-bold text-zinc-950 uppercase tracking-widest rtl:tracking-normal mb-8">
-          {t("seller.overview.flash_delivery_zones", "Zones de Livraison Flash")}
-        </h4>
-        <div className="space-y-6">
+    <div className="space-y-6 flex flex-col" id="seller-overview-wilaya-health">
+      <div className="bg-white rounded-3xl border border-[#E0B4B2]/40 shadow-2xs p-6" id="seller-delivery-zones-card">
+        <div className="flex items-center gap-2 mb-5">
+          <MapPin className="w-4.5 h-4.5 text-[#A54055]" />
+          <h4 className="text-xs font-extrabold text-[#1A1836] uppercase tracking-wider">
+            {t("seller.overview.flash_delivery_zones", "Top Wilayas Livrées")}
+          </h4>
+        </div>
+        <div className="space-y-4">
           {wilayaStats.map((w, i) => (
-            <div key={i} className="flex flex-col gap-2">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-sans font-bold text-zinc-700">{w.name}</span>
-                <span className="text-[10px] font-bold text-zinc-400">
+            <div key={i} className="flex flex-col gap-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-bold text-[#1A1836]">{w.name}</span>
+                <span className="text-[11px] font-bold text-[#622347] tabular-nums">
                   {w.count} {t("seller.overview.order", "Commande")}
                   {w.count > 1 ? "s" : ""}
                 </span>
               </div>
-              <div className="h-1.5 w-full bg-zinc-50 rounded-full overflow-hidden">
+              <div className="h-2 w-full bg-[#FAF7F8] rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${(w.count / maxCount) * 100}%` }}
-                  className="h-full bg-orange-500 rounded-full"
+                  className="h-full bg-gradient-to-r from-[#A54055] to-[#E99856] rounded-full"
                 />
               </div>
             </div>
           ))}
           {wilayaStats.length === 0 && (
-            <p className="text-[10px] font-bold text-zinc-400 text-center py-10 italic">
-              {t("seller.overview.no_geo_data", "Pas encore assez de données géographiques.")}
+            <p className="text-xs text-zinc-400 text-center py-6">
+              {t("seller.overview.no_geo_data", "Aucune donnée géographique enregistrée.")}
             </p>
           )}
         </div>
       </div>
 
-      {/* Account Health */}
-      <div className="bg-white rounded-[2.5rem] border border-zinc-100 shadow-sm p-8 flex flex-col items-center text-center" id="seller-account-health-card">
-        <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
-          <ShieldCheck className="w-8 h-8 text-emerald-500" />
+      <div className="bg-white rounded-3xl border border-[#E0B4B2]/40 shadow-2xs p-6 flex flex-col items-center text-center" id="seller-account-health-card">
+        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
+          <ShieldCheck className="w-6 h-6" />
         </div>
-        <h4 className="text-sm font-sans font-bold text-zinc-950 uppercase tracking-widest rtl:tracking-normal mb-1">
-          {t("seller.overview.account_health", "Santé du Compte")}
+        <h4 className="text-sm font-extrabold text-[#1A1836]">
+          {t("seller.overview.account_health", "Santé du Compte Vendeur")}
         </h4>
-        <p className="text-[10px] font-bold text-zinc-400 uppercase mb-6">
-          {t("seller.overview.health_based_on_available_data", "État selon les données disponibles")}
+        <p className="text-[11px] text-zinc-500 mb-5">
+          {t("seller.overview.health_based_on_available_data", "Indicateurs de qualité de service")}
         </p>
 
-        <div className="w-full space-y-4">
-          <div className="flex justify-between text-[10px] font-bold uppercase tracking-tight rtl:tracking-normal">
-            <span className="text-zinc-400">{t("seller.overview.seller_rating", "Note Vendeur")}</span>
-            <span className="text-zinc-950">
+        <div className="w-full space-y-3 text-xs">
+          <div className="flex justify-between items-center p-2.5 rounded-xl bg-[#FAF7F8]">
+            <span className="font-semibold text-zinc-600">{t("seller.overview.seller_rating", "Note Vendeur")}</span>
+            <span className="font-extrabold text-[#1A1836] tabular-nums">
               {userProfile?.rating !== undefined && userProfile?.rating !== null
-                ? `${Number(userProfile.rating).toFixed(1)}/5`
+                ? `${Number(userProfile.rating).toFixed(1)} / 5`
                 : t("seller.overview.no_rating", "Aucun avis")}
             </span>
           </div>
-          <div className="flex justify-between text-[10px] font-bold uppercase tracking-tight rtl:tracking-normal">
-            <span className="text-zinc-400">{t("seller.overview.return_rate", "Taux de retour")}</span>
-            <span className="text-zinc-400">{t("seller.overview.not_available", "Non disponible")}</span>
+          <div className="flex justify-between items-center p-2.5 rounded-xl bg-[#FAF7F8]">
+            <span className="font-semibold text-zinc-600">{t("Trust Score")}</span>
+            <span className="font-extrabold text-emerald-700 tabular-nums">
+              {userProfile?.sellerTrustScore ?? 100} / 100
+            </span>
           </div>
-          <div className="flex justify-between text-[10px] font-bold uppercase tracking-tight rtl:tracking-normal">
-            <span className="text-zinc-400">{t("seller.overview.shipping_delay", "Délai d'expédition")}</span>
-            <span className="text-zinc-400">{t("seller.overview.not_available", "Non disponible")}</span>
-          </div>
-        </div>
-
-        <div className="mt-8 pt-8 border-t border-zinc-50 w-full">
-          <p className="text-[10px] text-zinc-500 font-medium leading-relaxed italic">
-            {t("seller.overview.performance_not_ranked", "Les indicateurs de retour, délai d’expédition et classement ne sont pas encore calculés.")}
-          </p>
         </div>
       </div>
     </div>

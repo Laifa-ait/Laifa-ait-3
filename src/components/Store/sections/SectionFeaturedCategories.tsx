@@ -23,7 +23,12 @@ import { CategoryShopifyBento } from "./category/CategoryShopifyBento";
 import { CategoryShopifyStories } from "./category/CategoryShopifyStories";
 import { CategoryShopifyPills } from "./category/CategoryShopifyPills";
 import { CategoryShopifyCards } from "./category/CategoryShopifyCards";
+import { CategoryEditorialModels } from "./category/CategoryEditorialModels";
 import { CategoryCanvasQuickBar } from "./category/CategoryCanvasQuickBar";
+import {
+  resolveCategoryGridCols,
+  resolveCategoryGapClass,
+} from "./category/categoryResponsiveHelper";
 import { useStudioStore } from "../../../pages/Seller/StoreBuilder/store/useStudioStore";
 
 interface SectionFeaturedCategoriesProps {
@@ -149,22 +154,13 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
   const effectiveOverlay =
     layout === "overlay" || textPosition === "overlay-bottom" || textPosition === "overlay-center";
   const cardRadiusClass = radiusClassMap[cardRadius] || "rounded-2xl";
-  const mobileCols =
-    cardSize === "compact" ? "grid-cols-2" : columnsMobile === 1 ? "grid-cols-1" : "grid-cols-2";
-  const containerGridColsClass =
-    columnsDesktop === 1
-      ? "grid-cols-1"
-      : columnsDesktop === 2
-      ? `${mobileCols} @sm:grid-cols-2`
-      : columnsDesktop === 3
-      ? `${mobileCols} @md:grid-cols-3`
-      : `${mobileCols} @sm:grid-cols-3 @md:grid-cols-4`;
-  const gapClass =
-    gapSize === "compact" || cardSize === "compact"
-      ? "gap-2.5"
-      : gapSize === "spacious"
-      ? "gap-5"
-      : "gap-3.5";
+  const containerGridColsClass = resolveCategoryGridCols(
+    columnsDesktop,
+    columnsMobile,
+    cardSize,
+    previewViewport
+  );
+  const gapClass = resolveCategoryGapClass(gapSize, cardSize);
 
   const sharedProps = {
     categories: visibleCategories,
@@ -181,6 +177,7 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
     cardSkin,
     primaryColor: theme.primaryColor,
     textColor: styles.textColor,
+    previewViewport,
     isEditable,
     selectedSectionId,
     selectedSubElement,
@@ -196,7 +193,7 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
     <div
       onClick={isEditable ? onSelect : undefined}
       style={buildSectionContainerStyle(styles, "transparent", "#17191C")}
-      className={`transition-all relative select-none ${resolveBorderRadiusClass(
+      className={`@container transition-all relative select-none ${resolveBorderRadiusClass(
         styles.borderRadius
       )} ${resolveShadowClass(styles.shadow)} ${resolveAnimationClass(styles.animation)}${
         isEditable && !isSelected ? " cursor-pointer" : ""
@@ -208,6 +205,7 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
           categories={categories}
           activeLayout={layout}
           cardSize={cardSize}
+          columnsMobile={columnsMobile}
           showTitle={showTitle}
           textPosition={textPosition}
           onTriggerSubTab={triggerSubTab}
@@ -217,7 +215,7 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
       <div className={resolveContainerWidthClass(styles.containerWidth)}>
         {(title || subtitle) && (
           <div
-            className={`mb-5 flex flex-col justify-between gap-2 ${
+            className={`mb-4 @[560px]:mb-5 flex flex-col justify-between gap-2 ${
               textAlign === "center"
                 ? "items-center text-center"
                 : textAlign === "right"
@@ -230,7 +228,7 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
                 {title && (
                   <h2
                     onClick={(e) => isEditable && triggerSubTab("style", e)}
-                    className={`text-lg @sm:text-xl @md:text-2xl font-extrabold tracking-tight rounded px-1 ${
+                    className={`text-base @[560px]:text-xl @[900px]:text-2xl font-extrabold tracking-tight rounded px-1 ${
                       isEditable ? "cursor-pointer hover:ring-1 hover:ring-[#26658C]" : ""
                     }`}
                     style={{ color: styles.textColor || "#111827" }}
@@ -238,7 +236,11 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
                     {title}
                   </h2>
                 )}
-                {subtitle && <p className="text-xs @md:text-sm opacity-75 mt-0.5">{subtitle}</p>}
+                {subtitle && (
+                  <p className="text-[11px] @[560px]:text-xs @[900px]:text-sm opacity-75 mt-0.5">
+                    {subtitle}
+                  </p>
+                )}
               </div>
               {layout === "carousel" && visibleCategories.length > 2 && (
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -248,7 +250,7 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
                       e.stopPropagation();
                       carouselRef.current?.scrollBy({ left: -240, behavior: "smooth" });
                     }}
-                    className="w-7 h-7 @sm:w-8 @sm:h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 flex items-center justify-center shadow-2xs cursor-pointer"
+                    className="w-7 h-7 @[560px]:w-8 @[560px]:h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 flex items-center justify-center shadow-2xs cursor-pointer"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
@@ -258,7 +260,7 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
                       e.stopPropagation();
                       carouselRef.current?.scrollBy({ left: 240, behavior: "smooth" });
                     }}
-                    className="w-7 h-7 @sm:w-8 @sm:h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 flex items-center justify-center shadow-2xs cursor-pointer"
+                    className="w-7 h-7 @[560px]:w-8 @[560px]:h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 flex items-center justify-center shadow-2xs cursor-pointer"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -282,7 +284,7 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
             onNavigate={(cat, e) => openCategoryPage(cat, e)}
           />
         ) : layout === "bento" ? (
-          <CategoryShopifyBento {...sharedProps} previewViewport={previewViewport} />
+          <CategoryShopifyBento {...sharedProps} />
         ) : layout === "bubbles" ? (
           <CategoryShopifyStories
             {...sharedProps}
@@ -293,6 +295,15 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
           />
         ) : layout === "pills" ? (
           <CategoryShopifyPills {...sharedProps} cardRadius={cardRadius} pillShowImage={pillShowImage} />
+        ) : layout === "accordion" ||
+          layout === "arch" ||
+          layout === "polaroid" ||
+          layout === "magazine" ? (
+          <CategoryEditorialModels
+            {...sharedProps}
+            layout={layout}
+            containerGridColsClass={containerGridColsClass}
+          />
         ) : (
           <CategoryShopifyCards
             {...sharedProps}

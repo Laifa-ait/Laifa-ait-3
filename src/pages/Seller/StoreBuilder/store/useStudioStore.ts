@@ -102,17 +102,36 @@ export const useStudioStore = create<StudioStoreState>((set) => ({
       };
     }),
 
-  setViewport: (viewport) => set({ viewport }),
+  setViewport: (viewport) =>
+    set((state) => {
+      if (state.viewport === viewport) return state;
+      return { viewport };
+    }),
 
   setIsDraggingSection: (isDraggingSection) =>
-    set((state) => ({
-      isDraggingSection,
-      zoom: isDraggingSection ? 0.88 : state.zoom === 0.88 ? 1 : state.zoom,
-    })),
+    set((state) => {
+      const targetZoom = isDraggingSection ? 0.88 : state.zoom === 0.88 ? 1 : state.zoom;
+      if (state.isDraggingSection === isDraggingSection && state.zoom === targetZoom) {
+        return state;
+      }
+      return {
+        isDraggingSection,
+        zoom: targetZoom,
+      };
+    }),
 
-  setZoom: (zoom) => set({ zoom: Math.min(1.5, Math.max(0.5, zoom)) }),
+  setZoom: (zoom) =>
+    set((state) => {
+      const clamped = Math.min(1.5, Math.max(0.5, zoom));
+      if (state.zoom === clamped) return state;
+      return { zoom: clamped };
+    }),
 
-  setActiveInspectorTab: (activeInspectorTab) => set({ activeInspectorTab }),
+  setActiveInspectorTab: (activeInspectorTab) =>
+    set((state) => {
+      if (state.activeInspectorTab === activeInspectorTab) return state;
+      return { activeInspectorTab };
+    }),
 
   triggerSectionAction: (sectionId, action) =>
     set({
@@ -123,5 +142,9 @@ export const useStudioStore = create<StudioStoreState>((set) => ({
       },
     }),
 
-  clearPendingSectionAction: () => set({ pendingSectionAction: null }),
+  clearPendingSectionAction: () =>
+    set((state) => {
+      if (state.pendingSectionAction === null) return state;
+      return { pendingSectionAction: null };
+    }),
 }));

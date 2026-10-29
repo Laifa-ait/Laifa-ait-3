@@ -1,29 +1,28 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost } from '../lib/api';
-import { scheduleVerificationMeet } from '../services/googleWorkspace';
-import toast from 'react-hot-toast';
-import { safeLogger } from '../utils/logger';
-
-import { Shop } from '../domains/seller/shop.types';
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "../context/AuthContext";
+import { apiGet, apiPost } from "../lib/api";
+import { scheduleVerificationMeet } from "../services/googleWorkspace";
+import toast from "react-hot-toast";
+import { safeLogger } from "../utils/logger";
+import { Shop } from "../domains/seller/shop.types";
 
 export type Seller = Shop;
 
 const SELLERS_PER_PAGE = 50;
 
-export function useSellerModeration() {
+export function useSellerModeration(confirmModal?: (msg: string) => Promise<boolean>) {
   const { t, i18n } = useTranslation();
-  const isArabic = i18n.language === 'ar' || i18n.language?.startsWith('ar');
+  const isArabic = i18n.language === "ar" || i18n.language?.startsWith("ar");
   const { currentUser, userProfile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const pageParam = parseInt(searchParams.get('page') || '1');
-  const statusParam = searchParams.get('status') || '';
-  const searchParam = searchParams.get('search') || '';
-  const sortByParam = searchParams.get('sortBy') || 'createdAt';
-  const sortOrderParam = searchParams.get('sortOrder') || 'desc';
+  const pageParam = parseInt(searchParams.get("page") || "1", 10);
+  const statusParam = searchParams.get("status") || "";
+  const searchParam = searchParams.get("search") || "";
+  const sortByParam = searchParams.get("sortBy") || "createdAt";
+  const sortOrderParam = searchParams.get("sortOrder") || "desc";
 
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,19 +36,13 @@ export function useSellerModeration() {
 
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReasons, setRejectReasons] = useState<string[]>([]);
-  const [rejectComment, setRejectComment] = useState('');
+  const [rejectComment, setRejectComment] = useState("");
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrResult, setOcrResult] = useState<unknown>(null);
 
   const fetchSellersApi = useCallback(
-    async (
-      pageUrl: number,
-      statusUrl: string,
-      searchUrl: string,
-      sortByUrl: string,
-      sortOrderUrl: string
-    ) => {
+    async (pageUrl: number, statusUrl: string, searchUrl: string, sortByUrl: string, sortOrderUrl: string) => {
       if (!currentUser) return;
       setLoading(true);
       try {
@@ -57,10 +50,10 @@ export function useSellerModeration() {
           page: pageUrl.toString(),
           limit: SELLERS_PER_PAGE.toString(),
           sortBy: sortByUrl,
-          sortOrder: sortOrderUrl
+          sortOrder: sortOrderUrl,
         });
-        if (statusUrl) queryParams.append('status', statusUrl);
-        if (searchUrl) queryParams.append('search', searchUrl);
+        if (statusUrl) queryParams.append("status", statusUrl);
+        if (searchUrl) queryParams.append("search", searchUrl);
 
         const data = await apiGet<{ sellers: Seller[]; totalPages: number; total: number }>(
           `/api/v1/admin/sellers?${queryParams.toString()}`
@@ -70,7 +63,9 @@ export function useSellerModeration() {
         setTotalPages(data.totalPages || 1);
         setTotalCount(data.total || 0);
       } catch (err: unknown) {
-        safeLogger.error('[useSellerModeration] Fetch sellers API error', { err: err instanceof Error ? err.message : String(err) });
+        safeLogger.error("[useSellerModeration] Fetch sellers API error", {
+          err: err instanceof Error ? err.message : String(err),
+        });
       } finally {
         setLoading(false);
       }
@@ -78,56 +73,48 @@ export function useSellerModeration() {
     [currentUser]
   );
 
+  const refreshSellers = useCallback(() => {
+    void fetchSellersApi(pageParam, statusParam, searchParam, sortByParam, sortOrderParam);
+  }, [fetchSellersApi, pageParam, statusParam, searchParam, sortByParam, sortOrderParam]);
+
   useEffect(() => {
-    fetchSellersApi(pageParam, statusParam, searchParam, sortByParam, sortOrderParam);
-  }, [pageParam, statusParam, searchParam, sortByParam, sortOrderParam, currentUser, fetchSellersApi]);
+    refreshSellers();
+  }, [refreshSellers]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
       if (searchTerm !== searchParam) {
         setSearchParams((prev) => {
-          if (searchTerm) prev.set('search', searchTerm);
-          else prev.delete('search');
-          prev.set('page', '1');
+          if (searchTerm) prev.set("search", searchTerm);
+          else prev.delete("search");
+          prev.set("page", "1");
           return prev;
         });
       }
-    }, 500);
+    }, 450);
     return () => clearTimeout(handler);
   }, [searchTerm, searchParam, setSearchParams]);
 
   const handleSelectAllSellers = (checked: boolean) => {
-    if (checked) {
-      setSelectedSellerIds(sellers.map((s) => s.id));
-    } else {
-      setSelectedSellerIds([]);
-    }
+    setSelectedSellerIds(checked ? sellers.map((s) => s.id) : []);
   };
 
   const handleSelectSeller = (sellerId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedSellerIds((prev) => [...prev, sellerId]);
-    } else {
-      setSelectedSellerIds((prev) => prev.filter((id) => id !== sellerId));
-    }
+    setSelectedSellerIds((prev) => (checked ? [...prev, sellerId] : prev.filter((id) => id !== sellerId)));
   };
 
   const handleBulkApproveSellers = async () => {
     if (selectedSellerIds.length === 0) return;
     setBulkLoading(true);
     try {
-      await apiPost('/api/v1/admin/users/bulk-status', {
-        userIds: selectedSellerIds,
-        status: 'active'
-      });
-
+      await apiPost("/api/v1/admin/users/bulk-status", { userIds: selectedSellerIds, status: "active" });
       setSellers((prev) =>
-        prev.map((s) => (selectedSellerIds.includes(s.id) ? { ...s, status: 'active', role: 'seller' } : s))
+        prev.map((s) => (selectedSellerIds.includes(s.id) ? { ...s, status: "active", role: "seller" } : s))
       );
       setSelectedSellerIds([]);
-      toast.success(t('Vendeurs approuvés avec succès'));
+      toast.success(t("Vendeurs approuvés avec succès"));
     } catch (err: unknown) {
-      safeLogger.error('[useSellerModeration] Error performing bulk approve', { err: err instanceof Error ? err.message : String(err) });
+      safeLogger.error("[useSellerModeration] Bulk approve error", { err: String(err) });
       toast.error(t("Erreur lors de l'approbation en lot"));
     } finally {
       setBulkLoading(false);
@@ -138,19 +125,13 @@ export function useSellerModeration() {
     if (selectedSellerIds.length === 0) return;
     setBulkLoading(true);
     try {
-      await apiPost('/api/v1/admin/users/bulk-status', {
-        userIds: selectedSellerIds,
-        status: 'suspended'
-      });
-
-      setSellers((prev) =>
-        prev.map((s) => (selectedSellerIds.includes(s.id) ? { ...s, status: 'suspended' } : s))
-      );
+      await apiPost("/api/v1/admin/users/bulk-status", { userIds: selectedSellerIds, status: "suspended" });
+      setSellers((prev) => prev.map((s) => (selectedSellerIds.includes(s.id) ? { ...s, status: "suspended" } : s)));
       setSelectedSellerIds([]);
-      toast.success(t('Vendeurs suspendus avec succès'));
+      toast.success(t("Vendeurs suspendus avec succès"));
     } catch (err: unknown) {
-      safeLogger.error('[useSellerModeration] Error performing bulk suspend', { err: err instanceof Error ? err.message : String(err) });
-      toast.error(t('Erreur lors de la suspension en lot'));
+      safeLogger.error("[useSellerModeration] Bulk suspend error", { err: String(err) });
+      toast.error(t("Erreur lors de la suspension en lot"));
     } finally {
       setBulkLoading(false);
     }
@@ -159,124 +140,101 @@ export function useSellerModeration() {
   const handleBulkDeleteSellers = async () => {
     if (selectedSellerIds.length === 0) return;
     if (selectedSellerIds.length > 20) {
-      toast.error(t('La suppression en masse est limitée à 20 vendeurs maximum à la fois.'));
+      toast.error(t("La suppression en masse est limitée à 20 vendeurs maximum à la fois."));
       return;
     }
-    if (!window.confirm(t('⚠️ ATTENTION : Vous allez supprimer définitivement {{count}} vendeur(s).\nCette action est IRRÉVERSIBLE.\n\nTapez "SUPPRIMER" à l\'étape suivante pour valider.', { count: selectedSellerIds.length }))) {
-      return;
-    }
-    const userInput = window.prompt(t('Pour confirmer la suppression groupée de {{count}} vendeur(s), tapez SUPPRIMER :', { count: selectedSellerIds.length }));
-    if (userInput !== 'SUPPRIMER') {
-      toast.error(t('Suppression groupée annulée (mot de confirmation incorrect)'));
-      return;
+    if (confirmModal) {
+      const ok = await confirmModal(
+        `Confirmez-vous la suppression définitive de ${selectedSellerIds.length} vendeur(s) ? Cette action est irréversible.`
+      );
+      if (!ok) return;
     }
     setBulkLoading(true);
     try {
-      await apiPost('/api/v1/admin/users/bulk-delete', {
-        userIds: selectedSellerIds
-      });
-
+      await apiPost("/api/v1/admin/users/bulk-delete", { userIds: selectedSellerIds });
       setSellers((prev) => prev.filter((s) => !selectedSellerIds.includes(s.id)));
       setSelectedSellerIds([]);
-      toast.success(t('Vendeurs supprimés avec succès'));
+      toast.success(t("Vendeurs supprimés avec succès"));
     } catch (err: unknown) {
-      safeLogger.error('[useSellerModeration] Error performing bulk delete', { err: err instanceof Error ? err.message : String(err) });
-      toast.error(t('Erreur lors de la suppression en lot'));
+      safeLogger.error("[useSellerModeration] Bulk delete error", { err: String(err) });
+      toast.error(t("Erreur lors de la suppression en lot"));
     } finally {
       setBulkLoading(false);
     }
   };
 
-  const handleUpdateStatus = async (sellerId: string, status: 'active' | 'rejected' | 'suspended') => {
+  const handleUpdateStatus = async (sellerId: string, status: "active" | "rejected" | "suspended") => {
     try {
-      if (!currentUser || userProfile?.role !== 'admin') {
-        toast.error('Action non autorisée');
+      if (!currentUser || (userProfile?.role !== "admin" && userProfile?.role !== "superadmin")) {
+        toast.error("Action non autorisée");
         return;
       }
 
-      if (status === 'rejected') {
+      if (status === "rejected") {
         const reasons = [...rejectReasons];
         if (rejectComment.trim()) reasons.push(rejectComment.trim());
         if (reasons.length === 0) {
-          toast.error('Veuillez sélectionner ou saisir au moins un motif');
+          toast.error("Veuillez sélectionner ou saisir au moins un motif");
           return;
         }
-
         await apiPost(`/api/v1/admin/sellers/${sellerId}/reject`, {
           reasons,
-          comment: rejectComment.trim() || undefined
+          comment: rejectComment.trim() || undefined,
         });
-
         setRejectModalOpen(false);
         setRejectReasons([]);
-        setRejectComment('');
-      } else if (status === 'active') {
+        setRejectComment("");
+      } else if (status === "active") {
         await apiPost(`/api/v1/admin/sellers/${sellerId}/approve`, {});
-      } else if (status === 'suspended') {
-        await apiPost(`/api/v1/admin/sellers/${sellerId}/suspend`, {
-          reason: 'Suspension administrateur'
-        });
+      } else if (status === "suspended") {
+        await apiPost(`/api/v1/admin/sellers/${sellerId}/suspend`, { reason: "Suspension administrateur" });
       }
 
       setSellers((prev) => prev.map((s) => (s.id === sellerId ? { ...s, status } : s)));
       if (selectedSeller && selectedSeller.id === sellerId) setSelectedSeller({ ...selectedSeller, status });
-
-      const statusText =
-        status === 'active' ? t('activé') : status === 'rejected' ? t('rejeté') : t('suspendu');
-
+      const statusText = status === "active" ? t("activé") : status === "rejected" ? t("rejeté") : t("suspendu");
       toast.success(isArabic ? `تم ${statusText} بنجاح.` : `Vendeur ${statusText} avec succès.`);
     } catch (err: unknown) {
-      safeLogger.error('Failed to update status', { err: err instanceof Error ? err.message : String(err) });
-      toast.error(t('Erreur lors de la mise à jour du statut.'));
+      safeLogger.error("Failed to update status", { err: String(err) });
+      toast.error(t("Erreur lors de la mise à jour du statut."));
     }
   };
 
-  const handleScheduleMeet = async (sellerId: string, email: string) => {
+  const handleScheduleMeet = async (_sellerId: string, email: string) => {
     try {
-      if (typeof scheduleVerificationMeet !== 'function') {
-        safeLogger.warn('scheduleVerificationMeet non disponible');
-        toast.error(isArabic ? 'خدمة الجدولة غير متاحة.' : "Le service de planification n'est pas disponible.");
+      if (typeof scheduleVerificationMeet !== "function") {
+        toast.error("Le service de planification n'est pas disponible.");
         return;
       }
       const start = new Date();
       start.setDate(start.getDate() + 1);
       const end = new Date(start);
       end.setHours(start.getHours() + 1);
-
       const res = await scheduleVerificationMeet(
         email,
         start.toISOString(),
         end.toISOString(),
-        'Entretien de Vérification OLMART',
-        'Entretien formel de vérification KYC (identité et registre de commerce) pour valider votre boutique.'
+        "Entretien de Vérification OLMART",
+        "Entretien formel de vérification KYC pour valider votre boutique."
       );
-
-      toast.success(
-        isArabic
-          ? `تم جدولة اجتماع Google Meet بنجاح! رابط الاجتماع: ${res.meetLink}\nتم إرسال بريد إلكتروني للبائع.`
-          : `Réunion Google Meet planifiée avec succès ! Lien Meet: ${res.meetLink}\nUn email a été envoyé au Vendeur.`,
-        { duration: 8000 }
-      );
+      toast.success(`Réunion Google Meet planifiée : ${res.meetLink}`, { duration: 6000 });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(
-        isArabic ? `خطأ في جدولة الاجتماع: ${msg}` : `Erreur de planification: ${msg}`
-      );
+      toast.error(`Erreur de planification: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
   const handlePageChange = (newPage: number) => {
     setSearchParams((prev) => {
-      prev.set('page', newPage.toString());
+      prev.set("page", newPage.toString());
       return prev;
     });
   };
 
   const handleStatusFilter = (st: string) => {
     setSearchParams((prev) => {
-      if (st) prev.set('status', st);
-      else prev.delete('status');
-      prev.set('page', '1');
+      if (st) prev.set("status", st);
+      else prev.delete("status");
+      prev.set("page", "1");
       return prev;
     });
   };
@@ -312,6 +270,7 @@ export function useSellerModeration() {
     setOcrLoading,
     ocrResult,
     setOcrResult,
+    refreshSellers,
     handleSelectAllSellers,
     handleSelectSeller,
     handleBulkApproveSellers,
@@ -320,6 +279,6 @@ export function useSellerModeration() {
     handleUpdateStatus,
     handleScheduleMeet,
     handlePageChange,
-    handleStatusFilter
+    handleStatusFilter,
   };
 }

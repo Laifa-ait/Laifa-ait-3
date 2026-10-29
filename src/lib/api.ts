@@ -69,7 +69,10 @@ async function handleResponseError(res: Response): Promise<never> {
   try {
     const parsed = JSON.parse(text);
     if (parsed && typeof parsed === 'object') {
-      errMsg = parsed.error || parsed.message || text;
+      if (parsed.error === 'MFA_REQUIRED' && typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('open-2fa-modal'));
+      }
+      errMsg = parsed.message || parsed.error || text;
     }
   } catch {
     // Not JSON, keep raw text

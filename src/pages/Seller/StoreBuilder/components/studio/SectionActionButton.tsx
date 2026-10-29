@@ -26,10 +26,10 @@ export function SectionActionButton({
         "inline-flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer",
         "rounded-lg transition-colors",
         "focus-visible:outline-none focus-visible:ring-2",
-        "focus-visible:ring-[#F97316]",
+        "focus-visible:ring-[#023859]",
         danger
           ? "text-[#DC2626] hover:bg-red-50"
-          : "text-[#475467] hover:bg-[#FFF1E7] hover:text-[#EA580C]",
+          : "text-[#475467] hover:bg-[#F0F7FA] hover:text-[#023859]",
         "disabled:cursor-not-allowed disabled:opacity-30",
         "max-[767px]:h-11 max-[767px]:w-11",
       ].join(" ")}

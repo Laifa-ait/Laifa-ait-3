@@ -29,7 +29,7 @@ export const SuperAppRoleShortcuts: React.FC<SuperAppRoleShortcutsProps> = ({
         </div>
         <button
           type="button"
-          onClick={() => onSelect('/immo/owner')}
+          onClick={() => onSelect('/seller-onboarding')}
           className="px-3.5 py-1.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-colors shrink-0 cursor-pointer shadow-xs"
         >
           Activer

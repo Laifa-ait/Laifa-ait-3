@@ -16,9 +16,11 @@ const buildServer = path.resolve(__dirname, "build", "server.cjs");
 const isTestEnv = process.env.NODE_ENV === "test" || Boolean(process.env.VITEST);
 const isCloudRun = Boolean(process.env.K_SERVICE || process.env.CLOUD_RUN_JOB);
 const isTsxRunner = Boolean(
+  process.env.npm_lifecycle_event === "dev" ||
   process.env.TSX_TSCONFIG_PATH ||
   process.execPath.includes("tsx") ||
-  process.argv.some((arg) => arg.includes("tsx"))
+  process.argv.some((arg) => arg.includes("tsx")) ||
+  process.execArgv.some((arg) => arg.includes("tsx"))
 );
 
 if (!process.env.NODE_ENV && (isCloudRun || !isTsxRunner)) {

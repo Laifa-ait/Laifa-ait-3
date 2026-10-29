@@ -84,7 +84,7 @@ export const useOrdersFilters = (
     toast.success(t("Filtres réinitialisés !"));
   }, [t]);
 
-  return {
+  return useMemo(() => ({
     searchId,
     setSearchId,
     clientSearch,
@@ -103,5 +103,18 @@ export const useOrdersFilters = (
     extractWilayas,
     filteredOrders,
     handleResetFilters,
-  };
+  }), [
+    searchId,
+    clientSearch,
+    selectedWilaya,
+    selectedStatus,
+    sellerSearch,
+    startDate,
+    endDate,
+    dynamicWilayas,
+    extractWilayas,
+    filteredOrders,
+    handleResetFilters,
+  ]);
 };
+

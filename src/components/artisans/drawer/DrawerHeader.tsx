@@ -92,7 +92,7 @@ export const DrawerHeader: React.FC<DrawerHeaderProps> = ({
               type="button"
               onClick={() => {
                 onClose();
-                navigate('/profile');
+                navigate('/dashboard/buyer?tab=profile');
               }}
               className="text-slate-300 hover:text-white flex items-center gap-1 font-medium transition-colors cursor-pointer"
             >

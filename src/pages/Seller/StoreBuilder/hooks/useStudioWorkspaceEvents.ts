@@ -152,16 +152,31 @@ export function useStudioWorkspaceEvents({
       });
     };
 
+    const openInspectorTabHandler = (event: Event) => {
+      const custom = event as CustomEvent<{
+        sectionId?: string;
+        tab?: "content" | "style" | "layout" | "responsive" | "advanced";
+      }>;
+      if (custom.detail?.tab) {
+        useStudioStore.getState().setActiveInspectorTab(custom.detail.tab);
+      }
+      setShowRightSidebar(true);
+      setNavMode("sections");
+      setMobileColumn("inspector");
+    };
+
     window.addEventListener("studio:navigate-page", navPageHandler);
     window.addEventListener("studio:open-command-palette", cmdHandler);
     window.addEventListener("studio:audit-autofix", autoFixHandler);
     window.addEventListener("studio:patch-section-settings", patchSettingsHandler);
+    window.addEventListener("studio:open-inspector-tab", openInspectorTabHandler);
 
     return () => {
       window.removeEventListener("studio:navigate-page", navPageHandler);
       window.removeEventListener("studio:open-command-palette", cmdHandler);
       window.removeEventListener("studio:audit-autofix", autoFixHandler);
       window.removeEventListener("studio:patch-section-settings", patchSettingsHandler);
+      window.removeEventListener("studio:open-inspector-tab", openInspectorTabHandler);
     };
   }, [
     sections,

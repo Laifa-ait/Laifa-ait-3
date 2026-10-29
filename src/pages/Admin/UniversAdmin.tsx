@@ -12,8 +12,10 @@ import { AppAdminCard } from '../../components/Admin/AppAdminCard';
 import { AppModuleEditorModal } from '../../components/Admin/AppModuleEditorModal';
 import { IconPickerModal } from '../../components/Admin/IconPickerModal';
 import { UniversHeader } from '../../components/Admin/UniversHeader';
+import { useConfirm } from '../../hooks/useConfirm';
 
 export function UniversAdmin(): React.ReactElement {
+  const { confirm, ConfirmationDialog } = useConfirm();
   const [apps, setApps] = useState<OlmaAppModule[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
@@ -85,7 +87,8 @@ export function UniversAdmin(): React.ReactElement {
   };
 
   const handleDeleteApp = async (app: OlmaAppModule) => {
-    if (!window.confirm(`Voulez-vous vraiment supprimer "${app.title.fr}" ?`)) return;
+    const ok = await confirm(`Voulez-vous vraiment supprimer le module "${app.title.fr}" ?`);
+    if (!ok) return;
     setSavingId(app.id);
     const res = await deleteAdminOlmaApp(app.id);
     if (res.success) {
@@ -116,6 +119,7 @@ export function UniversAdmin(): React.ReactElement {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <ConfirmationDialog />
       <UniversHeader
         loading={loading}
         totalApps={apps.length}

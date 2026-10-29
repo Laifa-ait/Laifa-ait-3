@@ -347,12 +347,6 @@ const ALLOWED_CAPABILITIES = [
   "marketing_manager",
 ] as const;
 
-function csvSafe(value: unknown): string {
-  const s = String(value ?? "");
-  const protectedValue = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
-  return `"${protectedValue.replace(/"/g, '""')}"`;
-}
-
 router.put("/admin/users/:id/capabilities", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.params.id;
@@ -595,44 +589,77 @@ router.get("/admin/audit-logs", authenticateToken, authorizeAdmin, async (req: A
   }
 });
 
-// CSV Exports
+// CSV & JSON Structured Exports
 router.get("/admin/reports/export", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { type } = req.query;
-    if (!type || !["orders", "sellers", "finances"].includes(type as string)) {
-      return res.status(400).json({ error: "Type de rapport invalide (orders, sellers, finances)" });
+    const rawType = String(req.query.type || "").trim();
+    const typeMap: Record<string, "orders" | "sellers" | "finances" | "users"> = {
+      orders: "orders",
+      "Export Commandes": "orders",
+      sellers: "sellers",
+      "Performance Vendeurs": "sellers",
+      finances: "finances",
+      "Rapport Financier": "finances",
+      users: "users",
+      "Base Utilisateurs": "users",
+    };
+
+    const resolvedType = typeMap[rawType];
+    if (!resolvedType) {
+      return res.status(400).json({ error: "Type de rapport invalide (orders, sellers, finances, users)" });
     }
 
-    let csvContent = "";
+    let headers: string[] = [];
+    const rows: (string | number)[][] = [];
 
-    if (type === "orders") {
+    if (resolvedType === "orders") {
       const snap = await db.collection("orders").limit(500).get();
-      csvContent = "ID,Client,Montant,Statut,Date\n";
+      headers = ["ID", "Client", "Montant (DZD)", "Statut", "Date"];
       snap.docs.forEach((doc) => {
         const d = doc.data();
         const dateStr = d.createdAt && typeof d.createdAt.toDate === "function" ? d.createdAt.toDate().toISOString() : "";
-        csvContent += `${csvSafe(doc.id)},${csvSafe(d.customerName || "")},${csvSafe(d.totalAmount || 0)},${csvSafe(d.status || "")},${csvSafe(dateStr)}\n`;
+        rows.push([doc.id, String(d.customerName || d.buyerName || ""), Number(d.totalAmount || d.total || 0), String(d.status || ""), dateStr]);
       });
-    } else if (type === "sellers") {
+    } else if (resolvedType === "sellers") {
       const snap = await db.collection("users").where("role", "==", "seller").limit(500).get();
-      csvContent = "ID,Boutique,Email,Statut,Wilaya\n";
+      headers = ["ID", "Boutique", "Email", "Statut", "Wilaya"];
       snap.docs.forEach((doc) => {
         const d = doc.data();
-        csvContent += `${csvSafe(doc.id)},${csvSafe(d.shopName || "")},${csvSafe(d.email || "")},${csvSafe(d.status || "")},${csvSafe(d.wilaya || "")}\n`;
+        rows.push([doc.id, String(d.shopName || d.displayName || ""), String(d.email || ""), String(d.status || "active"), String(d.wilaya || "")]);
       });
-    } else if (type === "finances") {
+    } else if (resolvedType === "finances") {
       const snap = await db.collection("withdrawals").limit(500).get();
-      csvContent = "ID,VendeurID,Montant,Statut,Date\n";
+      headers = ["ID", "VendeurID", "Montant (DZD)", "Statut", "Date"];
       snap.docs.forEach((doc) => {
         const d = doc.data();
         const dateStr = d.createdAt && typeof d.createdAt.toDate === "function" ? d.createdAt.toDate().toISOString() : "";
-        csvContent += `${csvSafe(doc.id)},${csvSafe(d.sellerId || "")},${csvSafe(d.amount || 0)},${csvSafe(d.status || "")},${csvSafe(dateStr)}\n`;
+        rows.push([doc.id, String(d.sellerId || ""), Number(d.amount || 0), String(d.status || ""), dateStr]);
+      });
+    } else if (resolvedType === "users") {
+      const snap = await db.collection("users").limit(500).get();
+      headers = ["ID", "Nom", "Email", "Role", "Segment", "Statut", "Wilaya"];
+      snap.docs.forEach((doc) => {
+        const d = doc.data();
+        rows.push([
+          doc.id,
+          String(d.displayName || ""),
+          String(d.email || ""),
+          String(d.role || "buyer"),
+          String(d.clientType || "B2C"),
+          String(d.status || "active"),
+          String(d.wilaya || ""),
+        ]);
       });
     }
 
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", `attachment; filename=olmart_report_${type}_${Date.now()}.csv`);
-    res.status(200).send(csvContent);
+    const filename = `olmart_report_${resolvedType}_${new Date().toISOString().slice(0, 10)}.csv`;
+    res.status(200).json({
+      success: true,
+      headers,
+      rows,
+      filename,
+      data: { headers, rows, filename },
+    });
   } catch (error: unknown) {
     res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
   }

@@ -58,6 +58,7 @@ export const CategoryContentEditor: React.FC<CategoryContentEditorProps> = ({
 
   const handleApplyPreset = (preset: CategoryPreset, keepExistingItems: boolean) => {
     const patch: Record<string, unknown> = {
+      activePresetId: preset.id,
       layout: preset.settings.layout,
       aspectRatio: preset.settings.aspectRatio,
       borderRadius: preset.settings.borderRadius,
@@ -140,7 +141,6 @@ export const CategoryContentEditor: React.FC<CategoryContentEditorProps> = ({
           <Grid className="w-3.5 h-3.5" />
           <span>Mes Rayons ({categories.length})</span>
         </button>
-
         <button
           type="button"
           onClick={() => setSubTab("style")}
@@ -153,7 +153,6 @@ export const CategoryContentEditor: React.FC<CategoryContentEditorProps> = ({
           <Sliders className="w-3.5 h-3.5" />
           <span>Style & Grille</span>
         </button>
-
         <button
           type="button"
           onClick={() => setSubTab("presets")}
@@ -190,6 +189,7 @@ export const CategoryContentEditor: React.FC<CategoryContentEditorProps> = ({
       {subTab === "presets" && (
         <CategoryPresetSelector
           currentLayout={String(settings.layout || "")}
+          activePresetId={typeof settings.activePresetId === "string" ? settings.activePresetId : undefined}
           products={products}
           hasExistingCategories={categories.length > 0}
           onApplyPreset={handleApplyPreset}

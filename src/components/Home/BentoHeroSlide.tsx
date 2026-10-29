@@ -75,26 +75,27 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
         />
       </picture>
 
-      {/* Subtle Legibility Gradient strictly at the bottom (leaves top & center 100% clear) */}
+      {/* Subtle Legibility Gradient strictly at the bottom */}
       {hasContent && (
-        <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-slate-950/90 via-slate-950/45 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[#1A1836]/95 via-[#42164B]/50 to-transparent pointer-events-none" />
       )}
 
       {/* Structured Content Container docked at the bottom */}
       {hasContent && (
-        <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6 md:p-8 flex flex-col justify-end items-start z-10 max-w-[82%] sm:max-w-[70%] md:max-w-[55%]">
-          {/* Optional Tag Badge (only when explicitly provided) */}
+        <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6 md:p-8 flex flex-col justify-end items-start z-10 max-w-[85%] sm:max-w-[72%] md:max-w-[58%]">
+          {/* Optional Kicker (clean unboxed text with typographic separator) */}
           {banner.badge && (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-slate-900/85 backdrop-blur-md border border-slate-700/60 text-slate-200 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 sm:mb-2 shadow-md">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              <span>{banner.badge}</span>
+            <div className="inline-flex items-center gap-2 text-[#E99856] text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-1.5 sm:mb-2 drop-shadow-xs">
+              <span>Olmart Prestige</span>
+              <span aria-hidden="true" className="text-[#E0B4B2]">·</span>
+              <span className="text-[#E0B4B2]">{banner.badge}</span>
             </div>
           )}
 
           {/* Title */}
           {title && (
             <h2
-              className="text-xl sm:text-2xl md:text-4xl font-black tracking-tight mb-1 sm:mb-1.5 leading-tight text-start drop-shadow-md"
+              className="text-xl sm:text-3xl md:text-4xl font-display font-bold tracking-tight mb-1.5 sm:mb-2 leading-tight text-start drop-shadow-md text-balance"
               style={{ color: banner.title_color || "#FFFFFF" }}
             >
               {title}
@@ -104,7 +105,7 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
           {/* Subtitle */}
           {subtitle && (
             <p
-              className="text-xs sm:text-sm font-medium mb-2.5 sm:mb-3.5 max-w-md text-start leading-snug drop-shadow-sm text-slate-200/95"
+              className="text-xs sm:text-sm font-medium mb-3 sm:mb-4 max-w-md text-start leading-relaxed drop-shadow-sm text-[#E0B4B2]/95"
               style={{ color: banner.subtitle_color || undefined }}
             >
               {subtitle}
@@ -127,9 +128,9 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
                     }
                   : undefined
               }
-              className={`group relative inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm tracking-tight transition-all duration-200 cursor-pointer border-none shadow-md active:scale-95 ${
+              className={`group relative inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-extrabold text-xs sm:text-sm tracking-tight transition-all duration-200 cursor-pointer border-none shadow-md active:scale-95 whitespace-nowrap ${
                 !hasCustomButtonColor
-                  ? "bg-amber-400 text-slate-950 hover:bg-amber-300 shadow-amber-900/20"
+                  ? "bg-gradient-to-r from-[#E99856] to-[#f0aa6e] text-[#1A1836] hover:from-[#f3ab6e] hover:to-[#E99856] shadow-[#1A1836]/30"
                   : "hover:brightness-105"
               }`}
             >

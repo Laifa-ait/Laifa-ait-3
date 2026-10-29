@@ -1,6 +1,6 @@
 import React from "react";
 import { Phone, MessageSquare } from "lucide-react";
-import { formatPriceDZD } from "../../domains/auto/auto.utils";
+import { formatPriceDZD, formatPriceMillions } from "../../domains/auto/auto.utils";
 
 export interface StickyContactBarProps {
   price: number;
@@ -14,14 +14,14 @@ export const StickyContactBar: React.FC<StickyContactBarProps> = ({
   onOpenContact,
 }) => {
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg">
+    <div className="md:hidden fixed bottom-16 left-0 right-0 z-30 bg-white/95 backdrop-blur-xl border-t border-slate-200 px-4 py-2.5 shadow-[0_-4px_20px_rgba(15,23,42,0.08)]">
       <div className="flex items-center justify-between gap-3 max-w-lg mx-auto">
-        <div className="min-w-0">
-          <div className="text-base font-bold text-slate-950 tabular-nums truncate">
-            {formatPriceDZD(price)}
+        <div className="min-w-0 tabular-nums">
+          <div className="text-base font-black text-slate-900 truncate">
+            {formatPriceMillions(price)}
           </div>
-          <span className="text-[11px] text-slate-500 block truncate">
-            {priceTypeLabel}
+          <span className="text-[11px] font-semibold text-slate-500 block truncate">
+            {formatPriceDZD(price)} · {priceTypeLabel}
           </span>
         </div>
 
@@ -29,17 +29,17 @@ export const StickyContactBar: React.FC<StickyContactBarProps> = ({
           <button
             type="button"
             onClick={onOpenContact}
-            className="py-2.5 px-3.5 bg-[#D9F66F] hover:bg-[#C5E94F] active:bg-[#B3DA3B] text-[#0B1730] text-xs font-bold rounded-xl shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer min-h-[44px]"
+            className="h-11 px-4 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-extrabold rounded-2xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer border-none"
           >
-            <Phone className="w-4 h-4 text-[#0B1730]" />
-            <span>Contacter</span>
+            <Phone className="w-4 h-4 text-white" />
+            <span>Appeler</span>
           </button>
           <button
             type="button"
             onClick={onOpenContact}
-            className="py-2.5 px-3.5 bg-[#172B4D] hover:bg-[#23416A] active:bg-[#0B1730] text-white text-xs font-bold rounded-xl shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer min-h-[44px]"
+            className="h-11 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-extrabold rounded-2xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer border-none"
           >
-            <MessageSquare className="w-4 h-4 text-[#D9F66F]" />
+            <MessageSquare className="w-4 h-4 text-white" />
             <span>WhatsApp</span>
           </button>
         </div>

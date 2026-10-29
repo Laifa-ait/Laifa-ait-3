@@ -57,14 +57,14 @@ export const OverviewGlobalOrdersTable: React.FC<OverviewGlobalOrdersTableProps>
   ];
 
   return (
-    <div className="bg-white rounded-[3.5rem] border border-zinc-100 shadow-sm overflow-hidden flex flex-col mt-12">
-      <div className="p-10 border-b border-zinc-50">
-        <h4 className="text-xl font-sans font-bold flex items-center gap-4">
-          <Truck className="w-7 h-7 text-orange-500" />
-          {t("Surveillance Globale des Expéditions")}
+    <div className="bg-white rounded-2xl sm:rounded-3xl md:rounded-[3rem] border border-zinc-100 shadow-sm overflow-hidden flex flex-col mt-8 sm:mt-12">
+      <div className="p-5 sm:p-8 border-b border-zinc-50">
+        <h4 className="text-base sm:text-xl font-sans font-bold flex items-center gap-3">
+          <Truck className="w-5 h-5 sm:w-7 sm:h-7 text-[#A54055] shrink-0" />
+          <span>{t("Surveillance Globale des Expéditions")}</span>
         </h4>
       </div>
-      <div className="pb-6">
+      <div className="pb-4 sm:pb-6">
         <AdminDataTable
           data={globalOrders}
           columns={globalOrdersColumns}
@@ -80,3 +80,4 @@ export const OverviewGlobalOrdersTable: React.FC<OverviewGlobalOrdersTableProps>
     </div>
   );
 };
+

@@ -1,22 +1,5 @@
-import React, { useEffect, useState, useMemo } from "react";
-import {
-  ArrowLeft,
-  Search,
-  SlidersHorizontal,
-  User,
-  MapPin,
-  Package,
-  ShieldCheck,
-  Heart,
-  Store,
-  Star,
-  RotateCcw,
-  FolderLock,
-  Headphones,
-  Info,
-  ChevronRight,
-  X,
-} from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { ArrowLeft, Store } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -37,21 +20,29 @@ import { FollowedStores } from "../components/Buyer/FollowedStores";
 import { UserDocumentsSection } from "../components/Buyer/UserDocumentsSection";
 import { AboutSection } from "../components/Buyer/AboutSection";
 import { BuyerSupport } from "./BuyerSupport";
+import {
+  BuyerNavigationMenu,
+  SettingTab,
+  useBuyerMenuGroups,
+} from "../components/Buyer/BuyerNavigationMenu";
+import { BuyerOverviewPanel } from "../components/Buyer/BuyerOverviewPanel";
 
-export type SettingTab =
-  | "index"
-  | "general"
-  | "profile"
-  | "addresses"
-  | "orders"
-  | "security"
-  | "preferences"
-  | "following"
-  | "reviews"
-  | "returns"
-  | "documents"
-  | "support"
-  | "about";
+export type { SettingTab };
+
+const VALID_TABS: SettingTab[] = [
+  "general",
+  "profile",
+  "addresses",
+  "orders",
+  "security",
+  "preferences",
+  "following",
+  "reviews",
+  "returns",
+  "documents",
+  "support",
+  "about",
+];
 
 export const BuyerDashboard: React.FC = () => {
   const { t } = useTranslation();
@@ -67,23 +58,7 @@ export const BuyerDashboard: React.FC = () => {
 
   const rawTab = searchParams.get("tab");
   const activeTab: SettingTab =
-    rawTab &&
-    [
-      "general",
-      "profile",
-      "addresses",
-      "orders",
-      "security",
-      "preferences",
-      "following",
-      "reviews",
-      "returns",
-      "documents",
-      "support",
-      "about",
-    ].includes(rawTab)
-      ? (rawTab as SettingTab)
-      : "index";
+    rawTab && VALID_TABS.includes(rawTab as SettingTab) ? (rawTab as SettingTab) : "index";
 
   const setActiveTab = (tab: SettingTab) => {
     if (tab === "index") {
@@ -91,6 +66,7 @@ export const BuyerDashboard: React.FC = () => {
     } else {
       setSearchParams({ tab });
     }
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -99,30 +75,29 @@ export const BuyerDashboard: React.FC = () => {
       return;
     }
 
-    if (activeTab === "orders" && orders.length === 0) {
-      let cancelled = false;
-      const fetchOrders = async () => {
-        setLoadingOrders(true);
-        try {
-          const data = await apiGet<{ orders: BuyerOrder[]; lastVisible: string | null }>(
-            `/api/v1/buyer/orders?limit=${BUYER_ORDERS_PER_PAGE}`
-          );
-          if (!cancelled && data?.orders) {
-            setOrders(data.orders);
-            setLastVisible(data.lastVisible);
-          }
-        } catch (err) {
-          if (!cancelled) console.error("Error fetching orders:", err);
-        } finally {
-          if (!cancelled) setLoadingOrders(false);
+    let cancelled = false;
+    const fetchInitialOrders = async () => {
+      setLoadingOrders(true);
+      try {
+        const data = await apiGet<{ orders: BuyerOrder[]; lastVisible: string | null }>(
+          `/api/v1/buyer/orders?limit=${BUYER_ORDERS_PER_PAGE}`
+        );
+        if (!cancelled && data?.orders) {
+          setOrders(data.orders);
+          setLastVisible(data.lastVisible);
         }
-      };
-      fetchOrders();
-      return () => {
-        cancelled = true;
-      };
-    }
-  }, [currentUser, activeTab, orders.length, navigate]);
+      } catch (err) {
+        if (!cancelled) console.error("Error fetching buyer orders:", err);
+      } finally {
+        if (!cancelled) setLoadingOrders(false);
+      }
+    };
+
+    fetchInitialOrders();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser, navigate]);
 
   const loadMoreOrders = async () => {
     if (!currentUser || !lastVisible || loadingMore) return;
@@ -142,124 +117,18 @@ export const BuyerDashboard: React.FC = () => {
     }
   };
 
-  const settingItems = useMemo(
-    () => [
-      {
-        id: "general" as SettingTab,
-        icon: SlidersHorizontal,
-        title: t("Général"),
-        subtitle: t("Langue, devise DZD, thème et alertes"),
-        color: "text-[#5b4865]",
-        bg: "bg-[#f1edf4]",
-      },
-      {
-        id: "profile" as SettingTab,
-        icon: User,
-        title: t("Informations personnelles"),
-        subtitle: t("Nom, email, numéro de téléphone et photo"),
-        color: "text-[#5b4865]",
-        bg: "bg-[#f1edf4]",
-      },
-      {
-        id: "addresses" as SettingTab,
-        icon: MapPin,
-        title: t("Adresses et livraisons"),
-        subtitle: t("Gestion des adresses dans les 69 wilayas"),
-        color: "text-[#5b4865]",
-        bg: "bg-[#f1edf4]",
-      },
-      {
-        id: "orders" as SettingTab,
-        icon: Package,
-        title: t("Commandes et achats"),
-        subtitle: t("Historique de commandes, factures et suivi"),
-        color: "text-[#5b4865]",
-        bg: "bg-[#f1edf4]",
-      },
-      {
-        id: "security" as SettingTab,
-        icon: ShieldCheck,
-        title: t("Confidentialité et sécurité"),
-        subtitle: t("Mot de passe, double authentification (2FA), sessions"),
-        color: "text-[#276b50]",
-        bg: "bg-[#eaf3ed]",
-      },
-      {
-        id: "preferences" as SettingTab,
-        icon: Heart,
-        title: t("Préférences d'achat"),
-        subtitle: t("Centres d'intérêt et recommandations"),
-        color: "text-[#8a6b35]",
-        bg: "bg-[#f7f0df]",
-      },
-      {
-        id: "following" as SettingTab,
-        icon: Store,
-        title: t("Commerçants favoris"),
-        subtitle: t("Boutiques officielles et artisans suivis"),
-        color: "text-[#5b4865]",
-        bg: "bg-[#f1edf4]",
-      },
-      {
-        id: "reviews" as SettingTab,
-        icon: Star,
-        title: t("Avis et évaluations"),
-        subtitle: t("Notes et commentaires déposés"),
-        color: "text-[#8a6b35]",
-        bg: "bg-[#f7f0df]",
-      },
-      {
-        id: "returns" as SettingTab,
-        icon: RotateCcw,
-        title: t("Retours et réclamations"),
-        subtitle: t("Demandes de retour et échanges avec les vendeurs"),
-        color: "text-[#c5221f]",
-        bg: "bg-[#fce8e6]",
-      },
-      {
-        id: "documents" as SettingTab,
-        icon: FolderLock,
-        title: t("Coffre-fort Documents"),
-        subtitle: t("Factures certifiées et pièces justificatives"),
-        color: "text-[#444746]",
-        bg: "bg-[#f0f4f9]",
-      },
-      {
-        id: "support" as SettingTab,
-        icon: Headphones,
-        title: t("Aide et commentaires"),
-        subtitle: t("Assistance client dédiée Olmart"),
-        color: "text-[#5b4865]",
-        bg: "bg-[#f1edf4]",
-      },
-      {
-        id: "about" as SettingTab,
-        icon: Info,
-        title: t("À propos d'Olmart"),
-        subtitle: t("Version 4.6.16 • Conditions d'utilisation • Confidentialité"),
-        color: "text-[#444746]",
-        bg: "bg-[#f0f4f9]",
-      },
-    ],
-    [t]
-  );
-
-  const filteredItems = useMemo(() => {
-    if (!searchQuery.trim()) return settingItems;
-    const q = searchQuery.toLowerCase();
-    return settingItems.filter(
-      (item) => item.title.toLowerCase().includes(q) || item.subtitle.toLowerCase().includes(q)
-    );
-  }, [settingItems, searchQuery]);
-
-  const activeItem = settingItems.find((item) => item.id === activeTab);
+  const addressesCount = userProfile?.shippingAddresses?.length || 0;
+  const menuGroups = useBuyerMenuGroups(orders.length, addressesCount);
+  const activeItem = menuGroups.flatMap((g) => g.items).find((item) => item.id === activeTab);
 
   return (
-    <div id="buyer-dashboard-root" className="min-h-screen bg-[#faf8fb] text-[#302638] pb-16">
-      <div className="sticky top-0 z-30 border-b border-[#e8e1e9] bg-white/95 shadow-xs backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+    <div id="buyer-dashboard-root" className="min-h-screen bg-[#FAF7F8] text-[#1A1836] pb-20">
+      {/* Top Sticky Header */}
+      <div className="sticky top-0 z-30 border-b border-[#E0B4B2]/40 bg-white/95 shadow-2xs backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
             <button
+              type="button"
               onClick={() => {
                 if (activeTab === "index") {
                   navigate("/");
@@ -267,21 +136,37 @@ export const BuyerDashboard: React.FC = () => {
                   setActiveTab("index");
                 }
               }}
-              aria-label={activeTab === "index" ? t("Retour à l'accueil") : t("Retour aux paramètres")}
+              aria-label={activeTab === "index" ? t("Retour à l'accueil") : t("Retour au menu")}
               title={activeTab === "index" ? t("Retour à l'accueil") : t("Retour")}
-              className="w-10 h-10 rounded-full flex items-center justify-center text-[#6b5874] hover:bg-[#f5f1f6] transition-colors border-none bg-transparent cursor-pointer"
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-[#42164B] hover:bg-[#FAF7F8] transition-colors border border-[#E0B4B2]/40 bg-white cursor-pointer shrink-0"
             >
               <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
             </button>
 
-            <div>
-              <h1 className="text-xl sm:text-2xl font-semibold text-[#302638] tracking-tight">
-                {activeTab === "index" ? t("Paramètres") : activeItem?.title || t("Paramètres")}
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-extrabold text-[#1A1836] tracking-tight truncate">
+                {activeTab === "index"
+                  ? t("Mon Espace Client")
+                  : activeItem?.title || t("Mon Espace Client")}
               </h1>
+              <p className="text-[11px] text-[#622347] hidden sm:block truncate">
+                {activeTab === "index"
+                  ? t("Gérez vos commandes, vos adresses 69 wilayas et vos préférences Olmart")
+                  : activeItem?.subtitle}
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => navigate("/shop")}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#FAF7F8] hover:bg-[#E0B4B2]/25 text-[#42164B] font-bold text-xs border border-[#E0B4B2]/50 transition-colors cursor-pointer"
+            >
+              <Store className="w-3.5 h-3.5 text-[#A54055]" />
+              <span>{t("Boutique")}</span>
+            </button>
+
             <UserAvatar
               photoURL={userProfile?.photoURL || currentUser?.photoURL}
               displayName={userProfile?.displayName || currentUser?.displayName}
@@ -293,89 +178,51 @@ export const BuyerDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
-        {/* DESKTOP SPLIT VIEW OR MOBILE DRILL-DOWN VIEW */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
           {/* Left Navigation Panel (Visible on Desktop OR on Mobile when activeTab === 'index') */}
-          <div className={`lg:col-span-4 space-y-4 ${activeTab !== "index" ? "hidden lg:block" : "block"}`}>
-            {/* Search Bar inside Settings (Screenshot 2) */}
-            <div className="relative">
-              <Search className="w-4.5 h-4.5 text-[#444746] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t("Rechercher dans les paramètres")}
-                className="w-full pl-10 pr-9 py-2.5 bg-[#f5f1f6] hover:bg-[#eee8f0] focus:bg-white text-xs sm:text-sm rounded-full border border-transparent focus:border-[#6b5874] focus:ring-2 focus:ring-[#6b5874]/20 outline-none transition-all text-[#302638] placeholder:text-[#807585]"
+          <div className={`lg:col-span-4 space-y-5 ${activeTab !== "index" ? "hidden lg:block" : "block"}`}>
+            {/* Compact Mobile Summary Header */}
+            <div className="lg:hidden">
+              <BuyerOverviewPanel
+                currentUser={currentUser}
+                userProfile={userProfile}
+                orders={orders}
+                loadingOrders={loadingOrders}
+                onSelectTab={setActiveTab}
+                compactMobile
               />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#444746] hover:text-[#1f1f1f] border-none bg-transparent cursor-pointer p-0"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
             </div>
 
-            {/* List of Settings Items (Screenshot 2 Google Material 3 list) */}
-            <div className="bg-white rounded-[24px] border border-[#dadce0] overflow-hidden divide-y divide-[#f1f3f4] shadow-xs">
-              {filteredItems.map((item) => {
-                const Icon = item.icon;
-                const isSelected = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center justify-between p-3.5 sm:p-4 text-left rtl:text-right transition-colors cursor-pointer border-none ${
-                      isSelected ? "bg-[#f1edf4] text-[#5b4865]" : "bg-white hover:bg-[#fbf9fc] text-[#302638]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0 pr-2">
-                      <div
-                        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                          isSelected ? "bg-white text-[#5b4865] shadow-xs" : `${item.bg} ${item.color}`
-                        }`}
-                      >
-                        <Icon className="w-4.5 h-4.5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p
-                          className={`text-xs sm:text-sm font-medium truncate ${
-                            isSelected ? "text-[#5b4865]" : "text-[#302638]"
-                          }`}
-                        >
-                          {item.title}
-                        </p>
-                        <p className="text-[11px] text-[#444746] truncate">{item.subtitle}</p>
-                      </div>
-                    </div>
-                    <ChevronRight
-                      className={`w-4 h-4 shrink-0 rtl:rotate-180 ${isSelected ? "text-[#5b4865]" : "text-[#8b8490]"}`}
-                    />
-                  </button>
-                );
-              })}
-            </div>
+            <BuyerNavigationMenu
+              activeTab={activeTab}
+              onSelectTab={setActiveTab}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              ordersCount={orders.length}
+              addressesCount={addressesCount}
+            />
           </div>
 
-          {/* Right Detail Panel (Visible on Desktop always, or on Mobile when a setting tab is selected) */}
+          {/* Right Detail Panel */}
           <div className={`lg:col-span-8 ${activeTab === "index" ? "hidden lg:block" : "block"}`}>
             {activeTab === "index" ? (
-              <div className="hidden lg:flex flex-col items-center justify-center h-full min-h-[400px] bg-white rounded-[24px] border border-[#e8e1e9] p-8 text-center shadow-xs">
-                <div className="w-16 h-16 rounded-full bg-[#f1edf4] text-[#5b4865] flex items-center justify-center mb-4">
-                  <SlidersHorizontal className="w-8 h-8" />
-                </div>
-                <h3 className="text-lg font-semibold text-[#1f1f1f]">{t("Paramètres du compte Olmart")}</h3>
-                <p className="text-xs sm:text-sm text-[#444746] max-w-sm mt-1">
-                  {t("Sélectionnez une catégorie dans le menu de gauche pour afficher et modifier vos préférences.")}
-                </p>
-              </div>
+              <BuyerOverviewPanel
+                currentUser={currentUser}
+                userProfile={userProfile}
+                orders={orders}
+                loadingOrders={loadingOrders}
+                onSelectTab={setActiveTab}
+              />
             ) : (
               <div className="animate-in fade-in duration-150">
                 {activeTab === "general" && <GeneralSettings />}
-                {activeTab === "profile" && <ProfileSettings currentUser={currentUser} userProfile={userProfile} />}
-                {activeTab === "addresses" && <AddressManager currentUser={currentUser} userProfile={userProfile} />}
+                {activeTab === "profile" && (
+                  <ProfileSettings currentUser={currentUser} userProfile={userProfile} />
+                )}
+                {activeTab === "addresses" && (
+                  <AddressManager currentUser={currentUser} userProfile={userProfile} />
+                )}
                 {activeTab === "orders" && (
                   <OrdersSection
                     orders={orders}
@@ -385,7 +232,9 @@ export const BuyerDashboard: React.FC = () => {
                     onLoadMore={loadMoreOrders}
                   />
                 )}
-                {activeTab === "security" && <SecuritySettings currentUser={currentUser} userProfile={userProfile} />}
+                {activeTab === "security" && (
+                  <SecuritySettings currentUser={currentUser} userProfile={userProfile} />
+                )}
                 {activeTab === "preferences" && (
                   <CustomerPreferences currentUser={currentUser} userProfile={userProfile} />
                 )}

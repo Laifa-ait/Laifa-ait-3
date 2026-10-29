@@ -23,15 +23,19 @@ export const StudioDirectPublishModal: React.FC<StudioDirectPublishModalProps> =
       <div className="bg-white text-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between pb-3 border-b border-slate-200">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-[#F0F7FA] text-[#023859] flex items-center justify-center">
               <Send className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Mettre à jour la boutique en ligne</h3>
+              <h3 className="text-sm font-bold text-[#011C40]">Mettre à jour la boutique en ligne</h3>
               <p className="text-[11px] text-slate-500">Déployer les modifications récentes</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -42,19 +46,21 @@ export const StudioDirectPublishModal: React.FC<StudioDirectPublishModalProps> =
           value={changeSummary}
           onChange={(e) => setChangeSummary(e.target.value)}
           placeholder="Note de version optionnelle (ex: Nouveaux arrivages, nouvelle bannière)..."
-          className="w-full text-xs p-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 focus:bg-white transition-all"
+          className="w-full text-xs p-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#54ACBF]/30 focus:border-[#023859] focus:bg-white transition-all"
           rows={3}
         />
         <div className="flex gap-2 pt-2">
           <button
+            type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
+            className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
           >
             Annuler
           </button>
           <button
+            type="button"
             onClick={onConfirm}
-            className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-sm shadow-orange-500/20 transition-all cursor-pointer"
+            className="flex-1 py-2.5 bg-[#023859] hover:bg-[#011C40] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
           >
             Confirmer la mise en ligne
           </button>

@@ -25,30 +25,33 @@ const VehicleCatalogPage = lazyWithRetry(() => import("../pages/Auto/VehicleCata
 const VehicleDetailPage = lazyWithRetry(() => import("../pages/Auto/VehicleDetailPage"), "VehicleDetailPage");
 const CreateVehicleListingPage = lazyWithRetry(() => import("../pages/Auto/CreateVehicleListingPage"), "CreateVehicleListingPage");
 const SellerGaragePage = lazyWithRetry(() => import("../pages/Auto/SellerGaragePage"), "SellerGaragePage");
+const AutoUserDashboardPage = lazyWithRetry(() => import("../pages/Auto/AutoUserDashboardPage"), "AutoUserDashboardPage");
 const AutoPartsPage = lazyWithRetry(() => import("../pages/Auto/AutoPartsPage"), "AutoPartsPage");
 const AutoPartDetailPage = lazyWithRetry(() => import("../pages/Auto/AutoPartDetailPage"), "AutoPartDetailPage");
-const AutoEstimationPage = lazyWithRetry(() => import("../pages/Auto/AutoEstimationPage"), "AutoEstimationPage");
 const AutoComparePage = lazyWithRetry(() => import("../pages/Auto/AutoComparePage"), "AutoComparePage");
 
 export const renderEcosystemRoutes = () => (
   <>
-    {/* Olma Auto Ecosystem Routes */}
+    {/* Olma Auto Ecosystem Routes (Simple Classifieds & User Dashboard) */}
     <Route path="/auto" element={<PageWrapper><AutoHome /></PageWrapper>} />
     <Route path="/auto/catalog" element={<PageWrapper><VehicleCatalogPage /></PageWrapper>} />
     <Route path="/auto/vehicules" element={<PageWrapper><VehicleCatalogPage /></PageWrapper>} />
     <Route path="/auto/vehicules/:id" element={<PageWrapper><VehicleDetailPage /></PageWrapper>} />
     <Route path="/auto/deposer" element={<PageWrapper><CreateVehicleListingPage /></PageWrapper>} />
+    <Route path="/auto/dashboard" element={<PageWrapper><AutoUserDashboardPage /></PageWrapper>} />
+    <Route path="/auto/profile" element={<PageWrapper><AutoUserDashboardPage /></PageWrapper>} />
     <Route path="/auto/mon-garage" element={<PageWrapper><SellerGaragePage /></PageWrapper>} />
     <Route path="/dashboard/seller/auto" element={<PageWrapper><SellerGaragePage /></PageWrapper>} />
 
-    {/* Outils & Services Majeurs Olma Auto */}
-    <Route path="/auto/estimation" element={<PageWrapper><AutoEstimationPage /></PageWrapper>} />
-    <Route path="/auto/argus" element={<PageWrapper><AutoEstimationPage /></PageWrapper>} />
+    {/* Redirections des anciennes routes Argus vers la recherche simple */}
+    <Route path="/auto/estimation" element={<Navigate to="/auto" replace />} />
+    <Route path="/auto/argus" element={<Navigate to="/auto" replace />} />
+
     <Route path="/auto/comparer" element={<PageWrapper><AutoComparePage /></PageWrapper>} />
     <Route path="/auto/compare" element={<PageWrapper><AutoComparePage /></PageWrapper>} />
-    <Route path="/auto/favoris" element={<PageWrapper><VehicleCatalogPage /></PageWrapper>} />
+    <Route path="/auto/favoris" element={<Navigate to="/auto/dashboard?tab=favorites" replace />} />
 
-    {/* Pièces Détachées & Casse Automobile (Phase 4) */}
+    {/* Pièces Détachées & Casse Automobile */}
     <Route path="/auto/pieces" element={<PageWrapper><AutoPartsPage /></PageWrapper>} />
     <Route path="/auto/pieces/:id" element={<PageWrapper><AutoPartDetailPage /></PageWrapper>} />
     <Route path="/auto/parts" element={<PageWrapper><AutoPartsPage /></PageWrapper>} />

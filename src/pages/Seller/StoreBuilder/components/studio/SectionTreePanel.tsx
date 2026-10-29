@@ -79,7 +79,7 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
         {/* ZONE 1 : EN-TÊTE DE BOUTIQUE */}
         <section className="space-y-1.5">
           <div className="flex items-center gap-1.5 px-1 text-[10px] font-extrabold uppercase tracking-wider text-[#667085]">
-            <Store className="w-3.5 h-3.5 text-[#F97316]" />
+            <Store className="w-3.5 h-3.5 text-[#023859]" />
             <span>1. En-tête de Boutique</span>
           </div>
           <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-1.5 space-y-1">
@@ -88,15 +88,15 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
               onClick={() => onSelectNavMode?.("identity")}
               className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left text-xs font-semibold transition-all cursor-pointer ${
                 navMode === "identity"
-                  ? "bg-[#FFF7ED] text-[#EA580C] border border-[#FDBA74]"
-                  : "bg-white text-[#17191C] hover:bg-orange-50/50 border border-transparent"
+                  ? "bg-[#023859] text-white border border-[#023859] font-bold"
+                  : "bg-white text-[#011C40] hover:bg-[#F0F7FA] border border-transparent"
               }`}
             >
               <span className="flex items-center gap-2 truncate">
-                <Store className="w-3.5 h-3.5 text-[#F97316] shrink-0" />
+                <Store className={`w-3.5 h-3.5 shrink-0 ${navMode === "identity" ? "text-white" : "text-[#023859]"}`} />
                 <span className="truncate">Header, Logo & Identité</span>
               </span>
-              <ChevronRight className="w-3.5 h-3.5 text-[#98A2B3] shrink-0" />
+              <ChevronRight className={`w-3.5 h-3.5 shrink-0 ${navMode === "identity" ? "text-white" : "text-[#98A2B3]"}`} />
             </button>
 
             <button
@@ -104,15 +104,15 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
               onClick={() => onSelectNavMode?.("settings")}
               className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left text-xs font-semibold transition-all cursor-pointer ${
                 navMode === "settings"
-                  ? "bg-[#FFF7ED] text-[#EA580C] border border-[#FDBA74]"
-                  : "bg-white text-[#17191C] hover:bg-orange-50/50 border border-transparent"
+                  ? "bg-[#023859] text-white border border-[#023859] font-bold"
+                  : "bg-white text-[#011C40] hover:bg-[#F0F7FA] border border-transparent"
               }`}
             >
               <span className="flex items-center gap-2 truncate">
-                <Megaphone className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span className="truncate">Barre d'annonce & Réglages</span>
+                <Megaphone className={`w-3.5 h-3.5 shrink-0 ${navMode === "settings" ? "text-white" : "text-[#26658C]"}`} />
+                <span className="truncate">Barre d&apos;annonce & Réglages</span>
               </span>
-              <ChevronRight className="w-3.5 h-3.5 text-[#98A2B3] shrink-0" />
+              <ChevronRight className={`w-3.5 h-3.5 shrink-0 ${navMode === "settings" ? "text-white" : "text-[#98A2B3]"}`} />
             </button>
           </div>
         </section>
@@ -121,13 +121,13 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
         <section className="space-y-2">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-[#667085]">
-              <Layers className="w-3.5 h-3.5 text-[#F97316]" />
+              <Layers className="w-3.5 h-3.5 text-[#023859]" />
               <span>2. Corps de la Vitrine ({bodySections.length})</span>
             </div>
             <button
               type="button"
               onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#F97316] hover:text-[#EA580C] cursor-pointer"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#F0F7FA] hover:bg-[#023859] text-[11px] font-bold text-[#023859] hover:text-white transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Ajouter</span>
@@ -135,13 +135,13 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
           </div>
 
           {bodySections.length === 0 ? (
-            <div className="p-4 text-center bg-[#F7F8FA] rounded-xl border border-dashed border-[#D0D5DD] space-y-2">
-              <Sparkles className="w-5 h-5 text-[#F97316] mx-auto" />
-              <p className="text-xs font-bold text-[#17191C]">Corps de vitrine vide</p>
+            <div className="p-4 text-center bg-[#F8FBFC] rounded-xl border border-dashed border-[#54ACBF]/50 space-y-2">
+              <Sparkles className="w-5 h-5 text-[#023859] mx-auto" />
+              <p className="text-xs font-bold text-[#011C40]">Corps de vitrine vide</p>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(true)}
-                className="w-full h-8 bg-white border border-[#E5E7EB] text-[#F97316] hover:bg-[#FFF1E7] text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                className="w-full h-8 bg-[#023859] hover:bg-[#011C40] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
               >
                 + Ajouter une section
               </button>
@@ -170,7 +170,7 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="w-full h-9 rounded-xl border-2 border-dashed border-orange-300 bg-orange-50/40 hover:bg-orange-50 text-[#EA580C] text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            className="w-full h-9 rounded-xl border-2 border-dashed border-[#54ACBF]/60 bg-[#F0F7FA]/60 hover:bg-[#023859] hover:border-[#023859] text-[#023859] hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>+ Ajouter une section</span>
@@ -180,7 +180,7 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
         {/* ZONE 3 : PIED DE BOUTIQUE */}
         <section className="space-y-2 pt-2 border-t border-[#E5E7EB]">
           <div className="flex items-center gap-1.5 px-1 text-[10px] font-extrabold uppercase tracking-wider text-[#667085]">
-            <Phone className="w-3.5 h-3.5 text-slate-600" />
+            <Phone className="w-3.5 h-3.5 text-[#023859]" />
             <span>3. Pied de Boutique & Politiques</span>
           </div>
 
@@ -216,10 +216,10 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
                   "Pied de boutique & Contact"
                 )
               }
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer"
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-dashed border-[#54ACBF]/50 bg-[#F8FBFC] hover:bg-[#F0F7FA] text-xs font-semibold text-[#011C40] cursor-pointer transition-colors"
             >
               <span className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-[#F97316]" />
+                <Phone className="w-3.5 h-3.5 text-[#023859]" />
                 <span>+ Activer le Pied de Boutique (Contact)</span>
               </span>
             </button>
@@ -228,10 +228,10 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
           <button
             type="button"
             onClick={() => onSelectNavMode?.("pages")}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] hover:bg-orange-50/50 text-xs font-semibold text-[#475467] cursor-pointer"
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] hover:bg-[#F0F7FA] text-xs font-semibold text-[#011C40] cursor-pointer transition-colors"
           >
             <span className="flex items-center gap-2 truncate">
-              <FileText className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+              <FileText className="w-3.5 h-3.5 text-[#023859] shrink-0" />
               <span className="truncate">Pages & Politiques de retour</span>
             </span>
             <ChevronRight className="w-3.5 h-3.5 text-[#98A2B3] shrink-0" />

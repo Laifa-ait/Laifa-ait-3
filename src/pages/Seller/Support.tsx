@@ -1,99 +1,59 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquare, Send, Clock, User, Store, Plus, Paperclip, FileText, CheckCircle2, ChevronRight, X, Loader2 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { apiGet, apiPost } from '../../lib/api';
-import toast from 'react-hot-toast';
+import React, { useState, useEffect, useRef } from "react";
+import { Plus, FileText, ChevronRight } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import { apiGet, apiPost } from "../../lib/api";
+import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
+import { normalizeTimestamp } from "../../utils/date";
+import { BuyerSupportChat, SupportTicket, SupportMessage } from "../../components/Buyer/Support/BuyerSupportChat";
+import { SellerNewTicketModal } from "./components/support/SellerNewTicketModal";
 
-interface SupportTicket {
-  id: string;
-  subject: string;
-  priority: string;
-  status: string;
-  lastMessage?: string;
-  createdAt?: {
-    toDate?: () => Date;
-  };
-  updatedAt?: {
-    toDate?: () => Date;
-  };
-  resolvedAt?: {
-    toDate?: () => Date;
-  };
-  lastMessageAt?: {
-    toDate?: () => Date;
-  };
-}
-
-interface SupportMessage {
-  id: string;
-  sender: 'seller' | 'admin' | string;
-  text: string;
-  fileUrl?: string;
-  fileType?: string;
-  fileName?: string;
-  createdAt?: {
-    toDate?: () => Date;
-  };
-}
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf", "application/zip", "text/plain", "text/csv"];
+const MAX_FILE_SIZE = 1048576;
 
 export const Support: React.FC = () => {
   const { t } = useTranslation();
   const { currentUser } = useAuth();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
+  const [mobileShowChat, setMobileShowChat] = useState(false);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
-  
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // New Ticket Modal
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
-  const [newTicketData, setNewTicketData] = useState({ subject: '', priority: 'medium' });
+  const [newTicketData, setNewTicketData] = useState({ subject: "", priority: "medium" });
   const [creatingTicket, setCreatingTicket] = useState(false);
 
-  // 1. Fetch Tickets
   useEffect(() => {
     if (!currentUser) return;
     let isCancelled = false;
-    
     const fetchTickets = async () => {
       try {
         const data = await apiGet<{ tickets: SupportTicket[] }>("/api/v1/support/tickets");
         if (isCancelled) return;
-        const fetchedTickets = data.tickets || [];
+        const fetchedTickets = data?.tickets || [];
         setTickets(fetchedTickets);
         setLoadingTickets(false);
-        
-        setSelectedTicket(prev => {
-          if (!prev && fetchedTickets.length > 0) {
-            return fetchedTickets[0].id;
-          }
-          return prev;
-        });
+        setSelectedTicket((prev) => (!prev && fetchedTickets.length > 0 ? fetchedTickets[0].id : prev));
       } catch (err) {
         if (!isCancelled) {
-            console.error(err);
-            setLoadingTickets(false);
+          console.error(err);
+          setLoadingTickets(false);
         }
       }
     };
     fetchTickets();
     const intervalId = setInterval(fetchTickets, 10000);
-    
     return () => {
-        isCancelled = true;
-        clearInterval(intervalId);
+      isCancelled = true;
+      clearInterval(intervalId);
     };
   }, [currentUser]);
 
-  // 2. Fetch Messages for selected ticket
   useEffect(() => {
     if (!selectedTicket) {
       setMessages([]);
@@ -101,49 +61,47 @@ export const Support: React.FC = () => {
     }
     let isCancelled = false;
     setLoadingMessages(true);
-    
     const fetchMessages = async () => {
       try {
-        const data = await apiGet<{ messages: SupportMessage[] }>(`/api/v1/support/tickets/${selectedTicket}/messages`);
+        const data = await apiGet<{ messages: SupportMessage[] }>(`/api/v1/support/tickets/${encodeURIComponent(selectedTicket)}/messages`);
         if (isCancelled) return;
-        setMessages(data.messages || []);
+        setMessages((data?.messages || []).map((m) => ({ ...m, sender: m.sender === "seller" ? "client" : m.sender })));
         setLoadingMessages(false);
       } catch (err) {
         if (!isCancelled) {
-            console.error(err);
-            setLoadingMessages(false);
+          console.error(err);
+          setLoadingMessages(false);
         }
       }
     };
-    
     fetchMessages();
     const intervalId = setInterval(fetchMessages, 5000);
-
     return () => {
-        isCancelled = true;
-        clearInterval(intervalId);
+      isCancelled = true;
+      clearInterval(intervalId);
     };
   }, [selectedTicket]);
 
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser || !newTicketData.subject.trim()) return;
-
     setCreatingTicket(true);
     try {
-      const res = await apiPost<{ ticketId: string }>("/api/v1/support/tickets", {
+      const res = await apiPost<{ ticketId?: string; id?: string }>("/api/v1/support/tickets", {
         subject: newTicketData.subject.trim(),
         priority: newTicketData.priority,
       });
       setIsNewTicketModalOpen(false);
-      setNewTicketData({ subject: '', priority: 'medium' });
-      if (res && res.ticketId) {
-        setSelectedTicket(res.ticketId);
+      setNewTicketData({ subject: "", priority: "medium" });
+      const createdId = res?.ticketId || res?.id;
+      if (createdId) {
+        setSelectedTicket(createdId);
+        setMobileShowChat(true);
       }
-      toast.success("Ticket créé avec succès");
+      toast.success(t("Ticket créé avec succès"));
     } catch (error) {
       console.error(error);
-      toast.error("Erreur lors de la création du ticket");
+      toast.error(t("Erreur lors de la création du ticket"));
     } finally {
       setCreatingTicket(false);
     }
@@ -152,17 +110,13 @@ export const Support: React.FC = () => {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !currentUser || !selectedTicket) return;
-
     setSending(true);
     try {
-      await apiPost(`/api/v1/support/tickets/${selectedTicket}/messages`, {
-        text: newMessage.trim(),
-      });
-      
-      setNewMessage('');
+      await apiPost(`/api/v1/support/tickets/${encodeURIComponent(selectedTicket)}/messages`, { text: newMessage.trim() });
+      setNewMessage("");
     } catch (error) {
       console.error("Error sending message:", error);
-      toast.error("Erreur lors de l'envoi.");
+      toast.error(t("Erreur lors de l'envoi."));
     } finally {
       setSending(false);
     }
@@ -171,363 +125,143 @@ export const Support: React.FC = () => {
   const handleReopenTicket = async () => {
     if (!selectedTicket || !currentUser) return;
     try {
-      await apiPost(`/api/v1/support/tickets/${selectedTicket}/reopen`, {});
-      toast.success("Le ticket a été ré-ouvert avec succès !");
+      await apiPost(`/api/v1/support/tickets/${encodeURIComponent(selectedTicket)}/reopen`, {});
+      toast.success(t("Le ticket a été ré-ouvert avec succès !"));
     } catch (err) {
       console.error("Error reopening ticket:", err);
-      toast.error("Erreur lors de la ré-ouverture.");
+      toast.error(t("Erreur lors de la ré-ouverture."));
     }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !currentUser || !selectedTicket) return;
-
-    // Robust MIME and extension validation (all major supported formats)
-    const ALLOWED_TYPES = [
-      'image/jpeg',
-      'image/png',
-      'image/webp',
-      'image/gif',
-      'application/pdf',
-      'application/zip',
-      'text/plain',
-      'text/csv'
-    ];
-    const MAX_FILE_SIZE = 1048576; // 1 MB = 1,048,576 bytes
-
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      toast.error("Format de fichier non supporté (seuls JPG, PNG, GIF, WEBP, PDF, ZIP, TXT et CSV sont autorisés).");
-      if (fileInputRef.current) fileInputRef.current.value = '';
+    if (!ALLOWED_TYPES.includes(file.type) || file.size > MAX_FILE_SIZE) {
+      toast.error(t("Format non supporté ou supérieur à 1 Mo."));
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
-    
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error("Le fichier dépasse la taille maximale autorisée de 1 Mo.");
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
-
     setUploading(true);
-    try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64Data = (reader.result as string).split(',')[1];
-          
-          // Secure API backend upload
-          const uploadRes = await apiPost<{ success: boolean; fileUrl: string; fileName: string; fileType: string }>(`/api/v1/support/tickets/${encodeURIComponent(selectedTicket)}/upload`, {
-            fileName: file.name,
-            mimeType: file.type,
-            base64Data
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64Data = (reader.result as string).split(",")[1];
+        const uploadRes = await apiPost<{ success: boolean; fileUrl: string; fileName: string; fileType: string }>(
+          `/api/v1/support/tickets/${encodeURIComponent(selectedTicket)}/upload`,
+          { fileName: file.name, mimeType: file.type, base64Data }
+        );
+        if (uploadRes.success) {
+          await apiPost(`/api/v1/support/tickets/${encodeURIComponent(selectedTicket)}/messages`, {
+            text: `Fichier envoyé : ${file.name}`,
+            fileUrl: uploadRes.fileUrl,
+            fileName: uploadRes.fileName,
+            fileType: uploadRes.fileType,
           });
-
-          if (uploadRes.success) {
-            await apiPost(`/api/v1/support/tickets/${encodeURIComponent(selectedTicket)}/messages`, {
-              text: `Fichier envoyé : ${file.name}`,
-              fileUrl: uploadRes.fileUrl,
-              fileName: uploadRes.fileName,
-              fileType: uploadRes.fileType
-            });
-            
-            toast.success("Fichier envoyé.");
-          }
-        } catch (error) {
-          console.error("Upload error:", error);
-          const errorMsg = error instanceof Error ? error.message : "Le fichier est trop volumineux. La taille maximale autorisée est de 1 Mo.";
-          toast.error(errorMsg);
-        } finally {
-          setUploading(false);
-          if (fileInputRef.current) fileInputRef.current.value = '';
+          toast.success(t("Fichier envoyé."));
         }
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error("FileReader process error:", error);
-      toast.error("Erreur lors de l'envoi du fichier.");
-      setUploading(false);
-    }
+      } catch (error) {
+        console.error("Upload error:", error);
+        toast.error(t("Erreur lors de l'envoi du fichier."));
+      } finally {
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
-  const currentTicket = tickets.find(t => t.id === selectedTicket);
-
   return (
-    <div className="space-y-6 h-[calc(100vh-6rem)] flex flex-col">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+    <div className="space-y-5 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-3xl font-sans font-bold tracking-tight rtl:tracking-normal text-zinc-950">{t("Support Admin")}</h2>
-          <p className="text-zinc-500 font-medium text-sm">{t("Gérez vos tickets d'assistance et litiges.")}</p>
+          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#1A1836]">{t("Support & Assistance Vendeur")}</h2>
+          <p className="text-zinc-500 text-xs sm:text-sm">{t("Gérez vos tickets d'assistance, de médiation et de vérification.")}</p>
         </div>
-        <button 
+        <button
+          type="button"
           onClick={() => setIsNewTicketModalOpen(true)}
-          className="px-6 py-3 bg-zinc-950 text-white rounded-2xl font-sans font-bold text-xs uppercase tracking-widest rtl:tracking-normal hover:bg-orange-600 transition-colors shadow-lg flex items-center justify-center gap-2"
+          className="px-5 py-2.5 bg-gradient-to-r from-[#1A1836] to-[#42164B] hover:from-[#42164B] hover:to-[#622347] text-white rounded-2xl font-bold text-xs uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer border-none shrink-0"
         >
-          <Plus className="w-4 h-4" />
-          {t("Nouveau Ticket")}</button>
+          <Plus className="w-4 h-4 text-[#E99856]" />
+          <span>{t("Nouveau Ticket")}</span>
+        </button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
-        {/* Sidebar: Tickets list */}
-        <div className="w-full lg:w-96 bg-white rounded-[2rem] border border-zinc-100 flex flex-col shrink-0 overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-zinc-50 shrink-0 bg-zinc-50/50">
-            <h3 className="font-sans font-bold text-zinc-950">{t("Vos Tickets")}</h3>
+      <div className="flex flex-col lg:flex-row gap-5">
+        <div className={`w-full lg:w-80 bg-white rounded-3xl border border-[#E0B4B2]/40 flex flex-col shrink-0 overflow-hidden shadow-2xs max-h-[680px] ${mobileShowChat ? "hidden lg:flex" : "flex"}`}>
+          <div className="px-5 py-4 border-b border-[#FAF7F8] bg-[#FAF7F8]">
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#622347]">{t("Tickets Boutique")} ({tickets.length})</h3>
           </div>
-          <div className="flex-1 overflow-y-auto divide-y divide-zinc-50">
+          <div className="flex-1 overflow-y-auto divide-y divide-[#FAF7F8]">
             {loadingTickets ? (
-              <div className="p-8 text-center text-zinc-400">{t("Chargement...")}</div>
+              <div className="p-8 text-center text-xs text-zinc-400">{t("Chargement...")}</div>
             ) : tickets.length === 0 ? (
               <div className="p-8 text-center flex flex-col items-center">
-                 <FileText className="w-8 h-8 text-zinc-200 mb-2" />
-                 <p className="text-zinc-400 font-medium text-sm">{t("Aucun ticket ouvert")}</p>
+                <FileText className="w-8 h-8 text-[#E0B4B2] mb-2" />
+                <p className="text-zinc-500 font-semibold text-xs">{t("Aucun ticket ouvert")}</p>
               </div>
             ) : (
-              tickets.map(ticket => (
-                <button 
-                  key={ticket.id}
-                  onClick={() => setSelectedTicket(ticket.id)}
-                  className={`w-full text-start p-5 transition-colors flex items-center justify-between group ${selectedTicket === ticket.id ? 'bg-orange-50/50' : 'hover:bg-zinc-50/50'}`}
-                >
-                  <div className="flex-1 min-w-0 pe-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className={`text-sm truncate font-bold ${selectedTicket === ticket.id ? 'text-orange-950' : 'text-zinc-800'}`}>
-                        {ticket.subject}
-                      </h4>
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest rtl:tracking-normal ${
-                         ticket.status === 'resolved' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
-                      }`}>
-                         {ticket.status === 'resolved' ? 'Résolu' : 'Ouvert'}
+              tickets.map((ticket) => {
+                const isSelected = selectedTicket === ticket.id;
+                return (
+                  <button
+                    key={ticket.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTicket(ticket.id);
+                      setMobileShowChat(true);
+                    }}
+                    className={`w-full text-start p-4 transition-colors flex items-center justify-between cursor-pointer border-none ${isSelected ? "bg-[#A54055]/10" : "bg-white hover:bg-[#FAF7F8]"}`}
+                  >
+                    <div className="flex-1 min-w-0 pe-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className={`text-xs sm:text-sm truncate font-bold ${isSelected ? "text-[#A54055]" : "text-[#1A1836]"}`}>{ticket.subject}</h4>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${ticket.status === "resolved" ? "bg-emerald-100 text-emerald-700" : "bg-[#E99856]/20 text-[#A54055]"}`}>
+                          {ticket.status === "resolved" ? t("Résolu") : t("Ouvert")}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500 truncate">{ticket.lastMessage || t("Aucun message")}</p>
+                      <span className="text-[10px] text-zinc-400 font-semibold block mt-1">
+                        {ticket.createdAt ? new Date(normalizeTimestamp(ticket.createdAt).toMillis()).toLocaleDateString("fr-FR") : ""}
                       </span>
                     </div>
-                    <p className="text-xs text-zinc-500 truncate">{ticket.lastMessage}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                       <span className={`w-2 h-2 rounded-full ${
-                          ticket.priority === 'high' ? 'bg-red-500' : ticket.priority === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'
-                       }`} title={`Priorité ${ticket.priority}`}></span>
-                       <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-widest rtl:tracking-normal">
-                          {ticket.createdAt?.toDate?.().toLocaleDateString('fr-FR')}
-                       </span>
-                    </div>
-                  </div>
-                  <ChevronRight className={`w-4 h-4 shrink-0 transition-colors ${selectedTicket === ticket.id ? 'text-orange-500' : 'text-zinc-300'}`} />
-                </button>
-              ))
+                    <ChevronRight className={`w-4 h-4 shrink-0 ${isSelected ? "text-[#A54055]" : "text-zinc-300"}`} />
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
 
-        {/* Chat Area */}
-        <div className="flex-1 bg-white rounded-[2rem] border border-zinc-100 flex flex-col overflow-hidden shadow-sm min-h-[400px]">
-          {selectedTicket ? (
-            <>
-              {/* Header */}
-              <div className="p-6 border-b border-zinc-50 flex items-center justify-between shrink-0 shadow-sm z-10 bg-white" >
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="font-sans font-bold text-lg text-zinc-950">{currentTicket?.subject}</h3>
-                    {currentTicket?.status === 'resolved' && (
-                       <span className="flex items-center gap-1 text-[10px] font-sans font-bold uppercase tracking-widest rtl:tracking-normal bg-emerald-100 text-emerald-700 px-2 py-1 rounded-xl">
-                          <CheckCircle2 className="w-3 h-3" /> {t("Résolu")}</span>
-                    )}
-                  </div>
-                  <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal">
-                     {t("Ticket #")}{selectedTicket.substring(0,8)} {t("• Priorité")}{currentTicket?.priority}
-                  </p>
-                </div>
-              </div>
-
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-zinc-50/30">
-                {loadingMessages ? (
-                  <div className="h-full flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
-                  </div>
-                ) : messages.length === 0 ? (
-                  <div className="h-full flex items-center justify-center text-zinc-400">
-                    <p className="font-medium">{t("Commencez la conversation...")}</p>
-                  </div>
-                ) : (
-                  messages.map((m) => {
-                    const isSeller = m.sender === 'seller';
-                    return (
-                      <div key={m.id} className={`flex gap-4 ${isSeller ? 'flex-row-reverse' : ''}`}>
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${isSeller ? 'bg-orange-100 text-orange-600' : 'bg-zinc-950 text-white'}`}>
-                          {isSeller ? <Store className="w-5 h-5" /> : <User className="w-5 h-5" />}
-                        </div>
-                        <div className={`max-w-[75%] rounded-2xl p-5 ${isSeller ? 'bg-white rounded-tr-sm border border-zinc-100 shadow-sm' : 'bg-zinc-50 rounded-tl-sm border border-zinc-200'}`}>
-                          
-                          {/* Render File Attachment if present */}
-                          {m.fileUrl && m.fileType && (
-                             <div className="mb-3">
-                                {m.fileType.startsWith('image/') ? (
-                                   <div className="rounded-xl overflow-hidden border border-zinc-100 bg-zinc-50">
-                                      <img loading="lazy" src={m.fileUrl} alt={m.fileName} className="max-w-full max-h-64 object-contain" />
-                                   </div>
-                                ) : (
-                                   <a href={m.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-zinc-100 rounded-xl hover:bg-zinc-200 transition-colors">
-                                      <FileText className="w-5 h-5 text-zinc-500" />
-                                      <span className="text-xs font-bold text-zinc-700 truncate">{m.fileName}</span>
-                                   </a>
-                                )}
-                             </div>
-                          )}
-
-                          <p className={`text-sm font-medium leading-relaxed whitespace-pre-wrap ${isSeller ? 'text-zinc-800' : 'text-zinc-600'}`}>{m.text}</p>
-                          
-                          {m.createdAt && (
-                            <div className="mt-3 flex items-center justify-end gap-1.5 text-[9px] font-sans font-bold uppercase text-zinc-300">
-                              <Clock className="w-3 h-3" />
-                              {m.createdAt.toDate?.().toLocaleString('fr-FR')}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-
-              {/* Input */}
-              {currentTicket?.status !== 'resolved' ? (
-                <div className="p-4 md:p-6 bg-white border-t border-zinc-100 shrink-0">
-                  <form onSubmit={handleSendMessage} className="flex flex-col gap-2">
-                    <div className="flex gap-3">
-                      <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        className="hidden" 
-                        accept="image/*,.pdf"
-                        onChange={handleFileUpload}
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                        className="w-12 h-14 bg-zinc-50 hover:bg-zinc-100 text-zinc-500 rounded-2xl flex items-center justify-center transition-colors shrink-0 disabled:opacity-50 border border-zinc-200"
-                        title={t("Joindre un fichier (Image, PDF)") || "Joindre un fichier (Image, PDF)"}
-                      >
-                        {uploading ? <Loader2 className="w-5 h-5 animate-spin text-orange-500" /> : <Paperclip className="w-5 h-5" />}
-                      </button>
-                      <input 
-                        type="text" 
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder={t("Votre message...") || "Votre message..."}
-                        className="flex-1 px-5 h-14 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none text-sm font-medium focus:border-orange-500 transition-colors focus:ring-4 focus:ring-orange-500/10"
-                      />
-                      <button 
-                        type="submit"
-                        disabled={sending || (!newMessage.trim() && !uploading)}
-                        className="px-6 h-14 bg-zinc-950 text-white rounded-2xl font-sans font-bold text-xs uppercase tracking-widest rtl:tracking-normal hover:bg-orange-600 transition-colors shadow-lg disabled:opacity-50 flex items-center justify-center shrink-0"
-                      >
-                        <Send className="w-5 h-5" />
-                      </button>
-                    </div>
-                    <p className="text-[10px] font-bold text-zinc-400 mt-1">
-                      {t("Formats acceptés : JPG, PNG, GIF, WEBP, PDF, ZIP, TXT, CSV • 1 Mo max.")}
-                    </p>
-                  </form>
-                </div>
-              ) : (
-                 <div className="p-8 bg-zinc-50 border-t border-zinc-100 text-center space-y-4 shrink-0">
-                    <p className="text-sm font-medium text-zinc-500">
-                       {t("Ce ticket a été marqué comme résolu. Vous ne pouvez plus y répondre.")}</p>
-                    {(() => {
-                       const ts = currentTicket?.resolvedAt || currentTicket?.updatedAt || currentTicket?.lastMessageAt;
-                       let eligible = true;
-                       if (ts) {
-                          const resDate = ts.toDate ? ts.toDate() : new Date(ts as unknown as string | number | Date);
-                          const diffDays = (Date.now() - resDate.getTime()) / (1000 * 60 * 60 * 24);
-                          eligible = diffDays <= 7;
-                       }
-                       if (eligible) {
-                          return (
-                             <button
-                                onClick={handleReopenTicket}
-                                className="px-6 py-3 bg-red-50 text-red-600 border border-red-100 rounded-xl font-bold text-xs uppercase tracking-wider rtl:tracking-normal hover:bg-red-100 transition-all flex items-center gap-2 mx-auto shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                             >
-                                {t("Mon problème n'est pas résolu (Ré-ouvrir le ticket)")}</button>
-                          );
-                       } else {
-                          return (
-                             <p className="text-xs text-zinc-400">
-                                {t("Fermé depuis plus de 7 jours. Vous ne pouvez plus ré-ouvrir ce ticket.")}</p>
-                          );
-                       }
-                    })()}
-                 </div>
-              )}
-            </>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-zinc-400 gap-4 bg-zinc-50/50">
-               <MessageSquare className="w-16 h-16 text-zinc-200" />
-               <p className="font-bold">{t("Sélectionnez un ticket pour afficher la conversation")}</p>
-            </div>
-          )}
+        <div className={`flex-1 flex flex-col ${!mobileShowChat ? "hidden lg:flex" : "flex"}`}>
+          <BuyerSupportChat
+            currentTicket={tickets.find((tk) => tk.id === selectedTicket)}
+            selectedTicketId={selectedTicket}
+            messages={messages}
+            loadingMessages={loadingMessages}
+            newMessage={newMessage}
+            onNewMessageChange={setNewMessage}
+            onSendMessage={handleSendMessage}
+            onFileUpload={handleFileUpload}
+            onReopenTicket={handleReopenTicket}
+            onBackToMobileList={() => setMobileShowChat(false)}
+            uploading={uploading}
+            sending={sending}
+            fileInputRef={fileInputRef}
+          />
         </div>
       </div>
 
-      {/* New Ticket Modal */}
-      <AnimatePresence>
-        {isNewTicketModalOpen && (
-          <div className="fixed inset-0 bg-zinc-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl border border-zinc-100 overflow-hidden"
-            >
-              <div className="px-8 py-6 border-b border-zinc-50 flex items-center justify-between">
-                <h3 className="text-xl font-sans font-bold text-zinc-950">{t("Ouvrir un ticket")}</h3>
-                <button 
-                  onClick={() => setIsNewTicketModalOpen(false)}
-                  className="w-10 h-10 bg-zinc-50 text-zinc-400 hover:text-zinc-900 rounded-full flex items-center justify-center transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <form onSubmit={handleCreateTicket} className="p-8 space-y-6">
-                <div>
-                  <label className="block text-xs font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-2">{t("Catégorie de la demande")}</label>
-                  <select
-                    required
-                    value={newTicketData.subject}
-                    onChange={e => setNewTicketData({...newTicketData, subject: e.target.value})}
-                    className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none text-sm font-bold focus:border-orange-500 transition-colors"
-                  >
-                    <option value="" disabled>{t("Sélectionner un motif...")}</option>
-                    <option value="Problème de livraison">{t("Problème de livraison")}</option>
-                    <option value="Litige Client">{t("Litige Client")}</option>
-                    <option value="Contestation Trust Score">{t("Contestation Trust Score (-10 pts)")}</option>
-                    <option value="Problème Technique">{t("Problème Technique")}</option>
-                    <option value="Facturation / Paiement">{t("Facturation / Paiement")}</option>
-                    <option value="Autre">{t("Autre demande")}</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-2">{t("Priorité")}</label>
-                  <select
-                    value={newTicketData.priority}
-                    onChange={e => setNewTicketData({...newTicketData, priority: e.target.value})}
-                    className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none text-sm font-bold focus:border-orange-500 transition-colors appearance-none"
-                  >
-                    <option value="low">{t("Basse - Information générale")}</option>
-                    <option value="medium">{t("Moyenne - Problème mineur")}</option>
-                    <option value="high">{t("Haute - Blocage critique / Litige")}</option>
-                  </select>
-                </div>
-                <button 
-                  type="submit"
-                  disabled={creatingTicket || !newTicketData.subject.trim()}
-                  className="w-full py-4 bg-zinc-950 text-white rounded-2xl font-sans font-bold text-sm uppercase tracking-widest rtl:tracking-normal hover:bg-orange-600 transition-colors shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {creatingTicket ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-                  {t("Créer le ticket")}</button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <SellerNewTicketModal
+        isOpen={isNewTicketModalOpen}
+        onClose={() => setIsNewTicketModalOpen(false)}
+        subject={newTicketData.subject}
+        priority={newTicketData.priority}
+        onChangeSubject={(subject) => setNewTicketData((prev) => ({ ...prev, subject }))}
+        onChangePriority={(priority) => setNewTicketData((prev) => ({ ...prev, priority }))}
+        onSubmit={handleCreateTicket}
+        creating={creatingTicket}
+      />
     </div>
   );
 };
-

@@ -25,12 +25,12 @@ const STORE_BLUEPRINTS: Array<{
     title: "Pack Boutique Mode & Luxe 2.0",
     tag: "Haute Conversion",
     description:
-      "Bannière Hero + Rayons Populaires Bento + Produits Vedettes + Livraison 58 Wilayas + Avis.",
+      "Bannière Hero + Rayons Populaires Bento + Produits Vedettes + Livraison 69 Wilayas + Avis.",
     sections: [
       { type: "hero_banner", title: "Nouvelle Collection 2026" },
       { type: "featured_categories", title: "Nos Rayons Mode" },
       { type: "featured_products", title: "Pièces Phares de la Saison" },
-      { type: "delivery_info", title: "Livraison Rapide 58 Wilayas" },
+      { type: "delivery_info", title: "Livraison Rapide 69 Wilayas" },
       { type: "verified_reviews", title: "Avis de nos Clientes" },
     ],
   },
@@ -104,11 +104,11 @@ export const AddSectionModal: React.FC<AddSectionModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-200">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-[#023859] text-white flex items-center justify-center shadow-xs">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-extrabold text-slate-900">
+              <h2 className="text-base font-extrabold text-[#011C40]">
                 Bibliothèque de Sections Studio 2.0
               </h2>
               <p className="text-xs text-slate-500">
@@ -134,7 +134,7 @@ export const AddSectionModal: React.FC<AddSectionModalProps> = ({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher une section (ex: bannière, rayons, livraison, vidéo, avis)..."
-              className="w-full h-10 pl-10 pr-4 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:bg-white focus:border-orange-500 focus:outline-none"
+              className="w-full h-10 pl-10 pr-4 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:bg-white focus:border-[#023859] focus:outline-none"
             />
           </div>
 
@@ -144,7 +144,7 @@ export const AddSectionModal: React.FC<AddSectionModalProps> = ({
               onClick={() => setActiveCategory("all")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 cursor-pointer transition-all ${
                 activeCategory === "all"
-                  ? "bg-slate-900 text-white"
+                  ? "bg-[#011C40] text-white shadow-2xs"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
@@ -157,7 +157,7 @@ export const AddSectionModal: React.FC<AddSectionModalProps> = ({
                 onClick={() => setActiveCategory(cat)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 cursor-pointer transition-all ${
                   activeCategory === cat
-                    ? "bg-orange-500 text-white"
+                    ? "bg-[#023859] text-white shadow-2xs"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
@@ -172,23 +172,24 @@ export const AddSectionModal: React.FC<AddSectionModalProps> = ({
           {/* 1-Click Complete Store Blueprints */}
           {activeCategory === "all" && !search.trim() && (
             <div className="space-y-2">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-orange-600">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#023859]">
                 <Wand2 className="w-3.5 h-3.5" />
                 <span>Packs d'Architecture Complets (5 Sections en 1 Clic)</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 {STORE_BLUEPRINTS.map((bp) => (
-                  <div
+                  <button
                     key={bp.id}
+                    type="button"
                     onClick={() => handleApplyBlueprint(bp.sections)}
-                    className="p-3.5 rounded-2xl bg-gradient-to-br from-orange-50 via-white to-amber-50 border border-orange-200 hover:border-orange-500 transition-all cursor-pointer flex flex-col justify-between gap-2 shadow-2xs group"
+                    className="p-3.5 rounded-2xl bg-gradient-to-br from-[#F0F7FA] via-white to-[#F8FBFC] border border-[#54ACBF]/40 hover:border-[#023859] transition-all cursor-pointer flex flex-col justify-between gap-2 shadow-2xs group text-left"
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="font-extrabold text-xs text-slate-900 group-hover:text-orange-600">
+                        <span className="font-extrabold text-xs text-[#011C40] group-hover:text-[#023859]">
                           {bp.title}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold">
+                        <span className="px-2 py-0.5 rounded-full bg-[#023859] text-white text-[10px] font-bold">
                           {bp.tag}
                         </span>
                       </div>
@@ -196,11 +197,11 @@ export const AddSectionModal: React.FC<AddSectionModalProps> = ({
                         {bp.description}
                       </p>
                     </div>
-                    <span className="text-[11px] font-bold text-orange-600 flex items-center gap-1">
+                    <span className="text-[11px] font-bold text-[#023859] flex items-center gap-1">
                       <Plus className="w-3.5 h-3.5" />
                       <span>Injecter les {bp.sections.length} sections automatiquement</span>
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -218,14 +219,14 @@ export const AddSectionModal: React.FC<AddSectionModalProps> = ({
                     onAddSection(sec.type, sec.defaultSettings, sec.title);
                     onClose();
                   }}
-                  className="p-3.5 bg-slate-50 hover:bg-orange-50/60 border border-slate-200 hover:border-orange-400 rounded-2xl text-left transition-all group cursor-pointer flex items-start gap-3 shadow-2xs"
+                  className="p-3.5 bg-slate-50 hover:bg-[#F0F7FA] border border-slate-200 hover:border-[#54ACBF] rounded-2xl text-left transition-all group cursor-pointer flex items-start gap-3 shadow-2xs"
                 >
-                  <div className="p-2.5 rounded-xl bg-white group-hover:bg-orange-500 text-orange-600 group-hover:text-white shrink-0 transition-colors border border-slate-200 shadow-2xs">
+                  <div className="p-2.5 rounded-xl bg-white group-hover:bg-[#023859] text-[#023859] group-hover:text-white shrink-0 transition-colors border border-slate-200 shadow-2xs">
                     <Icon className="w-4 h-4" />
                   </div>
                   <div className="space-y-0.5 flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-xs text-slate-900 truncate group-hover:text-orange-700">
+                      <span className="font-bold text-xs text-[#011C40] truncate group-hover:text-[#023859]">
                         {sec.title}
                       </span>
                       <span className="text-[10px] font-semibold text-slate-400 shrink-0">

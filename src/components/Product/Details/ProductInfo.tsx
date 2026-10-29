@@ -106,7 +106,7 @@ export const ProductInfo: React.FC<InfoProps> = ({
 
   const handleFollowToggle = useCallback(() => {
     if (!currentUser) {
-      navigate("/login");
+      navigate("/auth");
       return;
     }
     if (!shop?.id || followLoading) return;

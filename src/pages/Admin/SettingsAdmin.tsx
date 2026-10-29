@@ -1,14 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
-import { Save, Info, ShieldCheck } from 'lucide-react';
-import toast, { Toaster } from 'react-hot-toast';
+import React, { useState, useEffect, useCallback } from "react";
+import { Save, Info, ShieldCheck, Mail, Scale } from "lucide-react";
+import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { AdminPageHeader } from "../../components/ui/Admin/AdminPageHeader";
 import { Button } from "../../components/ui/Button";
+import { apiGet, apiPost } from "../../lib/api";
+
+interface GlobalSettingsPayload {
+  aboutText?: string;
+  registrationRules?: string;
+  privacyPolicy?: string;
+  refundPolicy?: string;
+  supportEmail?: string;
+}
 
 export const SettingsAdmin: React.FC = () => {
-    const { t } = useTranslation();
+  const { t } = useTranslation();
   const [aboutText, setAboutText] = useState("");
   const [registrationRules, setRegistrationRules] = useState("");
   const [privacyPolicy, setPrivacyPolicy] = useState("");
@@ -17,66 +24,61 @@ export const SettingsAdmin: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const docRef = doc(db, 'settings', 'global');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.aboutText) setAboutText(data.aboutText);
-          if (data.registrationRules) setRegistrationRules(data.registrationRules);
-          if (data.privacyPolicy) setPrivacyPolicy(data.privacyPolicy);
-          if (data.refundPolicy) setRefundPolicy(data.refundPolicy);
-          if (data.supportEmail) setSupportEmail(data.supportEmail);
-        }
-      } catch (error) {
-        console.error("Error fetching settings:", error);
-      } finally {
-        setIsLoading(false);
+  const fetchSettings = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await apiGet<{ success?: boolean; data?: GlobalSettingsPayload }>("/api/v1/settings/global");
+      const data = res?.data || (res as GlobalSettingsPayload);
+      if (data) {
+        if (data.aboutText) setAboutText(data.aboutText);
+        if (data.registrationRules) setRegistrationRules(data.registrationRules);
+        if (data.privacyPolicy) setPrivacyPolicy(data.privacyPolicy);
+        if (data.refundPolicy) setRefundPolicy(data.refundPolicy);
+        if (data.supportEmail) setSupportEmail(data.supportEmail);
       }
-    };
-    fetchSettings();
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      toast.error("Impossible de charger les paramètres globaux.");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   const handleSave = async () => {
     if (!aboutText.trim()) {
       toast.error("Le texte À propos ne peut pas être vide.");
       return;
     }
-    
+
     setIsSaving(true);
     try {
-      const docRef = doc(db, 'settings', 'global');
-      await setDoc(docRef, { 
-        aboutText, 
+      await apiPost("/api/v1/settings/global", {
+        aboutText,
         registrationRules,
         privacyPolicy,
         refundPolicy,
-        supportEmail
-      }, { merge: true });
-      toast.success("Paramètres enregistrés avec succès.");
+        supportEmail,
+      });
+      toast.success("Paramètres globaux enregistrés avec succès.");
     } catch (error) {
       console.error("Error saving settings:", error);
-      toast.error("Erreur lors de l'enregistrement.");
+      toast.error("Erreur lors de l'enregistrement des paramètres.");
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <Toaster position="bottom-right" />
-      <AdminPageHeader 
-        title={t("Paramètres Généraux")}
-        subtitle={t("Gérez les textes et paramètres globaux de la plateforme.")}
+    <div className="space-y-6 max-w-5xl mx-auto">
+      <AdminPageHeader
+        title={t("Paramètres Généraux & Gouvernance Légale")}
+        subtitle={t("Configurez les chartes légales, coordonnées de support et règles de la marketplace Olmart.")}
         actions={
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            isLoading={isSaving}
-            icon={Save}
-          >
+          <Button onClick={handleSave} disabled={isSaving} isLoading={isSaving} icon={Save}>
             {isSaving ? "Enregistrement..." : "Enregistrer les modifications"}
           </Button>
         }
@@ -84,122 +86,126 @@ export const SettingsAdmin: React.FC = () => {
 
       {isLoading ? (
         <div className="animate-pulse space-y-4">
-          <div className="h-40 bg-zinc-100 rounded-2xl w-full"></div>
+          <div className="h-40 bg-zinc-100 rounded-2xl w-full" />
+          <div className="h-40 bg-zinc-100 rounded-2xl w-full" />
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="bg-white border border-zinc-100 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
+          <div className="bg-white border border-zinc-200/80 rounded-3xl p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[#A54055]/10 flex items-center justify-center text-[#A54055]">
                 <Info className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="font-sans font-bold text-lg text-zinc-950">{t("À propos d'Olma")}</h2>
-                <p className="text-xs font-bold text-zinc-500">{t("Ce texte s'affichera dans le menu mobile pour les utilisateurs.")}</p>
+                <h2 className="font-sans font-bold text-base text-[#1A1836]">{t("À propos d'Olmart")}</h2>
+                <p className="text-xs font-medium text-zinc-500">
+                  {t("Présentation officielle affichée sur les pages d'information et le menu mobile.")}
+                </p>
               </div>
             </div>
-            
+
             <textarea
               value={aboutText}
               onChange={(e) => setAboutText(e.target.value)}
-              placeholder={t("Texte 'À propos d'Olma'...") || "Texte 'À propos d'Olma'..."}
-              className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:border-orange-500 font-medium text-sm min-h-[200px]"
+              placeholder={t("Texte 'À propos d'Olmart'...")}
+              className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:border-[#A54055] font-medium text-sm min-h-[150px]"
             />
           </div>
 
-          <div className="bg-white border border-zinc-100 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
-                <Info className="w-5 h-5" />
+          <div className="bg-white border border-zinc-200/80 rounded-3xl p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[#E99856]/15 flex items-center justify-center text-[#A54055]">
+                <Mail className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="font-sans font-bold text-lg text-zinc-950">{t("Email de Support & Contact")}</h2>
-                <p className="text-xs font-bold text-zinc-500">{t("Moyen de contact par défaut affiché dans le footer.")}</p>
+                <h2 className="font-sans font-bold text-base text-[#1A1836]">{t("Email de Support & Contact")}</h2>
+                <p className="text-xs font-medium text-zinc-500">
+                  {t("Adresse officielle de contact affichée dans le pied de page et les notifications.")}
+                </p>
               </div>
             </div>
-            
+
             <input
               type="email"
               value={supportEmail}
               onChange={(e) => setSupportEmail(e.target.value)}
-              placeholder="Ex: contact@olma.dz"
-              className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:border-orange-500 font-medium text-sm"
+              placeholder="Ex: support@olmart.dz"
+              className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:border-[#A54055] font-medium text-sm"
             />
           </div>
 
-          <div className="bg-white border border-zinc-100 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
-                <ShieldCheck className="w-5 h-5" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white border border-zinc-200/80 rounded-3xl p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="font-sans font-bold text-base text-[#1A1836]">{t("Politique de Confidentialité")}</h2>
+                  <p className="text-xs font-medium text-zinc-500">{t("Protection des données personnelles.")}</p>
+                </div>
               </div>
-              <div>
-                <h2 className="font-sans font-bold text-lg text-zinc-950">{t("Politique de Confidentialité")}</h2>
-                <p className="text-xs font-bold text-zinc-500">{t("Texte de la politique de confidentialité de la plateforme.")}</p>
-              </div>
+
+              <textarea
+                value={privacyPolicy}
+                onChange={(e) => setPrivacyPolicy(e.target.value)}
+                placeholder={t("Texte de la politique de confidentialité...")}
+                className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:border-[#A54055] font-medium text-sm min-h-[180px]"
+              />
             </div>
-            
-            <textarea
-              value={privacyPolicy}
-              onChange={(e) => setPrivacyPolicy(e.target.value)}
-              placeholder={t("Texte de la politique de confidentialité...") || "Texte de la politique de confidentialité..."}
-              className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:border-green-500 font-medium text-sm min-h-[200px]"
-            />
+
+            <div className="bg-white border border-zinc-200/80 rounded-3xl p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+                  <Scale className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="font-sans font-bold text-base text-[#1A1836]">{t("Politique de Retour & Litiges")}</h2>
+                  <p className="text-xs font-medium text-zinc-500">{t("Conditions de médiation et remboursement.")}</p>
+                </div>
+              </div>
+
+              <textarea
+                value={refundPolicy}
+                onChange={(e) => setRefundPolicy(e.target.value)}
+                placeholder={t("Texte de la politique de remboursement...")}
+                className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:border-[#A54055] font-medium text-sm min-h-[180px]"
+              />
+            </div>
           </div>
 
-          <div className="bg-white border border-zinc-100 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
+          <div className="bg-white border border-zinc-200/80 rounded-3xl p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[#42164B]/10 flex items-center justify-center text-[#42164B]">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="font-sans font-bold text-lg text-zinc-950">{t("Politique de Remboursement et Retour")}</h2>
-                <p className="text-xs font-bold text-zinc-500">{t("Texte de la politique de remboursement et retour de la plateforme.")}</p>
+                <h2 className="font-sans font-bold text-base text-[#1A1836]">{t("Conditions Générales d'Utilisation (CGU)")}</h2>
+                <p className="text-xs font-medium text-zinc-500">
+                  {t("Règles d'inscription acceptées par les acheteurs et marchands indépendants.")}
+                </p>
               </div>
             </div>
-            
-            <textarea
-              value={refundPolicy}
-              onChange={(e) => setRefundPolicy(e.target.value)}
-              placeholder={t("Texte de la politique de remboursement...") || "Texte de la politique de remboursement..."}
-              className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:border-red-500 font-medium text-sm min-h-[200px]"
-            />
-          </div>
 
-          <div className="bg-white border border-zinc-100 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="font-sans font-bold text-lg text-zinc-950">{t("Règles d'inscription & CGV")}</h2>
-                <p className="text-xs font-bold text-zinc-500">{t("Oblige les utilisateurs à lire et accepter ces règles avant l'inscription.")}</p>
-              </div>
-            </div>
-            
             <textarea
               value={registrationRules}
               onChange={(e) => setRegistrationRules(e.target.value)}
-              placeholder={t("Texte des conditions d'utilisation et règles d'inscription...") || "Texte des conditions d'utilisation et règles d'inscription..."}
-              className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:border-blue-500 font-medium text-sm min-h-[200px]"
+              placeholder={t("Texte des conditions d'utilisation...")}
+              className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:border-[#A54055] font-medium text-sm min-h-[160px]"
             />
           </div>
 
-          <div className="bg-white border border-zinc-100 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="font-sans font-bold text-lg text-zinc-950">{t("Modèle Logistique Marketplace")}</h2>
-                <p className="text-xs font-bold text-zinc-500">{t("Information sur le mode de livraison sous la responsabilité des vendeurs.")}</p>
-              </div>
+          <div className="bg-[#1A1836] text-white rounded-3xl p-6 shadow-sm flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-[#E99856] shrink-0">
+              <ShieldCheck className="w-5 h-5" />
             </div>
-            
-            <div className="space-y-4">
-              <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-200">
-                <p className="text-sm font-bold text-emerald-950 mb-1">{t("Mode de livraison actif : Direct Vendeur")}</p>
-                <p className="text-xs font-medium text-emerald-700">Chaque vendeur gère l'expédition de ses commandes, génère ses bordereaux Olmart et renseigne éventuellement le suivi d'un transporteur externe.</p>
-              </div>
+            <div>
+              <h3 className="text-sm font-bold text-white mb-1">
+                {t("Modèle de Responsabilité Marketplace Direct Vendeur")}
+              </h3>
+              <p className="text-xs text-[#E0B4B2]/90 leading-relaxed">
+                Olmart agit exclusivement comme tiers technologique de mise en relation sur les 69 Wilayas. Chaque marchand indépendant assume la gestion de ses stocks, ses tarifs et ses expéditions.
+              </p>
             </div>
           </div>
         </div>

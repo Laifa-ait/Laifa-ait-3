@@ -21,7 +21,7 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
     {
       id: "default-hero-1",
       title: t("hero_default_title", "Le Premier Marketplace Algérien"),
-      subtitle: t("hero_default_subtitle", "Découvrez les meilleures offres et artisans certifiés à travers 58 Wilayas"),
+      subtitle: t("hero_default_subtitle", "Découvrez les meilleures offres et artisans certifiés à travers 69 Wilayas"),
       buttonText: t("hero_default_btn", "Explorer la boutique"),
       ctaLink: "/shop",
       imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=1200",
@@ -101,7 +101,7 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className="w-full min-h-[340px] sm:min-h-[420px] md:min-h-[480px] lg:min-h-[500px] relative rounded-3xl overflow-hidden group shadow-lg border border-slate-200/80 dark:border-slate-800 select-none touch-pan-y bg-slate-950"
+      className="w-full min-h-[340px] sm:min-h-[420px] md:min-h-[480px] lg:min-h-[500px] relative rounded-3xl overflow-hidden group shadow-[0_20px_48px_-12px_rgba(26,24,54,0.22)] border border-[#42164B]/30 select-none touch-pan-y bg-[#1A1836]"
     >
       {/* Sliding Strip */}
       <motion.div
@@ -129,7 +129,7 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
             type="button"
             onClick={isRTL ? handleNext : handlePrev}
             aria-label="Previous Slide"
-            className={`absolute top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-slate-900/75 hover:bg-slate-900 backdrop-blur-md border border-slate-700/60 text-white shadow-lg transition-all opacity-0 group-hover:opacity-100 duration-200 cursor-pointer ${
+            className={`absolute top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-[#1A1836]/80 hover:bg-[#42164B] backdrop-blur-md border border-[#E0B4B2]/25 text-white shadow-lg transition-all opacity-0 group-hover:opacity-100 duration-200 cursor-pointer ${
               isRTL ? "right-3 sm:right-6" : "left-3 sm:left-6"
             }`}
           >
@@ -139,7 +139,7 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
             type="button"
             onClick={isRTL ? handlePrev : handleNext}
             aria-label="Next Slide"
-            className={`absolute top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-slate-900/75 hover:bg-slate-900 backdrop-blur-md border border-slate-700/60 text-white shadow-lg transition-all opacity-0 group-hover:opacity-100 duration-200 cursor-pointer ${
+            className={`absolute top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-[#1A1836]/80 hover:bg-[#42164B] backdrop-blur-md border border-[#E0B4B2]/25 text-white shadow-lg transition-all opacity-0 group-hover:opacity-100 duration-200 cursor-pointer ${
               isRTL ? "left-3 sm:left-6" : "right-3 sm:right-6"
             }`}
           >
@@ -148,9 +148,9 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
         </>
       )}
 
-      {/* Slide Indicators with Active Progress Pill (placed at bottom-end corner) */}
+      {/* Slide Indicators with Active Progress Pill */}
       {activeBanners.length > 1 && (
-        <div className="absolute bottom-3.5 sm:bottom-5 end-3.5 sm:end-6 z-30 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-950/70 backdrop-blur-md border border-slate-800 shadow-md">
+        <div className="absolute bottom-3.5 sm:bottom-5 end-3.5 sm:end-6 z-30 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[#1A1836]/80 backdrop-blur-md border border-[#42164B] shadow-md">
           {activeBanners.map((_, idx) => {
             const isActive = currentIndex === idx;
             return (
@@ -163,8 +163,8 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
                 }}
                 className={`transition-all duration-300 rounded-full cursor-pointer border-none p-0 ${
                   isActive
-                    ? "w-5 h-1.5 bg-amber-400 shadow-xs"
-                    : "w-1.5 h-1.5 bg-white/40 hover:bg-white/70"
+                    ? "w-5 h-1.5 bg-[#E99856] shadow-xs"
+                    : "w-1.5 h-1.5 bg-[#E0B4B2]/45 hover:bg-[#E0B4B2]"
                 }`}
                 aria-label={`Slide ${idx + 1}`}
               />

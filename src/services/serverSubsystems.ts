@@ -5,6 +5,7 @@ import { startProductPublisherWorker, stopProductPublisherWorker } from "../work
 import { startVelocityWorker, stopVelocityWorker, drainVelocityChecks } from "../utils/velocity";
 import { startProductCacheCleanupTimer, stopProductCacheCleanupTimer } from "./ProductSeoService";
 import { setupViteAndStaticServing } from "./ViteStaticService";
+import { closeDevViteServer } from "./devViteMiddleware";
 import { validateCsrfConfiguration } from "../middlewares/csrf";
 import { safeLogger } from "../utils/logger";
 
@@ -68,6 +69,8 @@ export async function initializeSubsystems(app: Express): Promise<void> {
 }
 
 export function rollbackSubsystems(): void {
+  closeDevViteServer().catch(() => {});
+
   try {
     stopProductCacheCleanupTimer();
   } catch (err) {

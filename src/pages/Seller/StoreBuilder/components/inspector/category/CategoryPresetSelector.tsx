@@ -5,6 +5,7 @@ import { Product } from "../../../../../../domains/product/product.types";
 
 interface CategoryPresetSelectorProps {
   currentLayout: string;
+  activePresetId?: string;
   products: Product[];
   hasExistingCategories?: boolean;
   onApplyPreset: (preset: CategoryPreset, keepExistingItems: boolean) => void;
@@ -13,12 +14,15 @@ interface CategoryPresetSelectorProps {
 
 export const CategoryPresetSelector: React.FC<CategoryPresetSelectorProps> = ({
   currentLayout,
+  activePresetId,
   products,
   hasExistingCategories = true,
   onApplyPreset,
   onImportFromProducts,
 }) => {
   const [keepMyRayons, setKeepMyRayons] = useState<boolean>(hasExistingCategories);
+  const fallbackPresetId = CATEGORY_PRESETS.find((p) => p.settings.layout === currentLayout)?.id;
+  const resolvedActivePresetId = activePresetId || fallbackPresetId;
 
   const handleSmartExtractFromProducts = () => {
     const map = new Map<string, { name: string; imageUrl: string; count: number; productIds: string[] }>();
@@ -122,7 +126,7 @@ export const CategoryPresetSelector: React.FC<CategoryPresetSelectorProps> = ({
         </label>
         <div className="grid grid-cols-1 gap-2.5">
           {CATEGORY_PRESETS.map((preset) => {
-            const isSelected = currentLayout === preset.settings.layout;
+            const isSelected = resolvedActivePresetId === preset.id;
             return (
               <div
                 key={preset.id}

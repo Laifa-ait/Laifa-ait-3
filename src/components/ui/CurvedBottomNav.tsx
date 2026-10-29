@@ -36,7 +36,7 @@ export function CurvedBottomNav<T = string>({
   onChange,
   className = "",
   barColor = "#ffffff",
-  accentColor = "#5B4865",
+  accentColor = "#622347",
 }: CurvedBottomNavProps<T>): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(375);
@@ -97,8 +97,8 @@ export function CurvedBottomNav<T = string>({
       >
         <defs>
           <filter id={filterId} x="-10%" y="-40%" width="120%" height="180%">
-            <feDropShadow dx="0" dy="-3" stdDeviation="6" floodColor="rgba(35, 25, 40, 0.08)" />
-            <feDropShadow dx="0" dy="-1" stdDeviation="2" floodColor="rgba(35, 25, 40, 0.04)" />
+            <feDropShadow dx="0" dy="-3" stdDeviation="6" floodColor="rgba(26, 24, 54, 0.08)" />
+            <feDropShadow dx="0" dy="-1" stdDeviation="2" floodColor="rgba(26, 24, 54, 0.04)" />
           </filter>
 
           <mask id={maskId}>
@@ -135,9 +135,9 @@ export function CurvedBottomNav<T = string>({
           y1="0"
           x2="100%"
           y2="0"
-          stroke="#e8e1eb"
+          stroke="#E0B4B2"
           strokeWidth="1.2"
-          strokeOpacity="0.85"
+          strokeOpacity="0.6"
           mask={`url(#${maskId})`}
         />
 
@@ -149,18 +149,18 @@ export function CurvedBottomNav<T = string>({
           <path
             d="M -46 0 C -32 0, -22 32, 0 32 C 22 32, 32 0, 46 0"
             fill="none"
-            stroke="#e8e1eb"
+            stroke="#E0B4B2"
             strokeWidth="1.2"
-            strokeOpacity="0.85"
+            strokeOpacity="0.6"
           />
         </motion.g>
       </svg>
 
       {/* 2. Bulle flottante circulaire (Indicateur actif liquide) */}
       <motion.div
-        className="absolute -top-5 w-[54px] h-[54px] rounded-full flex items-center justify-center border-[3.5px] border-white pointer-events-none z-20 shadow-[0_8px_20px_rgba(91,72,101,0.35)]"
+        className="absolute -top-5 w-[54px] h-[54px] rounded-full flex items-center justify-center border-[3.5px] border-white pointer-events-none z-20 shadow-[0_8px_20px_rgba(98,35,71,0.38)]"
         style={{
-          background: `linear-gradient(135deg, #7a6185 0%, ${accentColor} 55%, #36273d 100%)`,
+          background: `linear-gradient(135deg, #E99856 0%, #A54055 48%, ${accentColor} 80%, #42164B 100%)`,
         }}
         animate={{
           x: activeCenterX - 27,
@@ -206,13 +206,13 @@ export function CurvedBottomNav<T = string>({
                   y: isActive ? -8 : 0,
                 }}
                 transition={SPRING_TRANSITION}
-                className="relative flex items-center justify-center text-slate-500 hover:text-[#5B4865] transition-colors"
+                className="relative flex items-center justify-center text-[#6E5A6F] hover:text-[#622347] transition-colors"
               >
                 <Icon className="w-5 h-5 stroke-[2]" />
 
                 {/* Badge de notification optionnel */}
                 {item.badge !== undefined && item.badge !== false && (
-                  <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-[16px] bg-[#5B4865] text-white rounded-full text-[9px] font-black flex items-center justify-center px-1 border-2 border-white shadow-xs">
+                  <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-[16px] bg-[#A54055] text-white rounded-full text-[9px] font-black flex items-center justify-center px-1 border-2 border-white shadow-xs tabular-nums">
                     {item.badge}
                   </span>
                 )}

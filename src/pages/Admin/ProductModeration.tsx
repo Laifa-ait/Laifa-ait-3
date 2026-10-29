@@ -5,9 +5,12 @@ import {
   Sparkles,
   ShieldAlert,
   RefreshCw,
+  Star,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useConfirm } from "../../hooks/useConfirm";
+import { PRODUCT_HIERARCHY } from "../../constants";
 import { useProductModeration } from "../../components/Admin/ProductModeration/hooks/useProductModeration";
 import { ProductRejectModal } from "../../components/Admin/ProductModeration/ProductRejectModal";
 import { ProductModerationCard } from "../../components/Admin/ProductModeration/ProductModerationCard";
@@ -44,17 +47,7 @@ export const ProductModeration: React.FC = () => {
     handleRecalculateScores,
   } = useProductModeration(showConfirmModal);
 
-  const categories = [
-    "Tous",
-    "Poterie",
-    "Tapis & Tissage",
-    "Bijoux Traditionnels",
-    "Cuir & Maroquinerie",
-    "Habits Traditionnels",
-    "Artisanat du Bois",
-    "Cuivre & Dinanderie",
-    "Vannerie & Sparterie",
-  ];
+  const categories = ["Tous", ...Object.keys(PRODUCT_HIERARCHY)];
 
   return (
     <div className="space-y-8" dir={isArabic ? "rtl" : "ltr"}>
@@ -71,16 +64,25 @@ export const ProductModeration: React.FC = () => {
           </p>
         </div>
 
-        {activeTab === "active" && (
-          <button
-            onClick={() => void handleRecalculateScores()}
-            disabled={loading}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orange-600 text-white font-sans font-bold text-xs uppercase tracking-wider hover:bg-orange-700 transition-all shadow-md shadow-orange-600/10 cursor-pointer disabled:opacity-50"
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to="/dashboard/admin/curation"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-100 text-zinc-800 font-sans font-bold text-xs uppercase tracking-wider hover:bg-zinc-200 transition-all"
           >
-            <Sparkles className="w-4 h-4" />
-            {t("Recalculer les Scores")}
-          </button>
-        )}
+            <Star className="w-4 h-4 text-[#A54055]" />
+            {t("Studio Curation & IA")}
+          </Link>
+          {activeTab === "active" && (
+            <button
+              onClick={() => void handleRecalculateScores()}
+              disabled={loading}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#A54055] text-white font-sans font-bold text-xs uppercase tracking-wider hover:bg-[#622347] transition-all shadow-md cursor-pointer disabled:opacity-50"
+            >
+              <Sparkles className="w-4 h-4" />
+              {t("Recalculer les Scores")}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Navigation tabs */}

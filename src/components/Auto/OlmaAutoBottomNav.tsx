@@ -1,72 +1,77 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Search, Plus, Heart, User } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
+import { Compass, CarFront, Plus, Heart, User } from "lucide-react";
+import { useVehicleFavorites } from "../../hooks/useVehicleFavorites";
 
 export const OlmaAutoBottomNav: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentUser, openAuthModal } = useAuth();
+  const { count: favoritesCount } = useVehicleFavorites();
 
-  const isHomeActive = location.pathname === "/auto";
-  const isSearchActive = location.pathname.startsWith("/auto/catalog") && !location.search.includes("tab=favorites");
-  const isVendreActive = location.pathname === "/auto/deposer";
+  const isExplorerActive =
+    (location.pathname === "/auto" ||
+      location.pathname.startsWith("/auto/catalog") ||
+      location.pathname.startsWith("/auto/vehicules")) &&
+    !location.search.includes("tab=favorites") &&
+    !location.search.includes("brand=");
+
+  const isAddActive = location.pathname.startsWith("/auto/deposer");
   const isFavoritesActive = location.search.includes("tab=favorites");
-  const isAccountActive =
-    location.pathname.startsWith("/dashboard/seller/auto") ||
-    location.pathname.startsWith("/profile");
+  const isDashboardActive =
+    (location.pathname.startsWith("/auto/dashboard") ||
+      location.pathname.startsWith("/auto/mon-garage") ||
+      location.pathname.startsWith("/dashboard/seller/auto")) &&
+    !isFavoritesActive;
 
-  const handleAccountClick = () => {
-    if (!currentUser) {
-      if (openAuthModal) openAuthModal();
-      else window.dispatchEvent(new CustomEvent("auth:openModal", { detail: { mode: "login" } }));
-      return;
-    }
-    navigate("/dashboard/seller/auto");
+  const openBrandPicker = () => {
+    window.dispatchEvent(new CustomEvent("olmart:open-auto-brand-picker"));
   };
 
   const navItems = [
     {
-      id: "home",
-      label: "Accueil",
-      icon: Home,
-      isActive: isHomeActive,
+      id: "explorer",
+      label: "Explorer",
+      icon: Compass,
+      isActive: isExplorerActive,
       onClick: () => navigate("/auto"),
     },
     {
-      id: "search",
-      label: "Rechercher",
-      icon: Search,
-      isActive: isSearchActive,
-      onClick: () => navigate("/auto/catalog"),
+      id: "marques",
+      label: "Par Marque",
+      icon: CarFront,
+      isActive: Boolean(location.search.includes("brand=")),
+      onClick: openBrandPicker,
     },
     {
-      id: "vendre",
-      label: "Vendre",
+      id: "ajouter",
+      label: "Ajouter",
       icon: Plus,
       isSpecial: true,
-      isActive: isVendreActive,
+      isActive: isAddActive,
       onClick: () => navigate("/auto/deposer"),
     },
     {
-      id: "favorites",
+      id: "favoris",
       label: "Favoris",
       icon: Heart,
+      badge: favoritesCount > 0 ? favoritesCount : undefined,
       isActive: isFavoritesActive,
-      onClick: () => navigate("/auto/catalog?tab=favorites"),
+      onClick: () => navigate("/auto/dashboard?tab=favorites"),
     },
     {
-      id: "account",
-      label: "Compte",
+      id: "dashboard",
+      label: "Dashboard",
       icon: User,
-      isActive: isAccountActive,
-      onClick: handleAccountClick,
+      isActive: isDashboardActive,
+      onClick: () => navigate("/auto/dashboard"),
     },
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#0B1730]/98 backdrop-blur-md border-t border-[#172B4D] shadow-[0_-4px_25px_rgba(0,0,0,0.5)] px-2 py-1.5 pb-safe">
-      <nav className="flex items-center justify-around max-w-md mx-auto relative">
+    <div
+      className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-white/95 backdrop-blur-xl border-t border-slate-200/80 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] px-2 pt-1.5 pb-[calc(0.35rem+env(safe-area-inset-bottom,0px))]"
+    >
+      <nav className="grid grid-cols-5 items-center max-w-md mx-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
 
@@ -76,19 +81,19 @@ export const OlmaAutoBottomNav: React.FC = () => {
                 key={item.id}
                 type="button"
                 onClick={item.onClick}
-                className="flex flex-col items-center justify-center -mt-6 group cursor-pointer focus:outline-none"
-                aria-label={item.label}
+                className="flex flex-col items-center justify-center -mt-4 cursor-pointer focus:outline-none bg-transparent border-none active:scale-95 transition-transform"
+                aria-label="Ajouter un véhicule"
               >
                 <div
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 border-2 border-[#0B1730] shadow-[0_8px_20px_rgba(217,246,111,0.4)] ${
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all shadow-md border-2 border-white ${
                     item.isActive
-                      ? "bg-gradient-to-br from-[#E2FB7D] to-[#C5E94F] text-[#0B1730] scale-105 ring-2 ring-[#D9F66F]"
-                      : "bg-gradient-to-br from-[#D9F66F] via-[#E2FB7D] to-[#C5E94F] text-[#0B1730] group-hover:scale-105"
+                      ? "bg-slate-900 text-white"
+                      : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/25"
                   }`}
                 >
-                  <Icon className="w-6 h-6 stroke-[3]" />
+                  <Icon className="w-5 h-5 stroke-[2.6]" />
                 </div>
-                <span className="text-[10px] font-black text-[#D9F66F] mt-1 tracking-tight">
+                <span className="text-[10px] font-extrabold text-blue-600 mt-0.5 tracking-tight">
                   {item.label}
                 </span>
               </button>
@@ -100,12 +105,25 @@ export const OlmaAutoBottomNav: React.FC = () => {
               key={item.id}
               type="button"
               onClick={item.onClick}
-              className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-colors cursor-pointer ${
-                item.isActive ? "text-[#D9F66F]" : "text-slate-400 hover:text-slate-200"
+              className={`min-h-[48px] flex flex-col items-center justify-center rounded-xl transition-all active:scale-95 cursor-pointer bg-transparent border-none ${
+                item.isActive ? "text-blue-600" : "text-slate-500 hover:text-slate-900"
               }`}
             >
-              <Icon className="w-5 h-5 stroke-[2.2]" />
-              <span className="text-[10px] font-bold mt-1 tracking-tight">{item.label}</span>
+              <div className="relative flex items-center justify-center w-7 h-7">
+                <Icon className={`w-5 h-5 ${item.isActive ? "stroke-[2.4]" : "stroke-[1.9]"}`} />
+                {item.badge && (
+                  <span className="absolute -top-1 -right-2 min-w-4 h-4 bg-blue-600 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center px-1 tabular-nums">
+                    {item.badge > 99 ? "99+" : item.badge}
+                  </span>
+                )}
+              </div>
+              <span
+                className={`text-[10px] mt-0.5 tracking-tight ${
+                  item.isActive ? "font-extrabold text-blue-600" : "font-medium text-slate-500"
+                }`}
+              >
+                {item.label}
+              </span>
             </button>
           );
         })}

@@ -118,7 +118,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
 
           {/* Small item count badge at bottom right of the disc */}
           <span
-            className="absolute -bottom-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full bg-white/70 backdrop-blur-md border border-white/60 text-[10px] font-mono font-bold flex items-center justify-center shadow-xs text-slate-800"
+            className="absolute -bottom-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full bg-white/85 backdrop-blur-md border border-[#E0B4B2]/60 text-[10px] font-mono tabular-nums font-bold flex items-center justify-center shadow-xs text-[#1A1836]"
           >
             {itemCount}
           </span>
@@ -128,10 +128,10 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
       {/* Bottom Content Row: Title, Subtitle, and Action Arrow Button */}
       <div className="relative z-10 flex items-end justify-between gap-3 pt-1">
         <div className="space-y-0.5 max-w-[76%]">
-          <h3 className="font-bold text-slate-900 text-base sm:text-lg tracking-tight leading-snug line-clamp-1 font-sans">
+          <h3 className="font-bold text-[#1A1836] text-base sm:text-lg tracking-tight leading-snug line-clamp-1 font-sans">
             {displayTitle}
           </h3>
-          <p className="font-medium text-slate-700/80 text-[11px] sm:text-xs line-clamp-1 leading-normal font-sans">
+          <p className="font-medium text-[#42164B]/80 text-[11px] sm:text-xs line-clamp-1 leading-normal font-sans">
             {displaySubtitle}
           </p>
         </div>

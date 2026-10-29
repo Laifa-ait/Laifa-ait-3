@@ -28,7 +28,7 @@ export const MobileMenu: React.FC = () => {
     logout,
   } = useMobileMenu();
   const { categoriesData } = useMegaMenu();
-  const { setIsCartOpen } = useUI();
+  const { setIsCartOpen, setIsWishlistOpen } = useUI();
 
   const isRtl = i18n.dir() === "rtl" || i18n.language === "ar";
 
@@ -42,7 +42,7 @@ export const MobileMenu: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeMenu}
-              className="fixed inset-0 bg-black/50 backdrop-blur-xs z-[280]"
+              className="fixed inset-0 bg-[#1A1836]/60 backdrop-blur-xs z-[280]"
             />
             <motion.div
               initial={{ x: isRtl ? "-100%" : "100%" }}
@@ -51,15 +51,15 @@ export const MobileMenu: React.FC = () => {
               transition={{ type: "spring", damping: 28, stiffness: 280 }}
               className={`fixed top-0 bottom-0 ${
                 isRtl ? "left-0 rounded-r-2xl" : "right-0 rounded-l-2xl"
-              } w-[86vw] max-w-[360px] bg-white z-[290] shadow-2xl flex flex-col overflow-hidden border-l border-zinc-200/80`}
+              } w-[86vw] max-w-[360px] bg-[#FAF7F8] z-[290] shadow-2xl flex flex-col overflow-hidden border-l border-[#E0B4B2]/50`}
             >
               {/* Drawer Header */}
-              <div className="flex items-center justify-between px-4.5 pt-4 pb-3 relative z-10 border-b border-zinc-100">
+              <div className="flex items-center justify-between px-4.5 pt-4 pb-3 relative z-10 border-b border-[#E0B4B2]/40 bg-white">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[#0088A8] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#1A1836] to-[#622347] text-[#E99856] flex items-center justify-center font-extrabold text-xs shadow-2xs">
                     OL
                   </div>
-                  <h2 className="text-base font-bold text-zinc-900 tracking-tight">
+                  <h2 className="text-base font-extrabold text-[#1A1836] tracking-tight">
                     {t("Menu")}
                   </h2>
                 </div>
@@ -67,7 +67,7 @@ export const MobileMenu: React.FC = () => {
                   type="button"
                   onClick={closeMenu}
                   aria-label="Fermer le menu"
-                  className="p-1.5 rounded-full text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 cursor-pointer transition-colors border-none bg-transparent"
+                  className="p-1.5 rounded-full text-zinc-500 hover:text-[#1A1836] hover:bg-[#FAF7F8] cursor-pointer transition-colors border-none bg-transparent"
                 >
                   <X className="w-5 h-5 stroke-[2]" />
                 </button>
@@ -89,6 +89,7 @@ export const MobileMenu: React.FC = () => {
                   onNavigate={handleNav}
                   onClose={closeMenu}
                   onOpenCart={() => setIsCartOpen(true)}
+                  onOpenWishlist={() => setIsWishlistOpen(true)}
                 />
 
                 {/* Univers & Services Olmart avec Titres Complets Non-Tronqués */}
@@ -101,17 +102,17 @@ export const MobileMenu: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleLanguageToggle}
-                  className="w-full flex items-center justify-between p-2.5 rounded-xl bg-white hover:bg-zinc-50 border border-zinc-200/80 shadow-2xs transition-all cursor-pointer text-left rtl:text-right"
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl bg-white hover:bg-[#FAF7F8] border border-[#E0B4B2]/40 shadow-2xs transition-all cursor-pointer text-left rtl:text-right"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-700">
+                    <div className="w-7 h-7 rounded-lg bg-[#FAF7F8] flex items-center justify-center text-[#622347]">
                       <Globe className="w-4 h-4 stroke-[2]" />
                     </div>
-                    <span className="text-xs font-semibold text-zinc-800">
+                    <span className="text-xs font-semibold text-[#1A1836]">
                       {t("Langue d'affichage")}
                     </span>
                   </div>
-                  <span className="uppercase text-[11px] font-bold text-[#0088A8] bg-[#0088A8]/10 px-2 py-0.5 rounded-md">
+                  <span className="uppercase text-[11px] font-bold text-[#A54055] bg-[#A54055]/10 px-2 py-0.5 rounded-md">
                     {(i18n.language || "FR").split("-")[0]}
                   </span>
                 </button>

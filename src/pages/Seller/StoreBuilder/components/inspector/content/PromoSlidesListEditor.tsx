@@ -62,8 +62,8 @@ export const PromoSlidesListEditor: React.FC<PromoSlidesListEditorProps> = ({
 
       <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-[#F97316]" />
+          <span className="text-xs font-bold text-[#011C40] flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-[#023859]" />
             <span>Diapositives ({slides.length}/12)</span>
           </span>
           <div className="flex items-center gap-1.5">
@@ -93,7 +93,7 @@ export const PromoSlidesListEditor: React.FC<PromoSlidesListEditorProps> = ({
                   },
                 ])
               }
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#F97316] text-white text-[11px] font-bold cursor-pointer disabled:opacity-40"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold cursor-pointer disabled:opacity-40 transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>+ Ajouter une slide</span>
@@ -109,12 +109,12 @@ export const PromoSlidesListEditor: React.FC<PromoSlidesListEditorProps> = ({
                 key={String(slide.id || index)}
                 className={`space-y-2.5 rounded-xl border p-3 transition-all ${
                   isHighlighted
-                    ? "border-[#F97316] bg-[#FFF7ED]/50 ring-2 ring-[#F97316]/30 shadow-xs"
+                    ? "border-[#023859] bg-[#F0F7FA]/60 ring-2 ring-[#54ACBF]/35 shadow-xs"
                     : "border-slate-200 bg-white shadow-2xs"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-[#F97316]">
+                  <span className="text-[11px] font-bold text-[#023859]">
                     Slide #{index + 1}
                   </span>
                   <div className="flex items-center gap-1">
@@ -181,14 +181,14 @@ export const PromoSlidesListEditor: React.FC<PromoSlidesListEditorProps> = ({
               type="checkbox"
               checked={settings.autoplay !== false}
               onChange={(e) => onSettingsChange("autoplay", e.target.checked)}
-              className="accent-[#F97316]"
+              className="accent-[#023859]"
             />
           </label>
           {settings.autoplay !== false && (
             <label className="block space-y-1">
               <div className="flex justify-between text-[11px] text-slate-600">
                 <span>Durée par diapositive</span>
-                <span className="font-mono font-bold text-[#F97316]">
+                <span className="font-mono font-bold text-[#023859]">
                   {Number(settings.intervalSec || 5)}s
                 </span>
               </div>
@@ -199,7 +199,7 @@ export const PromoSlidesListEditor: React.FC<PromoSlidesListEditorProps> = ({
                 step={1}
                 value={Number(settings.intervalSec || 5)}
                 onChange={(e) => onSettingsChange("intervalSec", Number(e.target.value))}
-                className="w-full accent-[#F97316] cursor-pointer"
+                className="w-full accent-[#023859] cursor-pointer"
               />
             </label>
           )}

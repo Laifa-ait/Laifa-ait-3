@@ -146,14 +146,14 @@ export const useNewsletterState = () => {
   };
 
   const generateWithAi = async () => {
-    if (!aiPrompt || !currentUser) return;
+    if (!aiPrompt.trim() || !currentUser) {
+      toast.error("Veuillez décrire le sujet de la newsletter.");
+      return;
+    }
     setGenerating(true);
     try {
       const currentAuthUser = auth.currentUser;
-      let idToken = "";
-      if (currentAuthUser) {
-        idToken = await currentAuthUser.getIdToken();
-      }
+      const idToken = currentAuthUser ? await currentAuthUser.getIdToken() : "";
       const response = await fetch("/api/v1/admin/generate-newsletter", {
         method: "POST",
         headers: {
@@ -163,32 +163,29 @@ export const useNewsletterState = () => {
         body: JSON.stringify({ prompt: aiPrompt }),
       });
 
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const textError = await response.text();
-        throw new Error(`Erreur serveur (${response.status}): ${textError.substring(0, 100)}`);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Erreur serveur (${response.status})`);
       }
 
-      const data = await response.json();
       if (data.subject) setSubject(data.subject);
-      if (data.blocks) {
-        const adaptedBlocks = data.blocks.map((b: Partial<NewsletterBlock>) => {
-          if (b.type === "image") {
-            return {
-              width: "100",
-              align: "center",
-              aspectRatio: "auto",
-              rounded: "rounded-2xl",
-              linkUrl: "",
-              ...b,
-            };
-          }
-          return b;
-        });
+      if (Array.isArray(data.blocks)) {
+        const adaptedBlocks: NewsletterBlock[] = data.blocks.map((b: Partial<NewsletterBlock>, idx: number) => ({
+          id: b.id || `blk_${idx}_${Date.now()}`,
+          type: b.type || "text",
+          content: b.content || "",
+          width: b.width || "100",
+          align: b.align || "center",
+          aspectRatio: b.aspectRatio || "auto",
+          rounded: b.rounded || "rounded-2xl",
+          linkUrl: b.linkUrl || "",
+        }));
         setBlocks(adaptedBlocks);
+        toast.success("Structure de la newsletter générée avec succès !");
       }
     } catch (err) {
       console.error(err);
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la génération IA.");
     } finally {
       setGenerating(false);
     }
@@ -202,18 +199,28 @@ export const useNewsletterState = () => {
     setIsSending(true);
 
     try {
+      const compiledHtml = blocks
+        .map((b) => {
+          if (b.type === "title") return `<h2>${b.content || ""}</h2>`;
+          if (b.type === "text") return `<p>${b.content || ""}</p>`;
+          if (b.type === "image" && b.content) return `<img src="${b.content}" alt="Olmart" style="max-width:100%;border-radius:16px;" />`;
+          if (b.type === "product") return `<div><strong>${b.productName || b.content || ""}</strong> - ${b.productPrice || 0} DZD</div>`;
+          return `<p>${b.content || ""}</p>`;
+        })
+        .join("\n");
+
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (auth.currentUser) headers["Authorization"] = `Bearer ${await auth.currentUser.getIdToken()}`;
       const res = await fetch("/api/v1/admin/send-newsletter", {
         method: "POST",
         headers,
-        body: JSON.stringify({ subject, blocks, settings: {} }),
+        body: JSON.stringify({ subject, content: compiledHtml, blocks, targetAudience: "all" }),
       });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error || "Erreur serveur");
 
-      toast.success(data.message || "Campagne envoyée avec succès !", { duration: 4000, icon: "🚀" });
+      toast.success(data.message || `Campagne envoyée (${data.count || 0} abonnés) !`, { duration: 4000 });
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Erreur de connexion.");
     } finally {

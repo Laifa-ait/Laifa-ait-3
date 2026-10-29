@@ -18,27 +18,27 @@ export const OverviewTopLists: React.FC<OverviewTopListsProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="grid lg:grid-cols-3 gap-10">
+    <div className="grid lg:grid-cols-3 gap-5 sm:gap-8">
       {/* Top Products */}
-      <div className="bg-white p-8 rounded-[3.5rem] border border-zinc-100 shadow-sm">
-        <h4 className="text-sm font-sans font-bold uppercase tracking-widest text-zinc-900 mb-6 flex items-center gap-2">
-          <ShoppingBag className="w-5 h-5 text-orange-500" /> {t("Top 5 Produits")}
+      <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-zinc-100 shadow-sm">
+        <h4 className="text-xs sm:text-sm font-sans font-bold uppercase tracking-widest text-zinc-900 mb-5 flex items-center gap-2">
+          <ShoppingBag className="w-5 h-5 text-[#A54055]" /> {t("Top 5 Produits")}
         </h4>
-        <div className="space-y-4">
+        <div className="space-y-3.5">
           {topProducts.length === 0 ? (
             <p className="text-xs text-zinc-400 font-bold uppercase">{t("Aucun produit")}</p>
           ) : (
             topProducts.map((p, i) => (
-              <div key={i} className="flex items-center gap-4">
+              <div key={i} className="flex items-center gap-3.5">
                 <div
-                  className="w-10 h-10 rounded-2xl bg-zinc-100 flex-shrink-0 bg-cover bg-center"
+                  className="w-10 h-10 rounded-xl bg-zinc-100 flex-shrink-0 bg-cover bg-center"
                   style={{ backgroundImage: `url(${p.images?.[0] || ""})` }}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-zinc-900 truncate">{p.name || t("Produit inconnu")}</p>
-                  <p className="text-[10px] text-zinc-500 font-sans font-bold">{p.salesCount || 0} {t("ventes")}</p>
+                  <p className="text-[10px] text-zinc-500 font-sans font-bold tabular-nums">{p.salesCount || 0} {t("ventes")}</p>
                 </div>
-                <div className="font-sans font-bold text-xs text-emerald-600">{formatPrice(p.price || 0)}</div>
+                <div className="font-sans font-bold text-xs text-emerald-600 tabular-nums shrink-0">{formatPrice(p.price || 0)}</div>
               </div>
             ))
           )}
@@ -46,24 +46,24 @@ export const OverviewTopLists: React.FC<OverviewTopListsProps> = ({
       </div>
 
       {/* Top Sellers */}
-      <div className="bg-white p-8 rounded-[3.5rem] border border-zinc-100 shadow-sm">
-        <h4 className="text-sm font-sans font-bold uppercase tracking-widest text-zinc-900 mb-6 flex items-center gap-2">
-          <Users className="w-5 h-5 text-blue-500" /> {t("Top 5 Vendeurs")}
+      <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-zinc-100 shadow-sm">
+        <h4 className="text-xs sm:text-sm font-sans font-bold uppercase tracking-widest text-zinc-900 mb-5 flex items-center gap-2">
+          <Users className="w-5 h-5 text-[#42164B]" /> {t("Top 5 Vendeurs")}
         </h4>
-        <div className="space-y-4">
+        <div className="space-y-3.5">
           {topSellers.length === 0 ? (
             <p className="text-xs text-zinc-400 font-bold uppercase">{t("Aucun vendeur")}</p>
           ) : (
             topSellers.map((s, i) => (
-              <div key={i} className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0">
+              <div key={i} className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-[#42164B]/10 text-[#42164B] flex items-center justify-center font-bold text-sm shrink-0">
                   {s.displayName?.charAt(0) || "V"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-zinc-900 truncate">{s.displayName || s.email}</p>
                   <p className="text-[10px] text-zinc-500 font-sans font-bold">{s.wilaya || t("National")}</p>
                 </div>
-                <div className="font-sans font-bold text-xs text-blue-600">{formatPrice(s.totalRevenue || 0)}</div>
+                <div className="font-sans font-bold text-xs text-[#1A1836] tabular-nums shrink-0">{formatPrice(s.totalRevenue || 0)}</div>
               </div>
             ))
           )}
@@ -71,19 +71,19 @@ export const OverviewTopLists: React.FC<OverviewTopListsProps> = ({
       </div>
 
       {/* Wilaya Map Breakdown */}
-      <div className="bg-white p-8 rounded-[3.5rem] border border-zinc-100 shadow-sm">
-        <h4 className="text-sm font-sans font-bold uppercase tracking-widest text-zinc-900 mb-6 flex items-center gap-2">
+      <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-zinc-100 shadow-sm">
+        <h4 className="text-xs sm:text-sm font-sans font-bold uppercase tracking-widest text-zinc-900 mb-5 flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-emerald-500" /> {t("Commandes par Wilaya")}
         </h4>
-        <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+        <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
           {wilayaStats.length === 0 ? (
             <p className="text-xs text-zinc-400 font-bold uppercase">{t("Aucune donnée géographique")}</p>
           ) : (
             [...wilayaStats].sort((a, b) => (b.count || 0) - (a.count || 0)).map((w, i) => (
               <div key={i} className="space-y-1">
-                <div className="flex items-center justify-between text-[11px] font-sans font-bold text-zinc-700 uppercase">
-                  <span>{w.wilaya}</span>
-                  <span>{w.count || 0} {t("cmd")}</span>
+                <div className="flex items-center justify-between text-[11px] font-sans font-bold text-zinc-700 uppercase tabular-nums">
+                  <span className="truncate pr-2">{w.wilaya}</span>
+                  <span className="shrink-0">{w.count || 0} {t("cmd")}</span>
                 </div>
                 <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
                   <div
@@ -99,3 +99,4 @@ export const OverviewTopLists: React.FC<OverviewTopListsProps> = ({
     </div>
   );
 };
+

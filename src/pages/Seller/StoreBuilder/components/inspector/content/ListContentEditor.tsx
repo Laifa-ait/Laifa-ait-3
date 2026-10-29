@@ -70,8 +70,8 @@ export const ListContentEditor: React.FC<ListContentEditorProps> = ({
 
         <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-[#F97316]" />
+            <h3 className="text-xs font-bold text-[#011C40] flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-[#023859]" />
               <span>Collections ({collections.length}/16)</span>
             </h3>
             <button
@@ -88,7 +88,7 @@ export const ListContentEditor: React.FC<ListContentEditorProps> = ({
                   },
                 ])
               }
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#F97316] text-white text-[11px] font-bold cursor-pointer disabled:opacity-40"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold cursor-pointer disabled:opacity-40 transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>+ Ajouter une catégorie</span>
@@ -103,7 +103,7 @@ export const ListContentEditor: React.FC<ListContentEditorProps> = ({
                 key={String(collection.id || index)}
                 className={`space-y-2.5 rounded-xl border p-3 transition-all ${
                   isHighlighted
-                    ? "border-[#F97316] bg-[#FFF7ED]/50 ring-2 ring-[#F97316]/30"
+                    ? "border-[#023859] bg-[#F0F7FA]/60 ring-2 ring-[#54ACBF]/35"
                     : "border-slate-200 bg-white"
                 }`}
               >
@@ -147,7 +147,7 @@ export const ListContentEditor: React.FC<ListContentEditorProps> = ({
                                 productIds: e.target.checked ? [...ids, product.id] : ids.filter((id) => id !== product.id),
                               })
                             }
-                            className="accent-[#F97316]"
+                            className="accent-[#023859]"
                           />
                           <span className="truncate">{product.name}</span>
                         </label>
@@ -184,8 +184,8 @@ export const ListContentEditor: React.FC<ListContentEditorProps> = ({
 
         <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-              <HelpCircle className="w-3.5 h-3.5 text-[#F97316]" />
+            <h3 className="text-xs font-bold text-[#011C40] flex items-center gap-1.5">
+              <HelpCircle className="w-3.5 h-3.5 text-[#023859]" />
               <span>Questions / Réponses ({items.length}/24)</span>
             </h3>
             <button
@@ -197,7 +197,7 @@ export const ListContentEditor: React.FC<ListContentEditorProps> = ({
                   { question: "Nouvelle question fréquente ?", answer: "Votre réponse détaillée ici." },
                 ])
               }
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#F97316] text-white text-[11px] font-bold cursor-pointer disabled:opacity-40"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold cursor-pointer disabled:opacity-40 transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>+ Ajouter une question</span>
@@ -210,7 +210,7 @@ export const ListContentEditor: React.FC<ListContentEditorProps> = ({
                 key={index}
                 className={`space-y-2 rounded-xl border p-3 transition-all ${
                   isHighlighted
-                    ? "border-[#F97316] bg-[#FFF7ED]/50 ring-2 ring-[#F97316]/30"
+                    ? "border-[#023859] bg-[#F0F7FA]/60 ring-2 ring-[#54ACBF]/35"
                     : "border-slate-200 bg-white"
                 }`}
               >
@@ -234,7 +234,7 @@ export const ListContentEditor: React.FC<ListContentEditorProps> = ({
                   value={String(item.answer || "")}
                   onChange={(e) => updateRecordList("items", index, { answer: e.target.value })}
                   placeholder="Réponse"
-                  className="w-full rounded-lg border border-[#E4E7EC] p-2.5 text-xs focus:border-[#F97316] focus:outline-none"
+                  className="w-full rounded-lg border border-[#E4E7EC] p-2.5 text-xs focus:border-[#023859] focus:outline-none"
                 />
               </div>
             );

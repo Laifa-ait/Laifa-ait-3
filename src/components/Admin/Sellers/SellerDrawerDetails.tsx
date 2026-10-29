@@ -36,33 +36,33 @@ export const SellerDrawerDetails: React.FC<{
 }) => {
   const { t } = useTranslation();
   return (
-    <div className="flex-1 p-12 overflow-y-auto scrollbar-hide border-r border-zinc-100">
-      <div className="flex items-center gap-8 mb-12">
-        <div className="w-24 h-24 rounded-[2rem] bg-zinc-100 overflow-hidden shadow-2xl border-4 border-white">
+    <div className="flex-1 p-5 sm:p-8 md:p-10 md:overflow-y-auto scrollbar-hide md:border-r border-zinc-100">
+      <div className="flex items-center gap-4 sm:gap-6 mb-6 sm:mb-10">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-zinc-100 overflow-hidden shadow-lg border-2 border-white shrink-0">
           <OptimizedImage
             src={selectedSeller.logoUrl || `https://ui-avatars.com/api/?name=${selectedSeller.shopName || "S"}&background=random`}
             alt={selectedSeller.shopName || "Shop Logo"}
             className="w-full h-full object-cover"
           />
         </div>
-        <div>
-          <h3 className="text-3xl font-sans font-bold tracking-tight rtl:tracking-normal mb-2">
+        <div className="min-w-0">
+          <h3 className="text-xl sm:text-2xl md:text-3xl font-sans font-bold tracking-tight rtl:tracking-normal mb-1 truncate">
             {selectedSeller.shopName}
           </h3>
-          <p className="text-zinc-500 font-medium">
-            {t("Inscrit le")}
+          <p className="text-xs sm:text-sm text-zinc-500 font-medium tabular-nums">
+            {t("Inscrit le")}{" "}
             {selectedSeller.createdAt ? new Date(normalizeTimestamp(selectedSeller.createdAt).toDate()).toLocaleDateString() : "N/A"}
           </p>
         </div>
       </div>
-      <div className="grid md:grid-cols-2 gap-10">
-        <div className="md:col-span-2 space-y-8">
-          <div className="bg-orange-50/50 rounded-[2.5rem] p-10 border border-orange-100">
-            <h4 className="text-[10px] font-sans font-bold text-orange-600 uppercase tracking-widest rtl:tracking-normal mb-6 flex items-center gap-2">
+      <div className="grid md:grid-cols-2 gap-5 sm:gap-8">
+        <div className="md:col-span-2 space-y-6">
+          <div className="bg-orange-50/50 rounded-2xl sm:rounded-3xl p-5 sm:p-8 border border-orange-100">
+            <h4 className="text-[10px] font-sans font-bold text-orange-600 uppercase tracking-widest rtl:tracking-normal mb-4 flex items-center gap-2">
               <Store className="w-4 h-4" /> {t("Profil Artistique & Identité")}
             </h4>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+              <div className="space-y-3">
                 <div className="flex flex-col gap-1">
                   <span className="text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal">
                     {t("Nom de la Marque")}
@@ -85,7 +85,7 @@ export const SellerDrawerDetails: React.FC<{
                   <span className="text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal">
                     {t("Histoire de la Marque")}
                   </span>
-                  <p className="text-sm text-zinc-600 italic leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs sm:text-sm text-zinc-600 italic leading-relaxed whitespace-pre-wrap">
                     {selectedSeller.description}
                   </p>
                 </div>
@@ -93,8 +93,8 @@ export const SellerDrawerDetails: React.FC<{
             </div>
           </div>
         </div>
-        <div className="space-y-8">
-          <div className="bg-zinc-50 rounded-[2.5rem] p-10 border border-zinc-100">
+        <div className="space-y-6">
+          <div className="bg-zinc-50 rounded-2xl sm:rounded-3xl p-5 sm:p-8 border border-zinc-100">
             <h4 className="text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-6 flex items-center gap-2">
               <FileText className="w-4 h-4" /> {t("Documents Légaux")}
             </h4>

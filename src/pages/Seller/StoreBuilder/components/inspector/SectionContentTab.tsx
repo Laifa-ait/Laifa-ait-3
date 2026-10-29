@@ -19,7 +19,7 @@ interface SectionContentTabProps {
 }
 
 const inputClass =
-  "h-9 w-full rounded-lg border border-[#E4E7EC] bg-white px-3 text-[12px] text-[#17191C] focus:border-[#F97316] focus:outline-none";
+  "h-9 w-full rounded-lg border border-[#E4E7EC] bg-white px-3 text-[12px] text-[#17191C] focus:border-[#023859] focus:outline-none";
 const labelClass = "block space-y-1 text-[12px] font-semibold text-[#475467]";
 
 export const SectionContentTab: React.FC<SectionContentTabProps> = ({

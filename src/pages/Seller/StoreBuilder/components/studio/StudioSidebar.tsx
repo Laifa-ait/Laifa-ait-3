@@ -44,11 +44,11 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
         onClick={() => onSelectNavMode(item.id)}
         className={`h-9 px-2.5 rounded-lg text-[12px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer truncate ${
           isActive
-            ? "bg-[#FFF1E7] text-[#EA580C] border border-[#FDBA74] shadow-2xs"
-            : "bg-[#F9FAFB] text-[#344054] hover:bg-[#F1F5F9] border border-[#E5E7EB]"
+            ? "bg-[#023859] text-white border border-[#023859] shadow-2xs font-bold"
+            : "bg-[#F9FAFB] text-[#344054] hover:bg-[#F0F7FA] hover:text-[#023859] border border-[#E5E7EB]"
         }`}
       >
-        <Icon className="w-3.5 h-3.5 text-[#F97316] shrink-0" />
+        <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-white" : "text-[#023859]"}`} />
         <span className="truncate">{item.label}</span>
       </button>
     );

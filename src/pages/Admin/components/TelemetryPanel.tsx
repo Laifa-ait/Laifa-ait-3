@@ -23,8 +23,9 @@ export const TelemetryPanel: React.FC = () => {
 
   const fetchTelemetry = useCallback(async () => {
     try {
-      const data = await apiGet<TelemetryData>("/api/v1/admin/telemetry");
-      setTelemetry(data);
+      const response = await apiGet<{ success?: boolean; data?: TelemetryData } & Partial<TelemetryData>>("/api/v1/admin/telemetry");
+      const payload = (response.data ? response.data : response) as TelemetryData;
+      setTelemetry(payload);
       setError(null);
       setLastRefreshed(new Date());
     } catch (err: unknown) {

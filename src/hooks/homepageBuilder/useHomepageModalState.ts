@@ -5,7 +5,7 @@ import { storage } from "../../lib/firebase";
 import toast from "react-hot-toast";
 
 export function useHomepageModalState() {
-  const [activeTab, setActiveTab] = useState<"sections" | "categories">("sections");
+  const [activeTab, setActiveTab] = useState<"sections" | "categories" | "versions" | "preview">("sections");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<HomepageSection | null>(null);
   const [activeModalStep, setActiveModalStep] = useState(1);

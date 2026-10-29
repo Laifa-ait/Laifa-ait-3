@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import "./studio-tokens.css";
 import { StudioTopBar } from "./components/studio/StudioTopBar";
 import { StudioColumnsLayout } from "./components/studio/StudioColumnsLayout";
@@ -74,33 +74,24 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
   const [showRightSidebar, setShowRightSidebar] = useState<boolean>(true);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
-  // Keep parent selectedSectionId and useStudioStore.selectedSectionId synchronized without ping-pong loops
-  useEffect(() => {
-    if (selectedSectionId !== useStudioStore.getState().selectedSectionId) {
-      selectSectionInStore(selectedSectionId);
-    }
-  }, [selectedSectionId, selectSectionInStore]);
-
-  useEffect(() => {
-    if (storeSelectedSectionId && storeSelectedSectionId !== selectedSectionId) {
-      setSelectedSectionId(storeSelectedSectionId);
-    }
-    // Only trigger when storeSelectedSectionId changes from canvas interactions
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeSelectedSectionId, setSelectedSectionId]);
+  const defaultTheme: CustomPageTheme = React.useMemo(() => ({
+    sector: "artisanat",
+    primaryColor: "#B85B35",
+    secondaryColor: "#1C2A39",
+    accentColor: "#D4AF37",
+    canvasColor: "#FAF6F0",
+    surfaceColor: "#FFFFFF",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+  }), []);
 
   const handleSelectSection = (id: string | null) => {
-    setSelectedSectionId(id);
     selectSectionInStore(id);
+    setSelectedSectionId(id);
   };
 
   const activeSectionId = storeSelectedSectionId ?? selectedSectionId;
   const selectedSection = sections.find((sec) => sec.id === activeSectionId) || null;
-  const currentTheme: CustomPageTheme = liveThemeOverride || storeConfig?.theme || {
-    sector: "artisanat", primaryColor: "#B85B35", secondaryColor: "#1C2A39",
-    accentColor: "#D4AF37", canvasColor: "#FAF6F0", surfaceColor: "#FFFFFF",
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
-  };
+  const currentTheme: CustomPageTheme = liveThemeOverride || storeConfig?.theme || defaultTheme;
 
   useStudioWorkspaceEvents({
     sections, currentTheme, reorderSections, updateSection, duplicateSection, toggleVisibility,

@@ -57,8 +57,7 @@ router.post("/api/v1/settings/:id", authenticateToken, authorizeAdmin, validateI
     return res.json({ success: true });
   } catch (error: unknown) {
     safeLogger.error("Error saving setting", { settingId: id, err: error instanceof Error ? error.message : String(error) });
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return res.status(500).json({ error: message });
+    return res.status(500).json({ error: "Erreur interne lors de la sauvegarde de la configuration" });
   }
 });
 
@@ -66,7 +65,7 @@ router.post("/api/v1/settings/:id", authenticateToken, authorizeAdmin, validateI
 router.post("/api/v1/newsletter/subscribe", async (req: Request, res: Response) => {
   try {
     const { email } = req.body as NewsletterSubscribeDTO;
-    if (!email) {
+    if (!email || typeof email !== "string" || email.trim().length > 254) {
       return res.status(400).json({ error: "Email is required" });
     }
     const result = await SettingsService.subscribeNewsletter(email);
@@ -76,8 +75,7 @@ router.post("/api/v1/newsletter/subscribe", async (req: Request, res: Response) 
     return res.json({ success: true });
   } catch (error: unknown) {
     safeLogger.error("Newsletter subscription error", { err: error instanceof Error ? error.message : String(error) });
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return res.status(500).json({ error: message });
+    return res.status(500).json({ error: "Erreur interne lors de l'inscription à la newsletter" });
   }
 });
 
@@ -145,16 +143,6 @@ router.get("/api/v1/monthly-updates", async (_req: Request, res: Response) => {
     const message = error instanceof Error ? error.message : String(error);
     safeLogger.warn("Monthly updates fetch warning", { err: message });
     return res.json({ updates: [] });
-  }
-});
-
-// GET categories hierarchy
-router.get("/api/v1/settings/categories-hierarchy", async (_req: Request, res: Response) => {
-  try {
-    const data = await SettingsService.getCategoriesHierarchy();
-    return res.json(data);
-  } catch {
-    return res.json({});
   }
 });
 

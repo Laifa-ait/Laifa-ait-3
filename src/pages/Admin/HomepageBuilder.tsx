@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -19,7 +19,7 @@ import { filterAndRankProducts } from "../../utils/productSearchRelevance";
 export const HomepageBuilder: React.FC = () => {
   const { t } = useTranslation();
   const state = useHomepageBuilderState();
-  const [activeTab, setActiveTab] = useState<"sections" | "categories" | "versions" | "preview">("sections");
+  const { activeTab, setActiveTab } = state;
 
   const filteredCategoryProducts = useMemo(() => {
     return filterAndRankProducts(state.categoriesState.categoryProducts, {

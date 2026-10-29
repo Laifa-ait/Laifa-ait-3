@@ -34,18 +34,18 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({ section, isFrame
   const getCardStyle = () => {
     switch (styleVariant) {
       case "premium":
-        return "border-emerald-500/80";
+        return "border-[#622347]/80";
       case "immersive":
-        return "border-slate-800";
+        return "border-[#1A1836]";
       case "glass":
         return "border-white/70";
       case "elevated":
-        return "border-slate-200 shadow-md";
+        return "border-[#EFE6E6] shadow-md";
       case "dark":
-        return "border-slate-800 bg-slate-900";
+        return "border-[#42164B] bg-[#1A1836]";
       case "clean":
       default:
-        return "border-slate-200";
+        return "border-[#EFE6E6]";
     }
   };
 
@@ -115,7 +115,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({ section, isFrame
       <div className="w-full relative z-10 animate-fade-in" style={customBgStyle}>
         <SectionHeader section={section} isDarkBg={isDarkBg} />
         {products.length === 0 && !isLoading ? (
-          <p className="text-zinc-400 font-medium text-center py-8 text-xs">
+          <p className="text-[#9B879C] font-medium text-center py-8 text-xs">
             {t("Aucun produit trouvé pour cette section.")}
           </p>
         ) : (
@@ -126,8 +126,8 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({ section, isFrame
   }
 
   const containerClasses = section.backgroundColor
-    ? "rounded-3xl p-5 sm:p-7 shadow-sm border border-slate-200/80 relative animate-fade-in transition-all duration-300"
-    : "bg-white rounded-3xl p-5 sm:p-7 shadow-[0_1px_3px_rgba(15,23,42,0.04)] border border-slate-200/80 relative animate-fade-in transition-all duration-300";
+    ? "rounded-3xl p-5 sm:p-7 shadow-sm border border-[#EFE6E6] relative animate-fade-in transition-all duration-300"
+    : "bg-white rounded-3xl p-5 sm:p-7 shadow-[0_2px_12px_rgba(26,24,54,0.04)] border border-[#EFE6E6] relative animate-fade-in transition-all duration-300";
 
   return (
     <section className="py-3 sm:py-5 relative mb-4 sm:mb-6">

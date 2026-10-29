@@ -1,5 +1,5 @@
 import React from "react";
-import { X } from "lucide-react";
+import { X, RotateCcw } from "lucide-react";
 import {
   VehicleFilterParams,
   VehiclePriceType,
@@ -33,29 +33,31 @@ export const AutoFilterDrawer: React.FC<AutoFilterDrawerProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       <div
-        className="fixed inset-0 bg-[#0B1730]/60 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
         <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col">
-          <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-[#0B1730] text-white">
-            <h2 className="text-base font-bold">
-              Filtres Spécifiques Algérie
-            </h2>
+          <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-900 text-white">
+            <div>
+              <h2 className="text-base font-extrabold">Filtres de recherche</h2>
+              <p className="text-[11px] text-slate-400">Affinez selon vos critères</p>
+            </div>
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+              className="w-10 h-10 rounded-xl bg-white/10 text-slate-300 hover:text-white hover:bg-white/20 transition-colors flex items-center justify-center cursor-pointer border-none"
+              aria-label="Fermer les filtres"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6">
+          <div className="flex-1 overflow-y-auto p-5 space-y-6">
             {/* 1. Wilaya (69 Wilayas) */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-2">
                 Wilaya (69 Wilayas)
               </label>
               <select
@@ -66,7 +68,7 @@ export const AutoFilterDrawer: React.FC<AutoFilterDrawerProps> = ({
                     page: 1,
                   })
                 }
-                className="w-full px-3 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#172B4D] min-h-[44px]"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 font-semibold focus:outline-none focus:border-blue-600 min-h-[44px]"
               >
                 <option value="">Toute l'Algérie (69 Wilayas)</option>
                 {WILAYAS_69.map((w) => (
@@ -91,7 +93,7 @@ export const AutoFilterDrawer: React.FC<AutoFilterDrawerProps> = ({
 
             {/* 4. Type de Prix */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-2">
                 Modalités de Prix
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -104,10 +106,10 @@ export const AutoFilterDrawer: React.FC<AutoFilterDrawerProps> = ({
                       onClick={() =>
                         onChange({ priceType: isChecked ? undefined : pt, page: 1 })
                       }
-                      className={`p-2.5 rounded-lg border text-xs text-center transition-colors min-h-[44px] cursor-pointer ${
+                      className={`p-2.5 rounded-2xl border text-xs text-center transition-all min-h-[44px] cursor-pointer ${
                         isChecked
-                          ? "bg-[#0B1730] border-[#0B1730] text-white font-semibold"
-                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                          ? "bg-blue-600 border-blue-600 text-white font-extrabold"
+                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold"
                       }`}
                     >
                       {PRICE_TYPE_LABELS[pt]}
@@ -119,7 +121,7 @@ export const AutoFilterDrawer: React.FC<AutoFilterDrawerProps> = ({
 
             {/* 5. Kilométrage Max */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-2">
                 Kilométrage Maximum
               </label>
               <input
@@ -132,13 +134,13 @@ export const AutoFilterDrawer: React.FC<AutoFilterDrawerProps> = ({
                     page: 1,
                   })
                 }
-                className="w-full px-3 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-800 min-h-[44px]"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 font-semibold focus:outline-none focus:border-blue-600 min-h-[44px]"
               />
             </div>
 
             {/* 6. Type de Vendeur */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-2">
                 Type de Vendeur
               </label>
               <select
@@ -149,7 +151,7 @@ export const AutoFilterDrawer: React.FC<AutoFilterDrawerProps> = ({
                     page: 1,
                   })
                 }
-                className="w-full px-3 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-800 min-h-[44px]"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 font-semibold focus:outline-none focus:border-blue-600 min-h-[44px]"
               >
                 <option value="">Tous les vendeurs</option>
                 <option value="particulier">Particulier uniquement</option>
@@ -163,16 +165,17 @@ export const AutoFilterDrawer: React.FC<AutoFilterDrawerProps> = ({
             <button
               type="button"
               onClick={onReset}
-              className="flex-1 py-2.5 px-3 border border-slate-200 rounded-lg text-xs sm:text-sm font-semibold text-slate-700 hover:bg-white transition-colors min-h-[44px] cursor-pointer"
+              className="flex-1 py-2.5 px-3 border border-slate-200 bg-white rounded-2xl text-xs font-extrabold text-slate-700 hover:bg-slate-100 transition-colors min-h-[44px] flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              Réinitialiser
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Réinitialiser</span>
             </button>
             <button
               type="button"
               onClick={onApply}
-              className="flex-2 py-2.5 px-4 bg-[#D9F66F] hover:bg-[#C5E94F] text-[#0B1730] font-bold rounded-lg text-xs sm:text-sm transition-colors shadow-xs min-h-[44px] cursor-pointer"
+              className="flex-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs sm:text-sm transition-colors shadow-xs min-h-[44px] cursor-pointer border-none"
             >
-              Appliquer {totalResults !== undefined ? `(${totalResults} annonces)` : ""}
+              Afficher {totalResults !== undefined ? `(${totalResults})` : "les résultats"}
             </button>
           </div>
         </div>

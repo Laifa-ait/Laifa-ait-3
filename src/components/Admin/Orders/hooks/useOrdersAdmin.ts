@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { Order, OrderStatus } from "../../../../domains/order/order.types";
 import { useAuth } from "../../../../context/AuthContext";
+import { apiGet, apiPost } from "../../../../lib/api";
 import { AppTimestamp, normalizeTimestamp } from "../../../../utils/date";
 import { useOrdersFilters } from "./useOrdersFilters";
 import { useOrdersCommissions, CalculatedOrder } from "./useOrdersCommissions";
@@ -20,6 +21,8 @@ export const useOrdersAdmin = (showConfirmModal: (msg: string) => Promise<boolea
   const [hasMore, setHasMore] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  const isAuthorizedAdmin = userProfile?.role === "admin" || userProfile?.role === "superadmin";
 
   const statusLabels: Record<string, string> = useMemo(() => ({
     new: t("Nouveau") || "Nouveau",
@@ -46,7 +49,7 @@ export const useOrdersAdmin = (showConfirmModal: (msg: string) => Promise<boolea
     canceled: "bg-rose-50 text-rose-700 border-rose-100",
     cancelled_by_client: "bg-red-50 text-red-700 border-red-100",
     returned: "bg-zinc-100 text-zinc-700 border-zinc-200",
-    dispute_open: "bg-[var(--color-orange-600, #ea580c)]/15 text-[#ea580c] border-[var(--color-orange-600, #ea580c)]/20",
+    dispute_open: "bg-amber-50 text-amber-800 border-amber-200",
   }), []);
 
   const getOrderDate = useCallback((createdAt?: unknown): Date | null => {
@@ -63,21 +66,17 @@ export const useOrdersAdmin = (showConfirmModal: (msg: string) => Promise<boolea
     calculatedOrdersMap,
   } = useOrdersCommissions(filters.filteredOrders);
 
+  const { extractWilayas } = filters;
+
   const fetchOrders = useCallback(async (_isLoadMore = false) => {
+    if (!currentUser) return;
     setLoading(true);
     try {
-      const token = await currentUser?.getIdToken();
-      if (!token) throw new Error("Non authentifié");
-
-      const response = await fetch("/api/v1/admin/workspace/orders", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error("Erreur de chargement des commandes.");
-      const data = await response.json();
-      const fetched: Order[] = data.orders || [];
+      const data = await apiGet<{ orders?: Order[]; data?: { orders?: Order[] } }>("/api/v1/admin/workspace/orders");
+      const fetched: Order[] = data.orders || data.data?.orders || [];
 
       setOrders(fetched);
-      filters.extractWilayas(fetched);
+      extractWilayas(fetched);
       setHasMore(false);
     } catch (error) {
       console.error("Error fetching admin orders:", error);
@@ -85,7 +84,7 @@ export const useOrdersAdmin = (showConfirmModal: (msg: string) => Promise<boolea
     } finally {
       setLoading(false);
     }
-  }, [currentUser, filters, t]);
+  }, [currentUser, extractWilayas, t]);
 
   useEffect(() => {
     setHasMore(true);
@@ -101,8 +100,8 @@ export const useOrdersAdmin = (showConfirmModal: (msg: string) => Promise<boolea
   }, []);
 
   const handleUpdateOrderStatus = useCallback(async (orderId: string, newStatus: OrderStatus) => {
-    if (!currentUser || userProfile?.role !== "admin") {
-      toast.error(t("Veuillez vous authentifier d'abord."));
+    if (!currentUser || !isAuthorizedAdmin) {
+      toast.error(t("Veuillez vous authentifier avec un compte administrateur."));
       return;
     }
     const confirmed = await showConfirmModal(`Modifier le statut de la commande en "${statusLabels[newStatus]}" ?`);
@@ -110,16 +109,7 @@ export const useOrdersAdmin = (showConfirmModal: (msg: string) => Promise<boolea
     setIsUpdatingStatus(true);
     const progressToast = toast.loading(t("Mise à jour du statut..."));
     try {
-      const idToken = await currentUser.getIdToken();
-      const response = await fetch("/api/v1/seller/orders/status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
-        body: JSON.stringify({ orderIds: [orderId], status: newStatus }),
-      });
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || t("Échec de la validation serveur."));
-      }
+      await apiPost("/api/v1/seller/orders/status", { orderIds: [orderId], status: newStatus });
       setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
       setSelectedOrder((prev) => (prev?.id === orderId ? { ...prev, status: newStatus } : prev));
       toast.success(t("Statut mis à jour et validé côté serveur avec commission et historique."), { id: progressToast });
@@ -129,12 +119,12 @@ export const useOrdersAdmin = (showConfirmModal: (msg: string) => Promise<boolea
     } finally {
       setIsUpdatingStatus(false);
     }
-  }, [currentUser, userProfile?.role, showConfirmModal, statusLabels, t]);
+  }, [currentUser, isAuthorizedAdmin, showConfirmModal, statusLabels, t]);
 
   const handleBulkStatusChange = useCallback(async (newStatus: OrderStatus) => {
     if (selectedOrderIds.length === 0) return;
-    if (!currentUser || userProfile?.role !== "admin") {
-      toast.error(t("Veuillez vous authentifier d'abord."));
+    if (!currentUser || !isAuthorizedAdmin) {
+      toast.error(t("Veuillez vous authentifier avec un compte administrateur."));
       return;
     }
     const confirmed = await showConfirmModal(`Modifier le statut de ${selectedOrderIds.length} commandes en "${statusLabels[newStatus]}" ?`);
@@ -142,16 +132,7 @@ export const useOrdersAdmin = (showConfirmModal: (msg: string) => Promise<boolea
 
     const progressToast = toast.loading(`${t("Mise à jour en masse de")} ${selectedOrderIds.length} ${t("commandes...")}`);
     try {
-      const idToken = await currentUser.getIdToken();
-      const response = await fetch("/api/v1/seller/orders/status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
-        body: JSON.stringify({ orderIds: selectedOrderIds, status: newStatus }),
-      });
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || t("Échec de la validation groupée serveur."));
-      }
+      await apiPost("/api/v1/seller/orders/status", { orderIds: selectedOrderIds, status: newStatus });
       toast.success(`${selectedOrderIds.length} ${t("commandes mises à jour avec succès via le serveur !")}`, { id: progressToast });
       setSelectedOrderIds([]);
       setRefreshTrigger((prev) => prev + 1);
@@ -159,7 +140,7 @@ export const useOrdersAdmin = (showConfirmModal: (msg: string) => Promise<boolea
       console.error(err);
       toast.error(`${t("Erreur de mise à jour groupée :")} ${err instanceof Error ? err.message : t("Erreur interne")}`, { id: progressToast });
     }
-  }, [selectedOrderIds, currentUser, userProfile?.role, showConfirmModal, statusLabels, t]);
+  }, [selectedOrderIds, currentUser, isAuthorizedAdmin, showConfirmModal, statusLabels, t]);
 
   const onResetFilters = useCallback(() => {
     filters.handleResetFilters();

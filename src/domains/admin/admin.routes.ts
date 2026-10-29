@@ -10,6 +10,7 @@ import adminAIRouter from "./routes/adminAI.routes";
 import adminSeedRouter from "./routes/adminSeed.routes";
 import adminSponsoredCampaignRouter from "../sponsorship/controllers/adminSponsoredCampaign.controller";
 import adminSubscriptionRouter from "./routes/adminSubscription.routes";
+import adminOverviewRouter from "./routes/adminOverview.routes";
 
 const adminRouter = Router();
 
@@ -18,6 +19,7 @@ adminRouter.use(["/admin", "/tags"], authenticateToken);
 adminRouter.use(["/admin", "/tags"], require2FA);
 adminRouter.use(["/admin", "/tags"], authorizeAdmin);
 
+adminRouter.use(adminOverviewRouter);
 adminRouter.use(adminSellerRouter);
 adminRouter.use(adminProductRouter);
 adminRouter.use(adminMarketingRouter);

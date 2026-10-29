@@ -35,13 +35,18 @@ export interface LayoutOptionItem {
 }
 
 export const CATEGORY_LAYOUT_OPTIONS: LayoutOptionItem[] = [
-  { id: "mesh-3d", label: "Cartes Split Studio", sublabel: "Format horizontal photo & texte", icon: Sparkles },
-  { id: "grid", label: "Grille Moderne", sublabel: "2 à 6 colonnes fluides", icon: Grid },
-  { id: "bento", label: "Bento Grid", sublabel: "Carte vedette asymétrique", icon: Columns3 },
-  { id: "bubbles", label: "Stories Instagram", sublabel: "Bulles rondes animées", icon: CircleDot },
-  { id: "overlay", label: "Cartes Immersives", sublabel: "Photo plein cadre & verre", icon: Layers },
-  { id: "carousel", label: "Carrousel Défilant", sublabel: "Défilement horizontal doux", icon: SlidersHorizontal },
-  { id: "pills", label: "Capsules Pills", sublabel: "Boutons épurés avec icônes", icon: Bookmark },
+  { id: "bento", label: "Bento Apple Flagship", sublabel: "Mosaïque asymétrique sans trou", icon: Columns3 },
+  { id: "accordion", label: "Galerie Accordéon", sublabel: "Expansion interactive au survol", icon: SlidersHorizontal },
+  { id: "arch", label: "Arche Boutique Palace", sublabel: "Dôme architectural de luxe", icon: Gem },
+  { id: "polaroid", label: "Polaroid Studio", sublabel: "Cadre photo & moodboard", icon: Palette },
+  { id: "magazine", label: "Index Magazine Luxe", sublabel: "Répertoire numéroté SSENSE", icon: Award },
+  { id: "glass-dock", label: "Vitrine Glass Dock", sublabel: "Capsule givrée flottante", icon: Layers },
+  { id: "mesh-3d", label: "Split Studio Éditorial", sublabel: "Format horizontal photo & index", icon: Sparkles },
+  { id: "grid", label: "Grille Prestige", sublabel: "Cadre éditorial & barre d'action", icon: Grid },
+  { id: "overlay", label: "Affiche Cinéma", sublabel: "Poster plein cadre & liseré", icon: Flame },
+  { id: "bubbles", label: "Médaillons Podium", sublabel: "Cercles bague luxe sur socle", icon: CircleDot },
+  { id: "pills", label: "Dock Capsules Pro", sublabel: "Bandeaux rapides avec photo", icon: Bookmark },
+  { id: "carousel", label: "Lookbook Slider", sublabel: "Défilement horizontal fluide", icon: SlidersHorizontal },
 ];
 
 export interface AspectRatioOption {

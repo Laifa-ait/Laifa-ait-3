@@ -11,7 +11,7 @@ const router = Router();
  * Does NOT query external services or databases.
  */
 router.get(
-  ["/api/v1/health/live", "/health/live"],
+  ["/api/v1/health/live", "/health/live", "/livez"],
   (_req: Request, res: Response) => {
     res.status(200).json({ status: "alive", timestamp: new Date().toISOString() });
   }
@@ -74,7 +74,7 @@ async function checkReadiness(): Promise<{ ready: boolean; firebase: string; fro
  * Verifies that critical dependencies allow Olmart to receive traffic.
  * Returns HTTP 503 if dependencies or static assets are unavailable.
  */
-router.get(["/api/health/ready", "/api/v1/health/ready"], async (req: Request, res: Response) => {
+router.get(["/api/health/ready", "/api/v1/health/ready", "/health/ready", "/readyz"], async (req: Request, res: Response) => {
   const { ready, firebase, frontend } = await checkReadiness();
   const statusCode = ready ? 200 : 503;
   const body: Record<string, unknown> = {
@@ -94,7 +94,7 @@ router.get(["/api/health/ready", "/api/v1/health/ready"], async (req: Request, r
  * Provides overall status without revealing internal sensitive details.
  * Always returns HTTP 200 for Cloud Run container ingress probes.
  */
-router.get(["/api/health", "/api/v1/health", "/health"], async (req: Request, res: Response) => {
+router.get(["/api/health", "/api/v1/health", "/health", "/healthz"], async (req: Request, res: Response) => {
   const { ready, firebase, frontend } = await checkReadiness();
   const mem = process.memoryUsage();
   const body: Record<string, unknown> = {

@@ -63,7 +63,7 @@ export const MobileMenuServices: React.FC<MobileMenuServicesProps> = ({
       title: "Comparateur",
       subtitle: "Prix & Produits",
       icon: Scale,
-      path: "/comparator",
+      path: "/compare",
       badge: "Top Prix",
       iconColor: "text-purple-600",
       iconBg: "bg-purple-500/10",
@@ -78,7 +78,7 @@ export const MobileMenuServices: React.FC<MobileMenuServicesProps> = ({
           {t("Univers & Services Olmart")}
         </span>
         <span className="text-[10px] font-semibold text-zinc-500">
-          58 Wilayas
+          69 Wilayas
         </span>
       </div>
 

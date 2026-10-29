@@ -56,10 +56,16 @@ export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProp
       patch.borderRadius = "full";
       patch.textPosition = "card-inside";
       patch.glassmorphism = false;
-    } else if (newLayout === "overlay" || newLayout === "bento") {
+    } else if (
+      newLayout === "overlay" ||
+      newLayout === "bento" ||
+      newLayout === "accordion" ||
+      newLayout === "glass-dock"
+    ) {
       if (currentAspect === "circle") patch.aspectRatio = "4/5";
       if (currentRadius === "full" || currentRadius === "lg") patch.borderRadius = "md";
       if (currentTextPos === "below") patch.textPosition = "overlay-bottom";
+      if (newLayout === "glass-dock") patch.glassmorphism = true;
     } else {
       if (currentAspect === "circle") patch.aspectRatio = "4/5";
       if (currentRadius === "full" || currentRadius === "lg") patch.borderRadius = "md";
@@ -74,10 +80,17 @@ export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProp
   const isOverlayActive =
     currentLayout === "overlay" ||
     currentLayout === "bento" ||
+    currentLayout === "accordion" ||
+    currentLayout === "glass-dock" ||
     ((currentLayout === "grid" || currentLayout === "carousel") &&
       (currentTextPos === "overlay-bottom" || currentTextPos === "overlay-center"));
 
   const harmoniousCardRadii = CATEGORY_RADIUS_OPTIONS.filter((o) => o.id !== "full");
+  const showColumnsGrid =
+    currentLayout !== "carousel" &&
+    currentLayout !== "mesh-3d" &&
+    currentLayout !== "accordion" &&
+    currentLayout !== "magazine";
 
   return (
     <div className="space-y-3.5 select-none">
@@ -88,7 +101,7 @@ export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProp
             <span className="w-5 h-5 rounded-full bg-[#023859] text-white text-[10px] font-black flex items-center justify-center">
               1
             </span>
-            Modèle & Dimension des Cartes
+            Modèle & Dimension ({CATEGORY_LAYOUT_OPTIONS.length})
           </span>
           <span className="text-[10px] font-bold text-[#023859] bg-[#F0F7FA] px-2.5 py-0.5 rounded-full border border-[#B8D8E8]">
             {selectedLayoutMeta.label}
@@ -123,11 +136,7 @@ export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProp
                 }`}
               >
                 <span className="block text-[10px] font-extrabold leading-tight">{sz.label}</span>
-                <span
-                  className={`block text-[9px] mt-0.5 ${
-                    cardSize === sz.id ? "text-white/80" : "text-slate-500"
-                  }`}
-                >
+                <span className={`block text-[9px] mt-0.5 ${cardSize === sz.id ? "text-white/80" : "text-slate-500"}`}>
                   {sz.desc}
                 </span>
               </button>
@@ -161,7 +170,7 @@ export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProp
       </div>
 
       {/* ÉTAPE 2 : GRILLE & COINS */}
-      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-extrabold text-[#011C40] uppercase tracking-wider flex items-center gap-1.5">
             <span className="w-5 h-5 rounded-full bg-[#011C40] text-white text-[10px] font-black flex items-center justify-center">
@@ -204,49 +213,28 @@ export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProp
             />
           </label>
         ) : (
-          <div className="space-y-2.5">
-            {currentLayout !== "carousel" && currentLayout !== "mesh-3d" && (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-600 flex items-center gap-1">
-                    <Columns className="w-3 h-3 text-[#26658C]" />
-                    Colonnes PC
-                  </span>
-                  <div className="grid grid-cols-4 gap-1">
-                    {[1, 2, 3, 4].map((col) => (
-                      <button
-                        key={col}
-                        type="button"
-                        onClick={() => onSettingsChange("columnsDesktop", col)}
-                        className={`py-1.5 rounded-lg border text-xs font-bold cursor-pointer ${
-                          columnsDesktop === col
-                            ? "border-[#023859] bg-[#023859] text-white"
-                            : "border-slate-200 bg-white text-slate-700"
-                        }`}
-                      >
-                        {col}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-600 block">Sur Mobile</span>
-                  <div className="grid grid-cols-2 gap-1">
-                    {[1, 2].map((col) => (
-                      <button
-                        key={col}
-                        type="button"
-                        onClick={() => onSettingsChange("columnsMobile", col)}
-                        className={`py-1.5 rounded-lg border text-[10px] font-bold cursor-pointer ${
-                          columnsMobile === col
-                            ? "border-[#023859] bg-[#023859] text-white"
-                            : "border-slate-200 bg-white text-slate-700"
-                        }`}
-                      >
-                        {col === 1 ? "1 Col." : "2 Col."}
-                      </button>
-                    ))}
-                  </div>
+          <div className="space-y-2">
+            {showColumnsGrid && (
+              <div className="flex items-center justify-between gap-2 bg-white p-2 rounded-lg border border-slate-200">
+                <span className="text-[10px] font-bold text-slate-600 flex items-center gap-1">
+                  <Columns className="w-3 h-3 text-[#26658C]" />
+                  Affichage Mobile
+                </span>
+                <div className="grid grid-cols-2 gap-1 w-32">
+                  {[1, 2].map((col) => (
+                    <button
+                      key={col}
+                      type="button"
+                      onClick={() => onSettingsChange("columnsMobile", col)}
+                      className={`py-1 rounded-md border text-[10px] font-bold cursor-pointer ${
+                        columnsMobile === col
+                          ? "border-[#023859] bg-[#023859] text-white"
+                          : "border-slate-200 bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      {col} Col.
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

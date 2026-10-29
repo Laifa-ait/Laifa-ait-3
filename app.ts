@@ -38,9 +38,11 @@ import { autoRouter } from "./src/domains/auto/auto.routes";
 if (!process.env.NODE_ENV) {
   const isCloudRunInstance = Boolean(process.env.K_SERVICE || process.env.CLOUD_RUN_JOB);
   const isRunningTsx = Boolean(
+    process.env.npm_lifecycle_event === "dev" ||
     process.env.TSX_TSCONFIG_PATH ||
     process.execPath.includes("tsx") ||
-    process.argv.some((arg) => arg.includes("tsx"))
+    process.argv.some((arg) => arg.includes("tsx")) ||
+    process.execArgv.some((arg) => arg.includes("tsx"))
   );
   process.env.NODE_ENV = isCloudRunInstance || !isRunningTsx ? "production" : "development";
 }

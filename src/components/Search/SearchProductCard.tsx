@@ -39,7 +39,7 @@ export const SearchProductCard: React.FC<SearchProductCardProps> = ({
           part.toLowerCase() === safeQ.toLowerCase() ? (
             <mark
               key={i}
-              className="text-orange-950 bg-orange-100 font-black px-0.5 rounded"
+              className="text-[#42164B] bg-[#E0B4B2]/45 font-black px-0.5 rounded"
             >
               {part}
             </mark>
@@ -59,10 +59,10 @@ export const SearchProductCard: React.FC<SearchProductCardProps> = ({
     <button
       type="button"
       onClick={() => onSelect(product.id, name)}
-      className="w-full text-left p-2.5 sm:p-3 hover:bg-orange-50/40 border border-slate-200/90 hover:border-orange-300 flex items-center gap-3 group transition-all duration-200 rounded-2xl outline-none bg-white cursor-pointer shadow-2xs hover:shadow-md relative overflow-hidden"
+      className="w-full text-left p-2.5 sm:p-3 hover:bg-[#FAF7F6] border border-[#EFE6E6] hover:border-[#E0B4B2] flex items-center gap-3 group transition-all duration-200 rounded-2xl outline-none bg-white cursor-pointer shadow-2xs hover:shadow-md relative overflow-hidden"
     >
       {/* Product Image */}
-      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200/80 relative">
+      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-[#FAF7F6] overflow-hidden shrink-0 border border-[#EFE6E6] relative">
         <img
           loading="lazy"
           src={getOptimizedImageUrl(product.image, 300)}
@@ -70,12 +70,12 @@ export const SearchProductCard: React.FC<SearchProductCardProps> = ({
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
         {discountPercent > 0 && (
-          <span className="absolute top-1 left-1 bg-gradient-to-r from-orange-500 to-rose-600 text-white text-[9.5px] font-black px-1.5 py-0.5 rounded-md shadow-xs">
+          <span className="absolute top-1 left-1 bg-[#A54055] text-white text-[9.5px] font-mono tabular-nums font-black px-1.5 py-0.5 rounded-md shadow-xs">
             -{discountPercent}%
           </span>
         )}
         {isOutOfStock && (
-          <span className="absolute inset-0 bg-slate-900/70 text-white text-[10px] font-bold flex items-center justify-center text-center p-1">
+          <span className="absolute inset-0 bg-[#1A1836]/75 text-white text-[10px] font-bold flex items-center justify-center text-center p-1">
             {t("out_of_stock", "Épuisé")}
           </span>
         )}
@@ -83,60 +83,60 @@ export const SearchProductCard: React.FC<SearchProductCardProps> = ({
 
       {/* Product Information */}
       <div className="flex flex-col text-left overflow-hidden min-w-0 flex-1 py-0.5">
-        <div className="flex items-center gap-1.5 text-[10.5px] text-slate-500 font-bold">
-          <span className="uppercase tracking-wider text-orange-600 font-extrabold truncate max-w-[140px]">
+        <div className="flex items-center gap-1.5 text-[10.5px] text-[#6E5A6F] font-bold">
+          <span className="uppercase tracking-wider text-[#622347] font-extrabold truncate max-w-[140px]">
             {t(product.category, product.category)}
           </span>
           {product.wilaya && (
-            <span className="flex items-center gap-0.5 text-slate-500 shrink-0">
-              <MapPin className="w-3 h-3 text-slate-400" />
+            <span className="flex items-center gap-0.5 text-[#6E5A6F] shrink-0">
+              <MapPin className="w-3 h-3 text-[#9B879C]" />
               <span>W.{product.wilaya}</span>
             </span>
           )}
         </div>
 
-        <h4 className="font-extrabold text-[13px] sm:text-[14px] text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-1 sm:line-clamp-2 leading-snug mt-0.5">
+        <h4 className="font-extrabold text-[13px] sm:text-[14px] text-[#1A1836] group-hover:text-[#622347] transition-colors line-clamp-1 sm:line-clamp-2 leading-snug mt-0.5">
           {highlightMatch(name, query)}
         </h4>
 
         {/* Pricing & Badges */}
         <div className="flex items-center gap-2 mt-1 flex-wrap">
-          <span className="text-sm sm:text-base font-black text-slate-950 tracking-tight">
+          <span className="text-sm sm:text-base font-extrabold text-[#1A1836] tracking-tight tabular-nums">
             {formatPrice(price)}
           </span>
           {originalPrice && originalPrice > price && (
-            <span className="text-xs text-slate-400 line-through font-semibold">
+            <span className="text-xs text-[#9B879C] line-through font-semibold tabular-nums">
               {formatPrice(originalPrice)}
             </span>
           )}
           {product.rating ? (
-            <span className="flex items-center gap-0.5 text-amber-600 font-bold text-xs ms-auto">
-              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+            <span className="flex items-center gap-0.5 text-[#1A1836] font-mono tabular-nums font-bold text-xs ms-auto">
+              <Star className="w-3 h-3 fill-[#E99856] text-[#E99856]" />
               <span>{product.rating.toFixed(1)}</span>
             </span>
           ) : (
-            <span className="flex items-center gap-1 text-[10.5px] text-emerald-700 font-bold ms-auto">
-              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+            <span className="flex items-center gap-1 text-[10.5px] text-[#622347] font-bold ms-auto">
+              <CheckCircle2 className="w-3 h-3 text-[#A54055]" />
               <span>{t("verified", "Vérifié")}</span>
             </span>
           )}
         </div>
 
         {/* Delivery / Stock pill */}
-        <div className="flex items-center gap-2 mt-1 text-[10.5px] text-slate-500">
-          <span className="flex items-center gap-1 text-slate-600 font-semibold">
-            <Truck className="w-3 h-3 text-emerald-600" />
-            <span>Livraison 58 wilayas</span>
+        <div className="flex items-center gap-2 mt-1 text-[10.5px] text-[#6E5A6F]">
+          <span className="flex items-center gap-1 text-[#42164B] font-semibold">
+            <Truck className="w-3 h-3 text-[#E99856]" />
+            <span>Livraison 69 wilayas</span>
           </span>
           {isLowStock && (
-            <span className="text-amber-700 font-bold bg-amber-50 px-1.5 py-0.2 rounded">
+            <span className="text-[#A54055] font-bold bg-[#FAF2F2] px-1.5 py-0.2 rounded">
               Plus que {product.stock}
             </span>
           )}
         </div>
       </div>
 
-      <div className="shrink-0 p-1.5 rounded-full bg-slate-100 group-hover:bg-gradient-to-r group-hover:from-orange-500 group-hover:to-rose-600 text-slate-500 group-hover:text-white transition-all">
+      <div className="shrink-0 p-1.5 rounded-full bg-[#FAF7F6] group-hover:bg-gradient-to-r group-hover:from-[#622347] group-hover:to-[#A54055] text-[#622347] group-hover:text-white transition-all">
         <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
       </div>
     </button>

@@ -26,7 +26,12 @@ export type CategoryLayoutType =
   | "overlay"
   | "carousel"
   | "pills"
-  | "mesh-3d";
+  | "mesh-3d"
+  | "accordion"
+  | "arch"
+  | "polaroid"
+  | "magazine"
+  | "glass-dock";
 
 export type CategoryAspectRatio = "1/1" | "4/5" | "16/9" | "circle" | "4/3";
 export type CategoryHoverEffect = "zoom" | "lift" | "glow" | "shine" | "grayscale-reveal" | "none";

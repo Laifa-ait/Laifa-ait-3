@@ -5,11 +5,11 @@ import { safeLogger } from "../../../utils/logger";
 
 const router = Router();
 
-// Conditionner strictly les routes de seed au hors-production ET à un flag explicite
+// Conditionner strictement les routes de seed au hors-production (ou flag explicite)
 router.use("/admin/seed", (_req, res, next) => {
-  if (process.env.NODE_ENV === "production" || process.env.ENABLE_ADMIN_SEED !== "true") {
+  if (process.env.NODE_ENV === "production" && process.env.ENABLE_ADMIN_SEED !== "true") {
     return res.status(403).json({
-      error: "Les routes d'injection de données de test (seed) sont désactivées en production et nécessitent ENABLE_ADMIN_SEED=true.",
+      error: "Les routes d'injection de données de test (seed) sont désactivées en production.",
     });
   }
   next();

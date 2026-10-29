@@ -61,15 +61,26 @@ export const CanvasSectionFloatingDock: React.FC<CanvasSectionFloatingDockProps>
       {/* Right: Clear, Well-Spaced Section Action Buttons */}
       <div className="flex items-center gap-1 shrink-0">
         {onSelectInspectorTab && (
-          <button
-            type="button"
-            onClick={(e) => onSelectInspectorTab("content", e)}
-            className="h-7 px-2 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
-            title="Modifier le contenu de cette section"
-          >
-            <SlidersHorizontal className="w-3 h-3" />
-            <span>Éditer</span>
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={(e) => onSelectInspectorTab("content", e)}
+              className="h-7 px-2.5 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+              title="Modifier le contenu de cette section"
+            >
+              <SlidersHorizontal className="w-3 h-3" />
+              <span>Éditer</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => onSelectInspectorTab("style", e)}
+              className="h-7 px-2 rounded-lg bg-[#F0F7FA] hover:bg-[#023859] text-[#023859] hover:text-white border border-[#54ACBF]/40 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+              title="Ouvrir l'onglet Couleurs & Style"
+            >
+              <Palette className="w-3 h-3" />
+              <span className="hidden sm:inline">Couleurs</span>
+            </button>
+          </>
         )}
 
         <button

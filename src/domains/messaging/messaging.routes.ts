@@ -1,21 +1,17 @@
 import { Router, Response } from "express";
 import { AuthenticatedRequest, authenticateToken } from "../../middlewares/auth";
-import { rateLimit } from "express-rate-limit";
+import { chatLimiter } from "../../middlewares/rateLimiters";
+import { SAFE_RESOURCE_ID_REGEX } from "../../middlewares/validation";
 import {
-  CreateNegotiationSchema,
   InitiateConversationSchema,
   ReportMessageSchema,
-  ResolveNegotiationSchema,
-  SendMessageSchema
+  SendMessageSchema,
 } from "../../schemas/messaging";
 import { MessagingService } from "./services/MessagingService";
-import { NegotiationService } from "./services/NegotiationService";
-import { PushNotificationService } from "../notifications/services/PushNotificationService";
+import negotiationRouter from "./negotiation.routes";
+import { safeLogger } from "../../utils/logger";
 
 const router = Router();
-
-// Apply permissive rate limiting on message and negotiation routes
-const chatLimiter = rateLimit({ windowMs: 60 * 1000, max: 60 });
 router.use(chatLimiter);
 
 /**
@@ -25,9 +21,7 @@ router.use(chatLimiter);
 router.get("/conversations", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const callerUid = req.user?.uid;
-    if (!callerUid) {
-      return res.status(401).json({ error: "Authentification requise" });
-    }
+    if (!callerUid) return res.status(401).json({ error: "Authentification requise" });
 
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
     const before = typeof req.query.before === "string" ? req.query.before : undefined;
@@ -37,11 +31,11 @@ router.get("/conversations", authenticateToken, async (req: AuthenticatedRequest
     return res.status(200).json({
       success: true,
       data: result.conversations,
-      hasMore: result.hasMore
+      hasMore: result.hasMore,
     });
   } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    return res.status(500).json({ error: `Erreur lors de la récupération des conversations : ${errorMsg}` });
+    safeLogger.error("[MessagingRoutes] listConversations failed", { err: err instanceof Error ? err.message : String(err) });
+    return res.status(500).json({ error: "Erreur interne lors de la récupération des conversations." });
   }
 });
 
@@ -52,23 +46,15 @@ router.get("/conversations", authenticateToken, async (req: AuthenticatedRequest
 router.post("/conversations/initiate", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const callerUid = req.user?.uid;
-    if (!callerUid) {
-      return res.status(401).json({ error: "Authentification requise" });
-    }
+    if (!callerUid) return res.status(401).json({ error: "Authentification requise" });
 
     const parsed = InitiateConversationSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({
-        error: "Données de conversation invalides",
-        details: parsed.error.issues
-      });
+      return res.status(400).json({ error: "Données de conversation invalides", details: parsed.error.issues });
     }
 
     const result = await MessagingService.initiateConversation(callerUid, parsed.data);
-    return res.status(201).json({
-      success: true,
-      data: result
-    });
+    return res.status(201).json({ success: true, data: result });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
 
@@ -98,7 +84,8 @@ router.post("/conversations/initiate", authenticateToken, async (req: Authentica
       return res.status(400).json({ error: errorMsg });
     }
 
-    return res.status(500).json({ error: `Erreur serveur : ${errorMsg}` });
+    safeLogger.error("[MessagingRoutes] initiateConversation failed", { err: errorMsg });
+    return res.status(500).json({ error: "Erreur interne lors de l'initialisation de la conversation." });
   }
 });
 
@@ -109,36 +96,31 @@ router.post("/conversations/initiate", authenticateToken, async (req: Authentica
 router.get("/conversations/:id/messages", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const callerUid = req.user?.uid;
-    if (!callerUid) {
-      return res.status(401).json({ error: "Authentification requise" });
-    }
+    if (!callerUid) return res.status(401).json({ error: "Authentification requise" });
 
     const conversationId = req.params.id;
-    if (!conversationId) {
-      return res.status(400).json({ error: "Identifiant de conversation requis" });
+    if (!conversationId || !SAFE_RESOURCE_ID_REGEX.test(conversationId.trim())) {
+      return res.status(400).json({ error: "Identifiant de conversation invalide" });
     }
 
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
     const before = typeof req.query.before === "string" ? req.query.before : undefined;
     const isAdminUser = req.user?.role === "admin" || req.user?.role === "superadmin";
 
-    const result = await MessagingService.listMessages(callerUid, conversationId, { limit, before }, isAdminUser);
+    const result = await MessagingService.listMessages(callerUid, conversationId.trim(), { limit, before }, isAdminUser);
     return res.status(200).json({
       success: true,
       data: result.messages,
-      hasMore: result.hasMore
+      hasMore: result.hasMore,
     });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-
-    if (errorMsg === "CONVERSATION_NOT_FOUND") {
-      return res.status(404).json({ error: "Conversation introuvable." });
-    }
+    if (errorMsg === "CONVERSATION_NOT_FOUND") return res.status(404).json({ error: "Conversation introuvable." });
     if (errorMsg === "FORBIDDEN_NOT_PARTICIPANT") {
       return res.status(403).json({ error: "Accès refusé : vous n'êtes pas participant de cette conversation." });
     }
-
-    return res.status(500).json({ error: `Erreur serveur : ${errorMsg}` });
+    safeLogger.error("[MessagingRoutes] listMessages failed", { err: errorMsg });
+    return res.status(500).json({ error: "Erreur interne lors de la récupération des messages." });
   }
 });
 
@@ -149,347 +131,109 @@ router.get("/conversations/:id/messages", authenticateToken, async (req: Authent
 router.post("/conversations/:id/messages", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const callerUid = req.user?.uid;
-    if (!callerUid) {
-      return res.status(401).json({ error: "Authentification requise" });
-    }
+    if (!callerUid) return res.status(401).json({ error: "Authentification requise" });
 
     const conversationId = req.params.id;
-    if (!conversationId) {
-      return res.status(400).json({ error: "Identifiant de conversation requis" });
+    if (!conversationId || !SAFE_RESOURCE_ID_REGEX.test(conversationId.trim())) {
+      return res.status(400).json({ error: "Identifiant de conversation invalide" });
     }
 
     const parsed = SendMessageSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({
-        error: "Message invalide",
-        details: parsed.error.issues
-      });
+      return res.status(400).json({ error: "Message invalide", details: parsed.error.issues });
     }
 
-    const message = await MessagingService.sendMessage(callerUid, conversationId, parsed.data);
-    return res.status(201).json({
-      success: true,
-      data: message
-    });
+    const message = await MessagingService.sendMessage(callerUid, conversationId.trim(), parsed.data);
+    return res.status(201).json({ success: true, data: message });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-
-    if (errorMsg === "CONVERSATION_NOT_FOUND") {
-      return res.status(404).json({ error: "Conversation introuvable." });
-    }
-    if (errorMsg === "FORBIDDEN_NOT_PARTICIPANT") {
-      return res.status(403).json({ error: "Accès refusé : vous n'êtes pas participant." });
-    }
+    if (errorMsg === "CONVERSATION_NOT_FOUND") return res.status(404).json({ error: "Conversation introuvable." });
+    if (errorMsg === "FORBIDDEN_NOT_PARTICIPANT") return res.status(403).json({ error: "Accès refusé : vous n'êtes pas participant." });
     if (errorMsg === "CONVERSATION_BLOCKED" || errorMsg === "CONVERSATION_ARCHIVED") {
       return res.status(400).json({ error: "Impossible d'envoyer un message dans une conversation bloquée ou archivée." });
     }
-
-    return res.status(500).json({ error: `Erreur serveur : ${errorMsg}` });
-  }
-});
-
-/**
- * POST /api/v1/messaging/conversations/:id/negotiate
- * Create a new negotiation offer
- */
-router.post("/conversations/:id/negotiate", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const callerUid = req.user?.uid;
-    if (!callerUid) {
-      return res.status(401).json({ error: "Authentification requise" });
+    if (errorMsg === "INVALID_ATTACHMENT_CONVERSATION_MISMATCH") {
+      return res.status(400).json({ error: "Pièce jointe invalide pour cette conversation." });
     }
-
-    const conversationId = req.params.id;
-    if (!conversationId) {
-      return res.status(400).json({ error: "Identifiant de conversation requis" });
-    }
-
-    const parsed = CreateNegotiationSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({
-        error: "Offre de négociation invalide",
-        details: parsed.error.issues
-      });
-    }
-
-    const offer = await NegotiationService.createOffer({
-      callerUid,
-      conversationId,
-      amountDZD: parsed.data.amountDZD,
-      terms: parsed.data.terms
-    });
-
-    return res.status(201).json({
-      success: true,
-      data: offer
-    });
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-
-    if (errorMsg === "CONVERSATION_NOT_FOUND") {
-      return res.status(404).json({ error: "Conversation introuvable." });
-    }
-    if (errorMsg === "FORBIDDEN_NOT_PARTICIPANT") {
-      return res.status(403).json({ error: "Accès refusé : vous n'êtes pas participant." });
-    }
-    if (errorMsg === "ACTIVE_OFFER_ALREADY_EXISTS") {
-      return res.status(400).json({ error: "Une offre de négociation est déjà active sur cette conversation." });
-    }
-    if (errorMsg === "CONVERSATION_BLOCKED" || errorMsg === "CONVERSATION_ARCHIVED") {
-      return res.status(400).json({ error: "Négociation impossible dans une conversation bloquée ou archivée." });
-    }
-
-    return res.status(500).json({ error: `Erreur serveur : ${errorMsg}` });
-  }
-});
-
-/**
- * POST /api/v1/messaging/conversations/:id/negotiate/resolve
- * Resolve or counter an active negotiation offer
- */
-router.post("/conversations/:id/negotiate/resolve", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const callerUid = req.user?.uid;
-    if (!callerUid) {
-      return res.status(401).json({ error: "Authentification requise" });
-    }
-
-    const conversationId = req.params.id;
-    if (!conversationId) {
-      return res.status(400).json({ error: "Identifiant de conversation requis" });
-    }
-
-    const parsed = ResolveNegotiationSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({
-        error: "Résolution d'offre invalide",
-        details: parsed.error.issues
-      });
-    }
-
-    const offer = await NegotiationService.resolveOffer({
-      callerUid,
-      conversationId,
-      payload: parsed.data
-    });
-
-    return res.status(200).json({
-      success: true,
-      data: offer
-    });
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-
-    if (errorMsg === "CONVERSATION_NOT_FOUND" || errorMsg === "OFFER_NOT_FOUND_OR_MISMATCH") {
-      return res.status(404).json({ error: "Offre ou conversation introuvable." });
-    }
-    if (errorMsg === "FORBIDDEN_NOT_PARTICIPANT" || errorMsg === "UNAUTHORIZED_OFFER_RESOLUTION") {
-      return res.status(403).json({ error: "Action non autorisée : seul le destinataire de l'offre peut y répondre." });
-    }
-    if (errorMsg === "OFFER_EXPIRED") {
-      return res.status(400).json({ error: "Cette offre a expiré." });
-    }
-    if (errorMsg.startsWith("CANNOT_TRANSITION_FROM_")) {
-      return res.status(400).json({ error: `Transition impossible pour cette offre (${errorMsg}).` });
-    }
-
-    return res.status(500).json({ error: `Erreur serveur : ${errorMsg}` });
-  }
-});
-
-/**
- * POST /api/v1/messaging/conversations/:id/negotiate/cancel
- * Cancel a pending offer by the proposer
- */
-router.post("/conversations/:id/negotiate/cancel", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const callerUid = req.user?.uid;
-    if (!callerUid) {
-      return res.status(401).json({ error: "Authentification requise" });
-    }
-
-    const conversationId = req.params.id;
-    const offerId = req.body?.offerId;
-    if (!conversationId || typeof offerId !== "string" || !offerId) {
-      return res.status(400).json({ error: "Identifiants de conversation et d'offre requis" });
-    }
-
-    const offer = await NegotiationService.cancelOffer(callerUid, conversationId, offerId);
-    return res.status(200).json({
-      success: true,
-      data: offer
-    });
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-
-    if (errorMsg === "CONVERSATION_NOT_FOUND" || errorMsg === "OFFER_NOT_FOUND_OR_MISMATCH") {
-      return res.status(404).json({ error: "Offre ou conversation introuvable." });
-    }
-    if (errorMsg === "UNAUTHORIZED_OFFER_CANCELLATION") {
-      return res.status(403).json({ error: "Seul l'émetteur de l'offre peut l'annuler." });
-    }
-
-    return res.status(500).json({ error: `Erreur serveur : ${errorMsg}` });
+    safeLogger.error("[MessagingRoutes] sendMessage failed", { err: errorMsg });
+    return res.status(500).json({ error: "Erreur interne lors de l'envoi du message." });
   }
 });
 
 /**
  * POST /api/v1/messaging/conversations/:id/block
- * Block a conversation
  */
 router.post("/conversations/:id/block", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const callerUid = req.user?.uid;
-    if (!callerUid) {
-      return res.status(401).json({ error: "Authentification requise" });
-    }
+    if (!callerUid) return res.status(401).json({ error: "Authentification requise" });
 
     const conversationId = req.params.id;
-    if (!conversationId) {
-      return res.status(400).json({ error: "Identifiant de conversation requis" });
+    if (!conversationId || !SAFE_RESOURCE_ID_REGEX.test(conversationId.trim())) {
+      return res.status(400).json({ error: "Identifiant de conversation invalide" });
     }
 
-    await MessagingService.blockConversation(callerUid, conversationId);
-    return res.status(200).json({
-      success: true,
-      message: "Conversation bloquée avec succès."
-    });
+    await MessagingService.blockConversation(callerUid, conversationId.trim());
+    return res.status(200).json({ success: true, message: "Conversation bloquée avec succès." });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-
-    if (errorMsg === "CONVERSATION_NOT_FOUND") {
-      return res.status(404).json({ error: "Conversation introuvable." });
-    }
-    if (errorMsg === "FORBIDDEN_NOT_PARTICIPANT") {
-      return res.status(403).json({ error: "Accès refusé." });
-    }
-
-    return res.status(500).json({ error: `Erreur serveur : ${errorMsg}` });
+    if (errorMsg === "CONVERSATION_NOT_FOUND") return res.status(404).json({ error: "Conversation introuvable." });
+    if (errorMsg === "FORBIDDEN_NOT_PARTICIPANT") return res.status(403).json({ error: "Accès refusé." });
+    safeLogger.error("[MessagingRoutes] blockConversation failed", { err: errorMsg });
+    return res.status(500).json({ error: "Erreur interne lors du blocage de la conversation." });
   }
 });
 
 /**
  * POST /api/v1/messaging/conversations/:id/read
- * Mark conversation as read
  */
 router.post("/conversations/:id/read", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const callerUid = req.user?.uid;
-    if (!callerUid) {
-      return res.status(401).json({ error: "Authentification requise" });
-    }
+    if (!callerUid) return res.status(401).json({ error: "Authentification requise" });
 
     const conversationId = req.params.id;
-    if (!conversationId) {
-      return res.status(400).json({ error: "Identifiant de conversation requis" });
+    if (!conversationId || !SAFE_RESOURCE_ID_REGEX.test(conversationId.trim())) {
+      return res.status(400).json({ error: "Identifiant de conversation invalide" });
     }
 
-    await MessagingService.markConversationRead(callerUid, conversationId);
-    return res.status(200).json({
-      success: true,
-      message: "Conversation marquée comme lue."
-    });
+    await MessagingService.markConversationRead(callerUid, conversationId.trim());
+    return res.status(200).json({ success: true, message: "Conversation marquée comme lue." });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-
-    if (errorMsg === "CONVERSATION_NOT_FOUND") {
-      return res.status(404).json({ error: "Conversation introuvable." });
-    }
-    if (errorMsg === "FORBIDDEN_NOT_PARTICIPANT") {
-      return res.status(403).json({ error: "Accès refusé." });
-    }
-
-    return res.status(500).json({ error: `Erreur serveur : ${errorMsg}` });
+    if (errorMsg === "CONVERSATION_NOT_FOUND") return res.status(404).json({ error: "Conversation introuvable." });
+    if (errorMsg === "FORBIDDEN_NOT_PARTICIPANT") return res.status(403).json({ error: "Accès refusé." });
+    safeLogger.error("[MessagingRoutes] markConversationRead failed", { err: errorMsg });
+    return res.status(500).json({ error: "Erreur interne lors du marquage de la conversation." });
   }
 });
 
 /**
  * POST /api/v1/messaging/messages/:id/report
- * Report a message for moderation
  */
 router.post("/messages/:id/report", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const callerUid = req.user?.uid;
-    if (!callerUid) {
-      return res.status(401).json({ error: "Authentification requise" });
-    }
+    if (!callerUid) return res.status(401).json({ error: "Authentification requise" });
 
     const messageId = req.params.id;
-    if (!messageId) {
-      return res.status(400).json({ error: "Identifiant de message requis" });
+    if (!messageId || !SAFE_RESOURCE_ID_REGEX.test(messageId.trim())) {
+      return res.status(400).json({ error: "Identifiant de message invalide" });
     }
 
     const parsed = ReportMessageSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({
-        error: "Signalement invalide",
-        details: parsed.error.issues
-      });
+      return res.status(400).json({ error: "Signalement invalide", details: parsed.error.issues });
     }
 
-    await MessagingService.reportMessage(callerUid, messageId, parsed.data.reason, parsed.data.description);
-    return res.status(200).json({
-      success: true,
-      message: "Message signalé avec succès à l'équipe de modération."
-    });
+    await MessagingService.reportMessage(callerUid, messageId.trim(), parsed.data.reason, parsed.data.description);
+    return res.status(200).json({ success: true, message: "Message signalé avec succès à l'équipe de modération." });
   } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    return res.status(500).json({ error: `Erreur serveur : ${errorMsg}` });
+    safeLogger.error("[MessagingRoutes] reportMessage failed", { err: err instanceof Error ? err.message : String(err) });
+    return res.status(500).json({ error: "Erreur interne lors du signalement du message." });
   }
 });
 
-/**
- * POST /api/v1/messaging/push-token
- * Register or update an FCM push token for the authenticated user
- */
-router.post("/push-token", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const callerUid = req.user?.uid;
-    if (!callerUid) {
-      return res.status(401).json({ error: "Authentification requise" });
-    }
-
-    const { token, deviceType } = req.body || {};
-    if (!token || typeof token !== "string" || !token.trim()) {
-      return res.status(400).json({ error: "Jeton PUSH FCM invalide" });
-    }
-
-    await PushNotificationService.registerPushToken(callerUid, token.trim(), deviceType);
-    return res.status(200).json({
-      success: true,
-      message: "Jeton PUSH enregistré avec succès."
-    });
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    return res.status(500).json({ error: `Erreur serveur : ${errorMsg}` });
-  }
-});
-
-/**
- * DELETE /api/v1/messaging/push-token
- * Unregister an FCM push token for the authenticated user
- */
-router.delete("/push-token", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const callerUid = req.user?.uid;
-    if (!callerUid) {
-      return res.status(401).json({ error: "Authentification requise" });
-    }
-
-    const { token } = req.body || {};
-    if (!token || typeof token !== "string" || !token.trim()) {
-      return res.status(400).json({ error: "Jeton PUSH FCM invalide" });
-    }
-
-    await PushNotificationService.unregisterPushToken(callerUid, token.trim());
-    return res.status(200).json({
-      success: true,
-      message: "Jeton PUSH supprimé avec succès."
-    });
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    return res.status(500).json({ error: `Erreur serveur : ${errorMsg}` });
-  }
-});
+router.use(negotiationRouter);
 
 export default router;

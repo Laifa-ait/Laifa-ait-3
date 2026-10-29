@@ -13,6 +13,7 @@ import { Product } from "../../../../domains/product/product.types";
 import { useStudioUndoRedo } from "./useStudioUndoRedo";
 import { useStudioSaveManager } from "./useStudioSaveManager";
 import { useStudioMediaManager } from "./useStudioMediaManager";
+import { useStudioStore } from "../store/useStudioStore";
 import { toast } from "react-hot-toast";
 
 export type { SaveStatus } from "./useStudioSaveManager";
@@ -25,7 +26,11 @@ export function useSellerStudio() {
   const [mediaGallery, setMediaGallery] = useState<MediaGalleryItem[]>([]);
   const [publishedLayout, setPublishedLayout] = useState<StudioDataResponse["publishedLayout"]>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const selectedSectionId = useStudioStore((s) => s.selectedSectionId);
+  const selectSectionInStore = useStudioStore((s) => s.selectSection);
+  const setSelectedSectionId = useCallback((id: string | null) => {
+    selectSectionInStore(id);
+  }, [selectSectionInStore]);
 
   const initialSectionsRef = useRef<CustomPageSection[]>([]);
   const isFetchingRef = useRef(false);
@@ -87,7 +92,7 @@ export function useSellerStudio() {
       isFetchingRef.current = false;
       setLoading(false);
     }
-  }, [setSectionsDirectly]);
+  }, [setSectionsDirectly, setSelectedSectionId]);
 
   useEffect(() => {
     if (hasInitialFetchedRef.current) return;
@@ -215,34 +220,11 @@ export function useSellerStudio() {
   };
 
   return {
-    loading,
-    saveStatus,
-    storeConfig,
-    sections,
-    products,
-    historyList,
-    mediaGallery,
-    publishedLayout,
-    selectedSectionId,
-    setSelectedSectionId,
-    hasUnsavedChanges,
-    addSection,
-    updateSection,
-    reorderSections,
-    deleteSection,
-    duplicateSection,
-    toggleVisibility,
-    replaceSections,
-    saveStoreConfig,
-    uploadMedia,
-    deleteMedia,
-    publishStudio,
-    rollbackVersion,
-    triggerAutoSave,
-    refreshData: fetchStudioData,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
+    loading, saveStatus, storeConfig, sections, products, historyList, mediaGallery,
+    publishedLayout, selectedSectionId, setSelectedSectionId, hasUnsavedChanges,
+    addSection, updateSection, reorderSections, deleteSection, duplicateSection,
+    toggleVisibility, replaceSections, saveStoreConfig, uploadMedia, deleteMedia,
+    publishStudio, rollbackVersion, triggerAutoSave, refreshData: fetchStudioData,
+    undo, redo, canUndo, canRedo,
   };
 }

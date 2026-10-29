@@ -24,9 +24,9 @@ export const SellersBulkBar: React.FC<SellersBulkBarProps> = ({
   if (selectedSellerIds.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 start-1/2 -translate-x-1/2 bg-zinc-950 text-white p-4 sm:p-5 rounded-[2.5rem] shadow-2xl z-55 w-[90%] max-w-xl flex items-center justify-between gap-4 border border-zinc-800">
+    <div className="fixed bottom-20 lg:bottom-6 start-1/2 -translate-x-1/2 bg-[#1A1836] text-white p-3.5 sm:p-5 rounded-3xl sm:rounded-[2.5rem] shadow-2xl z-55 w-[92%] max-w-xl flex items-center justify-between gap-3.5 border border-white/15">
       <div className="flex items-center gap-3">
-        <span className="w-8 h-8 rounded-full bg-orange-600 flex items-center justify-center font-sans font-bold text-sm text-white">
+        <span className="w-8 h-8 rounded-full bg-[#A54055] flex items-center justify-center font-sans font-bold text-sm text-white tabular-nums">
           {selectedSellerIds.length}
         </span>
         <div>

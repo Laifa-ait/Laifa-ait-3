@@ -1,4 +1,5 @@
-import { Plus, List, BarChart3, Palette } from "lucide-react";
+import React from "react";
+import { Plus, ShoppingBag, Truck, Palette } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -8,57 +9,64 @@ export const OverviewQuickActions: React.FC = () => {
 
   const actions = [
     {
-      label: t("seller.overview.studio_boutique", "Studio Boutique"),
-      icon: Palette,
-      color: "text-orange-600",
-      bg: "bg-orange-50",
-      onClick: () => navigate("/dashboard/seller/studio"),
-      id: "seller-quick-action-studio",
-    },
-    {
-      label: t("seller.overview.new_product", "Nouveau Produit"),
+      label: t("seller.overview.new_product", "Ajouter un Produit"),
+      sub: t("Catalogue & Variantes"),
       icon: Plus,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
+      color: "text-[#A54055]",
+      bg: "bg-[#A54055]/10",
       onClick: () => navigate("/dashboard/seller/catalog?action=new"),
       id: "seller-quick-action-new-product",
     },
     {
-      label: t("seller.overview.manage_orders", "Gérer Commandes"),
-      icon: List,
-      color: "text-zinc-700",
-      bg: "bg-zinc-100",
+      label: t("seller.overview.manage_orders", "Traiter les Commandes"),
+      sub: t("Bordereaux & Suivi"),
+      icon: ShoppingBag,
+      color: "text-[#42164B]",
+      bg: "bg-[#42164B]/10",
       onClick: () => navigate("/dashboard/seller/orders"),
       id: "seller-quick-action-orders",
     },
     {
-      label: t("seller.menu.analytics", "Analytiques"),
-      icon: BarChart3,
-      color: "text-emerald-600",
-      bg: "bg-emerald-50",
-      onClick: () => navigate("/dashboard/seller/analytics"),
+      label: t("Expéditions 69 Wilayas"),
+      sub: t("Tarifs Domicile & Stop-Desk"),
+      icon: Truck,
+      color: "text-[#E99856]",
+      bg: "bg-[#E99856]/15",
+      onClick: () => navigate("/dashboard/seller/shipping"),
       id: "seller-quick-action-analytics",
+    },
+    {
+      label: t("seller.overview.studio_boutique", "Studio Boutique"),
+      sub: t("Personnaliser ma vitrine"),
+      icon: Palette,
+      color: "text-[#622347]",
+      bg: "bg-[#622347]/10",
+      onClick: () => navigate("/dashboard/seller/studio"),
+      id: "seller-quick-action-studio",
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4" id="seller-overview-quick-actions">
-      {actions.map((action, i) => (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4" id="seller-overview-quick-actions">
+      {actions.map((action) => (
         <button
-          key={i}
+          key={action.id}
           id={action.id}
           type="button"
           onClick={action.onClick}
-          className="flex flex-col items-center justify-center p-6 bg-white border border-zinc-100 rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group cursor-pointer"
+          className="flex items-center gap-3.5 p-4 bg-white border border-[#E0B4B2]/40 rounded-2xl shadow-2xs hover:shadow-md hover:border-[#A54055]/40 transition-all group cursor-pointer text-left"
         >
           <div
-            className={`w-12 h-12 rounded-2xl ${action.bg} ${action.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}
+            className={`w-11 h-11 rounded-xl ${action.bg} ${action.color} flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}
           >
-            <action.icon className="w-6 h-6" />
+            <action.icon className="w-5 h-5" />
           </div>
-          <span className="text-xs font-sans font-bold text-zinc-950 text-center">
-            {action.label}
-          </span>
+          <div className="min-w-0">
+            <span className="block text-xs sm:text-sm font-extrabold text-[#1A1836] truncate">
+              {action.label}
+            </span>
+            <span className="block text-[11px] text-zinc-500 truncate">{action.sub}</span>
+          </div>
         </button>
       ))}
     </div>

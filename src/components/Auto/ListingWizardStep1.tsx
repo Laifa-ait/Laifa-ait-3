@@ -203,7 +203,7 @@ export const ListingWizardStep1: React.FC<Step1Props> = ({ data, onChange, onNex
           type="button"
           onClick={onNext}
           disabled={!isValid}
-          className="px-6 py-2.5 bg-gradient-to-r from-[#D9F66F] to-[#C5E94F] hover:from-[#E2FB7D] hover:to-[#BEE545] disabled:opacity-50 text-[#0B1730] rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md active:scale-[0.98] cursor-pointer min-h-[44px]"
+          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all shadow-sm active:scale-[0.98] cursor-pointer min-h-[44px] border-none"
         >
           Continuer vers l'Étape 2 &rarr;
         </button>

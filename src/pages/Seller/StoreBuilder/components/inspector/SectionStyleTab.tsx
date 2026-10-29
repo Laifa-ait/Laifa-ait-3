@@ -35,9 +35,9 @@ export const SectionStyleTab: React.FC<SectionStyleTabProps> = ({
 
       {/* Arrondi des coins */}
       <div className="space-y-1.5 pt-2 border-t border-[#E4E7EC]">
-        <label className="text-[12px] font-semibold text-[#17191C] flex items-center justify-between">
+        <label className="text-[12px] font-semibold text-[#011C40] flex items-center justify-between">
           <span>Arrondi des cartes & blocs</span>
-          <span className="font-mono text-[#F97316] text-[11px] font-bold">
+          <span className="font-mono text-[#023859] text-[11px] font-bold">
             {styles.borderRadius || "md"}
           </span>
         </label>
@@ -54,7 +54,7 @@ export const SectionStyleTab: React.FC<SectionStyleTabProps> = ({
               onClick={() => onStylesChange("borderRadius", r.id)}
               className={`h-8 rounded-lg border text-[11px] font-semibold cursor-pointer transition-colors ${
                 (styles.borderRadius || "md") === r.id
-                  ? "border-[#F97316] bg-[#FFF7ED] text-[#F97316] font-bold"
+                  ? "border-[#023859] bg-[#F0F7FA] text-[#023859] font-bold"
                   : "border-[#E4E7EC] bg-white text-[#667085] hover:bg-[#F7F8FA]"
               }`}
             >
@@ -67,8 +67,8 @@ export const SectionStyleTab: React.FC<SectionStyleTabProps> = ({
       {/* Marges internes Y */}
       <div className="space-y-1.5 pt-2 border-t border-[#E4E7EC]">
         <div className="flex justify-between items-center text-xs">
-          <span className="font-semibold text-[#17191C]">Espacement haut/bas</span>
-          <span className="font-mono text-[#F97316] font-bold">{paddingValue}px</span>
+          <span className="font-semibold text-[#011C40]">Espacement haut/bas</span>
+          <span className="font-mono text-[#023859] font-bold">{paddingValue}px</span>
         </div>
         <input
           type="range"
@@ -77,15 +77,15 @@ export const SectionStyleTab: React.FC<SectionStyleTabProps> = ({
           step={8}
           value={paddingValue}
           onChange={(e) => onStylesChange("paddingY", parseInt(e.target.value, 10))}
-          className="w-full accent-[#F97316] cursor-pointer"
+          className="w-full accent-[#023859] cursor-pointer"
         />
       </div>
 
       {/* Marges internes X */}
       <div className="space-y-1.5">
         <div className="flex justify-between items-center text-xs">
-          <span className="font-semibold text-[#17191C]">Marges latérales (gauche/droite)</span>
-          <span className="font-mono text-[#F97316] font-bold">{styles.paddingX ?? 20}px</span>
+          <span className="font-semibold text-[#011C40]">Marges latérales (gauche/droite)</span>
+          <span className="font-mono text-[#023859] font-bold">{styles.paddingX ?? 20}px</span>
         </div>
         <input
           type="range"
@@ -94,7 +94,7 @@ export const SectionStyleTab: React.FC<SectionStyleTabProps> = ({
           step={4}
           value={styles.paddingX ?? 20}
           onChange={(e) => onStylesChange("paddingX", parseInt(e.target.value, 10))}
-          className="w-full accent-[#F97316] cursor-pointer"
+          className="w-full accent-[#023859] cursor-pointer"
         />
       </div>
     </div>

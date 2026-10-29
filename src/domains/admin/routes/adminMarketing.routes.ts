@@ -338,8 +338,22 @@ router.post("/admin/promotions/coupons/:id/click", authenticateToken, authorizeA
 // Newsletter & Emails
 router.post("/admin/send-newsletter", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { subject, content, targetAudience } = req.body;
-    if (!subject || !content) {
+    const { subject, content, blocks, targetAudience } = req.body;
+    const htmlContent =
+      typeof content === "string" && content.trim()
+        ? content
+        : Array.isArray(blocks) && blocks.length > 0
+          ? blocks
+              .map((b: { type?: string; content?: string; productName?: string; productPrice?: number }) => {
+                if (b.type === "title") return `<h2>${b.content || ""}</h2>`;
+                if (b.type === "image" && b.content) return `<img src="${b.content}" alt="Olmart" style="max-width:100%;border-radius:16px;" />`;
+                if (b.type === "product") return `<div><strong>${b.productName || b.content || ""}</strong> - ${b.productPrice || 0} DZD</div>`;
+                return `<p>${b.content || ""}</p>`;
+              })
+              .join("\n")
+          : "";
+
+    if (!subject || !htmlContent) {
       return res.status(400).json({ error: "Sujet et contenu requis" });
     }
 
@@ -352,7 +366,7 @@ router.post("/admin/send-newsletter", authenticateToken, authorizeAdmin, async (
     const emails = snap.docs.map(doc => doc.data().email as string).filter(Boolean);
 
     if (emails.length === 0) {
-      return res.status(400).json({ error: "Aucun abonné trouvé pour ce segment" });
+      return res.status(400).json({ error: "Aucun abonné actif trouvé pour ce segment" });
     }
 
     const batchSize = 100;
@@ -363,7 +377,7 @@ router.post("/admin/send-newsletter", authenticateToken, authorizeAdmin, async (
           to: email,
           message: {
             subject,
-            html: content,
+            html: htmlContent,
           },
         })
       );

@@ -24,7 +24,19 @@ export const ContactRevealModal: React.FC<ContactRevealModalProps> = ({
 
   if (!isOpen) return null;
 
+  const isEphemeral = listingId.startsWith("ephemeral-");
+
   const handleReveal = async () => {
+    if (isEphemeral) {
+      setRevealed({
+        listingId,
+        phoneNumber: "+213 550 12 34 56",
+        whatsappUrl: "https://wa.me/213550123456",
+        expiresInSeconds: 900,
+      });
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -34,7 +46,7 @@ export const ContactRevealModal: React.FC<ContactRevealModalProps> = ({
       const msg = err instanceof Error ? err.message : "Erreur de contact";
       if (msg.includes("429") || msg.toLowerCase().includes("limite")) {
         setError(
-          "Limite de sécurité atteinte. Afin de protéger nos vendeurs contre le scraping et le démarchage, veuillez patienter avant de solliciter un nouveau contact."
+          "Limite de sécurité atteinte. Veuillez patienter avant de solliciter un nouveau contact."
         );
       } else {
         setError(msg);
@@ -46,29 +58,28 @@ export const ContactRevealModal: React.FC<ContactRevealModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
 
-      <div className="relative bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 z-10">
+      <div className="relative bg-white text-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 z-10">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-lg font-bold text-slate-950">Contacter le vendeur</h3>
+            <h3 className="text-lg font-extrabold text-slate-900">Contacter le vendeur</h3>
             <p className="text-xs text-slate-500 mt-0.5">{vehicleTitle}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer bg-transparent border-none"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-xs text-rose-800">
+          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 text-xs text-rose-700">
             <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
             <p className="leading-relaxed">{error}</p>
           </div>
@@ -76,16 +87,16 @@ export const ContactRevealModal: React.FC<ContactRevealModalProps> = ({
 
         {!revealed ? (
           <div className="space-y-4">
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 text-xs text-slate-600 space-y-2">
-              <div className="flex items-center gap-2 font-medium text-slate-900">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs text-slate-600 space-y-2">
+              <div className="flex items-center gap-2 font-bold text-slate-900">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Protection Anti-Démarchage Olmart</span>
+                <span>Mise en relation directe sans commission</span>
               </div>
               <p>
-                Vendeur : <strong className="text-slate-800">{sellerDisplayName}</strong>
+                Annonceur : <strong className="text-slate-900">{sellerDisplayName}</strong>
               </p>
               <p className="text-[11px] text-slate-500 leading-normal">
-                Les coordonnées sont vérifiées par serveur sécurisé avec limitation de requêtes pour empêcher le scraping non sollicité.
+                Appelez directement le vendeur ou discutez sur WhatsApp pour convenir d'un rendez-vous.
               </p>
             </div>
 
@@ -93,12 +104,12 @@ export const ContactRevealModal: React.FC<ContactRevealModalProps> = ({
               type="button"
               onClick={handleReveal}
               disabled={loading}
-              className="w-full py-3 px-4 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 disabled:opacity-50 text-white font-medium text-sm rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer border-none"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Vérification sécurisée...</span>
+                  <span>Affichage du numéro...</span>
                 </>
               ) : (
                 <>
@@ -110,9 +121,9 @@ export const ContactRevealModal: React.FC<ContactRevealModalProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl text-center space-y-1">
-              <span className="text-xs text-emerald-800 font-medium">Coordonnées directes</span>
-              <div className="text-xl font-mono font-bold text-slate-900 tracking-wider">
+            <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-2xl text-center space-y-1">
+              <span className="text-xs text-blue-700 font-bold">Numéro direct du vendeur</span>
+              <div className="text-xl font-mono font-extrabold text-slate-900 tracking-wider tabular-nums">
                 {revealed.phoneNumber}
               </div>
             </div>
@@ -120,7 +131,7 @@ export const ContactRevealModal: React.FC<ContactRevealModalProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <a
                 href={`tel:${revealed.phoneNumber}`}
-                className="py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-medium rounded-xl flex items-center justify-center gap-2 transition-colors"
+                className="py-3 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 transition-colors"
               >
                 <Phone className="w-4 h-4" />
                 <span>Appeler</span>
@@ -130,16 +141,12 @@ export const ContactRevealModal: React.FC<ContactRevealModalProps> = ({
                 href={revealed.whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-medium rounded-xl flex items-center justify-center gap-2 transition-colors"
+                className="py-3 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 transition-colors"
               >
                 <MessageSquare className="w-4 h-4" />
                 <span>WhatsApp</span>
               </a>
             </div>
-
-            <p className="text-[11px] text-slate-400 text-center">
-              Session de contact active pendant {Math.round(revealed.expiresInSeconds / 60)} minutes.
-            </p>
           </div>
         )}
       </div>

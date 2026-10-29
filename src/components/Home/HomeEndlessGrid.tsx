@@ -133,34 +133,39 @@ export const HomeEndlessGrid: React.FC = () => {
 
   return (
     <section className="w-full max-w-[90rem] mx-auto px-4 sm:px-6 md:px-8 mb-12 sm:mb-16">
-      {/* En-tête simple avec typographie nette */}
+      {/* Editorial Section Heading */}
       <div className="flex items-center justify-between mb-5 sm:mb-6">
-        <h2 className="font-sans text-xl sm:text-2xl font-black tracking-tight text-slate-900">
-          {t("home.endless_grid.title", "Publications récentes")}
-        </h2>
+        <div className="space-y-1">
+          <h2 className="font-display text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-[#1A1836]">
+            {t("home.endless_grid.title", "Publications récentes")}
+          </h2>
+          <p className="text-xs sm:text-sm text-[#6E5A6F] font-medium">
+            {t("home.endless_grid.subtitle", "Nouveautés vérifiées auprès de nos marchands partenaires")}
+          </p>
+        </div>
       </div>
 
-      {/* Grille des publications directement intégrée sans cadre */}
+      {/* Product Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
         {products.map((product, i) => (
           <ProductCard key={product.id} product={product} index={i} />
         ))}
       </div>
 
-      {/* Bouton Afficher plus */}
+      {/* Load More CTA */}
       {hasMore && (
         <div className="flex justify-center mt-10 sm:mt-12">
           <button
             type="button"
             onClick={loadMoreProducts}
             disabled={loadingMore}
-            className="group relative inline-flex items-center justify-center gap-2.5 px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold tracking-wider uppercase rounded-xl transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-60 cursor-pointer border-none"
+            className="group relative inline-flex items-center justify-center gap-2.5 px-8 py-3.5 bg-gradient-to-r from-[#42164B] via-[#622347] to-[#A54055] hover:from-[#622347] hover:via-[#A54055] hover:to-[#E99856] text-white text-xs sm:text-sm font-bold tracking-wider uppercase rounded-xl transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-60 cursor-pointer border-none whitespace-nowrap"
           >
             {loadingMore ? (
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-emerald-200 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                <div className="w-2 h-2 bg-emerald-200 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                <div className="w-2 h-2 bg-emerald-200 rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-[#E0B4B2] rounded-full animate-bounce [animation-delay:-0.3s]" />
+                <div className="w-2 h-2 bg-[#E0B4B2] rounded-full animate-bounce [animation-delay:-0.15s]" />
+                <div className="w-2 h-2 bg-[#E0B4B2] rounded-full animate-bounce" />
               </div>
             ) : (
               <span>{t("home.endless_grid.load_more", "Afficher plus d'articles")}</span>

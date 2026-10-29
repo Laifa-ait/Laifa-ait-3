@@ -24,7 +24,7 @@ export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
     <div className="space-y-4 select-none">
       {/* Largeur du conteneur */}
       <div className="space-y-1.5">
-        <label className="text-[13px] font-semibold text-[#17191C] flex items-center justify-between">
+        <label className="text-[13px] font-semibold text-[#011C40] flex items-center justify-between">
           <span>Largeur du conteneur</span>
           <span className="text-[11px] font-normal text-[#667085]">Layout</span>
         </label>
@@ -40,7 +40,7 @@ export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
               onClick={() => onStylesChange("containerWidth", item.id)}
               className={`p-2 rounded-xl border text-left cursor-pointer transition-all ${
                 (styles.containerWidth || "contained") === item.id
-                  ? "border-[#F97316] bg-[#FFF7ED] text-[#F97316] shadow-2xs font-bold"
+                  ? "border-[#023859] bg-[#F0F7FA] text-[#023859] shadow-2xs font-bold"
                   : "border-[#E4E7EC] bg-white text-[#667085] hover:bg-[#F7F8FA]"
               }`}
             >
@@ -54,11 +54,11 @@ export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
       {/* Espacement Vertical (0-120px) */}
       <div className="space-y-1.5 pt-2 border-t border-[#E4E7EC]">
         <div className="flex justify-between items-center text-[13px]">
-          <span className="font-semibold text-[#17191C] flex items-center gap-1.5">
-            <MoveVertical className="w-3.5 h-3.5 text-[#F97316]" />
+          <span className="font-semibold text-[#011C40] flex items-center gap-1.5">
+            <MoveVertical className="w-3.5 h-3.5 text-[#023859]" />
             <span>Espacement vertical (padding)</span>
           </span>
-          <span className="font-mono text-[#F97316] font-bold text-xs bg-[#FFF1E7] px-2 py-0.5 rounded">
+          <span className="font-mono text-[#023859] font-bold text-xs bg-[#F0F7FA] px-2 py-0.5 rounded">
             {paddingValue}px
           </span>
         </div>
@@ -69,7 +69,7 @@ export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
           step={8}
           value={paddingValue}
           onChange={(e) => onStylesChange("paddingY", parseInt(e.target.value, 10))}
-          className="w-full accent-[#F97316] cursor-pointer"
+          className="w-full accent-[#023859] cursor-pointer"
         />
         <div className="flex justify-between text-[10px] text-[#98A2B3]">
           <span>0px (Compact)</span>
@@ -80,8 +80,8 @@ export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
 
       {/* Alignement Horizontal */}
       <div className="space-y-1.5 pt-2 border-t border-[#E4E7EC]">
-        <label className="text-[13px] font-semibold text-[#17191C] flex items-center gap-1.5">
-          <AlignLeft className="w-3.5 h-3.5 text-[#F97316]" />
+        <label className="text-[13px] font-semibold text-[#011C40] flex items-center gap-1.5">
+          <AlignLeft className="w-3.5 h-3.5 text-[#023859]" />
           <span>Alignement des titres & textes</span>
         </label>
         <div className="grid grid-cols-3 gap-2">
@@ -96,7 +96,7 @@ export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
               onClick={() => onSettingsChange("textAlignment", align.id)}
               className={`h-9 rounded-lg border text-[12px] font-semibold cursor-pointer transition-colors ${
                 (settings.textAlignment || "left") === align.id
-                  ? "border-[#F97316] bg-[#FFF7ED] text-[#F97316] font-bold"
+                  ? "border-[#023859] bg-[#F0F7FA] text-[#023859] font-bold"
                   : "border-[#E4E7EC] bg-white text-[#667085] hover:bg-[#F7F8FA]"
               }`}
             >
@@ -106,10 +106,10 @@ export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
         </div>
       </div>
 
-      {/* Séparateurs Décoratifs de Transition (Shape Dividers Canva style) */}
+      {/* Séparateurs Décoratifs de Transition */}
       <div className="space-y-1.5 pt-2 border-t border-[#E4E7EC]">
-        <label className="text-[13px] font-semibold text-[#17191C] flex items-center gap-1.5">
-          <Layers className="w-3.5 h-3.5 text-[#F97316]" />
+        <label className="text-[13px] font-semibold text-[#011C40] flex items-center gap-1.5">
+          <Layers className="w-3.5 h-3.5 text-[#023859]" />
           <span>Transition & Séparateur</span>
         </label>
         <div className="grid grid-cols-4 gap-1.5">
@@ -125,7 +125,7 @@ export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
               onClick={() => onStylesChange("divider", div.id)}
               className={`h-8 rounded-lg border text-[11px] font-semibold cursor-pointer transition-colors ${
                 (styles.divider || "none") === div.id
-                  ? "border-[#F97316] bg-[#FFF7ED] text-[#F97316]"
+                  ? "border-[#023859] bg-[#F0F7FA] text-[#023859] font-bold"
                   : "border-[#E4E7EC] bg-white text-[#667085] hover:bg-[#F7F8FA]"
               }`}
             >
@@ -137,9 +137,9 @@ export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
 
       {/* Animation d'Apparition au Scroll */}
       <div className="space-y-1.5 pt-2 border-t border-[#E4E7EC]">
-        <label className="text-[13px] font-semibold text-[#17191C] flex items-center gap-1.5">
-          <Wand2 className="w-3.5 h-3.5 text-[#F97316]" />
-          <span>Effet d'apparition au scroll</span>
+        <label className="text-[13px] font-semibold text-[#011C40] flex items-center gap-1.5">
+          <Wand2 className="w-3.5 h-3.5 text-[#023859]" />
+          <span>Effet d&apos;apparition au scroll</span>
         </label>
         <div className="grid grid-cols-4 gap-1.5">
           {[
@@ -154,7 +154,7 @@ export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
               onClick={() => onStylesChange("animation", anim.id)}
               className={`h-8 rounded-lg border text-[11px] font-semibold cursor-pointer transition-colors ${
                 (styles.animation || "none") === anim.id
-                  ? "border-[#F97316] bg-[#FFF7ED] text-[#F97316]"
+                  ? "border-[#023859] bg-[#F0F7FA] text-[#023859] font-bold"
                   : "border-[#E4E7EC] bg-white text-[#667085] hover:bg-[#F7F8FA]"
               }`}
             >
@@ -166,8 +166,8 @@ export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
 
       {/* Élévation & Ombre de Section */}
       <div className="space-y-1.5 pt-2 border-t border-[#E4E7EC]">
-        <label className="text-[13px] font-semibold text-[#17191C] flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-[#F97316]" />
+        <label className="text-[13px] font-semibold text-[#011C40] flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-[#023859]" />
           <span>Ombre & Profondeur</span>
         </label>
         <div className="grid grid-cols-4 gap-1.5">
@@ -183,7 +183,7 @@ export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
               onClick={() => onStylesChange("shadow", sh.id)}
               className={`h-8 rounded-lg border text-[11px] font-semibold cursor-pointer transition-colors ${
                 (styles.shadow || "none") === sh.id
-                  ? "border-[#F97316] bg-[#FFF7ED] text-[#F97316]"
+                  ? "border-[#023859] bg-[#F0F7FA] text-[#023859] font-bold"
                   : "border-[#E4E7EC] bg-white text-[#667085] hover:bg-[#F7F8FA]"
               }`}
             >

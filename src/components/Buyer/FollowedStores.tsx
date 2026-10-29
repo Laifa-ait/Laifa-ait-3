@@ -45,6 +45,16 @@ const extractStoreLogo = (s: FollowedStoreRaw): string => {
   return getRetroAvatar(s.shopName || s.name || s.sellerId || s.id || "store");
 };
 
+const mapRawStore = (s: FollowedStoreRaw, isFollowed: boolean): StoreCardData => ({
+  id: s.id || s.sellerId || "",
+  sellerId: s.sellerId || s.id || "",
+  name: s.shopName || s.name || "Boutique Partenaire",
+  logo: extractStoreLogo(s),
+  location: s.wilaya || s.location || "Algérie",
+  description: s.shopDescription || s.description || "",
+  isFollowed,
+});
+
 export const FollowedStores: React.FC = () => {
   const { t } = useTranslation();
   const { currentUser } = useAuth();
@@ -64,39 +74,20 @@ export const FollowedStores: React.FC = () => {
       setLoading(true);
       try {
         if (currentUser) {
-          const resFollowed = await apiGet<{ stores: FollowedStoreRaw[] }>(
-            "/api/v1/buyer/followed-stores"
-          );
+          const resFollowed = await apiGet<{ stores: FollowedStoreRaw[] }>("/api/v1/buyer/followed-stores");
           if (!cancelled && resFollowed?.stores) {
-            const mapped: StoreCardData[] = resFollowed.stores.map((s) => ({
-              id: s.id || s.sellerId || "",
-              sellerId: s.sellerId || s.id || "",
-              name: s.shopName || s.name || "Boutique Partenaire",
-              logo: extractStoreLogo(s),
-              location: s.wilaya || s.location || "Algérie",
-              description: s.shopDescription || s.description || "",
-              isFollowed: true,
-            }));
+            const mapped = resFollowed.stores.map((s) => mapRawStore(s, true));
             setFollowedStores(mapped);
             if (mapped.length === 0) setActiveTab("explore");
           }
         }
-
-        const resExplore = await apiGet<{ sellers: FollowedStoreRaw[] }>("/api/v1/explore/sellers");
+        const [resExplore, resProds] = await Promise.all([
+          apiGet<{ sellers: FollowedStoreRaw[] }>("/api/v1/explore/sellers"),
+          apiGet<{ products: Product[] }>("/api/v1/explore/products"),
+        ]);
         if (!cancelled && resExplore?.sellers) {
-          const mappedExplore: StoreCardData[] = resExplore.sellers.map((s) => ({
-            id: s.id || s.sellerId || "",
-            sellerId: s.sellerId || s.id || "",
-            name: s.shopName || s.name || "Boutique Partenaire",
-            logo: extractStoreLogo(s),
-            location: s.wilaya || s.location || "Algérie",
-            description: s.shopDescription || s.description || "",
-            isFollowed: false,
-          }));
-          setExploreStores(mappedExplore);
+          setExploreStores(resExplore.sellers.map((s) => mapRawStore(s, false)));
         }
-
-        const resProds = await apiGet<{ products: Product[] }>("/api/v1/explore/products");
         if (!cancelled && resProds?.products) {
           const pMap: Record<string, Product[]> = {};
           resProds.products.forEach((p) => {
@@ -120,25 +111,19 @@ export const FollowedStores: React.FC = () => {
   }, [currentUser]);
 
   const handleToggleFollow = async (store: StoreCardData) => {
-    if (!currentUser) return toast.error(t("Veuillez vous connecter."));
+    if (!currentUser) return void toast.error(t("Veuillez vous connecter."));
     const sid = store.sellerId || store.id;
     setActionLoadingId(sid);
-
     try {
       if (store.isFollowed) {
         await apiPost("/api/v1/buyer/unfollow", { sellerId: sid });
         setFollowedStores((prev) => prev.filter((s) => s.sellerId !== sid && s.id !== sid));
-        setExploreStores((prev) =>
-          prev.map((s) => (s.sellerId === sid || s.id === sid ? { ...s, isFollowed: false } : s))
-        );
+        setExploreStores((prev) => prev.map((s) => (s.sellerId === sid || s.id === sid ? { ...s, isFollowed: false } : s)));
         toast.success(t("Désabonnement réussi."));
       } else {
         await apiPost("/api/v1/buyer/follow", { sellerId: sid });
-        const updated = { ...store, isFollowed: true };
-        setFollowedStores((prev) => [...prev, updated]);
-        setExploreStores((prev) =>
-          prev.map((s) => (s.sellerId === sid || s.id === sid ? { ...s, isFollowed: true } : s))
-        );
+        setFollowedStores((prev) => [...prev, { ...store, isFollowed: true }]);
+        setExploreStores((prev) => prev.map((s) => (s.sellerId === sid || s.id === sid ? { ...s, isFollowed: true } : s)));
         toast.success(t("Vous suivez désormais cette boutique !"));
       }
     } catch (err) {
@@ -150,44 +135,34 @@ export const FollowedStores: React.FC = () => {
   };
 
   const currentList = activeTab === "followed" ? followedStores : exploreStores;
-
   const filteredStores = useMemo(() => {
     return currentList.filter((s) => {
+      const q = searchQuery.toLowerCase();
       const matchQuery =
-        !searchQuery.trim() ||
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (s.description && s.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (s.location && s.location.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      const matchWilaya =
-        selectedWilaya === "Toutes" ||
-        (s.location && s.location.toLowerCase().includes(selectedWilaya.toLowerCase()));
-
+        !q.trim() ||
+        s.name.toLowerCase().includes(q) ||
+        Boolean(s.description?.toLowerCase().includes(q)) ||
+        Boolean(s.location?.toLowerCase().includes(q));
+      const matchWilaya = selectedWilaya === "Toutes" || Boolean(s.location?.toLowerCase().includes(selectedWilaya.toLowerCase()));
       return matchQuery && matchWilaya;
     });
   }, [currentList, searchQuery, selectedWilaya]);
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto" id="followed-stores-module">
-      {/* Header */}
       <div>
-        <h2 className="text-2xl sm:text-3xl font-normal text-[#202124] tracking-tight">
-          {t("Commerçants favoris")}
-        </h2>
-        <p className="text-[#5f6368] text-sm mt-1">
+        <h2 className="text-xl sm:text-2xl font-extrabold text-[#1A1836] tracking-tight">{t("Boutiques suivies")}</h2>
+        <p className="text-zinc-500 text-xs sm:text-sm mt-1">
           {t("Suivez vos boutiques et artisans favoris dans les 69 wilayas d'Algérie.")}
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 p-1 bg-[#f0f4f9] rounded-2xl w-fit">
+      <div className="flex items-center gap-2 p-1 bg-[#FAF7F8] border border-[#E0B4B2]/40 rounded-2xl w-fit">
         <button
           type="button"
           onClick={() => setActiveTab("followed")}
-          className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer border-none ${
-            activeTab === "followed"
-              ? "bg-white text-[#1a73e8] shadow-xs"
-              : "text-[#5f6368] hover:text-[#202124] bg-transparent"
+          className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer border-none ${
+            activeTab === "followed" ? "bg-[#1A1836] text-white shadow-xs" : "text-zinc-600 hover:text-[#1A1836] bg-transparent"
           }`}
         >
           {t("Mes abonnements ({{count}})", { count: followedStores.length })}
@@ -195,17 +170,14 @@ export const FollowedStores: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab("explore")}
-          className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer border-none ${
-            activeTab === "explore"
-              ? "bg-white text-[#1a73e8] shadow-xs"
-              : "text-[#5f6368] hover:text-[#202124] bg-transparent"
+          className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer border-none ${
+            activeTab === "explore" ? "bg-[#1A1836] text-white shadow-xs" : "text-zinc-600 hover:text-[#1A1836] bg-transparent"
           }`}
         >
           {t("Découvrir les boutiques")}
         </button>
       </div>
 
-      {/* Wilaya Filter Bar */}
       <WilayaFilterBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -214,23 +186,20 @@ export const FollowedStores: React.FC = () => {
         popularWilayas={POPULAR_WILAYAS}
       />
 
-      {/* Store Cards */}
       {loading ? (
-        <div className="flex items-center justify-center p-12 bg-white rounded-[24px] border border-[#dadce0]">
-          <RefreshCw className="w-6 h-6 animate-spin text-[#1a73e8]" />
+        <div className="flex items-center justify-center p-12 bg-white rounded-3xl border border-[#E0B4B2]/40">
+          <RefreshCw className="w-6 h-6 animate-spin text-[#A54055]" />
         </div>
       ) : filteredStores.length === 0 ? (
-        <div className="bg-white border border-[#dadce0] rounded-[28px] p-10 text-center space-y-4 shadow-xs">
-          <div className="w-16 h-16 rounded-full bg-[#e8f0fe] text-[#1a73e8] flex items-center justify-center mx-auto">
+        <div className="bg-white border border-[#E0B4B2]/40 rounded-3xl p-10 text-center space-y-4 shadow-2xs">
+          <div className="w-16 h-16 rounded-2xl bg-[#A54055]/10 text-[#A54055] flex items-center justify-center mx-auto">
             <Store className="w-8 h-8" />
           </div>
           <div className="space-y-1 max-w-sm mx-auto">
-            <h3 className="text-base font-semibold text-[#202124]">
-              {activeTab === "followed"
-                ? t("Aucune boutique suivie pour le moment")
-                : t("Aucune boutique trouvée")}
+            <h3 className="text-base font-bold text-[#1A1836]">
+              {activeTab === "followed" ? t("Aucune boutique suivie pour le moment") : t("Aucune boutique trouvée")}
             </h3>
-            <p className="text-xs text-[#5f6368]">
+            <p className="text-xs text-zinc-500">
               {activeTab === "followed"
                 ? t("Explorez nos boutiques certifiées et artisans partenaires dans les 69 wilayas.")
                 : t("Essayez un autre mot-clé ou modifiez le filtre de wilaya.")}
@@ -240,9 +209,9 @@ export const FollowedStores: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab("explore")}
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#1a73e8] hover:bg-[#1557b0] text-white text-xs sm:text-sm font-medium rounded-full transition-colors cursor-pointer border-none"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#A54055] to-[#622347] text-white text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer border-none"
             >
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="w-4 h-4 text-[#E99856]" />
               <span>{t("Découvrir les boutiques")}</span>
             </button>
           )}

@@ -41,15 +41,15 @@ export const CartDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
       title={t("Mon Panier") || "Mon Panier"}
       icon={<ShoppingBag className="w-5 h-5" />}
     >
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-zinc-50/50">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-[#FAF7F6]">
         {cart.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center space-y-6 px-4 py-12">
-            <div className="w-20 h-20 bg-amber-500/10 rounded-3xl flex items-center justify-center text-amber-600 mb-2">
+            <div className="w-20 h-20 bg-[#622347]/10 rounded-3xl flex items-center justify-center text-[#622347] mb-2 border border-[#E0B4B2]/50">
               <Package className="w-10 h-10" />
             </div>
             <div className="space-y-2 max-w-xs">
-              <h3 className="text-lg font-sans font-bold text-zinc-950">{t("Votre panier est curieusement vide")}</h3>
-              <p className="text-zinc-500 text-xs sm:text-sm leading-relaxed">{t("Découvrez nos sélections exclusives et trouvez votre bonheur.")}</p>
+              <h3 className="text-lg font-display font-bold text-[#1A1836]">{t("Votre panier est curieusement vide")}</h3>
+              <p className="text-[#6E5A6F] text-xs sm:text-sm leading-relaxed">{t("Découvrez nos sélections exclusives et trouvez votre bonheur.")}</p>
             </div>
             <button
               type="button"
@@ -57,7 +57,7 @@ export const CartDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                 onClose();
                 navigate("/shop");
               }}
-              className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-bold text-sm shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 border-none"
+              className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#42164B] via-[#622347] to-[#A54055] hover:from-[#622347] hover:to-[#E99856] text-white font-bold text-sm shadow-md shadow-[#622347]/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 border-none"
             >
               {t("Explorer la boutique")}
             </button>
@@ -72,20 +72,20 @@ export const CartDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
             return (
               <div
                 key={groupIdx}
-                className="bg-white rounded-2xl p-4 sm:p-5 shadow-xs border border-zinc-200/80 flex flex-col gap-4"
+                className="bg-white rounded-2xl p-4 sm:p-5 shadow-xs border border-[#EFE6E6] flex flex-col gap-4"
               >
                 {/* Seller Header */}
-                <div className="flex flex-col gap-2 border-b border-zinc-100 pb-3">
+                <div className="flex flex-col gap-2 border-b border-[#FAF7F6] pb-3">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      <span className="bg-zinc-900 text-white text-[10px] rtl:text-xs font-sans font-bold uppercase tracking-wider px-2 py-0.5 rounded-md">
+                      <span className="bg-[#1A1836] text-[#E0B4B2] text-[10px] rtl:text-xs font-sans font-bold uppercase tracking-wider px-2 py-0.5 rounded-md">
                         {t("Colis")} {groupIdx + 1}
                       </span>
-                      <h3 className="font-sans font-bold text-sm text-zinc-900 leading-none">
+                      <h3 className="font-sans font-bold text-sm text-[#1A1836] leading-none">
                         {group.sellerName}
                       </h3>
                     </div>
-                    <span className="text-xs font-semibold text-zinc-500">
+                    <span className="text-xs font-semibold text-[#6E5A6F]">
                       {group.items.length} {t("article(s)")}
                     </span>
                   </div>
@@ -93,35 +93,35 @@ export const CartDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                   {/* Incentive Progress Bar */}
                   {remaining > 0 ? (
                     <div className="space-y-1.5 pt-1">
-                      <p className="text-[11px] sm:text-xs font-semibold text-zinc-600">
+                      <p className="text-[11px] sm:text-xs font-semibold text-[#6E5A6F]">
                         {t("Ajoutez encore")}{" "}
-                        <span className="text-amber-600 font-bold">{formatPrice(remaining)}</span>{" "}
+                        <span className="text-[#A54055] font-bold tabular-nums">{formatPrice(remaining)}</span>{" "}
                         {t("pour amortir la livraison !")}
                       </p>
-                      <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
+                      <div className="h-1.5 w-full bg-[#F4EDED] rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500 rounded-full"
+                          className="h-full bg-gradient-to-r from-[#622347] via-[#A54055] to-[#E99856] transition-all duration-500 rounded-full"
                           style={{ width: `${progress}%` }}
                         />
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-1.5 pt-1">
-                      <p className="text-[11px] sm:text-xs font-bold text-emerald-600">
-                        {t("🎉 Frais de livraison optimisés pour ce vendeur !")}
+                      <p className="text-[11px] sm:text-xs font-bold text-[#622347]">
+                        {t("Frais de livraison optimisés pour ce vendeur")}
                       </p>
-                      <div className="h-1.5 w-full bg-emerald-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500 w-full rounded-full" />
+                      <div className="h-1.5 w-full bg-[#FAF2F2] rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-[#622347] to-[#E99856] w-full rounded-full" />
                       </div>
                     </div>
                   )}
                 </div>
 
                 {/* Items */}
-                <div className="space-y-3.5 divide-y divide-zinc-100">
+                <div className="space-y-3.5 divide-y divide-[#FAF7F6]">
                   {group.items.map((item: CartItem & { originalIndex: number }, i: number) => (
                     <div key={i} className={`flex gap-3.5 group/item ${i > 0 ? "pt-3.5" : ""}`}>
-                      <div className="w-20 h-24 sm:w-22 sm:h-26 rounded-xl overflow-hidden bg-zinc-50 shrink-0 border border-zinc-200/80 relative">
+                      <div className="w-20 h-24 sm:w-22 sm:h-26 rounded-xl overflow-hidden bg-[#FAF7F6] shrink-0 border border-[#EFE6E6] relative">
                         <img
                           loading="lazy"
                           src={getOptimizedImageUrl(item.image, 200)}
@@ -132,7 +132,7 @@ export const CartDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                       <div className="flex-1 flex flex-col justify-between min-w-0">
                         <div>
                           <div className="flex justify-between items-start gap-2">
-                            <h4 className="font-bold text-xs sm:text-sm text-zinc-950 line-clamp-2 leading-snug">
+                            <h4 className="font-bold text-xs sm:text-sm text-[#1A1836] line-clamp-2 leading-snug">
                               {getTranslatedField(item, "name", lang)}
                             </h4>
                             {/* Accessible touch-friendly delete button */}
@@ -148,46 +148,46 @@ export const CartDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                                   removeFromCart(item.originalIndex);
                                 }
                               }}
-                              className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0 cursor-pointer border-none bg-transparent active:scale-95"
+                              className="w-8 h-8 rounded-lg flex items-center justify-center text-[#9B879C] hover:text-[#A54055] hover:bg-[#FAF2F2] transition-colors shrink-0 cursor-pointer border-none bg-transparent active:scale-95"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                           {item.selectedVariant && (
-                            <p className="text-[11px] font-semibold text-zinc-500 mt-0.5 truncate">
+                            <p className="text-[11px] font-semibold text-[#6E5A6F] mt-0.5 truncate">
                               {item.selectedVariant}
                             </p>
                           )}
-                          <p className="text-xs font-bold text-amber-600 mt-1 tabular-nums">
+                          <p className="text-xs font-bold text-[#A54055] mt-1 tabular-nums">
                             {formatPrice(getCartItemPrice(item))}
                           </p>
                         </div>
 
                         {/* Quantity Controls - WCAG 44px touch ergonomics */}
                         <div className="flex items-center justify-between mt-2 pt-1">
-                          <div className="flex items-center gap-1.5 bg-zinc-100/90 rounded-xl p-0.5 border border-zinc-200/70">
+                          <div className="flex items-center gap-1.5 bg-[#FAF7F6] rounded-xl p-0.5 border border-[#EFE6E6]">
                             <button
                               type="button"
                               aria-label="Diminuer la quantité"
                               disabled={item.quantity <= 1}
                               onClick={() => updateQuantity(item.originalIndex, item.quantity - 1)}
-                              className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-800 disabled:text-zinc-300 hover:bg-white active:scale-90 transition-all cursor-pointer border-none bg-transparent"
+                              className="w-8 h-8 rounded-lg flex items-center justify-center text-[#1A1836] disabled:text-[#E0B4B2] hover:bg-white active:scale-90 transition-all cursor-pointer border-none bg-transparent"
                             >
                               <Minus className="w-3.5 h-3.5" />
                             </button>
-                            <span className="text-xs sm:text-sm font-sans font-black min-w-[24px] text-center text-zinc-950 tabular-nums">
+                            <span className="text-xs sm:text-sm font-sans font-extrabold min-w-[24px] text-center text-[#1A1836] tabular-nums">
                               {item.quantity}
                             </span>
                             <button
                               type="button"
                               aria-label="Augmenter la quantité"
                               onClick={() => updateQuantity(item.originalIndex, item.quantity + 1)}
-                              className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-800 hover:bg-white active:scale-90 transition-all cursor-pointer border-none bg-transparent"
+                              className="w-8 h-8 rounded-lg flex items-center justify-center text-[#1A1836] hover:bg-white active:scale-90 transition-all cursor-pointer border-none bg-transparent"
                             >
                               <Plus className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                          <p className="text-sm sm:text-base font-sans font-black text-zinc-950 tabular-nums">
+                          <p className="text-sm sm:text-base font-sans font-extrabold text-[#1A1836] tabular-nums">
                             {formatPrice(getCartItemPrice(item) * item.quantity)}
                           </p>
                         </div>

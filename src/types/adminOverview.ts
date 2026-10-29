@@ -110,4 +110,11 @@ export interface OverviewStats {
   pendingVendors: number;
   revenueChange: number;
   ordersChange: number;
+  activeSubscriptions?: number;
+  pendingSubRequests?: number;
+  pendingProducts?: number;
+  unresolvedSiteErrors?: number;
+  totalUsers?: number;
+  totalProducts?: number;
 }
+

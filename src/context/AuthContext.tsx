@@ -162,13 +162,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateUserProfile = useCallback(async (data: Partial<UserProfile>) => {
     if (!currentUser) return;
-    const response = await apiPost<{ success: boolean; data?: UserProfile }>("/api/v1/auth/sync", {
+    const response = await apiPost<{ success: boolean; profile?: UserProfile; data?: UserProfile }>("/api/v1/auth/sync", {
       ...data,
       displayName: data.displayName || currentUser.displayName || "",
       email: currentUser.email || "",
       role: sanitizeRegistrationRoleHint(userProfile?.role),
     });
-    if (response?.data) setUserProfile(response.data);
+    const updated = response?.profile || response?.data;
+    if (updated) setUserProfile({ ...updated, ...data, role: updated.role } as UserProfile);
     else setUserProfile((prev) => (prev ? ({ ...prev, ...data, role: prev.role } as UserProfile) : null));
   }, [currentUser, userProfile?.role]);
 

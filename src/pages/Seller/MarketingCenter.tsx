@@ -78,8 +78,13 @@ export const MarketingCenter: React.FC = () => {
   };
 
   const handleDeletePromo = async (id: string) => {
-    if (!window.confirm("Supprimer la promo ?")) return;
-    try { await apiDelete(`/api/v1/seller/marketing/promos/${id}`); toast.success("Supprimée."); fetchData(); } catch { toast.error("Erreur."); }
+    try {
+      await apiDelete(`/api/v1/seller/marketing/promos/${id}`);
+      toast.success(t("Campagne promotionnelle supprimée."));
+      fetchData();
+    } catch {
+      toast.error(t("Erreur lors de la suppression."));
+    }
   };
 
   const handleCreateSponso = async (e: React.FormEvent) => {
@@ -97,18 +102,18 @@ export const MarketingCenter: React.FC = () => {
     <div className="space-y-8 pb-12 text-start">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-zinc-950 flex items-center gap-3 font-sans">
-            <Megaphone className="w-8 h-8 text-orange-500" />
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#1A1836] flex items-center gap-3 font-sans">
+            <Megaphone className="w-7 h-7 text-[#E99856]" />
             {t("Centre Marketing & Publicité Olmart")}
           </h2>
           <p className="text-sm font-medium text-zinc-500 mt-1">{t("Promotions, publicité sponsorisée et partage rapide.")}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => setShowPromoModal(true)} className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md cursor-pointer">
+          <button onClick={() => setShowPromoModal(true)} className="flex items-center gap-2 bg-gradient-to-r from-[#E99856] to-[#d8823e] text-[#1A1836] px-4 py-2.5 rounded-xl font-extrabold text-xs shadow-sm cursor-pointer border-none">
             <Plus className="w-4 h-4" /><span>{t("Nouvelle Promo")}</span>
           </button>
-          <button onClick={() => setShowSponsoModal(true)} className="flex items-center gap-2 bg-zinc-900 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md cursor-pointer">
-            <Sparkles className="w-4 h-4 text-amber-400" /><span>{t("Booster avec Publicité")}</span>
+          <button onClick={() => setShowSponsoModal(true)} className="flex items-center gap-2 bg-gradient-to-r from-[#1A1836] to-[#622347] text-white px-4 py-2.5 rounded-xl font-extrabold text-xs shadow-sm cursor-pointer border-none">
+            <Sparkles className="w-4 h-4 text-[#E99856]" /><span>{t("Booster avec Publicité")}</span>
           </button>
         </div>
       </div>

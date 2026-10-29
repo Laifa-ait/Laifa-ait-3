@@ -8,6 +8,7 @@ import {
   Save,
   PanelLeft,
   PanelRight,
+  Search,
 } from "lucide-react";
 import { SaveStatus } from "../../hooks/useSellerStudio";
 import { StoreHistoryEntry } from "../../../../../domains/seller/customPage.types";
@@ -96,7 +97,7 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
       );
     }
     return (
-      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] text-[#667085] bg-[#F8FAFC] border border-[#E5E7EB]">
+      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] text-[#023859] bg-[#F0F7FA] border border-[#54ACBF]/30 font-semibold">
         <span className="w-2 h-2 rounded-full bg-[#16A34A]" />
         <span>Prêt</span>
       </span>
@@ -104,34 +105,34 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
   };
 
   return (
-    <header className="h-14 bg-white border-b border-[#E5E7EB] px-4 flex items-center justify-between shadow-2xs select-none">
+    <header className="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-2xs select-none">
       {/* Left: Back & Sidebar Toggles */}
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={handleBack}
-          className="p-2 text-[#667085] hover:text-[#17191C] hover:bg-[#F1F3F5] rounded-lg transition-colors cursor-pointer"
+          className="p-2 text-slate-600 hover:text-[#011C40] hover:bg-[#F0F7FA] rounded-lg transition-colors cursor-pointer"
           title="Retour au Tableau de bord"
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
 
-        <div className="h-4 w-px bg-[#E5E7EB] mx-1" />
+        <div className="h-4 w-px bg-slate-200 mx-1" />
 
         <button
           type="button"
           onClick={onToggleLeftSidebar}
           className={`p-2 rounded-lg transition-colors cursor-pointer ${
             showLeftSidebar
-              ? "text-[#17191C] bg-[#F1F3F5]"
-              : "text-[#667085] hover:text-[#17191C] hover:bg-[#F1F3F5]"
+              ? "text-[#023859] bg-[#F0F7FA] border border-[#54ACBF]/40"
+              : "text-slate-600 hover:text-[#011C40] hover:bg-slate-100 border border-transparent"
           }`}
           title="Afficher/Masquer le panneau de navigation"
         >
           <PanelLeft className="w-4 h-4" />
         </button>
 
-        <span className="text-xs font-black text-[#17191C] tracking-tight max-w-[150px] sm:max-w-[220px] truncate">
+        <span className="text-xs font-black text-[#011C40] tracking-tight max-w-[150px] sm:max-w-[220px] truncate">
           {shopName}
         </span>
       </div>
@@ -147,14 +148,27 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
       />
 
       {/* Right: Actions & Publishing */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         {renderSaveStatus()}
+
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent("studio:open-command-palette"))}
+          className="h-8 px-2.5 text-slate-600 hover:text-[#023859] bg-slate-50 hover:bg-[#F0F7FA] border border-slate-200 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+          title="Recherche rapide & Commandes (Ctrl+K)"
+        >
+          <Search className="w-3.5 h-3.5 text-[#023859]" />
+          <span className="hidden xl:inline">Actions</span>
+          <kbd className="hidden lg:inline px-1 py-0.5 text-[9px] font-mono bg-white border border-slate-200 rounded text-slate-500">
+            ⌘K
+          </kbd>
+        </button>
 
         {onSaveDraft && (
           <button
             type="button"
             onClick={onSaveDraft}
-            className="p-2 text-[#667085] hover:text-[#17191C] hover:bg-[#F1F3F5] rounded-lg transition-colors cursor-pointer"
+            className="p-2 text-slate-600 hover:text-[#023859] hover:bg-[#F0F7FA] rounded-lg transition-colors cursor-pointer"
             title="Enregistrer manuellement"
           >
             <Save className="w-4 h-4" />
@@ -164,7 +178,7 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
         <button
           type="button"
           onClick={() => setIsHistoryOpen(true)}
-          className="p-2 text-[#667085] hover:text-[#17191C] hover:bg-[#F1F3F5] rounded-lg transition-colors cursor-pointer"
+          className="p-2 text-slate-600 hover:text-[#023859] hover:bg-[#F0F7FA] rounded-lg transition-colors cursor-pointer"
           title="Historique des versions"
         >
           <History className="w-4 h-4" />
@@ -175,7 +189,7 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
             href={`/store/${shopSlug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 text-[#667085] hover:text-[#17191C] hover:bg-[#F1F3F5] rounded-lg transition-colors"
+            className="p-2 text-slate-600 hover:text-[#023859] hover:bg-[#F0F7FA] rounded-lg transition-colors"
             title="Voir la boutique publique"
           >
             <ExternalLink className="w-4 h-4" />
@@ -187,8 +201,8 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
           onClick={onToggleRightSidebar}
           className={`p-2 rounded-lg transition-colors cursor-pointer ${
             showRightSidebar
-              ? "text-[#17191C] bg-[#F1F3F5]"
-              : "text-[#667085] hover:text-[#17191C] hover:bg-[#F1F3F5]"
+              ? "text-[#023859] bg-[#F0F7FA] border border-[#54ACBF]/40"
+              : "text-slate-600 hover:text-[#011C40] hover:bg-slate-100 border border-transparent"
           }`}
           title="Afficher/Masquer l'inspecteur"
         >
@@ -198,7 +212,7 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
         <button
           type="button"
           onClick={() => setIsPublishModalOpen(true)}
-          className="h-9 px-3.5 rounded-xl bg-[#B85B35] hover:bg-[#A04E2C] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-transform active:scale-95 cursor-pointer ml-1"
+          className="h-9 px-3.5 rounded-xl bg-[#023859] hover:bg-[#011C40] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer ml-1"
         >
           <Send className="w-3.5 h-3.5" />
           <span>Publier</span>

@@ -47,7 +47,7 @@ export const HeroSubPanelSelector: React.FC<HeroSubPanelSelectorProps> = ({
             }}
             className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer shrink-0 ${
               isActive
-                ? "bg-[#F97316] text-white shadow-xs"
+                ? "bg-[#023859] text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
             }`}
           >

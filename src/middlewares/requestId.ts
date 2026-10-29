@@ -63,11 +63,24 @@ export function requestIdMiddleware(req: Request, res: Response, next: NextFunct
     const endHr = process.hrtime.bigint();
     const durationMs = Number(endHr - startHr) / 1_000_000;
     const statusCode = res.statusCode;
+    const rawPath = req.originalUrl || req.path || "";
+
+    // Ignorer le bruit des modules Vite / assets statiques en développement (évite aussi les faux positifs sur errorAgent.ts / ErrorBoundary.tsx)
+    const isStaticOrViteModule =
+      rawPath.startsWith("/src/") ||
+      rawPath.startsWith("/node_modules/") ||
+      rawPath.startsWith("/@") ||
+      rawPath.startsWith("/assets/") ||
+      /\.(tsx?|jsx?|css|svg|png|jpe?g|webp|gif|ico|woff2?|ttf|map)(\?.*)?$/i.test(rawPath);
+
+    if (isStaticOrViteModule && statusCode < 400) {
+      return;
+    }
 
     const logData = {
       requestId: finalRequestId,
       method: req.method,
-      path: req.originalUrl || req.path,
+      path: rawPath,
       statusCode,
       durationMs: Number(durationMs.toFixed(2)),
       ip: traceContext.ip,

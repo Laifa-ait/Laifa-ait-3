@@ -1,27 +1,9 @@
 import React, { useState, useEffect } from "react";
 import {
-  MoveUp,
-  MoveDown,
-  Eye,
-  EyeOff,
-  GripVertical,
-  Trash2,
-  Copy,
-  ChevronRight,
-  ChevronDown,
-  Image as ImageIcon,
-  ShoppingBag,
-  BookOpen,
-  Award,
-  Truck,
-  HelpCircle,
-  Layout,
-  Grid,
-  Layers,
-  Sparkles,
-  ShieldCheck,
-  Phone,
-  RotateCcw,
+  MoveUp, MoveDown, Eye, EyeOff, GripVertical, Trash2, Copy,
+  ChevronRight, ChevronDown, Image as ImageIcon, ShoppingBag,
+  BookOpen, Award, Truck, HelpCircle, Layout, Grid, Layers,
+  Sparkles, ShieldCheck, Phone, RotateCcw,
 } from "lucide-react";
 import { CustomPageSection } from "../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../domains/product/product.types";
@@ -46,14 +28,14 @@ const SECTION_TYPE_MAP: Record<
   string,
   { icon: React.ComponentType<{ className?: string }>; label: string; color: string }
 > = {
-  hero_banner: { icon: ImageIcon, label: "Bannière principale", color: "bg-orange-50 text-[#F97316]" },
+  hero_banner: { icon: ImageIcon, label: "Bannière principale", color: "bg-[#F0F7FA] text-[#023859]" },
   promo_carousel: { icon: Sparkles, label: "Carrousel promo", color: "bg-amber-50 text-amber-600" },
-  featured_categories: { icon: Grid, label: "Catégories", color: "bg-blue-50 text-blue-600" },
+  featured_categories: { icon: Grid, label: "Catégories", color: "bg-[#F0F7FA] text-[#023859]" },
   curated_collections: { icon: Layers, label: "Collections", color: "bg-indigo-50 text-indigo-600" },
   new_arrivals: { icon: Sparkles, label: "Nouveautés", color: "bg-emerald-50 text-emerald-600" },
-  featured_products: { icon: ShoppingBag, label: "Produits vedettes", color: "bg-blue-50 text-blue-600" },
+  featured_products: { icon: ShoppingBag, label: "Produits vedettes", color: "bg-[#F0F7FA] text-[#023859]" },
   best_sellers: { icon: Award, label: "Meilleures ventes", color: "bg-amber-50 text-amber-600" },
-  product_grid: { icon: ShoppingBag, label: "Catalogue complet", color: "bg-blue-50 text-blue-600" },
+  product_grid: { icon: ShoppingBag, label: "Catalogue complet", color: "bg-[#F0F7FA] text-[#023859]" },
   brand_story: { icon: BookOpen, label: "Notre Histoire", color: "bg-purple-50 text-purple-600" },
   showcase_video: { icon: ImageIcon, label: "Vidéo vitrine", color: "bg-violet-50 text-violet-600" },
   verified_reviews: { icon: ShieldCheck, label: "Avis vérifiés", color: "bg-rose-50 text-rose-600" },
@@ -64,17 +46,8 @@ const SECTION_TYPE_MAP: Record<
 };
 
 export const SectionCard: React.FC<SectionCardProps> = ({
-  sec,
-  idx,
-  totalSections,
-  isSelected,
-  products = [],
-  onSelectSection,
-  onUpdateSection,
-  onReorder,
-  onToggleVisibility,
-  onRequestDelete,
-  onDuplicateSection,
+  sec, idx, totalSections, isSelected, products = [],
+  onSelectSection, onUpdateSection, onReorder, onToggleVisibility, onRequestDelete, onDuplicateSection,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const canExpand = hasExpandableSubBlocks(sec.type);
@@ -86,27 +59,23 @@ export const SectionCard: React.FC<SectionCardProps> = ({
   const selectSection = useStudioStore((s) => s.selectSection);
 
   useEffect(() => {
-    if (isSelected && canExpand) {
-      setIsExpanded(true);
-    }
+    if (isSelected && canExpand) setIsExpanded(true);
   }, [isSelected, canExpand]);
 
   const typeConfig = SECTION_TYPE_MAP[sec.type] || {
-    icon: Layout,
-    label: sec.type.replace(/_/g, " "),
-    color: "bg-slate-100 text-slate-600",
+    icon: Layout, label: sec.type.replace(/_/g, " "), color: "bg-slate-100 text-slate-600",
   };
   const SectionIcon = typeConfig.icon;
   const settings = (sec.settings || {}) as Record<string, unknown>;
   const imageUrl = (settings.imageUrl || settings.bannerUrl) as string | undefined;
 
   const handleSelectMainSection = () => {
+    window.dispatchEvent(new CustomEvent("studio:navigate-page", { detail: { viewMode: "home" } }));
     selectSection(sec.id, null);
     onSelectSection(sec.id);
-    const el = document.getElementById(`studio-section-${sec.id}`);
-    if (el && typeof el.scrollIntoView === "function") {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
+    setTimeout(() => {
+      document.getElementById(`studio-section-${sec.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 30);
   };
 
   return (
@@ -132,31 +101,25 @@ export const SectionCard: React.FC<SectionCardProps> = ({
         e.preventDefault();
         setIsDraggingSection(false);
         const fromIdx = parseInt(e.dataTransfer.getData("text/plain"), 10);
-        if (!isNaN(fromIdx) && fromIdx !== idx) {
-          onReorder(fromIdx, idx);
-        }
+        if (!isNaN(fromIdx) && fromIdx !== idx) onReorder(fromIdx, idx);
       }}
       className={[
         "rounded-xl border bg-white p-2.5 transition-all cursor-pointer select-none",
         isSelected
-          ? "border-[#F97316] bg-[#FFF7ED] ring-1 ring-[#F97316]/30 shadow-xs"
-          : "border-[#E5E7EB] hover:border-[#D0D5DD] hover:shadow-2xs",
+          ? "border-[#023859] bg-[#F0F7FA]/70 ring-1 ring-[#023859]/25 shadow-xs"
+          : "border-[#E5E7EB] hover:border-[#54ACBF] hover:shadow-2xs",
         !sec.isVisible ? "opacity-60 bg-[#F9FAFB]" : "",
-        isDragging ? "opacity-30 border-dashed border-[#F97316]" : "",
+        isDragging ? "opacity-30 border-dashed border-[#023859]" : "",
       ].join(" ")}
       onClick={handleSelectMainSection}
     >
-      {/* Top Row: Expand Chevron + Handle + Icon/Thumb + Title */}
       <div className="flex items-center gap-1.5 min-w-0">
         {canExpand ? (
           <button
             type="button"
             title={isExpanded ? "Replier les sous-blocs" : "Déplier les sous-blocs"}
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsExpanded((prev) => !prev);
-            }}
-            className="flex h-6 w-5 items-center justify-center rounded-md text-[#667085] hover:bg-orange-100 hover:text-[#F97316] cursor-pointer shrink-0 transition-colors"
+            onClick={(e) => { e.stopPropagation(); setIsExpanded((prev) => !prev); }}
+            className="flex h-6 w-5 items-center justify-center rounded-md text-[#667085] hover:bg-[#F0F7FA] hover:text-[#023859] cursor-pointer shrink-0 transition-colors"
           >
             {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
           </button>
@@ -164,10 +127,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
           <span className="w-2 shrink-0" />
         )}
 
-        <span
-          title="Glisser pour réorganiser"
-          className="flex h-7 w-4 items-center justify-center text-[#9CA3AF] hover:text-[#17191C] cursor-grab active:cursor-grabbing shrink-0"
-        >
+        <span title="Glisser pour réorganiser" className="flex h-7 w-4 items-center justify-center text-[#9CA3AF] hover:text-[#011C40] cursor-grab active:cursor-grabbing shrink-0">
           <GripVertical className="h-4 w-4" />
         </span>
 
@@ -183,13 +143,11 @@ export const SectionCard: React.FC<SectionCardProps> = ({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-[13px] font-bold text-[#17191C] block">
+            <span className="truncate text-[13px] font-bold text-[#011C40] block">
               {sec.title || typeConfig.label}
             </span>
             {!sec.isVisible && (
-              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 shrink-0">
-                Masquée
-              </span>
+              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 shrink-0">Masquée</span>
             )}
           </div>
           <span className="block truncate text-[10px] text-[#667085] font-semibold uppercase tracking-wider">
@@ -198,44 +156,27 @@ export const SectionCard: React.FC<SectionCardProps> = ({
         </div>
       </div>
 
-      {/* Shopify OS 2.0 2-Level Sub-Blocks Accordion */}
       {canExpand && isExpanded && (
-        <SectionSubBlocksTree
-          sec={sec}
-          products={products}
-          onSelectSection={onSelectSection}
-          onUpdateSection={onUpdateSection}
-        />
+        <SectionSubBlocksTree sec={sec} products={products} onSelectSection={onSelectSection} onUpdateSection={onUpdateSection} />
       )}
 
-      {/* Bottom Compact Action Bar */}
-      <div
-        className="mt-2 pt-2 border-t border-[#E5E7EB]/70 flex items-center justify-between gap-1"
-        onClick={(event) => event.stopPropagation()}
-      >
+      <div className="mt-2 pt-2 border-t border-[#E5E7EB]/70 flex items-center justify-between gap-1" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-1">
           <button
             type="button"
             title="Monter la section"
             disabled={idx === 0}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (idx > 0) onReorder(idx, idx - 1);
-            }}
-            className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#FFF1E7] hover:border-[#FDBA74] text-[#475467] hover:text-[#F97316] disabled:opacity-30 disabled:cursor-not-allowed text-[11px] font-medium transition-colors cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); if (idx > 0) onReorder(idx, idx - 1); }}
+            className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#475467] hover:text-[#023859] disabled:opacity-30 disabled:cursor-not-allowed text-[11px] font-medium transition-colors cursor-pointer"
           >
             <MoveUp className="h-3.5 w-3.5" />
           </button>
-
           <button
             type="button"
             title="Descendre la section"
             disabled={idx === totalSections - 1}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (idx < totalSections - 1) onReorder(idx, idx + 1);
-            }}
-            className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#FFF1E7] hover:border-[#FDBA74] text-[#475467] hover:text-[#F97316] disabled:opacity-30 disabled:cursor-not-allowed text-[11px] font-medium transition-colors cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); if (idx < totalSections - 1) onReorder(idx, idx + 1); }}
+            className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#475467] hover:text-[#023859] disabled:opacity-30 disabled:cursor-not-allowed text-[11px] font-medium transition-colors cursor-pointer"
           >
             <MoveDown className="h-3.5 w-3.5" />
           </button>
@@ -245,40 +186,25 @@ export const SectionCard: React.FC<SectionCardProps> = ({
           <button
             type="button"
             title={sec.isVisible ? "Masquer la section" : "Afficher la section"}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleVisibility(sec.id);
-            }}
+            onClick={(e) => { e.stopPropagation(); onToggleVisibility(sec.id); }}
             className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0FDF4] hover:border-[#86EFAC] text-[#475467] text-[11px] font-medium transition-colors cursor-pointer"
           >
-            {sec.isVisible ? (
-              <Eye className="h-3.5 w-3.5 text-[#16A34A]" />
-            ) : (
-              <EyeOff className="h-3.5 w-3.5 text-[#9CA3AF]" />
-            )}
+            {sec.isVisible ? <Eye className="h-3.5 w-3.5 text-[#16A34A]" /> : <EyeOff className="h-3.5 w-3.5 text-[#9CA3AF]" />}
           </button>
-
           {onDuplicateSection && (
             <button
               type="button"
               title="Dupliquer la section"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDuplicateSection(sec.id);
-              }}
-              className="h-7 px-2 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-white hover:bg-[#FFF1E7] hover:border-[#FDBA74] text-[#475467] hover:text-[#F97316] transition-colors cursor-pointer"
+              onClick={(e) => { e.stopPropagation(); onDuplicateSection(sec.id); }}
+              className="h-7 px-2 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#475467] hover:text-[#023859] transition-colors cursor-pointer"
             >
               <Copy className="h-3.5 w-3.5" />
             </button>
           )}
-
           <button
             type="button"
             title="Supprimer la section"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRequestDelete(sec);
-            }}
+            onClick={(e) => { e.stopPropagation(); onRequestDelete(sec); }}
             className="h-7 px-2 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-white hover:bg-[#FEF2F2] hover:border-[#FCA5A5] text-[#DC2626] transition-colors cursor-pointer"
           >
             <Trash2 className="h-3.5 w-3.5" />

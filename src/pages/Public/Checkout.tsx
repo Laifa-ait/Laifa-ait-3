@@ -161,7 +161,7 @@ export const Checkout: React.FC = () => {
                isConverted={isConverted}
                isConverting={isConverting}
                handleGuestToFullConversion={handleGuestToFullConversion}
-               onNavigateToTracking={() => navigate('/buyer/orders')}
+               onNavigateToTracking={() => navigate('/dashboard/buyer?tab=orders')}
                onNavigateToShop={() => navigate('/shop')}
              />
           )}

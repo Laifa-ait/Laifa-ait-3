@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
-import { ShieldCheck, Upload, FileText, CheckCircle2, Clock, XCircle, Info, FileImage } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { storage, auth } from '../../lib/firebase';
-import { apiPut } from '../../lib/api';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import toast from 'react-hot-toast';
+import React, { useState } from "react";
+import { CheckCircle2, Clock, XCircle } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import { storage } from "../../lib/firebase";
+import { apiPut, apiPost } from "../../lib/api";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import { hasExternalChannel } from '../../utils/masking';
+import { hasExternalChannel } from "../../utils/masking";
+import {
+  VerificationDocumentsForm,
+  VerificationFormData,
+} from "./components/verification/VerificationDocumentsForm";
 
 interface SellerProfile {
   brandName?: string;
@@ -23,145 +27,107 @@ interface SellerProfile {
   };
 }
 
+interface OcrApiResponse {
+  success?: boolean;
+  result?: {
+    rcNumber?: string;
+    documentNumber?: string;
+  };
+}
+
 export const Verification: React.FC = () => {
-    const { t, i18n } = useTranslation();
-  const { userProfile } = useAuth();
+  const { t, i18n } = useTranslation();
+  const { userProfile, updateUserProfile } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState('');
-  const isArabic = i18n.language === 'ar' || i18n.language?.startsWith('ar');
-  
-  const profile = (userProfile as unknown) as SellerProfile;
+  const [uploadProgress, setUploadProgress] = useState("");
+  const isArabic = i18n.language === "ar" || i18n.language?.startsWith("ar");
 
-  const [formData, setFormData] = useState({
-    // Profil Artistique
-    brandName: profile?.brandName || '',
-    designStyle: profile?.designStyle || '',
-    portfolioUrl: profile?.portfolioUrl || '',
-    brandStory: profile?.brandStory || '',
-    // Legal & Administrative
-    rcNumber: profile?.rcNumber || '',
-    nifNumber: profile?.nifNumber || '',
-    rib: profile?.rib || '',
-    fileRC: profile?.documents?.fileRC || '',
-    fileId: profile?.documents?.fileId || '',
-    fileRib: profile?.documents?.fileRib || '',
+  const profile = userProfile as unknown as SellerProfile;
+
+  const [formData, setFormData] = useState<VerificationFormData>({
+    brandName: profile?.brandName || "",
+    designStyle: profile?.designStyle || "",
+    portfolioUrl: profile?.portfolioUrl || "",
+    brandStory: profile?.brandStory || "",
+    rcNumber: profile?.rcNumber || "",
+    nifNumber: profile?.nifNumber || "",
+    rib: profile?.rib || "",
+    fileRC: profile?.documents?.fileRC || "",
+    fileId: profile?.documents?.fileId || "",
+    fileRib: profile?.documents?.fileRib || "",
   });
-
-  // Dummy line to replace original init
 
   const [selectedFileRC, setSelectedFileRC] = useState<File | null>(null);
   const [selectedFileId, setSelectedFileId] = useState<File | null>(null);
   const [selectedFileRib, setSelectedFileRib] = useState<File | null>(null);
 
   const statuses = {
-    pending: { label: 'En attente de validation', icon: Clock, color: 'text-amber-500', bg: 'bg-amber-50' },
-    pending_verification: { label: 'En attente de validation', icon: Clock, color: 'text-amber-500', bg: 'bg-amber-50' },
-    active: { label: 'Profil Vérifié', icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-    rejected: { label: 'Validation Refusée', icon: XCircle, color: 'text-red-500', bg: 'bg-red-50' },
+    pending: { label: t("En attente de validation"), icon: Clock, color: "text-amber-700", bg: "bg-amber-50 border-amber-200" },
+    pending_verification: { label: t("En attente de validation"), icon: Clock, color: "text-amber-700", bg: "bg-amber-50 border-amber-200" },
+    active: { label: t("Boutique Certifiée"), icon: CheckCircle2, color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
+    rejected: { label: t("Validation Refusée"), icon: XCircle, color: "text-rose-700", bg: "bg-rose-50 border-rose-200" },
   };
 
-  const status = userProfile?.status || 'pending_verification';
+  const status = (userProfile?.status || "pending_verification").toLowerCase();
   const currentStatus = statuses[status as keyof typeof statuses] || statuses.pending_verification;
-
-  const simulateSubmission = async () => {
-     const uid = userProfile?.uid;
-     if (!uid) {
-       toast.error(isArabic ? "لم يتم التعرف على الهوية (Auth)" : "Non identifié (Auth)");
-       return;
-     }
-     setLoading(true);
-     try {
-       toast.loading(isArabic ? "جاري تشغيل المحاكاة..." : "Simulation en cours...", { id: "sim" });
-       
-       await apiPut("/api/v1/seller/profile/verification", {
-         brandName: userProfile?.displayName || userProfile?.name || "Simulateur Test",
-       });
-
-       toast.success(isArabic ? "نجحت المحاكاة! سيرى المشرف إخطارًا بالتحقق." : "Simulation réussie ! L'admin devrait voir une notification.", { id: "sim" });
-     } catch (err: unknown) {
-       console.error("Simulation error detail:", err);
-       const errMsg = err instanceof Error ? err.message : String(err);
-       toast.error((isArabic ? "خطأ في المحاكاة: " : "Erreur simulation: ") + errMsg, { id: "sim" });
-     } finally {
-       setLoading(false);
-     }
-   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const uid = userProfile?.uid;
-    if (!uid) {
-      toast.error(isArabic ? "يرجى تسجيل الدخول مجدداً." : "Veuillez vous reconnecter.");
-      return;
-    }
+    if (!uid) return void toast.error(t("Veuillez vous reconnecter."));
 
     if (
-      hasExternalChannel(formData.brandName) || 
-      hasExternalChannel(formData.designStyle) || 
+      hasExternalChannel(formData.brandName) ||
+      hasExternalChannel(formData.designStyle) ||
       hasExternalChannel(formData.brandStory)
     ) {
-      toast.error(t("external_channel_blocked", "Les coordonnees de communication exterieure (messages, liens ou reseaux) ne sont pas autorisees dans ce champ de texte. Tout contact doit s'effectuer exclusivement via la plateforme OLMART."));
+      toast.error(t("external_channel_blocked", "Les coordonnées extérieures ne sont pas autorisées dans ce champ."));
       return;
     }
 
-    const ALLOWED_KYC_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
-    const MAX_KYC_SIZE = 10 * 1024 * 1024; // 10MB
-
+    const ALLOWED_KYC_TYPES = ["application/pdf", "image/jpeg", "image/png"];
+    const MAX_KYC_SIZE = 10 * 1024 * 1024;
     const validateKYCFile = (file: File): boolean => {
       if (!ALLOWED_KYC_TYPES.includes(file.type)) {
-        toast.error(isArabic ? "تنسيق PDF أو JPG أو PNG فقط" : "Format PDF, JPG ou PNG uniquement");
+        toast.error(t("Format PDF, JPG ou PNG uniquement"));
         return false;
       }
       if (file.size > MAX_KYC_SIZE) {
-        toast.error(isArabic ? "ملف كبير جدًا (الحد الأقصى 10 ميغابايت)" : "Fichier trop volumineux (max 10MB)");
+        toast.error(t("Fichier trop volumineux (max 10 Mo)"));
         return false;
       }
       return true;
     };
+
+    if (selectedFileRC && !validateKYCFile(selectedFileRC)) return;
+    if (selectedFileId && !validateKYCFile(selectedFileId)) return;
+    if (selectedFileRib && !validateKYCFile(selectedFileRib)) return;
 
     setLoading(true);
     let finalFileRC = formData.fileRC;
     let finalFileId = formData.fileId;
     let finalFileRib = formData.fileRib;
 
-    // Validate files before upload
-    if (selectedFileRC && !validateKYCFile(selectedFileRC)) { setLoading(false); return; }
-    if (selectedFileId && !validateKYCFile(selectedFileId)) { setLoading(false); return; }
-    if (selectedFileRib && !validateKYCFile(selectedFileRib)) { setLoading(false); return; }
-
     try {
-      setUploadProgress(isArabic ? "جاري رفع المستندات (KYC)..." : "Upload sécurisé des documents (KYC Vault)...");
-      
+      setUploadProgress(t("Upload sécurisé des documents (KYC Vault)..."));
       const uploadKYCFile = async (file: File, prefix: string) => {
         try {
-          const extension = file.name.split('.').pop() || 'png';
-          const fileName = `${prefix}_${Date.now()}.${extension}`;
-          const storageRef = ref(storage, `kyc/${uid}/${fileName}`);
+          const extension = file.name.split(".").pop() || "png";
+          const storageRef = ref(storage, `kyc/${uid}/${prefix}_${Date.now()}.${extension}`);
           await uploadBytes(storageRef, file);
           return await getDownloadURL(storageRef);
         } catch (err) {
-          toast.error(isArabic ? "حدث خطأ أثناء تحميل المستند" : "Erreur lors de l'upload du document");
           console.error(err);
+          toast.error(t("Erreur lors de l'upload du document"));
           return null;
         }
       };
 
-      if (selectedFileRC) {
-         finalFileRC = await uploadKYCFile(selectedFileRC, "RC") || finalFileRC;
-      }
-      if (selectedFileId) {
-         finalFileId = await uploadKYCFile(selectedFileId, "ID") || finalFileId;
-      }
-      if (selectedFileRib) {
-         finalFileRib = await uploadKYCFile(selectedFileRib, "RIB") || finalFileRib;
-      }
+      if (selectedFileRC) finalFileRC = (await uploadKYCFile(selectedFileRC, "RC")) || finalFileRC;
+      if (selectedFileId) finalFileId = (await uploadKYCFile(selectedFileId, "ID")) || finalFileId;
+      if (selectedFileRib) finalFileRib = (await uploadKYCFile(selectedFileRib, "RIB")) || finalFileRib;
 
-      setUploadProgress(isArabic ? "جاري حفظ البيانات..." : "Sauvegarde des données...");
-      
-
-
-      // Primary Write: User Profile
-      (process.env.NODE_ENV === 'development' ? console.log : function(){})("Writing to users/", uid, { documents: { fileRC: !!finalFileRC, fileId: !!finalFileId, fileRib: !!finalFileRib } });
+      setUploadProgress(t("Sauvegarde des données..."));
       await apiPut("/api/v1/seller/profile/verification", {
         brandName: formData.brandName,
         designStyle: formData.designStyle,
@@ -170,298 +136,126 @@ export const Verification: React.FC = () => {
         rcNumber: formData.rcNumber,
         nifNumber: formData.nifNumber,
         rib: formData.rib,
-        documents: {
-          fileRC: finalFileRC,
-          fileId: finalFileId,
-          fileRib: finalFileRib,
-        }
+        documents: { fileRC: finalFileRC, fileId: finalFileId, fileRib: finalFileRib },
       });
-      
-      setFormData(prev => ({
-        ...prev,
-        fileRC: finalFileRC,
-        fileId: finalFileId,
-        fileRib: finalFileRib,
-      }));
+
+      setFormData((prev) => ({ ...prev, fileRC: finalFileRC, fileId: finalFileId, fileRib: finalFileRib }));
       setSelectedFileRC(null);
       setSelectedFileId(null);
       setSelectedFileRib(null);
-      setUploadProgress('');
-      toast.success(isArabic ? "تم إرسال المستندات للتحقق بنجاح!" : "Documents envoyés pour validation !");
+      setUploadProgress("");
+      await updateUserProfile();
+      toast.success(t("Documents envoyés pour validation !"));
     } catch (err: unknown) {
       console.error("Critical submission error:", err);
-      const errMsg = err instanceof Error ? err.message : String(err);
-      toast.error(isArabic ? `خطأ: ${errMsg || "فشل إرسال المستندات"}` : `Erreur: ${errMsg || "Impossible d'envoyer les documents"}`);
-      setUploadProgress('');
+      toast.error(err instanceof Error ? err.message : t("Impossible d'envoyer les documents"));
+      setUploadProgress("");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'RC' | 'Id' | 'Rib') => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: "RC" | "Id" | "Rib") => {
     const file = e.target.files?.[0];
-    if (file) {
-      const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
-      if (!allowedTypes.includes(file.type.toLowerCase())) {
-         toast.error(isArabic ? "صيغة الملف غير مدعومة. يرجى تحميل ملف PDF أو صورة PNG/JPEG." : "Format de fichier non supporté. Veuillez uploader un fichier PDF ou une image PNG/JPEG.");
-         return;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-         toast.error(isArabic ? "الملف كبير جداً (الأقصى 10 ميجابايت)." : "Le fichier est trop lourd (Max 10Mo).");
-         return;
-      }
-      const previewUrl = URL.createObjectURL(file);
-      if (type === 'RC') {
-        setSelectedFileRC(file);
-        setFormData(prev => ({ ...prev, fileRC: previewUrl }));
-      } else if (type === 'Id') {
-        setSelectedFileId(file);
-        setFormData(prev => ({ ...prev, fileId: previewUrl }));
-      } else {
-        setSelectedFileRib(file);
-        setFormData(prev => ({ ...prev, fileRib: previewUrl }));
-      }
+    if (!file) return;
+    const allowedTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
+    if (!allowedTypes.includes(file.type.toLowerCase()) || file.size > 10 * 1024 * 1024) {
+      toast.error(t("Format PDF/PNG/JPEG uniquement (Max 10 Mo)."));
+      return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    if (type === "RC") {
+      setSelectedFileRC(file);
+      setFormData((prev) => ({ ...prev, fileRC: previewUrl }));
+    } else if (type === "Id") {
+      setSelectedFileId(file);
+      setFormData((prev) => ({ ...prev, fileId: previewUrl }));
+    } else {
+      setSelectedFileRib(file);
+      setFormData((prev) => ({ ...prev, fileRib: previewUrl }));
+    }
 
-      // Auto-OCR logic for RC and ID
-      if ((type === 'RC' && !formData.rcNumber) || (type === 'Id' && !formData.nifNumber)) {
-         try {
-           toast.loading(isArabic ? "جاري استخراج البيانات تلقائيًا..." : "Extraction automatique des données...", { id: "ocr-toast" });
-           
-           // Convert file to base64
-           const reader = new FileReader();
-           reader.onloadend = async () => {
-             const result = reader.result as string;
-             const base64Data = result.split(',')[1];
-             const authHeader = await auth.currentUser?.getIdToken();
-
-             const res = await fetch("/api/v1/seller/ocr", {
-               method: "POST",
-               headers: {
-                 "Content-Type": "application/json",
-                 "Authorization": `Bearer ${authHeader}`
-               },
-               body: JSON.stringify({
-                 type: type === 'RC' ? 'RC' : 'ID',
-                 base64Data,
-                 mimeType: file.type
-               })
-             });
-
-             if (res.ok) {
-               const data = await res.json();
-               if (data.result) {
-                 if (type === 'RC' && data.result.rcNumber) {
-                   setFormData(prev => ({ ...prev, rcNumber: data.result.rcNumber }));
-                   toast.success(isArabic ? "تم استخراج رقم السجل التجاري!" : "Numéro RC extrait avec succès !", { id: "ocr-toast" });
-                 } else if (type === 'Id' && data.result.documentNumber) {
-                   setFormData(prev => ({ ...prev, nifNumber: data.result.documentNumber }));
-                   toast.success(isArabic ? "تم استخراج رقم الهوية!" : "Numéro d'identité extrait avec succès !", { id: "ocr-toast" });
-                 } else {
-                   toast.dismiss("ocr-toast");
-                 }
-               }
-             } else {
-               toast.dismiss("ocr-toast");
-             }
-           };
-           reader.readAsDataURL(file);
-         } catch (e) {
-           toast.dismiss("ocr-toast");
-           console.error("OCR Auto-fill error:", e);
-         }
+    if ((type === "RC" && !formData.rcNumber) || (type === "Id" && !formData.nifNumber)) {
+      try {
+        toast.loading(isArabic ? "جاري استخراج البيانات..." : "Extraction automatique des données...", { id: "ocr-toast" });
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          try {
+            const base64Data = (reader.result as string).split(",")[1];
+            const data = await apiPost<OcrApiResponse>("/api/v1/seller/ocr", {
+              type: type === "RC" ? "RC" : "ID",
+              imageBase64: base64Data,
+              base64Data,
+              mimeType: file.type,
+            });
+            if (type === "RC" && data?.result?.rcNumber) {
+              setFormData((prev) => ({ ...prev, rcNumber: data.result?.rcNumber || "" }));
+              toast.success(t("Numéro RC extrait avec succès !"), { id: "ocr-toast" });
+              return;
+            }
+            if (type === "Id" && data?.result?.documentNumber) {
+              setFormData((prev) => ({ ...prev, nifNumber: data.result?.documentNumber || "" }));
+              toast.success(t("Numéro d'identité extrait avec succès !"), { id: "ocr-toast" });
+              return;
+            }
+          } catch {
+            // Silent fallback when OCR is unavailable
+          }
+          toast.dismiss("ocr-toast");
+        };
+        reader.readAsDataURL(file);
+      } catch (err) {
+        toast.dismiss("ocr-toast");
+        console.error("OCR Auto-fill error:", err);
       }
     }
   };
 
+  const hasLegalChanges =
+    formData.rcNumber !== (userProfile?.rcNumber || "") ||
+    formData.nifNumber !== (userProfile?.nifNumber || "") ||
+    formData.rib !== (userProfile?.rib || "") ||
+    selectedFileRC !== null ||
+    selectedFileId !== null ||
+    selectedFileRib !== null;
+
   return (
-    <div className="max-w-4xl space-y-10">
+    <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h2 className="text-3xl font-sans font-bold tracking-tight rtl:tracking-normal text-zinc-950">{t("Vérification & Documents")}</h2>
-        <p className="text-zinc-500 font-medium mt-2">{t("Conformément à la Loi 18-05 du commerce électronique en Algérie.")}</p>
+        <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#1A1836]">
+          {t("Vérification KYC & Conformité Légale")}
+        </h2>
+        <p className="text-zinc-500 text-xs sm:text-sm mt-1">
+          {t("Conformément à la Loi 18-05 du commerce électronique en Algérie.")}
+        </p>
       </div>
 
-      {/* Status Banner */}
-      <div className={`p-8 rounded-[2.5rem] border ${currentStatus.color.replace('text-', 'border-')} ${currentStatus.bg} flex flex-col md:flex-row items-center justify-between gap-6`}>
-         <div className="flex items-center gap-6 text-center md:text-start">
-            <div className={`w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center ${currentStatus.color}`}>
-               <currentStatus.icon className="w-8 h-8" />
-            </div>
-            <div>
-               <h3 className={`text-xl font-black ${currentStatus.color}`}>{currentStatus.label}</h3>
-               <p className="text-zinc-600 text-sm font-medium">
-                 {status === 'active' 
-                   ? 'Votre boutique est certifiée et vos paiements sont débloqués.' 
-                   : 'Nos agents examinent vos documents (délai moyen : 24h).'}
-               </p>
-            </div>
-         </div>
+      <div className={`p-6 rounded-3xl border ${currentStatus.bg} flex items-center gap-4`}>
+        <div className={`w-12 h-12 rounded-2xl bg-white shadow-2xs flex items-center justify-center shrink-0 ${currentStatus.color}`}>
+          <currentStatus.icon className="w-6 h-6" />
+        </div>
+        <div>
+          <h3 className={`text-base sm:text-lg font-extrabold ${currentStatus.color}`}>{currentStatus.label}</h3>
+          <p className="text-zinc-600 text-xs sm:text-sm">
+            {status === "active"
+              ? t("Votre boutique est certifiée et vos produits sont visibles publiquement.")
+              : t("Nos agents examinent vos pièces justificatives (délai moyen : 24h).")}
+          </p>
+        </div>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] border border-zinc-100 shadow-sm overflow-hidden p-10">
-         {process.env.NODE_ENV === 'development' && (
-           <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-6 flex items-start gap-4 mb-10">
-               <ShieldCheck className="w-6 h-6 text-emerald-600 mt-1" />
-               <div className="flex-1">
-                  <p className="text-emerald-900 font-sans font-bold text-[12px] uppercase tracking-widest rtl:tracking-normal">{t("Mode Diagnostic Olma")}</p>
-                  <p className="text-emerald-700/80 text-[11px] font-medium mt-1 leading-relaxed">
-                    {t("Utilisez ce bouton pour tester instantanément si l'administration reçoit vos signaux de validation.")}</p>
-                  <button 
-                    type="button"
-                    onClick={simulateSubmission}
-                    disabled={loading}
-                    className="mt-4 px-6 py-2.5 bg-emerald-600 text-white text-[10px] uppercase font-sans font-bold tracking-widest rtl:tracking-normal rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 cursor-pointer border-none disabled:opacity-50"
-                  >
-                    {t("SIMULER UNE RÉCEPTION ADMIN")}</button>
-               </div>
-            </div>
-         )}
-
-         <form onSubmit={handleSubmit} className="space-y-10">
-            {/* Étape 1 : Le Profil Artistique */}
-            <div className="space-y-6 bg-zinc-50/50 p-6 rounded-3xl border border-zinc-100">
-              <h4 className="text-xs font-sans font-bold uppercase tracking-widest rtl:tracking-normal text-[#c2a878] flex items-center gap-2">
-                 <ShieldCheck className="w-4 h-4" />
-                 {t("Étape 1 : Votre Profil Artistique")}</h4>
-              <div className="grid md:grid-cols-2 gap-6">
-                 <div>
-                    <label className="block text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-1.5 ml-1">{t("Nom de la marque / Atelier")}</label>
-                    <input required type="text" className="w-full px-5 py-4 bg-white border border-zinc-100 rounded-2xl outline-none font-bold" value={formData.brandName || ''} onChange={(e) => setFormData({...formData, brandName: e.target.value})} placeholder={t("Ex: Maison Olma") || "Ex: Maison Olma"} />
-                 </div>
-                 <div>
-                    <label className="block text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-1.5 ml-1">{t("Style de design principal")}</label>
-                    <select required className="w-full px-5 py-4 bg-white border border-zinc-100 rounded-2xl outline-none font-bold text-zinc-800" value={formData.designStyle || ''} onChange={(e) => setFormData({...formData, designStyle: e.target.value})}>
-                      <option value="" disabled>{t("Sélectionnez un style...")}</option>
-                      <option value="Contemporain">{t("Contemporain")}</option>
-                      <option value="Minimaliste">{t("Minimaliste")}</option>
-                      <option value="Mid-Century">{t("Mid-Century")}</option>
-                      <option value="Artisanal">{t("Artisanal")}</option>
-                      <option value="Industriel">{t("Industriel")}</option>
-                      <option value="Autre">{t("Autre")}</option>
-                    </select>
-                 </div>
-                 <div className="md:col-span-2">
-                    <label className="block text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-1.5 ml-1">{t("Lien vers Portfolio (Site Web)")}</label>
-                    <input required type="url" className="w-full px-5 py-4 bg-white border border-zinc-100 rounded-2xl outline-none font-bold" value={formData.portfolioUrl || ''} onChange={(e) => setFormData({...formData, portfolioUrl: e.target.value})} placeholder="https://votre-portfolio.dz" />
-                 </div>
-                 <div className="md:col-span-2">
-                    <label className="block text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-1.5 ml-1">{t("L'histoire de votre marque (Optionnel)")}</label>
-                    <textarea className="w-full px-5 py-4 bg-white border border-zinc-100 rounded-2xl outline-none font-medium h-32 resize-none" value={formData.brandStory || ''} onChange={(e) => setFormData({...formData, brandStory: e.target.value})} placeholder={t("Décrivez votre démarche artistique, vos matériaux...") || "Décrivez votre démarche artistique, vos matériaux..."} />
-                 </div>
-              </div>
-            </div>
-
-            {/* Étape 2 : Conformité Légale */}
-            <div className="grid md:grid-cols-2 gap-8 pt-4">
-               <div className="space-y-6">
-                  <h4 className="text-xs font-sans font-bold uppercase tracking-widest rtl:tracking-normal text-zinc-500 flex items-center gap-2">
-                     <FileText className="w-4 h-4" />
-                     {t("Étape 2 : Informations Légales")}</h4>
-                  <div className="space-y-4">
-                     <div>
-                        <label className="block text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-1.5 ml-1">{t("Numéro Registre de Commerce (RC)")}</label>
-                        <input required type="text" className="w-full px-5 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none font-bold" value={formData.rcNumber || ''} onChange={(e) => setFormData({...formData, rcNumber: e.target.value})} />
-                     </div>
-                     <div>
-                        <label className="block text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-1.5 ml-1">{t("NIF (Identifiant Fiscal)")}</label>
-                        <input required type="text" className="w-full px-5 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none font-bold" value={formData.nifNumber || ''} onChange={(e) => setFormData({...formData, nifNumber: e.target.value})} />
-                     </div>
-                     <div>
-                        <label className="block text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-1.5 ml-1">{t("Compte Bancaire / CCP (RIB/RIP)")}</label>
-                        <input required type="text" className="w-full px-5 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none font-sans font-bold" value={formData.rib || ''} onChange={(e) => setFormData({...formData, rib: e.target.value})} />
-                     </div>
-                  </div>
-               </div>
-
-               <div className="space-y-6">
-                  <h4 className="text-xs font-sans font-bold uppercase tracking-widest rtl:tracking-normal text-[#ea580c] flex items-center gap-2">
-                     <Upload className="w-4 h-4" />
-                     {t("Justificatifs (Fichiers)")}</h4>
-                  <div className="space-y-4">
-                     <div>
-                        <label className="block text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-1.5 ml-1">{t("Photo / Scan du Registre de Commerce")}</label>
-                        <div className="relative overflow-hidden w-full px-5 py-4 bg-zinc-50 border border-zinc-200 border-dashed rounded-2xl flex items-center justify-center hover:bg-zinc-100 transition-colors cursor-pointer">
-                           <input required={!formData.fileRC} type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, 'RC')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                           <div className="flex flex-col items-center flex-1 text-center gap-1 pointer-events-none">
-                               <FileImage className={`w-5 h-5 ${formData.fileRC ? 'text-emerald-500' : 'text-zinc-400'}`} />
-                               <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest rtl:tracking-normal truncate max-w-[200px]">
-                                   {formData.fileRC ? "Fichier chargé" : "Déposer Registre de Commerce"}
-                               </span>
-                           </div>
-                        </div>
-                     </div>
-                     <div>
-                        <label className="block text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-1.5 ml-1">{t("Pièce d'identité (CNI / Passeport)")}</label>
-                        <div className="relative overflow-hidden w-full px-5 py-4 bg-zinc-50 border border-zinc-200 border-dashed rounded-2xl flex items-center justify-center hover:bg-zinc-100 transition-colors cursor-pointer">
-                           <input required={!formData.fileId} type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, 'Id')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                           <div className="flex flex-col items-center flex-1 text-center gap-1 pointer-events-none">
-                               <FileImage className={`w-5 h-5 ${formData.fileId ? 'text-emerald-500' : 'text-zinc-400'}`} />
-                               <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest rtl:tracking-normal truncate max-w-[200px]">
-                                   {formData.fileId ? "Fichier chargé" : "Déposer Pièce d'identité"}
-                               </span>
-                           </div>
-                        </div>
-                     </div>
-                     <div>
-                        <label className="block text-[10px] font-sans font-bold text-zinc-400 uppercase tracking-widest rtl:tracking-normal mb-1.5 ml-1">{t("Attestation de compte / Chèque annulé (RIB)")}</label>
-                        <div className="relative overflow-hidden w-full px-5 py-4 bg-zinc-50 border border-zinc-200 border-dashed rounded-2xl flex items-center justify-center hover:bg-zinc-100 transition-colors cursor-pointer">
-                           <input required={!formData.fileRib} type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, 'Rib')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                           <div className="flex flex-col items-center flex-1 text-center gap-1 pointer-events-none">
-                               <FileImage className={`w-5 h-5 ${formData.fileRib ? 'text-emerald-500' : 'text-zinc-400'}`} />
-                               <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest rtl:tracking-normal truncate max-w-[200px]">
-                                   {formData.fileRib ? "Fichier chargé" : "Déposer Attestation RIB"}
-                               </span>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-               </div>
-            </div>
-
-            <div className="bg-zinc-50 rounded-2xl p-6 flex gap-4">
-               <Info className="w-6 h-6 text-zinc-400 shrink-0" />
-               <p className="text-xs text-zinc-500 leading-relaxed font-medium">
-                 {t("En soumettant ces documents, vous certifiez l'exactitude des informations fournies. Toute fausse déclaration entraînera la suspension définitive du compte vendeur et des poursuites judiciaires.")}</p>
-            </div>
-
-            {status === 'active' && (
-               formData.rcNumber !== (userProfile?.rcNumber || '') || 
-               formData.nifNumber !== (userProfile?.nifNumber || '') || 
-               formData.rib !== (userProfile?.rib || '') || 
-               selectedFileRC !== null || 
-               selectedFileId !== null || 
-               selectedFileRib !== null
-            ) && (
-               <div id="kyc-warning" className="bg-red-50 border border-red-200 text-red-800 rounded-2xl p-6 text-xs font-medium flex gap-3 mb-4 animate-pulse">
-                  <Info className="w-5 h-5 text-red-500 shrink-0" />
-                  <div>
-                     <p className="font-bold uppercase tracking-wider rtl:tracking-normal mb-1">{t("Attention : Révocation de Certification")}</p>
-                     <p>{t("La modification de vos informations légales (RC, NIF, RIB) ou des justificatifs révoquera immédiatement votre statut")}<strong>{t("Certifié")}</strong> {t("et remettra votre compte en attente de vérification.")}</p>
-                  </div>
-               </div>
-            )}
-
-            <button type="submit" disabled={loading} className="w-full relative bg-zinc-950 text-white py-5 rounded-[2rem] font-sans font-bold uppercase tracking-widest rtl:tracking-normal text-sm hover:bg-zinc-900 transition-all shadow-2xl disabled:opacity-50 overflow-hidden">
-               {loading ? (
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                     <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                     {uploadProgress || 'Traitement...'}
-                  </span>
-               ) : (status === 'active' && !(
-                  formData.rcNumber !== (userProfile?.rcNumber || '') || 
-                  formData.nifNumber !== (userProfile?.nifNumber || '') || 
-                  formData.rib !== (userProfile?.rib || '') || 
-                  selectedFileRC !== null || 
-                  selectedFileId !== null || 
-                  selectedFileRib !== null
-               )) ? (
-                  'Profil Certifié (Aucun changement)'
-               ) : (
-                  'Sauvegarder & Soumettre'
-               )}
-            </button>
-         </form>
+      <div className="bg-white rounded-3xl border border-[#E0B4B2]/40 shadow-2xs overflow-hidden p-6 sm:p-8">
+        <VerificationDocumentsForm
+          formData={formData}
+          onChangeFormData={setFormData}
+          onFileChange={handleFileChange}
+          onSubmit={handleSubmit}
+          loading={loading}
+          uploadProgress={uploadProgress}
+          status={status}
+          hasLegalChanges={hasLegalChanges}
+        />
       </div>
     </div>
   );
 };
-

@@ -42,24 +42,24 @@ export const StudioMobileMenu: React.FC<StudioMobileMenuProps> = ({
   const navClass = (mode: StudioNavMode) =>
     `w-full h-10 px-3 rounded-xl text-[13px] font-semibold flex items-center gap-3 transition-all cursor-pointer ${
       navMode === mode
-        ? "bg-[#FFF1E7] text-[#EA580C] border-l-4 border-[#F97316] shadow-2xs"
-        : "text-[#344054] hover:bg-[#F7F8FA]"
+        ? "bg-[#023859] text-white border-l-4 border-[#54ACBF] shadow-2xs font-bold"
+        : "text-[#344054] hover:bg-[#F0F7FA] hover:text-[#023859]"
     }`;
 
   return (
     <div className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-xs md:hidden animate-in fade-in duration-200">
       <div className="w-[280px] max-w-[82vw] bg-[#FFFFFF] h-full flex flex-col shadow-2xl animate-in slide-in-from-left duration-250">
         {/* Header */}
-        <div className="p-4 border-b border-[#E5E7EB] flex items-center justify-between bg-[#F7F8FA]">
+        <div className="p-4 border-b border-[#E5E7EB] flex items-center justify-between bg-[#F8FBFC]">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-[#F97316] flex items-center justify-center text-white shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-[#023859] flex items-center justify-center text-white shrink-0">
               <Sparkles className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <span className="block text-[14px] font-bold text-[#17191C] truncate">
+              <span className="block text-[14px] font-bold text-[#011C40] truncate">
                 {shopName}
               </span>
-              <span className="block text-[10px] text-[#667085] uppercase tracking-wider font-semibold">
+              <span className="block text-[10px] text-[#26658C] uppercase tracking-wider font-semibold">
                 Studio Olmart
               </span>
             </div>
@@ -67,7 +67,7 @@ export const StudioMobileMenu: React.FC<StudioMobileMenuProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-[#667085] hover:bg-[#E5E7EB] hover:text-[#17191C] transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-[#667085] hover:bg-[#E5E7EB] hover:text-[#011C40] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -81,19 +81,19 @@ export const StudioMobileMenu: React.FC<StudioMobileMenuProps> = ({
             </span>
             <div className="space-y-1">
               <button type="button" onClick={() => handleSelect("sections")} className={navClass("sections")}>
-                <Layers className="w-4 h-4 text-[#F97316]" />
+                <Layers className="w-4 h-4 shrink-0" />
                 <span>Sections de la page</span>
               </button>
               <button type="button" onClick={() => handleSelect("theme")} className={navClass("theme")}>
-                <Palette className="w-4 h-4 text-[#F97316]" />
+                <Palette className="w-4 h-4 shrink-0" />
                 <span>Thème & Couleurs</span>
               </button>
               <button type="button" onClick={() => handleSelect("identity")} className={navClass("identity")}>
-                <Store className="w-4 h-4 text-[#F97316]" />
+                <Store className="w-4 h-4 shrink-0" />
                 <span>Identité Visuelle</span>
               </button>
               <button type="button" onClick={() => handleSelect("pages")} className={navClass("pages")}>
-                <FileText className="w-4 h-4 text-[#F97316]" />
+                <FileText className="w-4 h-4 shrink-0" />
                 <span>Pages & Navigation</span>
               </button>
             </div>
@@ -105,19 +105,19 @@ export const StudioMobileMenu: React.FC<StudioMobileMenuProps> = ({
             </span>
             <div className="space-y-1">
               <button type="button" onClick={() => handleSelect("catalog")} className={navClass("catalog")}>
-                <ShoppingBag className="w-4 h-4 text-[#F97316]" />
+                <ShoppingBag className="w-4 h-4 shrink-0" />
                 <span>Catalogue Produits</span>
               </button>
               <button type="button" onClick={() => handleSelect("orders")} className={navClass("orders")}>
-                <ClipboardList className="w-4 h-4 text-[#F97316]" />
+                <ClipboardList className="w-4 h-4 shrink-0" />
                 <span>Commandes & Suivi</span>
               </button>
               <button type="button" onClick={() => handleSelect("media")} className={navClass("media")}>
-                <ImageIcon className="w-4 h-4 text-[#F97316]" />
+                <ImageIcon className="w-4 h-4 shrink-0" />
                 <span>Médiathèque</span>
               </button>
               <button type="button" onClick={() => handleSelect("settings")} className={navClass("settings")}>
-                <Settings className="w-4 h-4 text-[#F97316]" />
+                <Settings className="w-4 h-4 shrink-0" />
                 <span>Coordonnées & SEO</span>
               </button>
             </div>
@@ -125,16 +125,16 @@ export const StudioMobileMenu: React.FC<StudioMobileMenuProps> = ({
         </div>
 
         {/* Footer Back to Seller Space */}
-        <div className="p-3 border-t border-[#E5E7EB] bg-[#F7F8FA]">
+        <div className="p-3 border-t border-[#E5E7EB] bg-[#F8FBFC]">
           <button
             type="button"
             onClick={() => {
               onClose();
               navigate("/dashboard/seller");
             }}
-            className="w-full h-10 px-3 rounded-xl bg-white border border-[#E5E7EB] text-[#17191C] font-semibold text-[13px] flex items-center justify-center gap-2 hover:bg-[#F1F5F9] cursor-pointer"
+            className="w-full h-10 px-3 rounded-xl bg-white border border-[#E5E7EB] text-[#011C40] font-semibold text-[13px] flex items-center justify-center gap-2 hover:bg-[#F0F7FA] cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4 text-[#F97316]" />
+            <ArrowLeft className="w-4 h-4 text-[#023859]" />
             <span>Retour au Tableau de Bord</span>
           </button>
         </div>

@@ -96,6 +96,7 @@ export default defineConfig(({mode}) => {
       dedupe: ['react', 'react-dom'],
     },
     optimizeDeps: {
+      holdUntilCrawlEnd: false,
       include: [
         'react', 'react-dom', 'react-router-dom', 'react-i18next', 'i18next',
         'firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage',
@@ -104,6 +105,7 @@ export default defineConfig(({mode}) => {
     },
     server: {
       hmr: false,
+      allowedHosts: true,
       watch: {
         ignored: [
           '**/node_modules/**',

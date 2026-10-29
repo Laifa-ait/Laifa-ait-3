@@ -107,9 +107,9 @@ router.post("/api/v1/user/affinity-digest", authenticateToken, async (req: Authe
     await PersonalizedFeedService.saveUserDailyDigest(uid, digest);
     return res.json({ success: true });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
+    const message = error instanceof Error ? error.message : String(error);
     safeLogger.error("[Buyer Domain] Affinity digest sync error", { err: message });
-    return res.status(500).json({ error: message });
+    return res.status(500).json({ error: "Erreur interne lors de la synchronisation des affinités" });
   }
 });
 
@@ -123,9 +123,9 @@ router.get("/api/v1/buyer/returns", authenticateToken, async (req: Authenticated
     const returns = await BuyerService.getReturns(uid);
     return res.json({ returns });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
+    const message = error instanceof Error ? error.message : String(error);
     safeLogger.error("[Buyer Domain] Returns fetch error", { err: message });
-    return res.status(500).json({ error: message });
+    return res.status(500).json({ error: "Erreur interne lors de la récupération des retours" });
   }
 });
 
@@ -138,14 +138,14 @@ router.get("/api/v1/buyer/orders", authenticateToken, async (req: AuthenticatedB
     }
     const { startAfter, limit } = req.query;
     const startAfterParam = typeof startAfter === "string" ? startAfter : undefined;
-    const limitParam = limit ? Number(limit) : 20;
+    const limitParam = limit ? Math.min(Math.max(1, Number(limit)), 100) : 20;
 
     const result = await BuyerService.getOrders(uid, startAfterParam, limitParam);
     return res.json(result);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
+    const message = error instanceof Error ? error.message : String(error);
     safeLogger.error("[Buyer Domain] Orders fetch error", { err: message });
-    return res.status(500).json({ error: message });
+    return res.status(500).json({ error: "Erreur interne lors de la récupération des commandes" });
   }
 });
 
@@ -159,9 +159,9 @@ router.get("/api/v1/buyer/followed-stores", authenticateToken, async (req: Authe
     const stores = await BuyerService.getFollowedStores(uid);
     return res.json({ stores });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
+    const message = error instanceof Error ? error.message : String(error);
     safeLogger.error("[Buyer Domain] Followed stores fetch error", { err: message });
-    return res.status(500).json({ error: message });
+    return res.status(500).json({ error: "Erreur interne lors de la récupération des boutiques suivies" });
   }
 });
 
@@ -173,15 +173,15 @@ router.get("/api/v1/buyer/follow-status/:sellerId", authenticateToken, async (re
       return res.status(401).json({ error: "Authentification requise" });
     }
     const { sellerId } = req.params;
-    if (!sellerId) {
-      return res.status(400).json({ error: "sellerId parameter required" });
+    if (!sellerId || !/^[a-zA-Z0-9_-]{1,128}$/.test(sellerId)) {
+      return res.status(400).json({ error: "sellerId parameter invalid or missing" });
     }
     const isFollowing = await BuyerService.isStoreFollowed(uid, sellerId);
     return res.json({ isFollowing });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
+    const message = error instanceof Error ? error.message : String(error);
     safeLogger.error("[Buyer Domain] Follow status fetch error", { err: message });
-    return res.status(500).json({ error: message });
+    return res.status(500).json({ error: "Erreur interne lors de la vérification du statut d'abonnement" });
   }
 });
 
@@ -199,9 +199,9 @@ router.post("/api/v1/buyer/unfollow", authenticateToken, async (req: Authenticat
     await BuyerService.unfollowStore(uid, parsed.data.sellerId);
     return res.json({ success: true });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
+    const message = error instanceof Error ? error.message : String(error);
     safeLogger.error("[Buyer Domain] Unfollow store error", { err: message });
-    return res.status(500).json({ error: message });
+    return res.status(500).json({ error: "Erreur interne lors du désabonnement" });
   }
 });
 
@@ -219,9 +219,9 @@ router.post("/api/v1/buyer/follow", authenticateToken, async (req: Authenticated
     await BuyerService.followStore(uid, parsed.data.sellerId, parsed.data.followPayload || {});
     return res.json({ success: true });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
+    const message = error instanceof Error ? error.message : String(error);
     safeLogger.error("[Buyer Domain] Follow store error", { err: message });
-    return res.status(500).json({ error: message });
+    return res.status(500).json({ error: "Erreur interne lors de l'abonnement à la boutique" });
   }
 });
 

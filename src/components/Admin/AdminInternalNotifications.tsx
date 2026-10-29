@@ -28,8 +28,8 @@ export const AdminInternalNotifications: React.FC = () => {
   const { userProfile } = useAuth();
 
   useEffect(() => {
-    // SECURITY: Only run this if we are sure the user is an admin
-    if (!userProfile || userProfile.role !== "admin") {
+    // SECURITY: Only run this if we are sure the user is an admin or superadmin
+    if (!userProfile || (userProfile.role !== "admin" && userProfile.role !== "superadmin")) {
       return;
     }
     

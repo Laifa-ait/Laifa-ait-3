@@ -1,8 +1,12 @@
 :root {
-  --studio-orange: #F97316;
-  --studio-orange-hover: #EA580C;
-  --studio-orange-soft: #FFF1E7;
-  --studio-black: #17191C;
+  --studio-primary: #023859;
+  --studio-primary-hover: #011C40;
+  --studio-primary-soft: #F0F7FA;
+  --studio-accent-teal: #54ACBF;
+  --studio-orange: #023859;
+  --studio-orange-hover: #011C40;
+  --studio-orange-soft: #F0F7FA;
+  --studio-black: #011C40;
   --studio-text: #344054;
   --studio-muted: #667085;
   --studio-background: #F7F8FA;
@@ -28,7 +32,7 @@
   height: 44px;
   padding-left: 1rem;
   padding-right: 1rem;
-  background-color: var(--studio-orange);
+  background-color: var(--studio-primary);
   color: var(--studio-white);
   font-weight: 600;
   border-radius: var(--studio-radius);
@@ -36,7 +40,7 @@
 }
 
 .studio-btn-primary:hover {
-  background-color: var(--studio-orange-hover);
+  background-color: var(--studio-primary-hover);
 }
 
 .studio-input {
@@ -50,8 +54,8 @@
 
 .studio-input:focus {
   outline: none;
-  border-color: var(--studio-orange);
-  box-shadow: 0 0 0 2px var(--studio-orange-soft);
+  border-color: var(--studio-primary);
+  box-shadow: 0 0 0 2px var(--studio-primary-soft);
 }
 
 .studio-topbar {

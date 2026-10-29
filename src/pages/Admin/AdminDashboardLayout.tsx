@@ -1,17 +1,11 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import {
-  Database,
-  LogOut,
-  Menu,
-  X,
-  Home,
-  Monitor,
-} from "lucide-react";
+import { Database, LogOut, Menu, X, Home, Monitor, LayoutDashboard, LayoutGrid, Store, MessageSquare } from "lucide-react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { auth } from "../../lib/firebase";
 import { AdminInternalNotifications } from "../../components/Admin/AdminInternalNotifications";
+import { AdminSidebarMenu } from "../../components/Admin/AdminSidebarMenu";
 import { getNavGroups } from "./navigation";
 
 export const AdminDashboardLayout: React.FC = () => {
@@ -19,6 +13,8 @@ export const AdminDashboardLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [menuSearch, setMenuSearch] = useState("");
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -26,132 +22,122 @@ export const AdminDashboardLayout: React.FC = () => {
   };
 
   const navGroups = getNavGroups(t);
+  const toggleGroup = (id: string) => setCollapsedGroups((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  const renderNavItems = (onClick?: () => void) => (
-    <div className="space-y-6">
-      {navGroups.map((group, idx) => (
-        <div key={idx}>
-          <h4 className="px-5 mb-3 text-[10px] font-sans font-bold uppercase tracking-widest rtl:tracking-normal text-zinc-500 rtl:tracking-normal">
-            {group.title}
-          </h4>
-          <div className="space-y-1">
-            {group.items.map((item) => {
-              const isActive = item.end 
-                ? location.pathname === item.to 
-                : (location.pathname === item.to || location.pathname.startsWith(item.to + "/"));
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  onClick={onClick}
-                  className={`flex items-center gap-4 px-5 py-3 rounded-xl text-[11px] uppercase tracking-widest rtl:tracking-normal font-bold transition-all ${
-                    isActive
-                      ? "bg-[#ea580c] text-white shadow-lg shadow-orange-500/20"
-                      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
-                  }`}
-                >
-                  <item.icon className="w-4 h-4" />
-                  {item.label}
-                </NavLink>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  const activeBreadcrumb = (() => {
+    for (const g of navGroups) {
+      const found = g.items.find((it) =>
+        it.end ? location.pathname === it.to : location.pathname === it.to || location.pathname.startsWith(it.to + "/")
+      );
+      if (found) return { group: g.title, label: found.label };
+    }
+    return null;
+  })();
+
+  const mobileTabs = [
+    { to: "/dashboard/admin", label: "KPIs", icon: LayoutDashboard, end: true },
+    { to: "/dashboard/admin/orders", label: "Commandes", icon: LayoutGrid },
+    { to: "/dashboard/admin/sellers", label: "Vendeurs", icon: Store },
+    { to: "/dashboard/admin/support", label: "Support", icon: MessageSquare },
+  ];
 
   return (
     <div className="min-h-screen bg-transparent flex flex-col lg:flex-row">
-      {/* Mobile Top Bar */}
-      <div className="lg:hidden flex items-center justify-between w-full h-16 px-6 bg-white/80 backdrop-blur-md text-zinc-950 border-b border-zinc-200/50 sticky top-0 z-30">
-        <div className="flex items-center gap-3">
+      <div className="lg:hidden flex items-center justify-between w-full h-14 px-3 bg-[#1A1836] text-white border-b border-white/10 sticky top-0 z-30">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <button
             type="button"
             onClick={() => setIsMobileNavOpen(true)}
-            className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-600 transition-colors bg-transparent border-none cursor-pointer"
+            aria-label="Ouvrir le menu admin"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/10 rounded-xl text-[#E0B4B2] bg-transparent border-none cursor-pointer shrink-0"
             id="admin-mobile-menu-open"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#ea580c] flex items-center justify-center text-white">
-              <Database className="w-4 h-4" />
-            </div>
-            <span className="text-sm font-sans font-bold tracking-tighter rtl:tracking-normal uppercase">{t("OLMA ADMIN")}</span>
+          <div className="min-w-0 flex-1">
+            <span className="block text-[9px] font-sans font-bold uppercase tracking-widest text-[#E99856] truncate">
+              {activeBreadcrumb?.group || t("OLMA ADMIN")}
+            </span>
+            <span className="block text-xs font-sans font-extrabold tracking-tight text-white truncate">
+              {activeBreadcrumb?.label || t("Tableau de Bord")}
+            </span>
           </div>
         </div>
-
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1 shrink-0">
           <AdminInternalNotifications />
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="p-2 text-zinc-500 hover:text-zinc-950 transition-colors bg-transparent border-none text-xs font-bold uppercase tracking-wider rtl:tracking-normal flex items-center gap-1.5 cursor-pointer"
+            aria-label="Retour à la boutique"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-[#E0B4B2] hover:text-white bg-transparent border-none cursor-pointer rounded-xl"
           >
             <Home className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer (AnimatePresence) */}
       <AnimatePresence>
         {isMobileNavOpen && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileNavOpen(false)}
-              className="fixed inset-0 bg-black/60 z-50 lg:hidden"
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 lg:hidden"
             />
-            {/* Sidebar drawer content */}
             <motion.div
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed start-0 top-0 bottom-0 w-[280px] sm:w-[320px] bg-white z-[60] flex flex-col text-zinc-950 lg:hidden shadow-2xl"
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="fixed start-0 top-0 bottom-0 w-[86vw] max-w-[320px] bg-gradient-to-b from-[#1A1836] via-[#2A173B] to-[#1A1836] z-[60] flex flex-col text-white lg:hidden shadow-2xl"
             >
-              <div className="p-6 border-b border-zinc-200 flex items-center justify-between">
+              <div className="px-4 py-3.5 border-b border-white/10 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#ea580c] flex items-center justify-center text-white">
-                    <Database className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#A54055] to-[#E99856] flex items-center justify-center text-white">
+                    <Database className="w-4 h-4" />
                   </div>
                   <div>
-                    <h1 className="text-base font-sans font-bold tracking-tighter rtl:tracking-normal text-zinc-950">
-                      {t("OLMA ADMIN")}
-                    </h1>
-                    <p className="text-[9px] font-sans font-bold text-zinc-500 uppercase tracking-widest rtl:tracking-normal leading-none">
-                      {t("Core Control")}
-                    </p>
+                    <h1 className="text-sm font-sans font-bold text-white">{t("OLMA ADMIN")}</h1>
+                    <p className="text-[9px] font-bold text-[#E99856] uppercase tracking-widest">{t("Marketplace Control")}</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsMobileNavOpen(false)}
-                  className="p-1 hover:bg-zinc-100 rounded-lg text-zinc-500 hover:text-zinc-950 transition-all bg-transparent border-none cursor-pointer"
+                  aria-label="Fermer le menu"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/10 rounded-xl text-[#E0B4B2] bg-transparent border-none cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-
-              <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-                {renderNavItems(() => setIsMobileNavOpen(false))}
+              <nav className="flex-1 p-3.5 overflow-y-auto">
+                <AdminSidebarMenu
+                  navGroups={navGroups}
+                  menuSearch={menuSearch}
+                  setMenuSearch={setMenuSearch}
+                  collapsedGroups={collapsedGroups}
+                  toggleGroup={toggleGroup}
+                  onItemClick={() => setIsMobileNavOpen(false)}
+                />
               </nav>
-
-              <div className="p-6 border-t border-zinc-200 space-y-4">
+              <div className="p-3.5 border-t border-white/10 grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsMobileNavOpen(false);
-                    handleLogout();
-                  }}
-                  className="w-full flex items-center gap-4 px-5 py-3 rounded-xl text-[11px] uppercase tracking-widest rtl:tracking-normal font-bold text-red-500 hover:bg-red-50 transition-all bg-transparent border-none cursor-pointer text-start"
+                  onClick={() => { setIsMobileNavOpen(false); navigate("/"); }}
+                  className="min-h-[44px] flex items-center justify-center gap-2 px-3 rounded-xl text-[10px] uppercase tracking-wider font-bold text-[#E0B4B2] bg-white/5 border border-white/10 cursor-pointer"
                 >
-                  <LogOut className="w-4.5 h-4.5" />
-                  {t("Déconnexion")}
+                  <Home className="w-4 h-4 text-[#E99856]" />
+                  {t("Boutique")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsMobileNavOpen(false); void handleLogout(); }}
+                  className="min-h-[44px] flex items-center justify-center gap-2 px-3 rounded-xl text-[10px] uppercase tracking-wider font-bold text-rose-300 bg-rose-500/10 border border-rose-500/20 cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  {t("Sortir")}
                 </button>
               </div>
             </motion.div>
@@ -159,77 +145,110 @@ export const AdminDashboardLayout: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Desktop Sidebar */}
-      <aside className="w-80 bg-white/70 backdrop-blur-md border-r border-zinc-200/50 sticky top-0 h-screen hidden lg:flex flex-col text-zinc-950 shrink-0">
-        <div className="p-10 border-b border-zinc-200/50">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-[#ea580c] flex items-center justify-center text-white shadow-xl shadow-orange-500/20">
-              <Database className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-sans font-bold tracking-tighter rtl:tracking-normal text-zinc-950">
-                {t("OLMA ADMIN")}
-              </h1>
-              <p className="text-[10px] font-sans font-bold text-zinc-500 uppercase tracking-widest rtl:tracking-normal leading-none">
-                {t("Core Control")}
-              </p>
-            </div>
+      <aside className="w-80 bg-gradient-to-b from-[#1A1836] via-[#28163B] to-[#1A1836] border-r border-white/10 sticky top-0 h-screen hidden lg:flex flex-col text-white shrink-0 shadow-2xl">
+        <div className="p-6 border-b border-white/10 flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#A54055] to-[#E99856] flex items-center justify-center text-white shadow-lg shadow-[#A54055]/30">
+            <Database className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-lg font-sans font-bold tracking-tight text-white">{t("OLMA ADMIN")}</h1>
+            <p className="text-[10px] font-sans font-bold text-[#E99856] uppercase tracking-widest">{t("Core Marketplace")}</p>
           </div>
         </div>
-
-        <nav className="flex-1 p-6 space-y-3 overflow-y-auto">{renderNavItems()}</nav>
-
-        <div className="p-8 border-t border-zinc-200/50 space-y-4">
+        <nav className="flex-1 p-4 overflow-y-auto">
+          <AdminSidebarMenu
+            navGroups={navGroups}
+            menuSearch={menuSearch}
+            setMenuSearch={setMenuSearch}
+            collapsedGroups={collapsedGroups}
+            toggleGroup={toggleGroup}
+          />
+        </nav>
+        <div className="p-4 border-t border-white/10 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[11px] uppercase tracking-widest rtl:tracking-normal font-bold text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 transition-all bg-transparent border-none cursor-pointer text-start"
+            className="flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-[10px] uppercase tracking-wider font-bold text-[#E0B4B2] hover:bg-white/10 hover:text-white bg-white/5 border border-white/10 cursor-pointer"
           >
-            <Home className="w-5 h-5" />
-            {t("Retour")}
+            <Home className="w-4 h-4 text-[#E99856]" />
+            {t("Boutique")}
           </button>
           <button
             type="button"
-            onClick={handleLogout}
-            className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[11px] uppercase tracking-widest rtl:tracking-normal font-bold text-red-500 hover:bg-red-50 transition-all bg-transparent border-none cursor-pointer text-start"
+            onClick={() => void handleLogout()}
+            className="flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-[10px] uppercase tracking-wider font-bold text-rose-300 hover:bg-rose-500/20 hover:text-white bg-rose-500/10 border border-rose-500/20 cursor-pointer"
           >
-            <LogOut className="w-5 h-5" />
-            {t("Déconnexion")}
+            <LogOut className="w-4 h-4" />
+            {t("Sortir")}
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 bg-transparent">
-        {/* Desktop Header */}
-        <header className="hidden lg:flex h-20 bg-white/70 backdrop-blur-md border-b border-zinc-200/50 px-10 items-center justify-between sticky top-0 z-20">
-          <div className="flex items-center gap-4">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-zinc-400">
-              {t("Système Live • Algérie")}
+        <header className="hidden lg:flex h-20 bg-white/80 backdrop-blur-md border-b border-zinc-200/60 px-10 items-center justify-between sticky top-0 z-20">
+          <div className="flex items-center gap-3">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[11px] font-sans font-bold uppercase tracking-[0.18em] text-[#1A1836]">
+              {t("Olmart Core Control • 69 Wilayas")}
             </span>
+            {activeBreadcrumb && (
+              <div className="flex items-center gap-2 ms-3 ps-3 border-s border-zinc-200 text-xs">
+                <span className="font-bold text-[#A54055] uppercase tracking-wider text-[10px]">{activeBreadcrumb.group}</span>
+                <span className="text-zinc-300">/</span>
+                <span className="font-extrabold text-[#1A1836]">{activeBreadcrumb.label}</span>
+              </div>
+            )}
           </div>
-
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-3 bg-zinc-100 rounded-full px-4 py-2 border border-zinc-200">
-              <Monitor className="w-3.5 h-3.5 text-zinc-400" />
-              <span className="text-[10px] font-sans font-bold text-zinc-600 uppercase tracking-widest rtl:tracking-normal">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2.5 bg-zinc-100 rounded-full px-4 py-2 border border-zinc-200">
+              <Monitor className="w-3.5 h-3.5 text-[#A54055]" />
+              <span className="text-[10px] font-sans font-bold text-zinc-700 uppercase tracking-widest">
                 {auth.currentUser?.email}
               </span>
             </div>
-
-            <div className="w-px h-6 bg-zinc-200" />
-
-            <div className="bg-zinc-950 px-2 py-1.5 rounded-xl shadow-lg border border-white/10">
+            <div className="bg-[#1A1836] px-2.5 py-1.5 rounded-xl shadow-md">
               <AdminInternalNotifications />
             </div>
           </div>
         </header>
-
-        <div className="p-4 sm:p-8 md:p-12 lg:p-16">
+        <div className="p-3.5 sm:p-6 md:p-8 lg:p-10 pb-24 lg:pb-12">
           <Outlet />
         </div>
       </main>
+
+      <nav
+        aria-label="Accès rapide mobile admin"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 h-14 bg-[#1A1836]/95 backdrop-blur-md border-t border-white/10 grid grid-cols-5 items-center px-1"
+      >
+        {mobileTabs.map((tab) => {
+          const isActive = tab.end
+            ? location.pathname === tab.to
+            : location.pathname === tab.to || location.pathname.startsWith(tab.to + "/");
+          return (
+            <NavLink
+              key={tab.to}
+              to={tab.to}
+              className={`min-h-[44px] flex flex-col items-center justify-center gap-0.5 rounded-xl transition-colors ${
+                isActive ? "text-[#E99856]" : "text-[#E0B4B2]/75 hover:text-white"
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              <span className="text-[9px] font-sans font-bold uppercase tracking-tight truncate max-w-[64px]">{tab.label}</span>
+            </NavLink>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setIsMobileNavOpen(true)}
+          className="min-h-[44px] flex flex-col items-center justify-center gap-0.5 rounded-xl text-[#E0B4B2]/75 hover:text-white bg-transparent border-none cursor-pointer"
+        >
+          <Menu className="w-4 h-4 text-[#A54055]" />
+          <span className="text-[9px] font-sans font-bold uppercase tracking-tight">Menu (26)</span>
+        </button>
+      </nav>
     </div>
   );
 };
+
+
+

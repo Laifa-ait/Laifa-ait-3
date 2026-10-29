@@ -1,5 +1,5 @@
 import React from "react";
-import { Route } from "react-router-dom";
+import { Route, Navigate } from "react-router-dom";
 import { AppGuard } from "../components/AppGuard";
 import { ROLES } from "../constants/roles";
 
@@ -54,29 +54,40 @@ const StoreBuilderGate = React.lazy(() =>
 );
 
 export const renderSellerRoutes = () => (
-  <Route
-    path="/dashboard/seller"
-    element={
-      <AppGuard allowedRoles={[ROLES.SELLER, ROLES.ADMIN]}>
-        <SellerDashboardLayout />
-      </AppGuard>
-    }
-  >
-    <Route index element={<SellerOverview />} />
-    <Route path="store-builder" element={<StoreBuilderGate />} />
-    <Route path="studio" element={<StoreBuilderGate />} />
-    <Route path="analytics" element={<SellerAnalytics />} />
-    <Route path="catalog" element={<Catalog />} />
-    <Route path="orders" element={<SellerOrders />} />
-    <Route path="shipping" element={<SellerShipping />} />
-    <Route path="returns" element={<ReturnManagement />} />
-    <Route path="disputes" element={<SellerDisputes />} />
-    <Route path="verification" element={<Verification />} />
-    <Route path="settings" element={<ShopSettings />} />
-    <Route path="support" element={<SellerSupport />} />
-    <Route path="reviews" element={<SellerReviews />} />
-    <Route path="sponsorships" element={<SellerSponsorships />} />
-    <Route path="marketing" element={<MarketingCenter />} />
-    <Route path="coupons" element={<SellerCoupons />} />
-  </Route>
+  <>
+    <Route
+      path="/seller"
+      element={<Navigate to="/dashboard/seller" replace />}
+    />
+    <Route
+      path="/seller/catalog"
+      element={<Navigate to="/dashboard/seller/catalog" replace />}
+    />
+    <Route
+      path="/dashboard/seller"
+      element={
+        <AppGuard allowedRoles={[ROLES.SELLER, ROLES.ADMIN]}>
+          <SellerDashboardLayout />
+        </AppGuard>
+      }
+    >
+      <Route index element={<SellerOverview />} />
+      <Route path="store-builder" element={<StoreBuilderGate />} />
+      <Route path="studio" element={<StoreBuilderGate />} />
+      <Route path="analytics" element={<SellerAnalytics />} />
+      <Route path="catalog" element={<Catalog />} />
+      <Route path="products" element={<Navigate to="/dashboard/seller/catalog" replace />} />
+      <Route path="orders" element={<SellerOrders />} />
+      <Route path="shipping" element={<SellerShipping />} />
+      <Route path="returns" element={<ReturnManagement />} />
+      <Route path="disputes" element={<SellerDisputes />} />
+      <Route path="verification" element={<Verification />} />
+      <Route path="settings" element={<ShopSettings />} />
+      <Route path="support" element={<SellerSupport />} />
+      <Route path="reviews" element={<SellerReviews />} />
+      <Route path="sponsorships" element={<SellerSponsorships />} />
+      <Route path="marketing" element={<MarketingCenter />} />
+      <Route path="coupons" element={<SellerCoupons />} />
+    </Route>
+  </>
 );

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-10-28
+
+### 🚗 Application Olma Auto (Expérience Native & Recherche Directe)
+- **Architecture App Shell & Barre de Commande Tactile** : Refonte complète d'Olma Auto (`/auto`) sur le modèle d'une application native moderne (inspirée de Turo et AutoScout24) avec palette dédiée Bleu Cobalt (`#2563EB`) / Ardoise (`#0F172A`) / Émeraude (`#10B981`).
+- **Recherche par Marque en 1-Tap (`AutoBrandPickerModal`)** : Sélecteur *Bottom Sheet* des 39 constructeurs automobiles avec logos officiels, recherche instantanée par modèle et barre de *squircles* rapides (`OlmaAutoBrandBar`).
+- **Navigation Mobile & Menu Latéral Simplifiés** : Dock inférieur à 5 entrées (`Explorer`, `Par Marque`, bouton central `Ajouter`, `Favoris`, `Dashboard`) et tiroir latéral unifié (`OlmaAutoDrawerMenu`).
+- **Dashboard Utilisateur Auto (`/auto/dashboard`)** : Espace personnel regroupant les véhicules favoris, la gestion des annonces publiées et l'accès direct par marque, sans module Argus superflu (plateforme publicitaire directe).
+- **Tableaux de Bord Admin, Vendeur & Utilisateur** : Harmonisation ergonomique sur mobile et desktop avec contrôle strict de la limite de 250 lignes par fichier.
+
 ## [1.3.0] - 2026-09-07
 
 ### 🔒 Sécurité & Durcissement CI/CD

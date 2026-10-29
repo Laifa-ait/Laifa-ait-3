@@ -26,8 +26,8 @@ export const StudioSubscriptionBanner: React.FC<StudioSubscriptionBannerProps> =
             <span>Boutique en ligne (v{versionNumber})</span>
           </span>
         ) : (
-          <span className="px-2 py-0.5 bg-[#FFF7ED] border border-[#FDBA74] text-[#EA580C] rounded-md font-semibold text-[11px] flex items-center gap-1 shrink-0">
-            <Sparkles className="w-3 h-3 text-[#F97316]" />
+          <span className="px-2 py-0.5 bg-[#F0F7FA] border border-[#54ACBF]/50 text-[#023859] rounded-md font-semibold text-[11px] flex items-center gap-1 shrink-0">
+            <Sparkles className="w-3 h-3 text-[#023859]" />
             <span>Mode Brouillon</span>
           </span>
         )}
@@ -44,9 +44,9 @@ export const StudioSubscriptionBanner: React.FC<StudioSubscriptionBannerProps> =
       <button
         type="button"
         onClick={() => navigate("/dashboard/seller/sponsorships")}
-        className="h-7 px-2.5 bg-[#FFF7ED] hover:bg-[#FFEDD5] text-[#C2410C] border border-[#FDBA74] rounded-lg font-semibold text-[11px] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+        className="h-7 px-2.5 bg-[#F0F7FA] hover:bg-[#023859] text-[#023859] hover:text-white border border-[#54ACBF]/50 rounded-lg font-bold text-[11px] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
       >
-        <Megaphone className="w-3 h-3 text-[#F97316]" />
+        <Megaphone className="w-3 h-3" />
         <span>Booster ma visibilité (Pub)</span>
       </button>
     </div>

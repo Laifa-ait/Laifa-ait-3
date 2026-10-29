@@ -196,11 +196,28 @@ const featuredCategoriesSchema = z.object({
       title: optStr(160),
       subtitle: optStr(300),
       categories: z.array(categoryItemSchema).max(24).default([]),
-      layout: z.enum(["grid", "bento", "bubbles", "overlay", "carousel", "pills"]).nullable().optional().transform((v) => v || "grid"),
+      layout: z
+        .enum([
+          "grid",
+          "bento",
+          "bubbles",
+          "overlay",
+          "carousel",
+          "pills",
+          "mesh-3d",
+          "accordion",
+          "arch",
+          "polaroid",
+          "magazine",
+          "glass-dock",
+        ])
+        .nullable()
+        .optional()
+        .transform((v) => v || "grid"),
       aspectRatio: z.enum(["1/1", "4/5", "16/9", "circle", "4/3"]).nullable().optional().transform((v) => v ?? undefined),
       borderRadius: z.enum(["none", "sm", "md", "lg", "full"]).nullable().optional().transform((v) => v ?? undefined),
       hoverEffect: z.enum(["zoom", "lift", "glow", "shine", "grayscale-reveal", "none"]).nullable().optional().transform((v) => v ?? undefined),
-      textPosition: z.enum(["below", "overlay-bottom", "overlay-center", "card-inside"]).nullable().optional().transform((v) => v ?? undefined),
+      textPosition: z.enum(["below", "overlay-bottom", "overlay-center", "card-inside", "none"]).nullable().optional().transform((v) => v ?? undefined),
       textTransform: z.enum(["none", "uppercase", "capitalize"]).nullable().optional().transform((v) => v ?? undefined),
       overlayOpacity: z.number().min(0).max(100).nullable().optional().transform((v) => v ?? undefined),
       glassmorphism: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
