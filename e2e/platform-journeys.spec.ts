@@ -301,9 +301,9 @@ test.describe('Parcours E2E Complets Plateforme OLMART (Checkout, Seller Studio,
     // B. Olma Auto: Native App UI, 39-Brand Drawer & Publish Modal
     await page.goto('/auto');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('body')).toContainText(/Trouvez votre prochaine voiture|Olma Auto/i, { timeout: 15000 });
+    await expect(page.locator('body')).toContainText(/39 Marques|OlmaAuto|Explorer/i, { timeout: 15000 });
 
-    const brandBtn = page.getByRole('button', { name: /Marques|Rechercher par Marque/i }).first();
+    const brandBtn = page.getByRole('button', { name: /39 Marques/i }).first();
     await expect(brandBtn).toBeVisible();
     await brandBtn.click();
     await expect(page.locator('body')).toContainText(/Volkswagen/i);
