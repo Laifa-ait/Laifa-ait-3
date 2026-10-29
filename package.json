@@ -55,7 +55,7 @@
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.5.0",
     "@google/genai": "^2.18.0",
-    "@googleapis/calendar": "^16.0.0",
+    "@googleapis/calendar": "^20.1.0",
     "@googleapis/drive": "^21.0.0",
     "@googleapis/sheets": "^14.0.0",
     "@icons-pack/react-simple-icons": "^13.15.1",
