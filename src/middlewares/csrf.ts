@@ -154,38 +154,29 @@ function isTrustedOrigin(originString: string, requestHost?: string): boolean {
 }
 
 // Liste des routes webhook externes exemptées de CSRF (vérifiant leur propre signature HMAC).
-// Actuellement vide : Olmart ne gère pas de passerelle de paiement en ligne tiers.
 const WEBHOOK_EXEMPT_PATHS = new Set<string>();
 
 /**
  * Express Middleware for CSRF Protection across state-changing API routes (POST, PUT, DELETE, PATCH)
  */
 export function csrfProtection(req: Request, res: Response, next: NextFunction) {
-  // 1. Safe HTTP methods bypass CSRF check
   const safeMethods = ["GET", "HEAD", "OPTIONS"];
   if (safeMethods.includes(req.method.toUpperCase())) {
     return next();
   }
 
-  // 2. Strict Exempt webhook paths check (verified by cryptographic HMAC)
   const fullPath = (req.baseUrl || "") + (req.path || "");
   const rawPath = req.path || "";
   const originalPath = req.originalUrl ? req.originalUrl.split("?")[0] : "";
 
-  if (
-    WEBHOOK_EXEMPT_PATHS.has(fullPath) ||
-    WEBHOOK_EXEMPT_PATHS.has(rawPath) ||
-    WEBHOOK_EXEMPT_PATHS.has(originalPath)
-  ) {
+  if (WEBHOOK_EXEMPT_PATHS.has(fullPath) || WEBHOOK_EXEMPT_PATHS.has(rawPath) || WEBHOOK_EXEMPT_PATHS.has(originalPath)) {
     return next();
   }
 
-  // 3. CSP Report endpoint exemption
   if (fullPath === "/api/v1/csp-report" || rawPath === "/v1/csp-report" || originalPath === "/api/v1/csp-report") {
     return next();
   }
 
-  // 4. Local development & internal test runner exemption (strictly forbidden in production)
   const host = (req.headers.host || "").toLowerCase();
   if (process.env.NODE_ENV !== "production") {
     const isLocalHost =
@@ -193,15 +184,10 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction) 
       host === "127.0.0.1" ||
       /^localhost:\d+$/.test(host) ||
       /^127\.0\.0\.1:\d+$/.test(host);
-
-    if (isLocalHost) {
-      return next();
-    }
+    if (isLocalHost) return next();
   }
 
   const reportedPath = fullPath || originalPath || rawPath;
-
-  // 5. Origin verification: If origin or referer is provided, it must belong to a trusted origin
   const origin = (req.headers.origin as string || "").trim();
   if (origin && !isTrustedOrigin(origin, host)) {
     safeLogger.warn("[Olmart Security] ⚠️ CSRF attack prevented: untrusted origin", { method: req.method, path: reportedPath, origin });
@@ -214,7 +200,10 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction) 
     return;
   }
 
-  // 6. Extract and validate CSRF token (strictly from X-CSRF-Token header, bound to user or guest)
+  if (fullPath === "/api/v1/analytics/track" || rawPath === "/v1/analytics/track" || originalPath === "/api/v1/analytics/track") {
+    return next();
+  }
+
   const token = req.headers["x-csrf-token"] as string;
 
   const currentUserId = (req as AuthenticatedRequest).user?.uid || "guest";

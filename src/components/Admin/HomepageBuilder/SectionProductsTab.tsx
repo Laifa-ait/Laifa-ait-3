@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Search, X, PackageCheck, SlidersHorizontal, ArrowUpDown } from "lucide-react";
+import { Search, X, PackageCheck, SlidersHorizontal, ArrowUpDown, CheckSquare } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Product } from "../../../domains/product/product.types";
 import { formatPrice } from "../../../utils/format";
@@ -30,8 +30,14 @@ export const SectionProductsTab: React.FC<SectionProductsTabProps> = ({
   const [sortBy, setSortBy] = useState<ProductSearchFilters["sortBy"]>("relevance");
   const [onlyInStock, setOnlyInStock] = useState(false);
 
-  const activeSelectedIds = secManualLinks.filter((id) => Boolean(id && id.trim()));
-  const selectedProducts = allProducts.filter((p) => activeSelectedIds.includes(p.id));
+  const activeSelectedIds = useMemo(
+    () => Array.from(new Set(secManualLinks.filter((id) => Boolean(id && id.trim())))),
+    [secManualLinks]
+  );
+  const selectedProducts = useMemo(
+    () => allProducts.filter((p) => activeSelectedIds.includes(p.id)),
+    [allProducts, activeSelectedIds]
+  );
 
   const availableFiltered = useMemo(() => {
     return filterAndRankProducts(allProducts, {
@@ -39,7 +45,7 @@ export const SectionProductsTab: React.FC<SectionProductsTabProps> = ({
       category: secCategory,
       sortBy,
       onlyInStock,
-    }).slice(0, 40);
+    });
   }, [allProducts, productSearch, secCategory, sortBy, onlyInStock]);
 
   const categoryCounts = useMemo(() => {
@@ -50,25 +56,18 @@ export const SectionProductsTab: React.FC<SectionProductsTabProps> = ({
     return map;
   }, [allProducts]);
 
-  const padTo18 = (arr: string[]): string[] => {
-    const result = [...arr];
-    for (let i = result.length; i < 18; i++) result.push("");
-    return result.slice(0, 18);
-  };
-
   const handleToggleProduct = (productId: string) => {
     if (activeSelectedIds.includes(productId)) {
-      setSecManualLinks(padTo18(secManualLinks.filter((id) => id !== productId)));
+      setSecManualLinks(activeSelectedIds.filter((id) => id !== productId));
     } else {
-      const firstEmptyIndex = secManualLinks.findIndex((id) => !id || !id.trim());
-      if (firstEmptyIndex !== -1) {
-        const next = [...secManualLinks];
-        next[firstEmptyIndex] = productId;
-        setSecManualLinks(next);
-      } else {
-        setSecManualLinks([...secManualLinks, productId]);
-      }
+      setSecManualLinks([...activeSelectedIds, productId]);
     }
+  };
+
+  const handleSelectAllFiltered = () => {
+    const filteredIds = availableFiltered.map((p) => p.id);
+    const merged = Array.from(new Set([...activeSelectedIds, ...filteredIds]));
+    setSecManualLinks(merged);
   };
 
   return (
@@ -92,46 +91,56 @@ export const SectionProductsTab: React.FC<SectionProductsTabProps> = ({
 
         <div>
           <label className="block text-xs font-bold text-zinc-700 mb-1">
-            {t("Nombre max de produits à afficher")} ({secLimit || 8})
+            {t("Nombre max de produits à afficher")} ({secLimit || 12})
           </label>
           <input
             type="range"
             min={4}
-            max={24}
+            max={48}
             step={2}
-            value={secLimit || 8}
+            value={secLimit || 12}
             onChange={(e) => setSecLimit(Number(e.target.value))}
             className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-amber-500 mt-2"
           />
           <div className="flex justify-between text-[10px] text-zinc-400 mt-0.5 font-mono">
-            <span>4</span><span>8</span><span>12</span><span>16</span><span>24</span>
+            <span>4</span><span>12</span><span>24</span><span>36</span><span>48</span>
           </div>
         </div>
       </div>
 
       {/* Selected Products Strip */}
       <div className="bg-zinc-50 rounded-xl p-3 border border-zinc-200 space-y-2">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             <PackageCheck className="w-4 h-4 text-emerald-600" />
             <h4 className="text-xs font-bold text-zinc-900">
-              {t("Produits Sélectionnés Manuellement")} ({selectedProducts.length})
+              {t("Produits Sélectionnés")} ({selectedProducts.length})
             </h4>
           </div>
-          {selectedProducts.length > 0 && (
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setSecManualLinks(Array(18).fill(""))}
-              className="text-[11px] text-rose-600 hover:text-rose-800 font-semibold cursor-pointer"
+              onClick={handleSelectAllFiltered}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 text-[11px] font-bold cursor-pointer"
             >
-              {t("Tout désélectionner")}
+              <CheckSquare className="w-3 h-3" />
+              {t("Tout sélectionner")} ({availableFiltered.length})
             </button>
-          )}
+            {selectedProducts.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSecManualLinks([])}
+                className="text-[11px] text-rose-600 hover:text-rose-800 font-semibold cursor-pointer"
+              >
+                {t("Tout désélectionner")}
+              </button>
+            )}
+          </div>
         </div>
 
         {selectedProducts.length === 0 ? (
           <p className="text-xs text-zinc-500 italic">
-            {t("Aucun produit manuel sélectionné. La section utilisera automatiquement le catalogue selon la catégorie.")}
+            {t("Aucun produit manuel sélectionné. Vous pouvez sélectionner autant de produits que vous le souhaitez.")}
           </p>
         ) : (
           <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
@@ -147,7 +156,7 @@ export const SectionProductsTab: React.FC<SectionProductsTabProps> = ({
                 <span className="text-[10px] font-bold text-amber-600">{formatPrice(p.price)} DZD</span>
                 <button
                   type="button"
-                  onClick={() => setSecManualLinks(padTo18(secManualLinks.filter((id) => id !== p.id)))}
+                  onClick={() => handleToggleProduct(p.id)}
                   className="text-zinc-400 hover:text-rose-500 cursor-pointer ml-0.5"
                 >
                   <X className="w-3 h-3" />
@@ -163,10 +172,10 @@ export const SectionProductsTab: React.FC<SectionProductsTabProps> = ({
         <div className="flex items-center justify-between">
           <label className="text-xs font-bold text-zinc-700 flex items-center gap-1.5">
             <SlidersHorizontal className="w-3.5 h-3.5 text-amber-500" />
-            {t("Recherche Pertinente & Ajout au Catalogue")}
+            {t("Recherche Pertinente & Sélection Illimitée")}
           </label>
           <span className="text-[11px] text-zinc-500 font-mono">
-            {availableFiltered.length} {t("produits")}
+            {availableFiltered.length} {t("produits affichés")}
           </span>
         </div>
 
@@ -180,15 +189,6 @@ export const SectionProductsTab: React.FC<SectionProductsTabProps> = ({
               placeholder={t("Nom, marque, mots-clés, référence...")}
               className="w-full pl-8 pr-7 py-1.5 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
             />
-            {productSearch && (
-              <button
-                type="button"
-                onClick={() => setProductSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
           </div>
 
           <div className="sm:col-span-3 relative">
@@ -196,7 +196,7 @@ export const SectionProductsTab: React.FC<SectionProductsTabProps> = ({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as ProductSearchFilters["sortBy"])}
-              className="w-full pl-7 pr-2 py-1.5 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 cursor-pointer"
+              className="w-full pl-7 pr-2 py-1.5 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none cursor-pointer"
             >
               <option value="relevance">{t("Pertinence")}</option>
               <option value="price_asc">{t("Prix croissant")}</option>
@@ -220,21 +220,15 @@ export const SectionProductsTab: React.FC<SectionProductsTabProps> = ({
         </div>
 
         {/* Results Grid */}
-        <div className="max-h-52 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-1 border border-zinc-100 rounded-xl bg-zinc-50/50">
-          {availableFiltered.length === 0 ? (
-            <div className="col-span-full py-6 text-center text-xs text-zinc-400">
-              {t("Aucun produit ne correspond à ces critères de recherche.")}
-            </div>
-          ) : (
-            availableFiltered.map((p) => (
-              <ProductPickerCard
-                key={p.id}
-                product={p}
-                isSelected={activeSelectedIds.includes(p.id)}
-                onToggle={handleToggleProduct}
-              />
-            ))
-          )}
+        <div className="max-h-56 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-1 border border-zinc-100 rounded-xl bg-zinc-50/50">
+          {availableFiltered.map((p) => (
+            <ProductPickerCard
+              key={p.id}
+              product={p}
+              isSelected={activeSelectedIds.includes(p.id)}
+              onToggle={handleToggleProduct}
+            />
+          ))}
         </div>
       </div>
     </div>

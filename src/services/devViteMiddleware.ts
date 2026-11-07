@@ -20,7 +20,6 @@ export async function closeDevViteServer(): Promise<void> {
 }
 
 export async function attachDevViteMiddleware(app: Express): Promise<boolean> {
-  const isCloudRun = Boolean(process.env.K_SERVICE || process.env.CLOUD_RUN_JOB);
   const distIndexPath = path.join(process.cwd(), "dist", "index.html");
   const hasStaticDist = existsSync(distIndexPath);
 
@@ -28,15 +27,10 @@ export async function attachDevViteMiddleware(app: Express): Promise<boolean> {
     return false;
   }
 
-  const isTsxDev = Boolean(
-    process.env.npm_lifecycle_event === "dev" ||
-    process.execArgv.some((arg) => arg.includes("tsx")) ||
-    process.env.FORCE_VITE_DEV === "true" ||
-    process.env.NODE_ENV === "development"
-  );
-
-  // Serve pre-built dist/ in Cloud Run or production only when NOT in tsx dev mode
-  if (!isTsxDev && hasStaticDist && (isCloudRun || process.env.NODE_ENV === "production")) {
+  // Whenever pre-built dist/index.html exists (unless FORCE_VITE_DEV=true),
+  // serve the compiled dist/ bundle directly for instant (<10ms) startup.
+  if (hasStaticDist && process.env.FORCE_VITE_DEV !== "true") {
+    safeLogger.info("[Olmart Gateway] ⚡ Serving pre-compiled dist/ bundle for instant startup");
     return false;
   }
 
@@ -107,7 +101,6 @@ export async function attachDevViteMiddleware(app: Express): Promise<boolean> {
       await viteInitPromise;
     }
 
-    // Never serve index.html for static file requests (.js, .css, .png, .jpg, .svg, .json, .ico, etc.)
     const ext = path.extname(req.path);
     if (ext && ext !== ".html") {
       return res.status(404).end();
@@ -149,4 +142,3 @@ export async function attachDevViteMiddleware(app: Express): Promise<boolean> {
   app.use(devRouter);
   return true;
 }
-

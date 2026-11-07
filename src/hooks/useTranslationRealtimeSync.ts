@@ -19,47 +19,46 @@ export function useTranslationRealtimeSync(): void {
     const cleanLng = rawLang.split("-")[0];
     if (!["fr", "ar", "en"].includes(cleanLng)) return;
 
-    const translationDocRef = doc(db, "translations", cleanLng);
+    let unsubscribe: (() => void) | null = null;
+    const timer = setTimeout(() => {
+      const translationDocRef = doc(db, "translations", cleanLng);
 
-    const unsubscribe = onSnapshot(
-      translationDocRef,
-      (snapshot: DocumentSnapshot<DocumentData>) => {
-        if (!snapshot.exists()) return;
+      unsubscribe = onSnapshot(
+        translationDocRef,
+        (snapshot: DocumentSnapshot<DocumentData>) => {
+          if (!snapshot.exists()) return;
 
-        const data = snapshot.data();
-        if (!data) return;
+          const data = snapshot.data();
+          if (!data) return;
 
-        const dynamicOverrides: Record<string, string> = {};
-        for (const [key, value] of Object.entries(data)) {
-          if (
-            typeof value === "string" &&
-            !["updatedAt", "updatedBy", "createdAt"].includes(key)
-          ) {
-            dynamicOverrides[key] = value;
+          const dynamicOverrides: Record<string, string> = {};
+          for (const [key, value] of Object.entries(data)) {
+            if (
+              typeof value === "string" &&
+              !["updatedAt", "updatedBy", "createdAt"].includes(key)
+            ) {
+              dynamicOverrides[key] = value;
+            }
           }
-        }
 
-        if (Object.keys(dynamicOverrides).length > 0) {
-          // Merge overrides directly into i18next resource bundle (deep merge, overwrite)
-          i18n.addResourceBundle(cleanLng, "translation", dynamicOverrides, true, true);
-          
-          // Trigger reactive re-render for currently mounted components
-          i18n.emit("added", cleanLng, "translation");
-          i18n.emit("loaded", [cleanLng]);
+          if (Object.keys(dynamicOverrides).length > 0) {
+            i18n.addResourceBundle(cleanLng, "translation", dynamicOverrides, true, true);
+            i18n.emit("added", cleanLng, "translation");
+            i18n.emit("loaded", [cleanLng]);
+          }
+        },
+        (error: Error) => {
+          safeLogger.debug("[TranslationRealtimeSync] Realtime sync fallback active", {
+            lang: cleanLng,
+            err: error.message,
+          });
         }
-      },
-      (error: Error) => {
-        // Non-fatal fallback: When running in public guest mode without custom claims,
-        // fallback to bundled static dictionary without polluting console warnings.
-        safeLogger.debug("[TranslationRealtimeSync] Realtime sync fallback active", {
-          lang: cleanLng,
-          err: error.message,
-        });
-      }
-    );
+      );
+    }, 1200);
 
     return () => {
-      unsubscribe();
+      clearTimeout(timer);
+      if (unsubscribe) unsubscribe();
     };
   }, [i18n, i18n.language]);
 }

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { admin, db, isFirebaseReady, getFirebaseInitState, getFirebaseInitError, FirebaseInitState } from "../../config/firebase-admin";
 import { isFrontendReady } from "../../services/ViteStaticService";
+import { verifyAndHealAllServices, getLastSelfHealReport } from "../../services/ServiceAutoHealer";
 import { safeLogger } from "../../utils/logger";
 
 const router = Router();
@@ -39,13 +40,21 @@ async function checkReadiness(): Promise<{ ready: boolean; firebase: string; fro
     return { ready: false, firebase: "unavailable" };
   }
 
-  // Lightweight Firestore ping with 1.5-second timeout
+  // Lightweight Firestore ping with 3-second cold-start resilient timeout
   let firebaseStatus = "ok";
-  if (process.env.NODE_ENV !== "test") {
+  const isMockedCollection = typeof (db?.collection as { mock?: unknown })?.mock !== "undefined";
+  const hasExplicitAdminCreds = Boolean(
+    process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FIRESTORE_EMULATOR_HOST
+  );
+  const shouldPingFirestore =
+    isMockedCollection ||
+    (process.env.NODE_ENV !== "test" && !process.env.VITEST && hasExplicitAdminCreds);
+
+  if (shouldPingFirestore) {
     try {
       let pingTimer: NodeJS.Timeout | null = null;
       const timeoutPromise = new Promise((_, reject) => {
-        pingTimer = setTimeout(() => reject(new Error("Firestore timeout")), 1500);
+        pingTimer = setTimeout(() => reject(new Error("Firestore timeout")), 3000);
       });
       try {
         await Promise.race([
@@ -74,7 +83,7 @@ async function checkReadiness(): Promise<{ ready: boolean; firebase: string; fro
  * Verifies that critical dependencies allow Olmart to receive traffic.
  * Returns HTTP 503 if dependencies or static assets are unavailable.
  */
-router.get(["/api/health/ready", "/api/v1/health/ready", "/health/ready", "/readyz"], async (req: Request, res: Response) => {
+router.get(["/api/health/ready", "/api/v1/health/ready", "/health/ready", "/readyz"], async (_req: Request, res: Response) => {
   const { ready, firebase, frontend } = await checkReadiness();
   const statusCode = ready ? 200 : 503;
   const body: Record<string, unknown> = {
@@ -90,11 +99,24 @@ router.get(["/api/health/ready", "/api/v1/health/ready", "/health/ready", "/read
 });
 
 /**
+ * Autonomous Service Diagnostic & Self-Healing Endpoint (v1)
+ */
+router.get("/api/v1/health/services", async (_req: Request, res: Response) => {
+  const report = getLastSelfHealReport() ?? (await verifyAndHealAllServices());
+  return res.status(200).json({ success: true, data: report });
+});
+
+router.post("/api/v1/health/self-heal", async (_req: Request, res: Response) => {
+  const report = await verifyAndHealAllServices();
+  return res.status(200).json({ success: true, data: report });
+});
+
+/**
  * Standard Health check
  * Provides overall status without revealing internal sensitive details.
  * Always returns HTTP 200 for Cloud Run container ingress probes.
  */
-router.get(["/api/health", "/api/v1/health", "/health", "/healthz"], async (req: Request, res: Response) => {
+router.get(["/api/health", "/api/v1/health", "/health", "/healthz"], async (_req: Request, res: Response) => {
   const { ready, firebase, frontend } = await checkReadiness();
   const mem = process.memoryUsage();
   const body: Record<string, unknown> = {

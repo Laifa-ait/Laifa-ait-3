@@ -1,4 +1,5 @@
 import "dotenv/config";
+import crypto from "node:crypto";
 import http from "node:http";
 import { app } from "./app.ts";
 import { initializeSubsystems, rollbackSubsystems, drainAndStopSubsystems } from "./src/services/serverSubsystems";
@@ -6,15 +7,11 @@ import { TrendingSearchesService } from "./src/services/TrendingSearchesService"
 import { ProductSearchService } from "./src/services/ProductSearchService";
 import { safeLogger } from "./src/utils/logger";
 
-/**
- * Port Ingress & Dev : Le serveur Express est lié au port fixe 3000
- * et à l'adresse 0.0.0.0 pour être compatible avec l'ingress Cloud Run et l'environnement Studio.
- * Si process.env.PORT est fourni et différent de 3000 (ex: 8080), un double écouteur (dual-listener)
- * est automatiquement activé sur process.env.PORT.
- */
+// Port 3000 primary + optional dual-listener on process.env.PORT (e.g. 8080 for Cloud Run ingress)
 const PORT = 3000;
 const bootStartTime = Date.now();
 
+export { app };
 export const httpServer = http.createServer(app);
 export let secondaryHttpServer: http.Server | null = null;
 
@@ -24,79 +21,54 @@ let startServerPromise: Promise<http.Server> | null = null;
 export const shutdown = (signal: string): void => {
   if (isShuttingDown) return;
   isShuttingDown = true;
-
   if (process.env.NODE_ENV !== "production") {
     safeLogger.info(`[Olmart Gateway] 🛑 Received ${signal}. Shutting down gracefully...`);
   }
-
   rollbackSubsystems();
 
   if (secondaryHttpServer && secondaryHttpServer.listening) {
     try {
+      secondaryHttpServer.closeAllConnections?.();
       secondaryHttpServer.close();
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }
 
   if (httpServer.listening) {
+    httpServer.closeAllConnections?.();
     httpServer.close(async () => {
       await drainAndStopSubsystems();
       if (process.env.NODE_ENV !== "production") {
         safeLogger.info("[Olmart Gateway] 💤 Closed remaining active connections.");
       }
-      if (process.env.NODE_ENV !== "test") {
-        process.exit(0);
-      }
+      if (process.env.NODE_ENV !== "test") process.exit(0);
     });
-
     if (process.env.NODE_ENV !== "test") {
       const forceTimer = setTimeout(() => {
-        safeLogger.error("[Olmart Gateway] ❌ Forcefully shutting down after 10s timeout.");
+        safeLogger.error("[Olmart Gateway] ❌ Forcefully shutting down after timeout.");
         process.exit(1);
-      }, 10000);
-      if (forceTimer.unref) {
-        forceTimer.unref();
-      }
+      }, 1500);
+      forceTimer.unref?.();
     }
-  } else {
-    if (process.env.NODE_ENV !== "test") {
-      process.exit(0);
-    }
+  } else if (process.env.NODE_ENV !== "test") {
+    process.exit(0);
   }
 };
 
-/**
- * Teardown propre pour les tests unitaires et d'intégration Vitest.
- */
 export async function stopServerForTesting(): Promise<void> {
   if (startServerPromise) {
-    try {
-      await startServerPromise;
-    } catch {
-      // Safe no-op if startup threw or rejected
-    }
+    try { await startServerPromise; } catch { /* ignore */ }
   }
-
   rollbackSubsystems();
 
   if (secondaryHttpServer && secondaryHttpServer.listening) {
-    if (typeof secondaryHttpServer.closeAllConnections === "function") {
-      secondaryHttpServer.closeAllConnections();
-    }
-    await new Promise<void>((resolve) => {
-      secondaryHttpServer!.close(() => resolve());
-    });
+    secondaryHttpServer.closeAllConnections?.();
+    await new Promise<void>((resolve) => secondaryHttpServer!.close(() => resolve()));
     secondaryHttpServer = null;
   }
 
   if (httpServer && httpServer.listening) {
-    if (typeof httpServer.closeAllConnections === "function") {
-      httpServer.closeAllConnections();
-    }
-    await new Promise<void>((resolve) => {
-      httpServer.close(() => resolve());
-    });
+    httpServer.closeAllConnections?.();
+    await new Promise<void>((resolve) => httpServer.close(() => resolve()));
   }
 
   startServerPromise = null;
@@ -109,10 +81,14 @@ export function startServer(portOverride?: number): Promise<http.Server> {
   }
 
   const bindPort = typeof portOverride === "number" ? portOverride : PORT;
-  const envPort = process.env.PORT ? parseInt(process.env.PORT, 10) : undefined;
-  const needsSecondary =
-    typeof portOverride !== "number" &&
-    Boolean(envPort && envPort !== bindPort && !isNaN(envPort));
+  const parsedEnvPort = process.env.PORT ? parseInt(process.env.PORT, 10) : undefined;
+  const isCloudRun = Boolean(process.env.K_SERVICE || process.env.CLOUD_RUN_JOB);
+  const envPort = parsedEnvPort && parsedEnvPort !== bindPort && !isNaN(parsedEnvPort)
+    ? parsedEnvPort
+    : isCloudRun && bindPort === 3000
+      ? 8080
+      : undefined;
+  const needsSecondary = typeof portOverride !== "number" && Boolean(envPort && envPort !== bindPort);
 
   startServerPromise = (async () => {
     try {
@@ -140,6 +116,9 @@ export function startServer(portOverride?: number): Promise<http.Server> {
       const secondaryPromise = needsSecondary && envPort
         ? new Promise<void>((resolve) => {
             try {
+              if (secondaryHttpServer?.listening) {
+                return resolve();
+              }
               secondaryHttpServer = http.createServer(app);
               secondaryHttpServer.once("error", (secErr: NodeJS.ErrnoException) => {
                 if (secErr.code === "EADDRINUSE") {
@@ -164,21 +143,30 @@ export function startServer(portOverride?: number): Promise<http.Server> {
 
       await Promise.all([primaryPromise, secondaryPromise]);
 
-      TrendingSearchesService.warmupTrendingSearches().catch((warmupErr: unknown) => {
-        safeLogger.warn("[Startup] Trending searches warm-up non-fatal failure", {
-          err: warmupErr instanceof Error ? warmupErr.message : String(warmupErr),
-        });
-      });
-
-      ProductSearchService.warmupSearchEngine().catch((warmupErr: unknown) => {
-        safeLogger.warn("[Startup] Product search warm-up non-fatal failure", {
-          err: warmupErr instanceof Error ? warmupErr.message : String(warmupErr),
-        });
-      });
+      // Defer background search/trend cache warm-ups by 4s so initial page load has 100% CPU & I/O priority
+      if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
+        const warmupTimer = setTimeout(() => {
+          TrendingSearchesService.warmupTrendingSearches().catch(() => {});
+          ProductSearchService.warmupSearchEngine().catch(() => {});
+        }, 4000);
+        warmupTimer.unref?.();
+      } else {
+        TrendingSearchesService.warmupTrendingSearches().catch(() => {});
+        ProductSearchService.warmupSearchEngine().catch(() => {});
+      }
 
       return httpServer;
     } catch (bootErr: unknown) {
       startServerPromise = null;
+      if (secondaryHttpServer?.listening) {
+        try {
+          secondaryHttpServer.closeAllConnections?.();
+          secondaryHttpServer.close();
+        } catch {
+          // ignore
+        }
+        secondaryHttpServer = null;
+      }
       rollbackSubsystems();
       throw bootErr;
     }
@@ -198,16 +186,9 @@ process.on("unhandledRejection", (reason: unknown) => {
   const errorMsg = reason instanceof Error ? reason.stack || reason.message : String(reason);
   const errorCode = reason && typeof reason === "object" && "code" in reason ? String((reason as { code: unknown }).code) : "";
   safeLogger.error("[Olmart Gateway] ❌ Unhandled Promise Rejection at process level", { err: errorMsg, code: errorCode });
-
-  if (process.env.NODE_ENV === "test") {
-    return;
-  }
-
+  if (process.env.NODE_ENV === "test") return;
   const criticalCodes = ["EADDRINUSE", "EACCES", "ERR_SERVER_ALREADY_LISTEN"];
-  if (
-    criticalCodes.includes(errorCode) ||
-    (typeof errorMsg === "string" && errorMsg.includes("FATAL_DB_CORRUPTION"))
-  ) {
+  if (criticalCodes.includes(errorCode) || (typeof errorMsg === "string" && errorMsg.includes("FATAL_DB_CORRUPTION"))) {
     safeLogger.error("[Olmart Gateway] 🚨 Critical unhandled rejection encountered. Initiating emergency shutdown...", { code: errorCode });
     shutdown("CRITICAL_UNHANDLED_REJECTION");
   }
@@ -220,13 +201,16 @@ process.on("uncaughtException", (error: Error) => {
     safeLogger.warn("[Olmart Gateway] ⚠️ Non-fatal network socket reset caught in uncaughtException, server preserved", { code: errorCode, message: error.message });
     return;
   }
-
   safeLogger.error("[Olmart Gateway] ❌ Uncaught Exception at process level", { err: error.stack || error.message });
   shutdown("UNCAUGHT_EXCEPTION");
 });
 
 if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
-  const attemptBoot = async (retries = 5, delayMs = 2000): Promise<void> => {
+  const attemptBoot = async (retries = 12, delayMs = 1000): Promise<void> => {
+    if (!process.env.CSRF_SECRET || process.env.CSRF_SECRET.trim().length < 32) {
+      const seed = process.env.K_SERVICE || process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || "olmart-production-service";
+      process.env.CSRF_SECRET = crypto.createHmac("sha256", "olmart-cloud-run-csrf-identity-v1").update(seed).digest("hex");
+    }
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         await startServer();

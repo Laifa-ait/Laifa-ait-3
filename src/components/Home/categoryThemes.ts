@@ -15,216 +15,149 @@ import {
   GraduationCap,
   LucideProps,
 } from "lucide-react";
+import { resolveCanonicalCategoryKey } from "../../utils/categoryCanonical";
 
 export interface CategoryCardData {
   key: string;
   title: string;
   subtitle?: string;
   image?: string;
+  subcategoriesPreview?: string[];
 }
 
 export interface CategoryTheme {
-  bgCard: string;
-  radialGlow: string;
-  border: string;
-  discBg: string;
-  iconColor: string;
-  numColor: string;
-  btnBg: string;
+  accentHex: string;
+  editionTag: string;
   icon: React.ComponentType<LucideProps>;
   defaultTitle: string;
   defaultSubtitle: string;
-  defaultCount: string;
+  defaultImage: string;
+  defaultSubcategories: string[];
 }
 
-const normalize = (val: string): string =>
-  val
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]/g, "");
-
-/**
- * Curated Mindazzle Twilight & Sunset Amber Category Themes
- * Palette: #E0B4B2 (Blush), #E99856 (Amber), #A54055 (Crimson),
- *          #622347 (Mulberry), #42164B (Aubergine), #1A1836 (Midnight)
- */
-const LUXURY_PALETTE_VARIANTS = {
-  blushSilk: {
-    bgCard: "bg-gradient-to-br from-[#FAF2F2] via-[#F5E4E3] to-[#FDF9F8]",
-    radialGlow: "bg-[radial-gradient(ellipse_at_top_right,rgba(224,180,178,0.55),transparent_70%)]",
-    border: "border-[#E0B4B2]/55 hover:border-[#A54055]/60",
-    discBg: "bg-white/60 backdrop-blur-md border border-white/80 shadow-2xs",
-    iconColor: "text-[#622347]",
-    numColor: "text-[#1A1836]",
-    btnBg: "bg-[#622347] hover:bg-[#42164B]",
-  },
-  sunsetAmber: {
-    bgCard: "bg-gradient-to-br from-[#FDF4EC] via-[#FAE6D4] to-[#FFFBF7]",
-    radialGlow: "bg-[radial-gradient(ellipse_at_top_right,rgba(233,152,86,0.42),transparent_70%)]",
-    border: "border-[#E99856]/45 hover:border-[#E99856]",
-    discBg: "bg-white/65 backdrop-blur-md border border-white/80 shadow-2xs",
-    iconColor: "text-[#A54055]",
-    numColor: "text-[#1A1836]",
-    btnBg: "bg-[#A54055] hover:bg-[#622347]",
-  },
-  royalAubergine: {
-    bgCard: "bg-gradient-to-br from-[#F4EEF6] via-[#EAE0EE] to-[#FAF7FB]",
-    radialGlow: "bg-[radial-gradient(ellipse_at_top_right,rgba(98,35,71,0.28),transparent_70%)]",
-    border: "border-[#622347]/25 hover:border-[#42164B]/60",
-    discBg: "bg-white/65 backdrop-blur-md border border-white/80 shadow-2xs",
-    iconColor: "text-[#42164B]",
-    numColor: "text-[#1A1836]",
-    btnBg: "bg-[#42164B] hover:bg-[#1A1836]",
-  },
-  midnightVelvet: {
-    bgCard: "bg-gradient-to-br from-[#EFEFF6] via-[#E4E3F0] to-[#F8F8FC]",
-    radialGlow: "bg-[radial-gradient(ellipse_at_top_right,rgba(26,24,54,0.22),transparent_70%)]",
-    border: "border-[#1A1836]/20 hover:border-[#42164B]/55",
-    discBg: "bg-white/65 backdrop-blur-md border border-white/80 shadow-2xs",
-    iconColor: "text-[#1A1836]",
-    numColor: "text-[#1A1836]",
-    btnBg: "bg-[#1A1836] hover:bg-[#42164B]",
-  },
-  crimsonRose: {
-    bgCard: "bg-gradient-to-br from-[#FCEEF1] via-[#F7DDE2] to-[#FFF7F8]",
-    radialGlow: "bg-[radial-gradient(ellipse_at_top_right,rgba(165,64,85,0.32),transparent_70%)]",
-    border: "border-[#A54055]/30 hover:border-[#A54055]/70",
-    discBg: "bg-white/65 backdrop-blur-md border border-white/80 shadow-2xs",
-    iconColor: "text-[#A54055]",
-    numColor: "text-[#1A1836]",
-    btnBg: "bg-gradient-to-r from-[#622347] to-[#A54055] hover:from-[#42164B] hover:to-[#622347]",
-  },
-};
-
 export const THEMES_BY_KEY: Record<string, CategoryTheme> = {
-  "Jeux & Jouets": {
-    ...LUXURY_PALETTE_VARIANTS.royalAubergine,
-    icon: Gamepad2,
-    defaultTitle: "Jeux & Jouets",
-    defaultSubtitle: "Découvrez notre collection",
-    defaultCount: "11",
-  },
-  "Supermarché": {
-    ...LUXURY_PALETTE_VARIANTS.sunsetAmber,
-    icon: ShoppingBasket,
-    defaultTitle: "Supermarché",
-    defaultSubtitle: "Produits frais & quotidien",
-    defaultCount: "12",
-  },
-  "Scolaire & Bureau": {
-    ...LUXURY_PALETTE_VARIANTS.midnightVelvet,
-    icon: GraduationCap,
-    defaultTitle: "Scolaire & Bureau",
-    defaultSubtitle: "Livres, fournitures & rentrée",
-    defaultCount: "18",
-  },
-  "Mode": {
-    ...LUXURY_PALETTE_VARIANTS.crimsonRose,
-    icon: Shirt,
-    defaultTitle: "Mode & Élégance",
-    defaultSubtitle: "Prêt-à-porter, Chaussures & Sacs",
-    defaultCount: "24",
-  },
   "Maison & Déco": {
-    ...LUXURY_PALETTE_VARIANTS.blushSilk,
+    accentHex: "#E99856",
+    editionTag: "INTÉRIEUR & DESIGN",
     icon: Armchair,
-    defaultTitle: "Maison & Décoration",
-    defaultSubtitle: "Salons, Mobilier & Linge de maison",
-    defaultCount: "15",
+    defaultTitle: "Maison & Déco",
+    defaultSubtitle: "Salons d'architecte, Mobilier & Luminaires",
+    defaultImage: "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&q=80&w=800",
+    defaultSubcategories: ["Mobilier de Salon", "Luminaires", "Linge de Maison"],
   },
-  "Électronique": {
-    ...LUXURY_PALETTE_VARIANTS.midnightVelvet,
+  Électronique: {
+    accentHex: "#38BDF8",
+    editionTag: "HIGH-TECH & PRO",
     icon: Smartphone,
-    defaultTitle: "Tech & Performance",
-    defaultSubtitle: "Gadgets connectés, Audio & PC",
-    defaultCount: "20",
+    defaultTitle: "Électronique",
+    defaultSubtitle: "Smartphones, PC Pro, Audio & Domotique",
+    defaultImage: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80&w=800",
+    defaultSubcategories: ["Smartphones", "Ordinateurs & PC", "Audio & Casques"],
   },
-  "Électroménager": {
-    ...LUXURY_PALETTE_VARIANTS.royalAubergine,
+  Électroménager: {
+    accentHex: "#A78BFA",
+    editionTag: "ÉQUIPEMENT MAISON",
     icon: Refrigerator,
     defaultTitle: "Électroménager",
-    defaultSubtitle: "Froid, Cuisson & Petit déjeuner",
-    defaultCount: "14",
+    defaultSubtitle: "Froid, Cuisson encastrable & Caféterie",
+    defaultImage: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800",
+    defaultSubcategories: ["TV & Home Cinéma", "Froid & Lavage", "Cuisson"],
   },
-  "Beauté & Santé": {
-    ...LUXURY_PALETTE_VARIANTS.blushSilk,
-    icon: Sparkles,
-    defaultTitle: "Beauté & Soins",
-    defaultSubtitle: "Parfums, Cosmétiques & Bien-être",
-    defaultCount: "16",
-  },
-  "Auto & Moto": {
-    ...LUXURY_PALETTE_VARIANTS.midnightVelvet,
-    icon: CarFront,
-    defaultTitle: "Auto & Moto",
-    defaultSubtitle: "Pièces détachées & Entretien",
-    defaultCount: "19",
-  },
-  "Bricolage & Outillage": {
-    ...LUXURY_PALETTE_VARIANTS.sunsetAmber,
-    icon: Hammer,
-    defaultTitle: "Outillage & Travaux",
-    defaultSubtitle: "Outillage pro, Jardin & Maison",
-    defaultCount: "13",
-  },
-  "Sport & Loisirs": {
-    ...LUXURY_PALETTE_VARIANTS.crimsonRose,
-    icon: Dumbbell,
-    defaultTitle: "Sport & Fitness",
-    defaultSubtitle: "Musculation, Running & Plein air",
-    defaultCount: "17",
-  },
-  "Bébé & Puériculture": {
-    ...LUXURY_PALETTE_VARIANTS.blushSilk,
-    icon: Baby,
-    defaultTitle: "Bébé & Puériculture",
-    defaultSubtitle: "Poussettes, Sommeil, Éveil & Jeux",
-    defaultCount: "10",
+  Mode: {
+    accentHex: "#F472B6",
+    editionTag: "VESTIAIRE & STYLE",
+    icon: Shirt,
+    defaultTitle: "Mode",
+    defaultSubtitle: "Prêt-à-porter, Maroquinerie & Horlogerie",
+    defaultImage: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=800",
+    defaultSubcategories: ["Mode Femme", "Mode Homme", "Accessoires & Bijoux"],
   },
   "Artisanat & Tradition": {
-    ...LUXURY_PALETTE_VARIANTS.sunsetAmber,
+    accentHex: "#F59E0B",
+    editionTag: "PATRIMOINE D'ALGÉRIE",
     icon: Palette,
     defaultTitle: "Artisanat & Tradition",
-    defaultSubtitle: "Céramique, Tissage, Cuir & Terroir",
-    defaultCount: "15",
+    defaultSubtitle: "Haute couture algérienne, Dinanderie & Tapis",
+    defaultImage: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&q=80&w=800",
+    defaultSubcategories: ["Tenues Traditionnelles", "Poterie", "Tapis Berbères"],
   },
-};
-
-const ALIASES: Record<string, string> = {
-  vehiculespieces: "Auto & Moto",
-  autoequipement: "Auto & Moto",
-  automoto: "Auto & Moto",
-  auto: "Auto & Moto",
-  bricolagejardin: "Bricolage & Outillage",
-  outillagetravaux: "Bricolage & Outillage",
-  bricolage: "Bricolage & Outillage",
-  maisondecoration: "Maison & Déco",
-  maison: "Maison & Déco",
-  techperformance: "Électronique",
-  tech: "Électronique",
-  modeelegance: "Mode",
-  epicerieterroir: "Supermarché",
-  beautesoins: "Beauté & Santé",
-  homeappliances: "Électroménager",
-  sportfitness: "Sport & Loisirs",
-  bebeenfants: "Bébé & Puériculture",
-  artisanat: "Artisanat & Tradition",
-  jouets: "Jeux & Jouets",
-  scolaire: "Scolaire & Bureau",
+  "Beauté & Santé": {
+    accentHex: "#FB7185",
+    editionTag: "SOINS & PARFUMERIE",
+    icon: Sparkles,
+    defaultTitle: "Beauté & Santé",
+    defaultSubtitle: "Haute Parfumerie, Dermo-cosmétique & Soins",
+    defaultImage: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=800",
+    defaultSubcategories: ["Soins du visage", "Parfums", "Maquillage"],
+  },
+  "Auto & Moto": {
+    accentHex: "#EF4444",
+    editionTag: "MÉCANIQUE & ÉQUIPEMENT",
+    icon: CarFront,
+    defaultTitle: "Auto & Moto",
+    defaultSubtitle: "Pièces OEM, Pneumatiques & Équipement",
+    defaultImage: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=800",
+    defaultSubcategories: ["Pièces & Entretien", "Pneumatiques", "Moto & Scooter"],
+  },
+  "Sport & Loisirs": {
+    accentHex: "#10B981",
+    editionTag: "PERFORMANCE & OUTDOOR",
+    icon: Dumbbell,
+    defaultTitle: "Sport & Loisirs",
+    defaultSubtitle: "Musculation, Running, Cyclisme & Outdoor",
+    defaultImage: "https://images.unsplash.com/photo-1517649763962-0c6232662000?auto=format&fit=crop&q=80&w=800",
+    defaultSubcategories: ["Fitness & Musculation", "Sports Collectifs", "Randonnée"],
+  },
+  "Bébé & Puériculture": {
+    accentHex: "#38BDF8",
+    editionTag: "UNIVERS PREMIER ÂGE",
+    icon: Baby,
+    defaultTitle: "Bébé & Puériculture",
+    defaultSubtitle: "Poussettes Trio, Chambre & Premier Âge",
+    defaultImage: "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&q=80&w=800",
+    defaultSubcategories: ["Poussettes & Voyage", "Chambre & Sommeil", "Éveil"],
+  },
+  "Bricolage & Outillage": {
+    accentHex: "#F97316",
+    editionTag: "ATELIER & CHANTIER",
+    icon: Hammer,
+    defaultTitle: "Bricolage & Outillage",
+    defaultSubtitle: "Électroportatif Pro, Plomberie & Chantier",
+    defaultImage: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=800",
+    defaultSubcategories: ["Électroportatif", "Outillage à Main", "Plomberie"],
+  },
+  "Jeux & Jouets": {
+    accentHex: "#C084FC",
+    editionTag: "ÉVEIL & PASSIONS",
+    icon: Gamepad2,
+    defaultTitle: "Jeux & Jouets",
+    defaultSubtitle: "Jeux éducatifs, Figurines & Plein air",
+    defaultImage: "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&q=80&w=800",
+    defaultSubcategories: ["Jeux éducatifs", "Jeux de société", "Plein air"],
+  },
+  Supermarché: {
+    accentHex: "#34D399",
+    editionTag: "ÉPICERIE & TERROIR",
+    icon: ShoppingBasket,
+    defaultTitle: "Supermarché",
+    defaultSubtitle: "Épicerie fine, Huile de Kabylie & Quotidien",
+    defaultImage: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800",
+    defaultSubcategories: ["Épicerie & Terroir", "Boissons & Cafés", "Entretien"],
+  },
+  "Scolaire & Bureau": {
+    accentHex: "#FBBF24",
+    editionTag: "SAVOIR & PAPETERIE",
+    icon: GraduationCap,
+    defaultTitle: "Scolaire & Bureau",
+    defaultSubtitle: "Papeterie, Livres, Manuels & Maroquinerie",
+    defaultImage: "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?auto=format&fit=crop&q=80&w=800",
+    defaultSubcategories: ["Rentrée Scolaire", "Papeterie & Bureau", "Livres"],
+  },
 };
 
 export const getCategoryTheme = (rawKey: string, indexFallback = 0): CategoryTheme => {
-  if (THEMES_BY_KEY[rawKey]) return THEMES_BY_KEY[rawKey];
-  const norm = normalize(rawKey);
-  const aliasTarget = ALIASES[norm];
-  if (aliasTarget && THEMES_BY_KEY[aliasTarget]) return THEMES_BY_KEY[aliasTarget];
-
-  const foundEntry = Object.entries(THEMES_BY_KEY).find(([k]) => {
-    const kNorm = normalize(k);
-    return kNorm.includes(norm) || norm.includes(kNorm);
-  });
-  if (foundEntry) return foundEntry[1];
+  const canonical = resolveCanonicalCategoryKey(rawKey);
+  if (THEMES_BY_KEY[canonical]) return THEMES_BY_KEY[canonical];
 
   const themeList = Object.values(THEMES_BY_KEY);
   return themeList[indexFallback % themeList.length];

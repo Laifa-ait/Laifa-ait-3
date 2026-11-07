@@ -185,7 +185,7 @@ export const CategoryItemListManager: React.FC<CategoryItemListManagerProps> = (
             className="flex-1 h-8 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-2xs disabled:opacity-40 cursor-pointer transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ Créer une carte sur-mesure</span>
+            <span>Créer une carte sur-mesure</span>
           </button>
           {categories.length > 0 && (
             <button

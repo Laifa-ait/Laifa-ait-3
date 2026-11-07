@@ -6,6 +6,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { apiGet, apiPost, apiPut } from "../../../lib/api";
 import { PRODUCT_HIERARCHY } from "../../../constants";
 import { SellerProduct } from "../../../types/seller";
+import { deduplicateCategoryHierarchy, deduplicateCategoryOrder } from "../../../utils/categoryCanonical";
 
 export function useSellerCatalog() {
   const { t } = useTranslation();
@@ -33,12 +34,14 @@ export function useSellerCatalog() {
           setProducts(prodData.products);
         }
 
-        const catData = await apiGet<{ hierarchy?: Record<string, Record<string, string[]>> }>("/api/v1/settings/categories-hierarchy");
+        const catData = await apiGet<{ hierarchy?: Record<string, Record<string, string[]>>; sortOrder?: string[] }>("/api/v1/settings/categories-hierarchy");
         if (!cancelled) {
           const h = catData?.hierarchy;
           if (h && Object.keys(h).length > 0) {
-            setCategoryHierarchy(h);
-            setCategories(Object.keys(h));
+            const cleanH = deduplicateCategoryHierarchy(h);
+            const orderedKeys = deduplicateCategoryOrder(catData?.sortOrder || Object.keys(cleanH), Object.keys(cleanH));
+            setCategoryHierarchy(cleanH);
+            setCategories(orderedKeys);
           } else {
             setCategoryHierarchy(PRODUCT_HIERARCHY);
             setCategories(Object.keys(PRODUCT_HIERARCHY));

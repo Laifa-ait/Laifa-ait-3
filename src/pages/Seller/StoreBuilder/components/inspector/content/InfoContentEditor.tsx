@@ -1,5 +1,5 @@
 import React from "react";
-import { BookOpen, Truck, RotateCcw, ShieldCheck, Phone, Plus, Trash2 } from "lucide-react";
+import { BookOpen, Truck, RotateCcw, ShieldCheck, Phone, Plus, Trash2, Type } from "lucide-react";
 import { Product } from "../../../../../../domains/product/product.types";
 import { StudioImagePicker } from "./StudioImagePicker";
 import { AlgeriaEcommercePresets } from "../controls/AlgeriaEcommercePresets";
@@ -55,6 +55,7 @@ export const InfoContentEditor: React.FC<InfoContentEditorProps> = ({
   );
 
   if (sectionType === "brand_story") {
+    const dropCapEnabled = Boolean(settings.dropCap);
     return (
       <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200 select-none">
         <div className="flex items-center gap-1.5 text-xs font-bold text-[#011C40]">
@@ -68,9 +69,9 @@ export const InfoContentEditor: React.FC<InfoContentEditorProps> = ({
           onChange={(newUrl) => onSettingsChange("imageUrl", newUrl)}
           products={products}
         />
-        {renderText("heading", "Titre de votre histoire", "À Propos de Notre Maison")}
+        {renderText("heading", "Titre de votre histoire (*italique* / {souligné})", "Notre *Passion* & Notre {Atelier}")}
         <label className={labelClass}>
-          <span>Récit de votre boutique</span>
+          <span>Récit / Manifeste de votre boutique</span>
           <textarea
             rows={4}
             maxLength={2000}
@@ -79,6 +80,30 @@ export const InfoContentEditor: React.FC<InfoContentEditorProps> = ({
             className="w-full rounded-lg border border-[#E4E7EC] bg-white p-2.5 text-xs text-[#17191C] focus:border-[#023859] focus:outline-none"
           />
         </label>
+
+        {/* Pilier 3: Option Lettrine Éditoriale (dropCap) */}
+        <label className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-slate-200 cursor-pointer hover:border-[#023859] transition-colors">
+          <div className="flex items-center gap-2">
+            <span className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 font-serif font-extrabold flex items-center justify-center text-sm">
+              <Type className="w-3.5 h-3.5" />
+            </span>
+            <div>
+              <span className="block text-[11px] font-extrabold text-[#011C40]">
+                Lettrine Éditoriale Haute Couture (Drop Cap)
+              </span>
+              <span className="block text-[9.5px] text-slate-500">
+                Sublime la première lettre du manifeste façon magazine d'art
+              </span>
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={dropCapEnabled}
+            onChange={(e) => onSettingsChange("dropCap", e.target.checked)}
+            className="w-4 h-4 accent-[#023859] cursor-pointer"
+          />
+        </label>
+
         <div className="grid grid-cols-2 gap-2">
           {(["left", "right"] as const).map((pos) => (
             <button
@@ -111,7 +136,7 @@ export const InfoContentEditor: React.FC<InfoContentEditorProps> = ({
           <ShieldCheck className="w-3.5 h-3.5 text-[#023859]" />
           <span>Avis Clients Vérifiés</span>
         </div>
-        {renderText("title", "Titre de la section", "Ils nous font confiance")}
+        {renderText("title", "Titre de la section", "Ils nous font *confiance*")}
         {renderText("subtitle", "Sous-titre", "Retours vérifiés de nos clients en Algérie")}
         {renderNumber("maxReviews", "Nombre d'avis affichés", 1, 24)}
         <div className="pt-2 border-t border-slate-200 space-y-2">
@@ -125,7 +150,7 @@ export const InfoContentEditor: React.FC<InfoContentEditorProps> = ({
                   { author: "Client Vérifié (Alger)", rating: 5, comment: "Excellent produit et livraison rapide !" },
                 ])
               }
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#023859] text-white text-[11px] font-bold cursor-pointer"
             >
               <Plus className="w-3 h-3" />
               <span>Ajouter</span>
@@ -171,9 +196,6 @@ export const InfoContentEditor: React.FC<InfoContentEditorProps> = ({
   }
 
   if (sectionType === "delivery_info") {
-    const customTariffs = Array.isArray(settings.customTariffs)
-      ? (settings.customTariffs as Array<{ wilayaName: string; estimatedDays: string; priceDZD: number; homeDeliveryAvailable: boolean }>)
-      : [];
     return (
       <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200 select-none">
         <div className="flex items-center gap-1.5 text-xs font-bold text-[#011C40]">
@@ -181,78 +203,13 @@ export const InfoContentEditor: React.FC<InfoContentEditorProps> = ({
           <span>Livraison & Tarifs Wilayas</span>
         </div>
         <AlgeriaEcommercePresets sectionType="delivery_info" onApplyPreset={(patch) => onSettingsChange(patch)} />
-        {renderText("title", "Titre de la section", "Expédition Rapide sur les 58 Wilayas")}
+        {renderText("title", "Titre de la section", "Expédition Rapide sur les {69 Wilayas}")}
         {renderText("defaultTimeframe", "Délai moyen d'expédition", "24h - 48h")}
         <div className="grid grid-cols-2 gap-2">
           {renderNumber("stopDeskPrice", "Tarif Stop-Desk (DA)", 0, 5000, 50)}
           {renderNumber("homeDeliveryPrice", "Tarif Domicile (DA)", 0, 5000, 50)}
         </div>
         {renderNumber("freeShippingAbove", "Livraison offerte dès (DA)", 0, 1000000, 500)}
-        <div className="pt-2 border-t border-slate-200 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-[#011C40]">Wilayas mises en avant ({customTariffs.length})</span>
-            <button
-              type="button"
-              onClick={() =>
-                onSettingsChange("customTariffs", [
-                  ...customTariffs,
-                  { wilayaName: "16 - Alger", estimatedDays: "24h", priceDZD: 400, homeDeliveryAvailable: true },
-                ])
-              }
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold cursor-pointer transition-colors"
-            >
-              <Plus className="w-3 h-3" />
-              <span>Ajouter Wilaya</span>
-            </button>
-          </div>
-          {customTariffs.map((t, idx) => (
-            <div key={idx} className="p-2 bg-white rounded-lg border border-slate-200 space-y-1.5">
-              <div className="flex gap-1.5">
-                <input
-                  value={t.wilayaName}
-                  onChange={(e) => {
-                    const next = [...customTariffs];
-                    next[idx] = { ...next[idx], wilayaName: e.target.value };
-                    onSettingsChange("customTariffs", next);
-                  }}
-                  placeholder="Ex: 31 - Oran"
-                  className={inputClass}
-                />
-                <button
-                  type="button"
-                  onClick={() => onSettingsChange("customTariffs", customTariffs.filter((_, i) => i !== idx))}
-                  className="px-2 rounded border border-rose-200 text-rose-600 cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                <input
-                  value={t.estimatedDays}
-                  onChange={(e) => {
-                    const next = [...customTariffs];
-                    next[idx] = { ...next[idx], estimatedDays: e.target.value };
-                    onSettingsChange("customTariffs", next);
-                  }}
-                  placeholder="Délai (ex: 24h)"
-                  className={inputClass}
-                />
-                <input
-                  type="number"
-                  min={0}
-                  value={t.priceDZD}
-                  onChange={(e) => {
-                    const next = [...customTariffs];
-                    next[idx] = { ...next[idx], priceDZD: Number(e.target.value) };
-                    onSettingsChange("customTariffs", next);
-                  }}
-                  placeholder="Prix DA"
-                  className={inputClass}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     );
   }
@@ -265,24 +222,12 @@ export const InfoContentEditor: React.FC<InfoContentEditorProps> = ({
           <span>Politique de Retours & Échanges</span>
         </div>
         <AlgeriaEcommercePresets sectionType="return_policy" onApplyPreset={(patch) => onSettingsChange(patch)} />
-        {renderText("title", "Titre de la section", "Retours & Échanges")}
+        {renderText("title", "Titre de la section", "Retours & *Échanges*")}
         {renderNumber("delayDays", "Délai de retour accepté (jours)", 1, 90)}
-        <label className={labelClass}>
-          <span>Prise en charge des frais de retour</span>
-          <select
-            value={String(settings.returnShippingFeeBy || "buyer")}
-            onChange={(e) => onSettingsChange("returnShippingFeeBy", e.target.value)}
-            className={inputClass}
-          >
-            <option value="buyer">À la charge du client</option>
-            <option value="seller">À la charge de la boutique</option>
-            <option value="free">Retours 100% gratuits</option>
-          </select>
-        </label>
         <label className={labelClass}>
           <span>Conditions détaillées</span>
           <textarea
-            rows={4}
+            rows={3}
             value={String(settings.conditions || "")}
             onChange={(e) => onSettingsChange("conditions", e.target.value)}
             className="w-full rounded-lg border border-[#E4E7EC] bg-white p-2.5 text-xs focus:border-[#023859] focus:outline-none"
@@ -305,9 +250,6 @@ export const InfoContentEditor: React.FC<InfoContentEditorProps> = ({
         {renderText("wilaya", "Wilaya", "Alger")}
         {renderText("address", "Adresse physique / Point de retrait")}
         {renderText("workingHours", "Horaires d'ouverture", "Samedi - Jeudi : 09h00 - 18h00")}
-        {renderText("socialInstagram", "Lien ou @ Instagram")}
-        {renderText("socialFacebook", "Page Facebook")}
-        {renderText("socialTiktok", "Compte TikTok")}
       </div>
     );
   }

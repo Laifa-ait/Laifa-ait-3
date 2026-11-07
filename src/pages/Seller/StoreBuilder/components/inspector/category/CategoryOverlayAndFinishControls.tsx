@@ -1,6 +1,9 @@
 import React from "react";
-import { Sparkles, Eye, Move, Type, CheckCircle2 } from "lucide-react";
-import { CATEGORY_HOVER_EFFECTS } from "../../../constants/categoryCanvaOptions";
+import { Sparkles, Eye, Move, Type, CheckCircle2, Layers } from "lucide-react";
+import {
+  CATEGORY_HOVER_EFFECTS,
+  getCategoryLayoutCapabilities,
+} from "../../../constants/categoryCanvaOptions";
 
 interface CategoryOverlayAndFinishControlsProps {
   settings: Record<string, unknown>;
@@ -23,15 +26,28 @@ export const CategoryOverlayAndFinishControls: React.FC<
   currentTextPos,
   currentHover,
   overlayOpacity,
-  isOverlayActive,
   onSettingsChange,
 }) => {
   const showTitle = settings.showTitle !== false && currentTextPos !== "none";
+  const glassmorphism = Boolean(settings.glassmorphism);
+  const caps = getCategoryLayoutCapabilities(currentLayout, currentTextPos, showTitle);
 
   const harmoniousHoverEffects =
     currentLayout === "pills"
       ? CATEGORY_HOVER_EFFECTS.filter((h) => ["lift", "glow", "none"].includes(h.id))
       : CATEGORY_HOVER_EFFECTS;
+
+  const positionChoices =
+    currentLayout === "bento" || currentLayout === "glass-dock"
+      ? [
+          { id: "overlay-bottom", label: "Sur photo (Bas)" },
+          { id: "overlay-center", label: "Sur photo (Centre)" },
+        ]
+      : [
+          { id: "below", label: "Sous la photo" },
+          { id: "overlay-bottom", label: "Sur photo (Bas)" },
+          { id: "overlay-center", label: "Sur photo (Centre)" },
+        ];
 
   return (
     <div className="space-y-3.5 select-none">
@@ -47,7 +63,6 @@ export const CategoryOverlayAndFinishControls: React.FC<
           <Type className="w-3.5 h-3.5 text-[#26658C]" />
         </div>
 
-        {/* Avec titre vs Sans titre */}
         <div className="grid grid-cols-2 gap-1.5">
           <button
             type="button"
@@ -56,7 +71,9 @@ export const CategoryOverlayAndFinishControls: React.FC<
                 showTitle: true,
                 textPosition:
                   currentTextPos === "none"
-                    ? currentLayout === "bento" || currentLayout === "overlay"
+                    ? currentLayout === "bento" ||
+                      currentLayout === "overlay" ||
+                      currentLayout === "glass-dock"
                       ? "overlay-bottom"
                       : "below"
                     : currentTextPos,
@@ -88,27 +105,15 @@ export const CategoryOverlayAndFinishControls: React.FC<
           </button>
         </div>
 
-        {/* Emplacement du titre quand "Avec Titre" est actif */}
-        {showTitle &&
-          (currentLayout === "grid" ||
-            currentLayout === "bento" ||
-            currentLayout === "overlay" ||
-            currentLayout === "carousel") && (
-            <div className="space-y-2 pt-1.5 border-t border-slate-200/70">
-              <span className="text-[10px] font-bold text-slate-600 block">
-                Où écrire le titre de la catégorie ?
-              </span>
-              {currentLayout === "bento" ? (
-                <div className="text-[10px] text-slate-600 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium">
-                  En mode Bento, le titre s'affiche proprement en bas de chaque image.
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-1.5">
-                  {[
-                    { id: "below", label: "Sous la photo" },
-                    { id: "overlay-bottom", label: "Sur photo (Bas)" },
-                    { id: "overlay-center", label: "Sur photo (Centre)" },
-                  ].map((pos) => (
+        {showTitle && (
+          <div className="space-y-2.5 pt-1.5 border-t border-slate-200/70">
+            {caps.supportsTextPositionChoice && (
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-600 block">
+                  Où écrire le titre de la catégorie ?
+                </span>
+                <div className={`grid ${positionChoices.length === 2 ? "grid-cols-2" : "grid-cols-3"} gap-1.5`}>
+                  {positionChoices.map((pos) => (
                     <button
                       key={pos.id}
                       type="button"
@@ -116,10 +121,6 @@ export const CategoryOverlayAndFinishControls: React.FC<
                         onSettingsChange({
                           showTitle: true,
                           textPosition: pos.id,
-                          layout:
-                            pos.id === "below" && currentLayout === "overlay"
-                              ? "grid"
-                              : currentLayout,
                         })
                       }
                       className={`py-2 px-1.5 rounded-lg border text-[10px] font-bold cursor-pointer transition-all ${
@@ -132,33 +133,49 @@ export const CategoryOverlayAndFinishControls: React.FC<
                     </button>
                   ))}
                 </div>
-              )}
+              </div>
+            )}
 
-              {isOverlayActive && (
-                <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-2">
-                  <div className="flex justify-between text-[11px] font-semibold text-slate-700">
-                    <span className="flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-[#54ACBF]" />
-                      Contraste sous le titre
-                    </span>
-                    <span className="text-[#023859] font-mono font-bold">{overlayOpacity}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={10}
-                    max={80}
-                    step={5}
-                    value={overlayOpacity}
-                    onChange={(e) => onSettingsChange("overlayOpacity", Number(e.target.value))}
-                    className="w-full accent-[#023859] cursor-pointer"
-                  />
+            {caps.supportsGlassDockToggle && currentLayout !== "glass-dock" && (
+              <label className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200 text-[11px] font-semibold text-slate-700 cursor-pointer">
+                <span className="flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-[#26658C]" />
+                  Capsule verre givré sous le titre
+                </span>
+                <input
+                  type="checkbox"
+                  checked={glassmorphism}
+                  onChange={(e) => onSettingsChange("glassmorphism", e.target.checked)}
+                  className="w-4 h-4 accent-[#023859] rounded cursor-pointer"
+                />
+              </label>
+            )}
+
+            {caps.supportsOverlayContrast && (
+              <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-2">
+                <div className="flex justify-between text-[11px] font-semibold text-slate-700">
+                  <span className="flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-[#54ACBF]" />
+                    Contraste sous le titre
+                  </span>
+                  <span className="text-[#023859] font-mono font-bold">{overlayOpacity}%</span>
                 </div>
-              )}
-            </div>
-          )}
+                <input
+                  type="range"
+                  min={10}
+                  max={85}
+                  step={5}
+                  value={overlayOpacity}
+                  onChange={(e) => onSettingsChange("overlayOpacity", Number(e.target.value))}
+                  className="w-full accent-[#023859] cursor-pointer"
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* ÉTAPE 4 : OPTIONS SECONDAIRES (DÉSACTIVÉES PAR DÉFAUT POUR GARDER LA CARTE PROPRE) */}
+      {/* ÉTAPE 4 : OPTIONS SECONDAIRES */}
       <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
@@ -175,7 +192,7 @@ export const CategoryOverlayAndFinishControls: React.FC<
             <Move className="w-3 h-3 text-[#26658C]" />
             <span>Effet au survol</span>
           </label>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-2 gap-1.5">
             {harmoniousHoverEffects.map((opt) => (
               <button
                 key={opt.id}

@@ -1,18 +1,16 @@
 import React from "react";
-import { Columns, ChevronRight, Palette, Maximize2 } from "lucide-react";
+import { Columns, ChevronRight, Palette, Maximize2, Focus } from "lucide-react";
 import {
   CATEGORY_LAYOUT_OPTIONS,
   CATEGORY_RADIUS_OPTIONS,
+  getCategoryLayoutCapabilities,
 } from "../../../constants/categoryCanvaOptions";
 import { VisualLayoutPicker } from "../controls/VisualLayoutPicker";
 import { CategoryOverlayAndFinishControls } from "./CategoryOverlayAndFinishControls";
 
 interface CategoryCanvaStyleControlsProps {
   settings: Record<string, unknown>;
-  onSettingsChange: (
-    fieldOrPatch: string | Record<string, unknown>,
-    value?: unknown
-  ) => void;
+  onSettingsChange: (fieldOrPatch: string | Record<string, unknown>, value?: unknown) => void;
 }
 
 const SHOPIFY_CARD_SKINS = [
@@ -23,9 +21,15 @@ const SHOPIFY_CARD_SKINS = [
 ];
 
 const CARD_SIZES = [
-  { id: "compact", label: "Compacte", desc: "Fines & 2 col. mobile" },
+  { id: "compact", label: "Compacte", desc: "Fines & denses" },
   { id: "balanced", label: "Équilibrée", desc: "Proportion standard" },
   { id: "large", label: "Grande", desc: "Impact lookbook" },
+];
+
+const PHOTO_POSITIONS = [
+  { id: "top", label: "Haut" },
+  { id: "center", label: "Centre" },
+  { id: "bottom", label: "Bas" },
 ];
 
 export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProps> = ({
@@ -44,6 +48,11 @@ export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProp
   const pillShowImage = settings.pillShowImage !== false;
   const cardSkin = String(settings.cardSkin || "editorial");
   const cardSize = String(settings.cardSize || "balanced");
+  const imagePosition = String(settings.imagePosition || "center");
+  const imageFit = String(settings.imageFit || "cover");
+  const showTitle = settings.showTitle !== false && currentTextPos !== "none";
+
+  const caps = getCategoryLayoutCapabilities(currentLayout, currentTextPos, showTitle);
 
   const handleSelectLayout = (newLayout: string) => {
     const patch: Record<string, unknown> = { layout: newLayout };
@@ -54,21 +63,16 @@ export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProp
       patch.glassmorphism = false;
     } else if (newLayout === "pills") {
       patch.borderRadius = "full";
-      patch.textPosition = "card-inside";
+      if (currentTextPos !== "none") patch.textPosition = "card-inside";
       patch.glassmorphism = false;
-    } else if (
-      newLayout === "overlay" ||
-      newLayout === "bento" ||
-      newLayout === "accordion" ||
-      newLayout === "glass-dock"
-    ) {
+    } else if (["overlay", "bento", "accordion", "glass-dock"].includes(newLayout)) {
       if (currentAspect === "circle") patch.aspectRatio = "4/5";
-      if (currentRadius === "full" || currentRadius === "lg") patch.borderRadius = "md";
-      if (currentTextPos === "below") patch.textPosition = "overlay-bottom";
+      if (currentRadius === "full") patch.borderRadius = "md";
+      if (currentTextPos === "below" || currentTextPos === "card-inside") patch.textPosition = "overlay-bottom";
       if (newLayout === "glass-dock") patch.glassmorphism = true;
     } else {
       if (currentAspect === "circle") patch.aspectRatio = "4/5";
-      if (currentRadius === "full" || currentRadius === "lg") patch.borderRadius = "md";
+      if (currentRadius === "full") patch.borderRadius = "md";
       if (currentTextPos !== "none") patch.textPosition = "below";
     }
     onSettingsChange(patch);
@@ -76,31 +80,15 @@ export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProp
 
   const selectedLayoutMeta =
     CATEGORY_LAYOUT_OPTIONS.find((o) => o.id === currentLayout) || CATEGORY_LAYOUT_OPTIONS[0];
-
-  const isOverlayActive =
-    currentLayout === "overlay" ||
-    currentLayout === "bento" ||
-    currentLayout === "accordion" ||
-    currentLayout === "glass-dock" ||
-    ((currentLayout === "grid" || currentLayout === "carousel") &&
-      (currentTextPos === "overlay-bottom" || currentTextPos === "overlay-center"));
-
-  const harmoniousCardRadii = CATEGORY_RADIUS_OPTIONS.filter((o) => o.id !== "full");
-  const showColumnsGrid =
-    currentLayout !== "carousel" &&
-    currentLayout !== "mesh-3d" &&
-    currentLayout !== "accordion" &&
-    currentLayout !== "magazine";
+  const harmoniousCardRadii =
+    currentLayout === "pills" ? CATEGORY_RADIUS_OPTIONS : CATEGORY_RADIUS_OPTIONS.filter((o) => o.id !== "full");
 
   return (
     <div className="space-y-3.5 select-none">
-      {/* ÉTAPE 1 : MODÈLE DE CARTE, DIMENSION & FINITION */}
       <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-extrabold text-[#011C40] uppercase tracking-wider flex items-center gap-1.5">
-            <span className="w-5 h-5 rounded-full bg-[#023859] text-white text-[10px] font-black flex items-center justify-center">
-              1
-            </span>
+            <span className="w-5 h-5 rounded-full bg-[#023859] text-white text-[10px] font-black flex items-center justify-center">1</span>
             Modèle & Dimension ({CATEGORY_LAYOUT_OPTIONS.length})
           </span>
           <span className="text-[10px] font-bold text-[#023859] bg-[#F0F7FA] px-2.5 py-0.5 rounded-full border border-[#B8D8E8]">
@@ -120,8 +108,7 @@ export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProp
 
         <div className="pt-2.5 border-t border-slate-100 space-y-1.5">
           <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-            <Maximize2 className="w-3 h-3 text-[#26658C]" />
-            <span>Dimension & Taille des Cartes</span>
+            <Maximize2 className="w-3 h-3 text-[#26658C]" /><span>Dimension & Taille des Cartes</span>
           </label>
           <div className="grid grid-cols-3 gap-1.5">
             {CARD_SIZES.map((sz) => (
@@ -130,15 +117,11 @@ export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProp
                 type="button"
                 onClick={() => onSettingsChange("cardSize", sz.id)}
                 className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
-                  cardSize === sz.id
-                    ? "border-[#023859] bg-[#023859] text-white shadow-2xs"
-                    : "border-slate-200 bg-slate-50/70 hover:bg-white text-slate-700"
+                  cardSize === sz.id ? "border-[#023859] bg-[#023859] text-white shadow-2xs" : "border-slate-200 bg-slate-50/70 hover:bg-white text-slate-700"
                 }`}
               >
                 <span className="block text-[10px] font-extrabold leading-tight">{sz.label}</span>
-                <span className={`block text-[9px] mt-0.5 ${cardSize === sz.id ? "text-white/80" : "text-slate-500"}`}>
-                  {sz.desc}
-                </span>
+                <span className={`block text-[9px] mt-0.5 ${cardSize === sz.id ? "text-white/80" : "text-slate-500"}`}>{sz.desc}</span>
               </button>
             ))}
           </div>
@@ -146,8 +129,7 @@ export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProp
 
         <div className="pt-2.5 border-t border-slate-100 space-y-1.5">
           <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-            <Palette className="w-3 h-3 text-[#26658C]" />
-            <span>Style de Bordure & Fond</span>
+            <Palette className="w-3 h-3 text-[#26658C]" /><span>Style de Bordure & Fond</span>
           </label>
           <div className="grid grid-cols-2 gap-1.5">
             {SHOPIFY_CARD_SKINS.map((skin) => (
@@ -156,9 +138,7 @@ export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProp
                 type="button"
                 onClick={() => onSettingsChange("cardSkin", skin.id)}
                 className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
-                  cardSkin === skin.id
-                    ? "border-[#023859] bg-[#F0F7FA] text-[#011C40] ring-1 ring-[#023859]/20"
-                    : "border-slate-200 bg-slate-50/70 hover:bg-white text-slate-700"
+                  cardSkin === skin.id ? "border-[#023859] bg-[#F0F7FA] text-[#011C40] ring-1 ring-[#023859]/20" : "border-slate-200 bg-slate-50/70 hover:bg-white text-slate-700"
                 }`}
               >
                 <span className="block text-[10px] font-extrabold leading-tight">{skin.label}</span>
@@ -169,92 +149,109 @@ export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProp
         </div>
       </div>
 
-      {/* ÉTAPE 2 : GRILLE & COINS */}
       <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-extrabold text-[#011C40] uppercase tracking-wider flex items-center gap-1.5">
-            <span className="w-5 h-5 rounded-full bg-[#011C40] text-white text-[10px] font-black flex items-center justify-center">
-              2
-            </span>
-            Grille & Arrondi ({selectedLayoutMeta.label})
+            <span className="w-5 h-5 rounded-full bg-[#011C40] text-white text-[10px] font-black flex items-center justify-center">2</span>
+            Mobile, Cadrage Photo & Arrondi
           </span>
           <ChevronRight className="w-3.5 h-3.5 text-[#26658C]" />
         </div>
 
-        {currentLayout === "bubbles" ? (
+        {caps.supportsColumnsMobile && (
+          <div className="flex items-center justify-between gap-2 bg-white p-2 rounded-lg border border-slate-200">
+            <span className="text-[10px] font-bold text-slate-700 flex items-center gap-1">
+              <Columns className="w-3 h-3 text-[#26658C]" />Affichage Téléphone (Mobile)
+            </span>
+            <div className="grid grid-cols-2 gap-1 w-36">
+              {[1, 2].map((col) => (
+                <button
+                  key={col}
+                  type="button"
+                  onClick={() => onSettingsChange("columnsMobile", col)}
+                  className={`py-1 rounded-md border text-[10px] font-bold cursor-pointer ${
+                    columnsMobile === col ? "border-[#023859] bg-[#023859] text-white" : "border-slate-200 bg-slate-50 text-slate-700"
+                  }`}
+                >
+                  {col === 1 ? "1 Col. Large" : "2 Col. Grille"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="p-2 bg-white rounded-lg border border-slate-200 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-700 flex items-center gap-1">
+              <Focus className="w-3 h-3 text-[#26658C]" />Cadrage Photo (Mobile & PC)
+            </span>
+            <div className="inline-flex rounded-md border border-slate-200 p-0.5 bg-slate-50">
+              {[{ id: "cover", label: "Remplir" }, { id: "contain", label: "Entier" }].map((fit) => (
+                <button
+                  key={fit.id}
+                  type="button"
+                  onClick={() => onSettingsChange("imageFit", fit.id)}
+                  className={`px-2 py-0.5 rounded text-[9px] font-bold cursor-pointer ${imageFit === fit.id ? "bg-[#023859] text-white" : "text-slate-600"}`}
+                >
+                  {fit.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            {PHOTO_POSITIONS.map((pos) => (
+              <button
+                key={pos.id}
+                type="button"
+                onClick={() => onSettingsChange("imagePosition", pos.id)}
+                className={`py-1 rounded-md border text-[10px] font-bold cursor-pointer ${
+                  imagePosition === pos.id ? "border-[#023859] bg-[#F0F7FA] text-[#011C40]" : "border-slate-200 bg-slate-50 text-slate-600"
+                }`}
+              >
+                Focus {pos.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {currentLayout === "bubbles" && (
           <div className="grid grid-cols-3 gap-1.5">
-            {[
-              { id: "gradient", label: "Bague Luxe" },
-              { id: "solid", label: "Anneau Fin" },
-              { id: "none", label: "Épuré" },
-            ].map((ring) => (
+            {[{ id: "gradient", label: "Bague Luxe" }, { id: "solid", label: "Anneau Fin" }, { id: "none", label: "Épuré" }].map((ring) => (
               <button
                 key={ring.id}
                 type="button"
                 onClick={() => onSettingsChange("bubbleRing", ring.id)}
                 className={`py-2 px-1.5 rounded-lg border text-[10px] font-bold cursor-pointer ${
-                  bubbleRing === ring.id
-                    ? "border-[#023859] bg-[#F0F7FA] text-[#011C40]"
-                    : "border-slate-200 bg-white text-slate-700"
+                  bubbleRing === ring.id ? "border-[#023859] bg-[#F0F7FA] text-[#011C40]" : "border-slate-200 bg-white text-slate-700"
                 }`}
               >
                 {ring.label}
               </button>
             ))}
           </div>
-        ) : currentLayout === "pills" ? (
-          <label className="flex items-center justify-between p-2.5 bg-white rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 cursor-pointer">
-            <span>Miniature photo dans la capsule</span>
-            <input
-              type="checkbox"
-              checked={pillShowImage}
-              onChange={(e) => onSettingsChange("pillShowImage", e.target.checked)}
-              className="w-4 h-4 accent-[#023859] cursor-pointer"
-            />
-          </label>
-        ) : (
-          <div className="space-y-2">
-            {showColumnsGrid && (
-              <div className="flex items-center justify-between gap-2 bg-white p-2 rounded-lg border border-slate-200">
-                <span className="text-[10px] font-bold text-slate-600 flex items-center gap-1">
-                  <Columns className="w-3 h-3 text-[#26658C]" />
-                  Affichage Mobile
-                </span>
-                <div className="grid grid-cols-2 gap-1 w-32">
-                  {[1, 2].map((col) => (
-                    <button
-                      key={col}
-                      type="button"
-                      onClick={() => onSettingsChange("columnsMobile", col)}
-                      className={`py-1 rounded-md border text-[10px] font-bold cursor-pointer ${
-                        columnsMobile === col
-                          ? "border-[#023859] bg-[#023859] text-white"
-                          : "border-slate-200 bg-slate-50 text-slate-700"
-                      }`}
-                    >
-                      {col} Col.
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+        )}
 
-            <div className="grid grid-cols-4 gap-1">
-              {harmoniousCardRadii.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => onSettingsChange("borderRadius", opt.id)}
-                  className={`py-1.5 rounded-lg border text-[10px] font-bold cursor-pointer ${
-                    currentRadius === opt.id
-                      ? "border-[#023859] bg-[#F0F7FA] text-[#011C40]"
-                      : "border-slate-200 bg-white text-slate-600"
-                  }`}
-                >
-                  {opt.label.split(" ")[0]}
-                </button>
-              ))}
-            </div>
+        {currentLayout === "pills" && (
+          <label className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 cursor-pointer">
+            <span>Miniature photo dans la capsule</span>
+            <input type="checkbox" checked={pillShowImage} onChange={(e) => onSettingsChange("pillShowImage", e.target.checked)} className="w-4 h-4 accent-[#023859] cursor-pointer" />
+          </label>
+        )}
+
+        {caps.supportsBorderRadius && (
+          <div className={`grid ${harmoniousCardRadii.length === 5 ? "grid-cols-5" : "grid-cols-4"} gap-1`}>
+            {harmoniousCardRadii.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => onSettingsChange("borderRadius", opt.id)}
+                className={`py-1.5 rounded-lg border text-[10px] font-bold cursor-pointer ${
+                  currentRadius === opt.id ? "border-[#023859] bg-[#F0F7FA] text-[#011C40]" : "border-slate-200 bg-white text-slate-600"
+                }`}
+              >
+                {opt.label.split(" ")[0]}
+              </button>
+            ))}
           </div>
         )}
       </div>
@@ -265,7 +262,7 @@ export const CategoryCanvaStyleControls: React.FC<CategoryCanvaStyleControlsProp
         currentTextPos={currentTextPos}
         currentHover={currentHover}
         overlayOpacity={overlayOpacity}
-        isOverlayActive={isOverlayActive}
+        isOverlayActive={caps.supportsOverlayContrast}
         onSettingsChange={onSettingsChange}
       />
     </div>

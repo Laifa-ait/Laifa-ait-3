@@ -1,12 +1,27 @@
 import React from "react";
-import { CustomPageSectionStyles } from "../../../../../domains/seller/customPage.types";
+import {
+  BannerContentPosition,
+  CustomPageSectionStyles,
+} from "../../../../../domains/seller/customPage.types";
 import { Sparkles, MoveVertical, AlignLeft, Layers, Wand2 } from "lucide-react";
+import { resolveBannerPosition } from "./controls/AlignmentMatrix3x3";
 
 interface SectionLayoutTabProps {
   styles: CustomPageSectionStyles;
   settings: Record<string, unknown>;
   onStylesChange: (field: keyof CustomPageSectionStyles, value: unknown) => void;
-  onSettingsChange: (field: string, value: unknown) => void;
+  onSettingsChange: (
+    fieldOrPatch: string | Record<string, unknown>,
+    value?: unknown
+  ) => void;
+}
+
+function buildContentPosition(
+  h: "left" | "center" | "right",
+  v: "top" | "center" | "bottom"
+): BannerContentPosition {
+  if (v === "center" && h === "center") return "center";
+  return `${v}-${h}` as BannerContentPosition;
 }
 
 export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
@@ -19,6 +34,12 @@ export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
     typeof styles.paddingY === "number"
       ? styles.paddingY
       : { sm: 16, md: 32, lg: 48, xl: 64 }[styles.paddingY || "md"];
+
+  const resolvedPos = resolveBannerPosition(
+    settings.contentPosition as BannerContentPosition | undefined,
+    (settings.textAlignment as "left" | "center" | "right") || "left",
+    (settings.verticalAlignment as "top" | "center" | "bottom") || "center"
+  );
 
   return (
     <div className="space-y-4 select-none">
@@ -78,29 +99,64 @@ export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
         </div>
       </div>
 
-      {/* Alignement Horizontal */}
-      <div className="space-y-1.5 pt-2 border-t border-[#E4E7EC]">
+      {/* Alignement Horizontal & Vertical synchronisé avec la Matrice 3x3 */}
+      <div className="space-y-2.5 pt-2 border-t border-[#E4E7EC]">
         <label className="text-[13px] font-semibold text-[#011C40] flex items-center gap-1.5">
           <AlignLeft className="w-3.5 h-3.5 text-[#023859]" />
           <span>Alignement des titres & textes</span>
         </label>
         <div className="grid grid-cols-3 gap-2">
-          {[
-            { id: "left", label: "Gauche" },
-            { id: "center", label: "Centre" },
-            { id: "right", label: "Droite" },
-          ].map((align) => (
+          {(
+            [
+              { id: "left", label: "Gauche" },
+              { id: "center", label: "Centre" },
+              { id: "right", label: "Droite" },
+            ] as const
+          ).map((align) => (
             <button
               key={align.id}
               type="button"
-              onClick={() => onSettingsChange("textAlignment", align.id)}
+              onClick={() =>
+                onSettingsChange({
+                  textAlignment: align.id,
+                  contentPosition: buildContentPosition(align.id, resolvedPos.vertical),
+                })
+              }
               className={`h-9 rounded-lg border text-[12px] font-semibold cursor-pointer transition-colors ${
-                (settings.textAlignment || "left") === align.id
+                resolvedPos.horizontal === align.id
                   ? "border-[#023859] bg-[#F0F7FA] text-[#023859] font-bold"
                   : "border-[#E4E7EC] bg-white text-[#667085] hover:bg-[#F7F8FA]"
               }`}
             >
               {align.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          {(
+            [
+              { id: "top", label: "Haut" },
+              { id: "center", label: "Milieu" },
+              { id: "bottom", label: "Bas" },
+            ] as const
+          ).map((vAlign) => (
+            <button
+              key={vAlign.id}
+              type="button"
+              onClick={() =>
+                onSettingsChange({
+                  verticalAlignment: vAlign.id,
+                  contentPosition: buildContentPosition(resolvedPos.horizontal, vAlign.id),
+                })
+              }
+              className={`h-8 rounded-lg border text-[11px] font-semibold cursor-pointer transition-colors ${
+                resolvedPos.vertical === vAlign.id
+                  ? "border-[#023859] bg-[#F0F7FA] text-[#023859] font-bold"
+                  : "border-[#E4E7EC] bg-white text-[#667085] hover:bg-[#F7F8FA]"
+              }`}
+            >
+              {vAlign.label}
             </button>
           ))}
         </div>

@@ -24,6 +24,20 @@ interface HeroContentEditorProps {
   labelClass: string;
 }
 
+function resolveInitialSubPanel(subEl: string | null): HeroSubElement {
+  if (subEl === "cta" || subEl === "ctaPrimary") return "ctaPrimary";
+  if (subEl === "ctaSecondary") return "ctaSecondary";
+  if (
+    subEl === "background" ||
+    subEl === "badge" ||
+    subEl === "title" ||
+    subEl === "subtitle"
+  ) {
+    return subEl;
+  }
+  return "background";
+}
+
 export const HeroContentEditor: React.FC<HeroContentEditorProps> = ({
   sectionType,
   settings,
@@ -36,23 +50,14 @@ export const HeroContentEditor: React.FC<HeroContentEditorProps> = ({
   const selectedSubElement = useStudioStore((s) => s.selectedSubElement);
   const storeViewport = useStudioStore((s) => s.viewport);
 
-  const [activeSubPanel, setActiveSubPanel] = useState<HeroSubElement>("title");
+  const [activeSubPanel, setActiveSubPanel] = useState<HeroSubElement>(() =>
+    resolveInitialSubPanel(selectedSubElement)
+  );
   const [posDevice, setPosDevice] = useState<"desktop" | "tablet" | "mobile">(storeViewport);
 
   useEffect(() => {
     if (!selectedSubElement) return;
-    if (selectedSubElement === "cta" || selectedSubElement === "ctaPrimary") {
-      setActiveSubPanel("ctaPrimary");
-    } else if (selectedSubElement === "ctaSecondary") {
-      setActiveSubPanel("ctaSecondary");
-    } else if (
-      selectedSubElement === "background" ||
-      selectedSubElement === "badge" ||
-      selectedSubElement === "title" ||
-      selectedSubElement === "subtitle"
-    ) {
-      setActiveSubPanel(selectedSubElement);
-    }
+    setActiveSubPanel(resolveInitialSubPanel(selectedSubElement));
   }, [selectedSubElement]);
 
   useEffect(() => {
@@ -90,7 +95,7 @@ export const HeroContentEditor: React.FC<HeroContentEditorProps> = ({
   }
 
   const contentPosition = settings.contentPosition as BannerContentPosition | undefined;
-  const textAlignment = (settings.textAlignment as "left" | "center" | "right") || "center";
+  const textAlignment = (settings.textAlignment as "left" | "center" | "right") || "left";
   const verticalAlignment = (settings.verticalAlignment as "top" | "center" | "bottom") || "center";
 
   return (
@@ -101,25 +106,11 @@ export const HeroContentEditor: React.FC<HeroContentEditorProps> = ({
         onSelectSubPanel={(panel) => setActiveSubPanel(panel)}
       />
 
-      {/* 3x3 Alignment Matrix for Banner Text & Buttons */}
-      <AlignmentMatrix3x3
-        value={contentPosition}
-        horizontalFallback={textAlignment}
-        verticalFallback={verticalAlignment}
-        label="Position du bloc texte & boutons"
-        onChange={(pos, h, v) =>
-          onSettingsChange({
-            contentPosition: pos,
-            textAlignment: h,
-            verticalAlignment: v,
-          })
-        }
-      />
-
-      {/* Background Sub-Editor */}
+      {/* Active Sub-Editor displayed first for immediate visibility */}
       {activeSubPanel === "background" ? (
         <HeroBackgroundSubEditor
           settings={settings}
+          products={products}
           onSettingsChange={(f, v) => onSettingsChange(f, v)}
           inputClass={inputClass}
           labelClass={labelClass}
@@ -127,7 +118,6 @@ export const HeroContentEditor: React.FC<HeroContentEditorProps> = ({
           setPosDevice={setPosDevice}
         />
       ) : (
-        /* Typography / CTA Sub-Editor */
         <HeroTypographySubEditor
           activeSubPanel={activeSubPanel}
           settings={settings}
@@ -138,6 +128,21 @@ export const HeroContentEditor: React.FC<HeroContentEditorProps> = ({
           labelClass={labelClass}
         />
       )}
+
+      {/* 3x3 Alignment Matrix for Banner Text & Buttons */}
+      <AlignmentMatrix3x3
+        value={contentPosition}
+        horizontalFallback={textAlignment}
+        verticalFallback={verticalAlignment}
+        label="Position & Alignement du bloc texte"
+        onChange={(pos, h, v) =>
+          onSettingsChange({
+            contentPosition: pos,
+            textAlignment: h,
+            verticalAlignment: v,
+          })
+        }
+      />
     </div>
   );
 };

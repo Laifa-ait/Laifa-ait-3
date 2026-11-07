@@ -184,15 +184,19 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
           <History className="w-4 h-4" />
         </button>
 
-        {shopSlug && isPublished && (
+        {shopSlug && (
           <a
             href={`/store/${shopSlug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 text-slate-600 hover:text-[#023859] hover:bg-[#F0F7FA] rounded-lg transition-colors"
-            title="Voir la boutique publique"
+            className="h-8 px-2.5 text-slate-700 hover:text-[#023859] bg-slate-50 hover:bg-[#F0F7FA] border border-slate-200 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-colors"
+            title="Voir ma boutique en direct"
           >
-            <ExternalLink className="w-4 h-4" />
+            <ExternalLink className="w-3.5 h-3.5 text-[#023859]" />
+            <span className="hidden lg:inline">Voir ma boutique</span>
+            {isPublished && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            )}
           </a>
         )}
 

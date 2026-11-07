@@ -8,10 +8,9 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "prepare": "node -e \"try { if (require('fs').existsSync('.git')) { const { execSync } = require('child_process'); execSync('npx husky', { stdio: 'ignore' }); } } catch(e) {}\"",
-    "build:client": "vite build",
-    "build:server": "esbuild server.core.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/server.cjs",
-    "build": "vite build && esbuild server.core.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/server.cjs",
+    "build:client": "node ./node_modules/vite/bin/vite.js build",
+    "build:server": "node ./node_modules/esbuild/bin/esbuild server.core.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist-server/server.cjs && node ./node_modules/esbuild/bin/esbuild server.core.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/server.cjs",
+    "build": "node ./node_modules/vite/bin/vite.js build && npm run build:server",
     "start": "node server.ts",
     "test": "ALLOW_TESTS_WITHOUT_EMULATOR=true vitest run",
     "test:concurrency": "vitest run src/tests/firestoreConcurrencyStock.test.ts",
@@ -32,10 +31,13 @@
     "lint:firestore-rules": "tsx scripts/lint-firestore-rules-coherence.ts",
     "audit:ci": "npm audit --omit=dev --audit-level=high || true"
   },
+  "scarfSettings": {
+    "enabled": false
+  },
   "packageManager": "npm@10.9.4",
   "engines": {
-    "node": ">=22.22.0 <23",
-    "npm": ">=10 <11"
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
   },
   "lint-staged": {
     "firestore.rules": [

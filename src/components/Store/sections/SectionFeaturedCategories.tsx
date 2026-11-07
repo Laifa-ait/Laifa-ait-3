@@ -8,6 +8,8 @@ import {
   CategoryHoverEffect,
   CategoryTextPosition,
   CategoryCardSize,
+  CategoryImagePosition,
+  CategoryImageFit,
 } from "../../../pages/Seller/StoreBuilder/constants/categoryPresetTypes";
 import {
   buildSectionContainerStyle,
@@ -28,8 +30,10 @@ import { CategoryCanvasQuickBar } from "./category/CategoryCanvasQuickBar";
 import {
   resolveCategoryGridCols,
   resolveCategoryGapClass,
+  resolveOuterAndMediaRadius,
 } from "./category/categoryResponsiveHelper";
 import { useStudioStore } from "../../../pages/Seller/StoreBuilder/store/useStudioStore";
+import { EditorialHeading } from "../EditorialHeading";
 
 interface SectionFeaturedCategoriesProps {
   section: CustomPageSection<"featured_categories">;
@@ -39,6 +43,14 @@ interface SectionFeaturedCategoriesProps {
   onSelect?: () => void;
   previewViewport?: "mobile" | "tablet" | "desktop";
 }
+
+const ASPECT_CLASS_MAP: Record<string, string> = {
+  "1/1": "aspect-square",
+  "4/5": "aspect-[4/5]",
+  "16/9": "aspect-video",
+  "4/3": "aspect-[4/3]",
+  circle: "aspect-[4/5]",
+};
 
 export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps> = ({
   section,
@@ -57,13 +69,8 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
   const selectedSectionId = useStudioStore((s) => s.selectedSectionId);
   const selectedSubElement = useStudioStore((s) => s.selectedSubElement);
 
-  const categories = Array.isArray(rawSettings.categories)
-    ? (rawSettings.categories as CategoryItem[])
-    : [];
-
-  const indexedVisible = categories
-    .map((cat, origIdx) => ({ cat, origIdx }))
-    .filter((entry) => !entry.cat.hidden);
+  const categories = Array.isArray(rawSettings.categories) ? (rawSettings.categories as CategoryItem[]) : [];
+  const indexedVisible = categories.map((cat, origIdx) => ({ cat, origIdx })).filter((entry) => !entry.cat.hidden);
   const visibleCategories = indexedVisible.map((entry) => entry.cat);
 
   const title = typeof rawSettings.title === "string" ? rawSettings.title : section.title;
@@ -72,9 +79,10 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
   const aspectRatio = (rawSettings.aspectRatio as CategoryAspectRatio) || "4/5";
   const cardRadius = (rawSettings.borderRadius as CategoryCardRadius) || "md";
   const hoverEffect = (rawSettings.hoverEffect as CategoryHoverEffect) || "lift";
-  const textPosition = (rawSettings.textPosition as CategoryTextPosition) || "below";
-  const overlayOpacity =
-    typeof rawSettings.overlayOpacity === "number" ? rawSettings.overlayOpacity / 100 : 0.4;
+  const textPosition =
+    (rawSettings.textPosition as CategoryTextPosition) ||
+    (layout === "overlay" || layout === "bento" || layout === "glass-dock" ? "overlay-bottom" : "below");
+  const overlayOpacity = typeof rawSettings.overlayOpacity === "number" ? rawSettings.overlayOpacity / 100 : 0.4;
   const glassmorphism = Boolean(rawSettings.glassmorphism);
   const showTitle = rawSettings.showTitle !== false && textPosition !== "none";
   const showBadge = Boolean(rawSettings.showBadge);
@@ -88,85 +96,42 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
   const pillShowImage = rawSettings.pillShowImage !== false;
   const cardSkin = (rawSettings.cardSkin as string) || "editorial";
   const cardSize = (rawSettings.cardSize as CategoryCardSize) || "balanced";
+  const imagePosition = (rawSettings.imagePosition as CategoryImagePosition) || "center";
+  const imageFit = (rawSettings.imageFit as CategoryImageFit) || "cover";
 
-  const triggerSubTab = (
-    subTab: "style" | "items" | "presets",
-    e?: React.MouseEvent,
-    categoryIndex?: number
-  ) => {
+  const triggerSubTab = (subTab: "style" | "items" | "presets", e?: React.MouseEvent, categoryIndex?: number) => {
     if (!isEditable) return;
     if (e) e.stopPropagation();
     if (onSelect) onSelect();
     setActiveInspectorTab("content");
-    const subEl =
-      typeof categoryIndex === "number" ? `category-${subTab}:${categoryIndex}` : `category-${subTab}`;
-    selectSection(section.id, subEl);
+    selectSection(section.id, typeof categoryIndex === "number" ? `category-${subTab}:${categoryIndex}` : `category-${subTab}`);
   };
 
   const openCategoryPage = (cat: CategoryItem, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    window.dispatchEvent(
-      new CustomEvent("studio:navigate-page", {
-        detail: { viewMode: "category", categorySlug: cat.slug, categoryItem: cat },
-      })
-    );
+    window.dispatchEvent(new CustomEvent("studio:navigate-page", { detail: { viewMode: "category", categorySlug: cat.slug, categoryItem: cat } }));
   };
 
   const resolveOriginalIndex = (visibleIdx: number) => indexedVisible[visibleIdx]?.origIdx ?? visibleIdx;
-
-  const handleCardClick = (cat: CategoryItem, visibleIdx: number, e: React.MouseEvent) => {
-    if (isEditable) triggerSubTab("items", e, resolveOriginalIndex(visibleIdx));
-    else openCategoryPage(cat, e);
-  };
-
   const getCountLabel = (cat: CategoryItem) => {
-    if (Array.isArray(cat.productIds) && cat.productIds.length > 0) {
-      return `${cat.productIds.length} article${cat.productIds.length > 1 ? "s" : ""}`;
-    }
+    if (Array.isArray(cat.productIds) && cat.productIds.length > 0) return `${cat.productIds.length} article${cat.productIds.length > 1 ? "s" : ""}`;
     if (cat.itemCount !== undefined && cat.itemCount !== "") return `${cat.itemCount} articles`;
     return cat.subtitle || "";
   };
 
-  const aspectClassMap: Record<string, string> = {
-    "1/1": "aspect-square",
-    "4/5": "aspect-[4/5]",
-    "16/9": "aspect-video",
-    "4/3": "aspect-[4/3]",
-    circle: "aspect-[4/5]",
-  };
-
-  const radiusClassMap: Record<string, string> = {
-    none: "rounded-none",
-    sm: "rounded-xl",
-    md: "rounded-2xl",
-    lg: "rounded-2xl",
-    full: "rounded-2xl",
-  };
-
-  const hoverImgClass = hoverEffect === "zoom" ? "group-hover:scale-[1.02]" : "";
-  const hoverCardClass =
-    hoverEffect === "none"
-      ? ""
-      : hoverEffect === "glow"
-      ? "hover:border-slate-900 hover:shadow-xs"
-      : "hover:-translate-y-0.5 hover:shadow-[0_8px_20px_-6px_rgba(15,23,42,0.1)]";
-
-  const effectiveOverlay =
-    layout === "overlay" || textPosition === "overlay-bottom" || textPosition === "overlay-center";
-  const cardRadiusClass = radiusClassMap[cardRadius] || "rounded-2xl";
-  const containerGridColsClass = resolveCategoryGridCols(
-    columnsDesktop,
-    columnsMobile,
-    cardSize,
-    previewViewport
-  );
+  const containerGridColsClass = resolveCategoryGridCols(columnsDesktop, columnsMobile, cardSize, previewViewport);
   const gapClass = resolveCategoryGapClass(gapSize, cardSize);
+  const { outerRadiusClass } = resolveOuterAndMediaRadius(cardRadius);
+  const aspectRatioClass = ASPECT_CLASS_MAP[aspectRatio] || "aspect-[4/5]";
 
   const sharedProps = {
     categories: visibleCategories,
-    cardRadiusClass,
-    hoverImgClass,
-    hoverCardClass,
+    cardRadius,
+    cardRadiusClass: outerRadiusClass,
+    aspectRatioClass,
+    hoverImgClass: hoverEffect === "zoom" ? "group-hover:scale-[1.03]" : "",
+    hoverCardClass: hoverEffect === "none" ? "" : hoverEffect === "glow" ? "hover:border-slate-900 hover:shadow-xs" : "hover:-translate-y-0.5 hover:shadow-[0_8px_20px_-6px_rgba(15,23,42,0.1)]",
+    textPosition,
     overlayOpacity,
     glassmorphism,
     showTitle,
@@ -175,6 +140,10 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
     gapClass,
     cardSize,
     cardSkin,
+    columnsDesktop,
+    columnsMobile,
+    imagePosition,
+    imageFit,
     primaryColor: theme.primaryColor,
     textColor: styles.textColor,
     previewViewport,
@@ -183,9 +152,11 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
     selectedSubElement,
     sectionId: section.id,
     getCountLabel,
-    onCardClick: handleCardClick,
-    onEditItem: (vIdx: number, e?: React.MouseEvent) =>
-      triggerSubTab("items", e, resolveOriginalIndex(vIdx)),
+    onCardClick: (cat: CategoryItem, visibleIdx: number, e: React.MouseEvent) => {
+      if (isEditable) triggerSubTab("items", e, resolveOriginalIndex(visibleIdx));
+      else openCategoryPage(cat, e);
+    },
+    onEditItem: (vIdx: number, e?: React.MouseEvent) => triggerSubTab("items", e, resolveOriginalIndex(vIdx)),
     onOpenPage: openCategoryPage,
   };
 
@@ -193,11 +164,7 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
     <div
       onClick={isEditable ? onSelect : undefined}
       style={buildSectionContainerStyle(styles, "transparent", "#17191C")}
-      className={`@container transition-all relative select-none ${resolveBorderRadiusClass(
-        styles.borderRadius
-      )} ${resolveShadowClass(styles.shadow)} ${resolveAnimationClass(styles.animation)}${
-        isEditable && !isSelected ? " cursor-pointer" : ""
-      }`}
+      className={`@container transition-all relative select-none ${resolveBorderRadiusClass(styles.borderRadius)} ${resolveShadowClass(styles.shadow)} ${resolveAnimationClass(styles.animation)}${isEditable && !isSelected ? " cursor-pointer" : ""}`}
     >
       {isEditable && isSelected && (
         <CategoryCanvasQuickBar
@@ -214,105 +181,55 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
 
       <div className={resolveContainerWidthClass(styles.containerWidth)}>
         {(title || subtitle) && (
-          <div
-            className={`mb-4 @[560px]:mb-5 flex flex-col justify-between gap-2 ${
-              textAlign === "center"
-                ? "items-center text-center"
-                : textAlign === "right"
-                ? "items-end text-right"
-                : "items-start text-left"
-            }`}
-          >
-            <div className="flex items-center justify-between w-full gap-3">
-              <div className="flex-1 min-w-0">
-                {title && (
-                  <h2
-                    onClick={(e) => isEditable && triggerSubTab("style", e)}
-                    className={`text-base @[560px]:text-xl @[900px]:text-2xl font-extrabold tracking-tight rounded px-1 ${
-                      isEditable ? "cursor-pointer hover:ring-1 hover:ring-[#26658C]" : ""
-                    }`}
-                    style={{ color: styles.textColor || "#111827" }}
-                  >
-                    {title}
-                  </h2>
-                )}
-                {subtitle && (
-                  <p className="text-[11px] @[560px]:text-xs @[900px]:text-sm opacity-75 mt-0.5">
-                    {subtitle}
-                  </p>
-                )}
-              </div>
-              {layout === "carousel" && visibleCategories.length > 2 && (
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      carouselRef.current?.scrollBy({ left: -240, behavior: "smooth" });
-                    }}
-                    className="w-7 h-7 @[560px]:w-8 @[560px]:h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 flex items-center justify-center shadow-2xs cursor-pointer"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      carouselRef.current?.scrollBy({ left: 240, behavior: "smooth" });
-                    }}
-                    className="w-7 h-7 @[560px]:w-8 @[560px]:h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 flex items-center justify-center shadow-2xs cursor-pointer"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
+          <div className={`mb-4 @[560px]:mb-5 flex items-center justify-between gap-3 ${textAlign === "center" ? "text-center" : textAlign === "right" ? "text-right" : "text-left"}`}>
+            <div className="flex-1 min-w-0">
+              {title && (
+                <EditorialHeading
+                  as="h2"
+                  text={title}
+                  theme={theme}
+                  sectionStyles={styles}
+                  onClick={(e) => isEditable && triggerSubTab("style", e)}
+                  className={`text-base @[560px]:text-xl @[900px]:text-2xl font-extrabold tracking-tight rounded px-1 ${isEditable ? "cursor-pointer hover:ring-1 hover:ring-[#26658C]" : ""}`}
+                  style={{ color: styles.textColor || "#111827" }}
+                />
               )}
+              {subtitle && <p className="text-[11px] @[560px]:text-xs @[900px]:text-sm opacity-75 mt-0.5">{subtitle}</p>}
             </div>
+            {layout === "carousel" && visibleCategories.length > 2 && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button type="button" onClick={(e) => { e.stopPropagation(); carouselRef.current?.scrollBy({ left: -240, behavior: "smooth" }); }} className="w-8 h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 flex items-center justify-center shadow-2xs cursor-pointer">
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); carouselRef.current?.scrollBy({ left: 240, behavior: "smooth" }); }} className="w-8 h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 flex items-center justify-center shadow-2xs cursor-pointer">
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         {visibleCategories.length === 0 ? (
-          <div
-            onClick={(e) => triggerSubTab("items", e)}
-            className="p-6 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 text-slate-700 text-xs cursor-pointer hover:bg-slate-100/70 transition-colors"
-          >
+          <div onClick={(e) => triggerSubTab("items", e)} className="p-6 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 text-slate-700 text-xs cursor-pointer hover:bg-slate-100/70 transition-colors">
             Aucune carte affichée. Cliquez ici pour activer vos cartes de rayons.
           </div>
         ) : layout === "mesh-3d" ? (
-          <CategoryMesh3DRow
-            {...sharedProps}
-            carouselRef={carouselRef}
-            onNavigate={(cat, e) => openCategoryPage(cat, e)}
-          />
+          <CategoryMesh3DRow {...sharedProps} carouselRef={carouselRef} onNavigate={(cat, e) => openCategoryPage(cat, e)} />
         ) : layout === "bento" ? (
           <CategoryShopifyBento {...sharedProps} />
         ) : layout === "bubbles" ? (
-          <CategoryShopifyStories
-            {...sharedProps}
-            bubbleSize={cardSize === "compact" ? "sm" : cardSize === "large" ? "lg" : bubbleSize}
-            bubbleRing={bubbleRing}
-            columnsDesktop={columnsDesktop}
-            columnsMobile={columnsMobile}
-          />
+          <CategoryShopifyStories {...sharedProps} bubbleSize={cardSize === "compact" ? "sm" : cardSize === "large" ? "lg" : bubbleSize} bubbleRing={bubbleRing} />
         ) : layout === "pills" ? (
-          <CategoryShopifyPills {...sharedProps} cardRadius={cardRadius} pillShowImage={pillShowImage} />
-        ) : layout === "accordion" ||
-          layout === "arch" ||
-          layout === "polaroid" ||
-          layout === "magazine" ? (
-          <CategoryEditorialModels
-            {...sharedProps}
-            layout={layout}
-            containerGridColsClass={containerGridColsClass}
-          />
+          <CategoryShopifyPills {...sharedProps} pillShowImage={pillShowImage} />
+        ) : layout === "accordion" || layout === "arch" || layout === "polaroid" || layout === "magazine" ? (
+          <CategoryEditorialModels {...sharedProps} layout={layout} containerGridColsClass={containerGridColsClass} />
         ) : (
           <CategoryShopifyCards
             {...sharedProps}
             layout={layout}
             carouselRef={carouselRef}
             containerGridColsClass={containerGridColsClass}
-            aspectRatioClass={aspectClassMap[aspectRatio] || "aspect-[4/5]"}
-            effectiveOverlay={effectiveOverlay}
-            textPosition={textPosition}
+            effectiveOverlay={layout === "overlay" || textPosition === "overlay-bottom" || textPosition === "overlay-center"}
           />
         )}
       </div>

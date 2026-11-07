@@ -12,6 +12,8 @@ import {
   ShoppingBag,
   ClipboardList,
   ArrowLeft,
+  Rocket,
+  PanelTop,
 } from "lucide-react";
 import { StudioNavMode } from "./studio.types";
 
@@ -49,7 +51,6 @@ export const StudioMobileMenu: React.FC<StudioMobileMenuProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-xs md:hidden animate-in fade-in duration-200">
       <div className="w-[280px] max-w-[82vw] bg-[#FFFFFF] h-full flex flex-col shadow-2xl animate-in slide-in-from-left duration-250">
-        {/* Header */}
         <div className="p-4 border-b border-[#E5E7EB] flex items-center justify-between bg-[#F8FBFC]">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-[#023859] flex items-center justify-center text-white shrink-0">
@@ -60,7 +61,7 @@ export const StudioMobileMenu: React.FC<StudioMobileMenuProps> = ({
                 {shopName}
               </span>
               <span className="block text-[10px] text-[#26658C] uppercase tracking-wider font-semibold">
-                Studio Olmart
+                Studio Olmart 3.0
               </span>
             </div>
           </div>
@@ -73,16 +74,30 @@ export const StudioMobileMenu: React.FC<StudioMobileMenuProps> = ({
           </button>
         </div>
 
-        {/* Nav Items */}
         <div className="flex-1 overflow-y-auto p-4 space-y-5">
           <div>
+            <button type="button" onClick={() => handleSelect("launchpad")} className={navClass("launchpad")}>
+              <Rocket className="w-4 h-4 shrink-0" />
+              <span>Guide Création 3.0</span>
+            </button>
+          </div>
+
+          <div>
             <span className="block text-[11px] font-bold uppercase text-[#667085] tracking-wider mb-2 px-2">
-              Design & Vitrine
+              Design & Vitrine (OS 2.0)
             </span>
             <div className="space-y-1">
               <button type="button" onClick={() => handleSelect("sections")} className={navClass("sections")}>
                 <Layers className="w-4 h-4 shrink-0" />
                 <span>Sections de la page</span>
+              </button>
+              <button type="button" onClick={() => handleSelect("atelier")} className={navClass("atelier")}>
+                <Sparkles className="w-4 h-4 shrink-0 text-amber-500" />
+                <span>✨ Atelier & Matières</span>
+              </button>
+              <button type="button" onClick={() => handleSelect("header")} className={navClass("header")}>
+                <PanelTop className="w-4 h-4 shrink-0" />
+                <span>En-tête & Barre d&apos;annonce</span>
               </button>
               <button type="button" onClick={() => handleSelect("theme")} className={navClass("theme")}>
                 <Palette className="w-4 h-4 shrink-0" />
@@ -101,7 +116,7 @@ export const StudioMobileMenu: React.FC<StudioMobileMenuProps> = ({
 
           <div>
             <span className="block text-[11px] font-bold uppercase text-[#667085] tracking-wider mb-2 px-2">
-              Boutique & Activité
+              Commerce & Exploitation
             </span>
             <div className="space-y-1">
               <button type="button" onClick={() => handleSelect("catalog")} className={navClass("catalog")}>
@@ -118,13 +133,12 @@ export const StudioMobileMenu: React.FC<StudioMobileMenuProps> = ({
               </button>
               <button type="button" onClick={() => handleSelect("settings")} className={navClass("settings")}>
                 <Settings className="w-4 h-4 shrink-0" />
-                <span>Coordonnées & SEO</span>
+                <span>Commerce, Pixels & SEO</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Footer Back to Seller Space */}
         <div className="p-3 border-t border-[#E5E7EB] bg-[#F8FBFC]">
           <button
             type="button"

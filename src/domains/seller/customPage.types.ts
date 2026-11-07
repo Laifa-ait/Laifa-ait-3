@@ -1,6 +1,30 @@
+import type {
+  ArtisticAmbientLighting,
+  ArtisticCardMaterial,
+  ArtisticFrameShape,
+  ArtisticSurfaceTexture,
+  EditorialHeadingAccentStyle,
+  EditorialUnderlineStyle,
+  KineticMarqueeSettings,
+} from "../../types/studio.types";
+
+export type {
+  ArtisticAmbientLighting,
+  ArtisticCardMaterial,
+  ArtisticFrameShape,
+  ArtisticSurfaceTexture,
+  EditorialHeadingAccentStyle,
+  EditorialUnderlineStyle,
+  KineticMarqueeSeparator,
+  KineticMarqueeSettings,
+  KineticMarqueeSpeed,
+  KineticMarqueeTextStyle,
+} from "../../types/studio.types";
+
 export type CustomPageSectionType =
   | "hero_banner"
   | "promo_carousel"
+  | "kinetic_marquee"
   | "featured_categories"
   | "curated_collections"
   | "new_arrivals"
@@ -42,6 +66,14 @@ export interface CustomPageSectionStyles {
   divider?: "none" | "wave" | "slant" | "curve";
   animation?: "none" | "fade" | "slide-up" | "zoom";
   shadow?: "none" | "sm" | "floating" | "brutal";
+  surfaceTexture?: ArtisticSurfaceTexture;
+  ambientLighting?: ArtisticAmbientLighting;
+  cardMaterial?: ArtisticCardMaterial;
+  frameShape?: ArtisticFrameShape;
+  letterSpacing?: number;
+  lineHeight?: number;
+  headingAccentStyle?: EditorialHeadingAccentStyle;
+  headingUnderlineStyle?: EditorialUnderlineStyle;
 }
 
 export type HeroSubElement =
@@ -59,6 +91,8 @@ export interface HeroBannerSettings {
   badgeText?: string;
   imageUrl: string;
   mobileImageUrl?: string;
+  backgroundImage?: string;
+  backgroundImageMobile?: string;
   ctaText?: string;
   ctaLink?: string;
   textAlignment?: "left" | "center" | "right";
@@ -69,44 +103,79 @@ export interface HeroBannerSettings {
   imagePositionDesktop?: string;
   imagePositionTablet?: string;
   imagePositionMobile?: string;
+  backgroundPosition?: string;
+  backgroundPositionTablet?: string;
+  backgroundPositionMobile?: string;
   imageFit?: "cover" | "contain";
+  imageAspectRatio?: "4/5" | "1/1" | "3/4" | "16/9";
+  imageSide?: "right" | "left";
+  imageShadow?: "none" | "sm" | "md" | "lg" | "xl" | "glow" | "brutal";
+  imageMargin?: number;
   bannerHeightDesktop?: "sm" | "md" | "lg" | "xl";
   bannerHeightMobile?: "sm" | "md" | "lg";
   // Individual sub-component styling
   badgeBgColor?: string;
   badgeTextColor?: string;
+  badgeStyle?: "solid" | "soft" | "outline";
   titleColor?: string;
+  titleSizeDesktop?: "sm" | "md" | "lg" | "xl";
+  titleSizeMobile?: "sm" | "md" | "lg" | "xl";
+  textShadow?: "none" | "sm" | "md" | "lg";
   subtitleColor?: string;
   ctaBgColor?: string;
   ctaTextColor?: string;
-  ctaStyle?: "solid" | "outline" | "pill" | "glass";
+  ctaStyle?: "solid" | "outline" | "pill" | "glass" | "sharp";
+  ctaShadow?: "none" | "sm" | "md" | "lg" | "glow" | "brutal";
   showBadge?: boolean;
   showSubtitle?: boolean;
   showCta?: boolean;
   // E-Commerce 2.2 Studio Features
   socialProofBadge?: string;
+  showSocialProofBadge?: boolean;
   secondaryCtaText?: string;
   secondaryCtaLink?: string;
-  secondaryCtaStyle?: "solid" | "outline" | "pill" | "glass";
+  secondaryCtaStyle?: "solid" | "outline" | "pill" | "glass" | "sharp";
+  secondaryCtaShadow?: "none" | "sm" | "md" | "lg" | "glow" | "brutal";
+  secondaryCtaBgColor?: string;
+  secondaryCtaTextColor?: string;
+  showSecondaryCta?: boolean;
+  heroLayout?: "editorial-split" | "cinema-full" | "atelier-collage";
 }
+
+export type PromoCarouselStyleVariant =
+  | "editorial_luxury"
+  | "floating_glass"
+  | "split_magazine"
+  | "offer_spotlight"
+  | "lookbook_peek";
 
 export interface PromoSlide {
   id: string;
   imageUrl: string;
+  badge?: string;
   title?: string;
   subtitle?: string;
+  highlightPrice?: string;
   ctaText?: string;
   link?: string;
   contentPosition?: BannerContentPosition;
+  overlayOpacity?: number;
 }
 
 export interface PromoCarouselSettings {
   slides: PromoSlide[];
+  carouselStyle?: PromoCarouselStyleVariant;
+  bannerHeight?: "sm" | "md" | "lg" | "xl";
+  overlayOpacity?: number;
+  showArrows?: boolean;
+  showDots?: boolean;
+  showSlideCounter?: boolean;
   autoplay?: boolean;
   intervalSec?: number;
   contentPosition?: BannerContentPosition;
   textAlignment?: "left" | "center" | "right";
   verticalAlignment?: "top" | "center" | "bottom";
+  activePresetId?: string;
 }
 
 export interface CategoryItem {
@@ -130,8 +199,23 @@ export interface CategoryItem {
 export interface FeaturedCategoriesSettings {
   title?: string;
   subtitle?: string;
+  titleColor?: string;
+  subtitleColor?: string;
   categories: CategoryItem[];
-  layout?: "grid" | "bento" | "bubbles" | "overlay" | "carousel" | "pills";
+  layout?:
+    | "grid"
+    | "bento"
+    | "bubbles"
+    | "overlay"
+    | "carousel"
+    | "pills"
+    | "arch"
+    | "polaroid"
+    | "index"
+    | "mesh3d"
+    | "split"
+    | "accordion";
+  [key: string]: unknown;
 }
 
 export interface CuratedCollectionItem {
@@ -146,9 +230,9 @@ export interface CuratedCollectionsSettings {
   collections: CuratedCollectionItem[];
 }
 
-export type ProductFeedLayoutMode = "grid" | "carousel" | "vertical";
+export type ProductFeedLayoutMode = "grid" | "carousel" | "vertical" | "list";
 export type ProductCardStyleVariant = "modern" | "minimal" | "bordered" | "elevated";
-export type ProductCardAspectRatio = "1/1" | "4/5" | "4/3";
+export type ProductCardAspectRatio = "1/1" | "4/5" | "4/3" | "16/9";
 
 export interface ProductCardDesignSettings {
   cardStyle?: ProductCardStyleVariant;
@@ -157,6 +241,8 @@ export interface ProductCardDesignSettings {
   cardImageFit?: "cover" | "contain";
   columnsDesktop?: 2 | 3 | 4;
   cardAccentColor?: string;
+  titleColor?: string;
+  subtitleColor?: string;
   showStockBadge?: boolean;
   showCategory?: boolean;
   showCtaButton?: boolean;
@@ -207,6 +293,7 @@ export interface BrandStorySettings {
   videoUrl?: string;
   signature?: string;
   yearsOfExperience?: number;
+  dropCap?: boolean;
 }
 
 export interface ShowcaseVideoSettings {
@@ -269,6 +356,7 @@ export interface ContactFooterSettings {
 export type SectionSettingsMap = {
   hero_banner: HeroBannerSettings;
   promo_carousel: PromoCarouselSettings;
+  kinetic_marquee: KineticMarqueeSettings;
   featured_categories: FeaturedCategoriesSettings;
   curated_collections: CuratedCollectionsSettings;
   new_arrivals: ProductFeedSettings;
@@ -309,6 +397,14 @@ export interface CustomPageTheme {
   spacingYPx?: number;
   titleFontSizePx?: number;
   bodyFontSizePx?: number;
+  surfaceTexture?: ArtisticSurfaceTexture;
+  ambientLighting?: ArtisticAmbientLighting;
+  cardMaterial?: ArtisticCardMaterial;
+  frameShape?: ArtisticFrameShape;
+  letterSpacing?: number;
+  lineHeight?: number;
+  headingAccentStyle?: EditorialHeadingAccentStyle;
+  headingUnderlineStyle?: EditorialUnderlineStyle;
 }
 
 export interface CustomPageSeo {
@@ -345,6 +441,53 @@ export interface StoreCustomPageItem {
   updatedAt: string;
 }
 
+export interface StoreAnnouncementBarConfig {
+  enabled: boolean;
+  text: string;
+  link?: string;
+  bgColor?: string;
+  textColor?: string;
+  dismissible?: boolean;
+}
+
+export interface StoreNavMenuLink {
+  id: string;
+  label: string;
+  target: "home" | "collection" | "about" | "url";
+  url?: string;
+}
+
+export interface StoreHeaderNavConfig {
+  layout: "left" | "center" | "minimal";
+  sticky: boolean;
+  showSearch: boolean;
+  showTrustBar: boolean;
+  navLinks: StoreNavMenuLink[];
+}
+
+export interface StoreCommerceConfig {
+  codEnabled: boolean;
+  freeShippingThresholdDZD?: number;
+  minOrderAmountDZD?: number;
+  whatsappOrderEnabled: boolean;
+  whatsappNumber?: string;
+  preparationTimeHours?: string | number;
+  showTrustBadges?: boolean;
+}
+
+export interface StoreStatusConfig {
+  mode: "open" | "vacation" | "password";
+  vacationMessage?: string;
+  storefrontPassword?: string;
+  passwordProtectionCode?: string;
+}
+
+export interface StorePixelsConfig {
+  metaPixelId?: string;
+  tiktokPixelId?: string;
+  ga4MeasurementId?: string;
+}
+
 export interface StoreConfig {
   sellerId: string;
   shopName: string;
@@ -364,6 +507,11 @@ export interface StoreConfig {
   customPages?: StoreCustomPageItem[];
   collectionPageConfig?: CollectionPageDesignConfig;
   mediaGallery?: MediaGalleryItem[];
+  announcementBar?: StoreAnnouncementBarConfig;
+  headerConfig?: StoreHeaderNavConfig;
+  commerceConfig?: StoreCommerceConfig;
+  storeStatus?: StoreStatusConfig;
+  pixelsConfig?: StorePixelsConfig;
   socialLinks?: {
     instagram?: string;
     facebook?: string;

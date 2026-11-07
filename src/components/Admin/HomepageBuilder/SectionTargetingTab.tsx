@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Users, MapPin, Palette, Check, Sparkles } from "lucide-react";
+import { Users, MapPin, Check, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ALGERIA_WILAYAS } from "../../../constants";
 import { HomepageSection } from "../../../domains/home/homepage.types";
+import { SectionFrameDecorationControls } from "./SectionFrameDecorationControls";
 
 interface SectionTargetingTabProps {
   secTargetAudience: HomepageSection["targetAudience"];
@@ -13,6 +14,8 @@ interface SectionTargetingTabProps {
   setSecBackgroundColor: (val: string) => void;
   secThemeName: string;
   setSecThemeName: (val: string) => void;
+  secThemeImage?: string;
+  setSecThemeImage?: (val: string) => void;
 }
 
 const REGIONAL_CLUSTERS: Record<string, string[]> = {
@@ -21,15 +24,6 @@ const REGIONAL_CLUSTERS: Record<string, string[]> = {
   Est: ["25 Constantine", "19 Sétif", "23 Annaba", "05 Batna", "21 Skikda", "06 Béjaïa", "18 Jijel", "24 Guelma", "41 Souk Ahras"],
   Sud: ["30 Ouargla", "07 Biskra", "08 Béchar", "47 Ghardaïa", "01 Adrar", "11 Tamanrasset", "39 El Oued", "33 Illizi"],
 };
-
-const COLOR_PRESETS = [
-  { label: "Blanc", value: "#ffffff", border: "border-zinc-200" },
-  { label: "Albâtre", value: "#faf8f5", border: "border-amber-100" },
-  { label: "Gris Perle", value: "#f8fafc", border: "border-slate-200" },
-  { label: "Menthe", value: "#f0fdf4", border: "border-emerald-200" },
-  { label: "Ambre", value: "#fffbeb", border: "border-amber-200" },
-  { label: "Rose", value: "#fff1f2", border: "border-rose-200" },
-];
 
 export const SectionTargetingTab: React.FC<SectionTargetingTabProps> = ({
   secTargetAudience,
@@ -40,6 +34,8 @@ export const SectionTargetingTab: React.FC<SectionTargetingTabProps> = ({
   setSecBackgroundColor,
   secThemeName,
   setSecThemeName,
+  secThemeImage = "",
+  setSecThemeImage,
 }) => {
   const { t } = useTranslation();
   const [wilayaSearch, setWilayaSearch] = useState("");
@@ -175,57 +171,30 @@ export const SectionTargetingTab: React.FC<SectionTargetingTabProps> = ({
         </div>
       </div>
 
-      {/* Theme Name & Background Colors */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-        <div>
-          <label className="block text-xs font-bold text-zinc-700 mb-1 flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            {t("Badge de Saison / Campagne")}
-          </label>
-          <input
-            type="text"
-            value={secThemeName}
-            onChange={(e) => setSecThemeName(e.target.value)}
-            placeholder={t("Ex: Spécial Ramadan, Soldes d'Été")}
-            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-zinc-700 mb-1 flex items-center gap-1">
-            <Palette className="w-3.5 h-3.5 text-zinc-500" />
-            {t("Couleur de fond")}
-          </label>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              {COLOR_PRESETS.map((p) => (
-                <button
-                  key={p.value}
-                  type="button"
-                  onClick={() => setSecBackgroundColor(p.value)}
-                  style={{ backgroundColor: p.value }}
-                  className={`w-6 h-6 rounded-md border ${p.border} ${
-                    secBackgroundColor === p.value ? "ring-2 ring-amber-500 scale-110" : "hover:scale-105"
-                  } transition-all cursor-pointer`}
-                  title={p.label}
-                />
-              ))}
-            </div>
-            <input
-              type="color"
-              value={secBackgroundColor || "#ffffff"}
-              onChange={(e) => setSecBackgroundColor(e.target.value)}
-              className="w-7 h-7 p-0.5 rounded-lg border border-zinc-200 cursor-pointer"
-            />
-            <input
-              type="text"
-              value={secBackgroundColor || "#ffffff"}
-              onChange={(e) => setSecBackgroundColor(e.target.value)}
-              className="w-20 px-2 py-1 text-[11px] font-mono rounded-lg border border-zinc-200 bg-white"
-            />
-          </div>
-        </div>
+      {/* Season Badge */}
+      <div>
+        <label className="block text-xs font-bold text-zinc-700 mb-1 flex items-center gap-1">
+          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          {t("Badge de Saison / Campagne")}
+        </label>
+        <input
+          type="text"
+          value={secThemeName}
+          onChange={(e) => setSecThemeName(e.target.value)}
+          placeholder={t("Ex: Spécial Ramadan, Soldes d'Été")}
+          className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+        />
       </div>
+
+      {/* Frame Decoration & Custom Background Controls */}
+      {setSecThemeImage && (
+        <SectionFrameDecorationControls
+          secBackgroundColor={secBackgroundColor}
+          setSecBackgroundColor={setSecBackgroundColor}
+          secThemeImage={secThemeImage}
+          setSecThemeImage={setSecThemeImage}
+        />
+      )}
     </div>
   );
 };

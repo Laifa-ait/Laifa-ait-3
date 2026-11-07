@@ -14,9 +14,10 @@ export const AppGuard: React.FC<AppGuardProps> = ({ requireAuth = false, allowed
   const { currentUser, userProfile, loading } = useAuth();
   const location = useLocation();
 
-  const actualRequireAuth = requireAuth || (allowedRoles && allowedRoles.length > 0) ? true : false;
+  const actualRequireAuth = Boolean(requireAuth || (allowedRoles && allowedRoles.length > 0));
 
-  if (loading) {
+  // Public routes (actualRequireAuth === false) must NEVER block on Auth loading spinner.
+  if (actualRequireAuth && loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-transparent">
         <Spinner size="lg" />

@@ -1,64 +1,45 @@
-import { useState, useEffect } from "react";
-import { storage } from "../../lib/firebase";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { db } from "../../lib/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import toast from "react-hot-toast";
-import { compressAndResizeImage } from "./useBannerTypes";
+import { compressAndResizeImage, PromoBanner, WilayaBannerData, WilayaCampaign } from "./useBannerTypes";
 import { generateClientUUID } from "../../utils/secureCrypto";
+import { uploadFileWithProgress } from "../../services/storage.service";
+import { apiGet, apiPost } from "../../lib/api";
 
-export function useBannerWilayaCampaigns(
-  electroTitle: string,
-  electroSubtitle: string,
-  electroImage: string,
-  promoLeftTitle: string,
-  promoLeftBadge: string,
-  promoLeftCtaLink: string,
-  promoLeftImage: string,
-  promoLeftBgColor: string,
-  promoLeftTextColor: string,
-  promoRightTitle: string,
-  promoRightBadge: string,
-  promoRightCtaLink: string,
-  promoRightImage: string,
-  promoRightBgColor: string,
-  promoRightTextColor: string
-) {
-  interface PromoBanner {
-  title?: string;
-  badge?: string;
-  ctaLink?: string;
-  image?: string;
-  bgColor?: string;
-  textColor?: string;
+export type { PromoBanner, WilayaBannerData, WilayaCampaign };
+
+function campaignToFlatData(wilayaLabel: string, c?: WilayaCampaign): WilayaBannerData {
+  return {
+    heroTitle: c?.heroTitle || `Sélection Spéciale ${wilayaLabel}`,
+    heroSubtitle: c?.heroSubtitle || "Livraison rapide à domicile et point relais dans votre wilaya",
+    heroButtonText: c?.heroButtonText || "Découvrir les offres locales",
+    heroImage:
+      c?.heroImage ||
+      "https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&q=80&w=1600",
+    promoLeftTitle: c?.promoLeft?.title || "Jusqu'à -40% sur l'Électroménager",
+    promoLeftSubtitle: c?.promoLeft?.subtitle || c?.promoLeft?.badge || "OFFRE LOCALE",
+    promoLeftImage:
+      c?.promoLeft?.image ||
+      "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&q=80&w=600",
+    promoRightTitle: c?.promoRight?.title || "Artisans & Boutiques Certifiées",
+    promoRightSubtitle: c?.promoRight?.subtitle || c?.promoRight?.badge || "LIVRAISON EXPRESS",
+    promoRightImage:
+      c?.promoRight?.image ||
+      "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=600",
+  };
 }
 
-interface WilayaCampaign {
-  heroTitle?: string;
-  heroSubtitle?: string;
-  heroImage?: string;
-  promoLeft?: PromoBanner;
-  promoRight?: PromoBanner;
-}
-
+export function useBannerWilayaCampaigns() {
   const [wilayaCampaigns, setWilayaCampaigns] = useState<Record<string, WilayaCampaign>>({});
-  const [selectedWilayaToEdit, setSelectedWilayaToEdit] = useState<string>("");
+  const [selectedWilayaToEdit, setSelectedWilayaToEdit] = useState<string>("16 - Alger");
   const [hasWilayaCampaign, setHasWilayaCampaign] = useState(false);
-  const [wilayaHeroTitle, setWilayaHeroTitle] = useState("");
-  const [wilayaHeroSubtitle, setWilayaHeroSubtitle] = useState("");
-  const [wilayaHeroImage, setWilayaHeroImage] = useState("");
+  const [isSavingWilaya, setIsSavingWilaya] = useState(false);
+  const [isUploadingWilayaImg, setIsUploadingWilayaImg] = useState<string | null>(null);
 
-  const [wilayaPromoLeftTitle, setWilayaPromoLeftTitle] = useState("");
-  const [wilayaPromoLeftBadge, setWilayaPromoLeftBadge] = useState("");
-  const [wilayaPromoLeftCtaLink, setWilayaPromoLeftCtaLink] = useState("");
-  const [wilayaPromoLeftImage, setWilayaPromoLeftImage] = useState("");
-  const [wilayaPromoLeftBgColor, setWilayaPromoLeftBgColor] = useState("#F5F6F8");
-  const [wilayaPromoLeftTextColor, setWilayaPromoLeftTextColor] = useState("#111111");
-
-  const [wilayaPromoRightTitle, setWilayaPromoRightTitle] = useState("");
-  const [wilayaPromoRightBadge, setWilayaPromoRightBadge] = useState("");
-  const [wilayaPromoRightCtaLink, setWilayaPromoRightCtaLink] = useState("");
-  const [wilayaPromoRightImage, setWilayaPromoRightImage] = useState("");
-  const [wilayaPromoRightBgColor, setWilayaPromoRightBgColor] = useState("#111111");
-  const [wilayaPromoRightTextColor, setWilayaPromoRightTextColor] = useState("#FFFFFF");
+  const [currentWilayaData, setCurrentWilayaData] = useState<WilayaBannerData>(() =>
+    campaignToFlatData("16 - Alger")
+  );
 
   const [isUploadingWilayaHero, setIsUploadingWilayaHero] = useState(false);
   const [uploadProgressWilayaHero, setUploadProgressWilayaHero] = useState(0);
@@ -67,262 +48,201 @@ interface WilayaCampaign {
   const [isUploadingWilayaPromoRight, setIsUploadingWilayaPromoRight] = useState(false);
   const [uploadProgressWilayaPromoRight, setUploadProgressWilayaPromoRight] = useState(0);
 
-  // Sync form inputs when switching the active Wilaya to edit
+  const wilayaBanners = useMemo<Record<string, WilayaBannerData>>(() => {
+    const mapped: Record<string, WilayaBannerData> = {};
+    for (const [key, val] of Object.entries(wilayaCampaigns || {})) {
+      if (val && typeof val === "object") {
+        mapped[key] = campaignToFlatData(key, val);
+      }
+    }
+    return mapped;
+  }, [wilayaCampaigns]);
+
+  const loadWilayaCampaigns = useCallback(async () => {
+    try {
+      const apiData = await apiGet<{ campaigns?: Record<string, WilayaCampaign> }>(
+        "/api/v1/settings/wilaya_campaigns"
+      );
+      if (apiData && apiData.campaigns && typeof apiData.campaigns === "object") {
+        setWilayaCampaigns(apiData.campaigns);
+        return;
+      }
+    } catch {
+      // Fallback to direct Firestore read
+    }
+    try {
+      const snap = await getDoc(doc(db, "settings", "wilaya_campaigns"));
+      if (snap.exists() && snap.data()?.campaigns) {
+        setWilayaCampaigns(snap.data().campaigns as Record<string, WilayaCampaign>);
+      }
+    } catch {
+      // Non-fatal if document does not exist yet
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadWilayaCampaigns();
+  }, [loadWilayaCampaigns]);
+
   useEffect(() => {
     if (!selectedWilayaToEdit) {
       setHasWilayaCampaign(false);
-      setWilayaHeroTitle("");
-      setWilayaHeroSubtitle("");
-      setWilayaHeroImage("");
-      setWilayaPromoLeftTitle("");
-      setWilayaPromoLeftBadge("");
-      setWilayaPromoLeftCtaLink("");
-      setWilayaPromoLeftImage("");
-      setWilayaPromoLeftBgColor("#F5F6F8");
-      setWilayaPromoLeftTextColor("#111111");
-      setWilayaPromoRightTitle("");
-      setWilayaPromoRightBadge("");
-      setWilayaPromoRightCtaLink("");
-      setWilayaPromoRightImage("");
-      setWilayaPromoRightBgColor("#111111");
-      setWilayaPromoRightTextColor("#FFFFFF");
       return;
     }
+    const existing = wilayaCampaigns[selectedWilayaToEdit];
+    setHasWilayaCampaign(Boolean(existing));
+    setCurrentWilayaData(campaignToFlatData(selectedWilayaToEdit, existing));
+  }, [selectedWilayaToEdit, wilayaCampaigns]);
 
-    const campaign = wilayaCampaigns[selectedWilayaToEdit];
-    if (campaign) {
-      setHasWilayaCampaign(true);
-      setWilayaHeroTitle(campaign.heroTitle || "");
-      setWilayaHeroSubtitle(campaign.heroSubtitle || "");
-      setWilayaHeroImage(campaign.heroImage || "");
+  const updateCurrentWilayaField = useCallback((field: keyof WilayaBannerData, value: string) => {
+    setCurrentWilayaData((prev) => ({ ...prev, [field]: value }));
+  }, []);
 
-      setWilayaPromoLeftTitle(campaign.promoLeft?.title || "");
-      setWilayaPromoLeftBadge(campaign.promoLeft?.badge || "");
-      setWilayaPromoLeftCtaLink(campaign.promoLeft?.ctaLink || "");
-      setWilayaPromoLeftImage(campaign.promoLeft?.image || "");
-      setWilayaPromoLeftBgColor(campaign.promoLeft?.bgColor || "#F5F6F8");
-      setWilayaPromoLeftTextColor(campaign.promoLeft?.textColor || "#111111");
-
-      setWilayaPromoRightTitle(campaign.promoRight?.title || "");
-      setWilayaPromoRightBadge(campaign.promoRight?.badge || "");
-      setWilayaPromoRightCtaLink(campaign.promoRight?.ctaLink || "");
-      setWilayaPromoRightImage(campaign.promoRight?.image || "");
-      setWilayaPromoRightBgColor(campaign.promoRight?.bgColor || "#111111");
-      setWilayaPromoRightTextColor(campaign.promoRight?.textColor || "#FFFFFF");
-    } else {
-      setHasWilayaCampaign(false);
-      setWilayaHeroTitle(electroTitle || "Tout pour la maison,");
-      setWilayaHeroSubtitle(electroSubtitle || "rien que le meilleur.");
-      setWilayaHeroImage(electroImage || "https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&q=80&w=1600");
-
-      setWilayaPromoLeftTitle(promoLeftTitle || "Jusqu'à -40% sur une sélection d'appareils");
-      setWilayaPromoLeftBadge(promoLeftBadge || "OFFRE LIMITÉE");
-      setWilayaPromoLeftCtaLink(promoLeftCtaLink || "/shop?category=Électroménager&promo=true");
-      setWilayaPromoLeftImage(promoLeftImage || "https://images.unsplash.com/photo-1594222644265-5c1eb4856f70?auto=format&fit=crop&q=80&w=400");
-      setWilayaPromoLeftBgColor(promoLeftBgColor || "#F5F6F8");
-      setWilayaPromoLeftTextColor(promoLeftTextColor || "#111111");
-
-      setWilayaPromoRightTitle(promoRightTitle || "Offres spéciales Week-end");
-      setWilayaPromoRightBadge(promoRightBadge || "OFFRE DU WEEK-END");
-      setWilayaPromoRightCtaLink(promoRightCtaLink || "/shop?category=Électroménager&sort=bestselling");
-      setWilayaPromoRightImage(promoRightImage || "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&q=80&w=400");
-      setWilayaPromoRightBgColor(promoRightBgColor || "#111111");
-      setWilayaPromoRightTextColor(promoRightTextColor || "#FFFFFF");
-    }
-  }, [
-    selectedWilayaToEdit,
-    wilayaCampaigns,
-    electroTitle,
-    electroSubtitle,
-    electroImage,
-    promoLeftTitle,
-    promoLeftBadge,
-    promoLeftCtaLink,
-    promoLeftImage,
-    promoLeftBgColor,
-    promoLeftTextColor,
-    promoRightTitle,
-    promoRightBadge,
-    promoRightCtaLink,
-    promoRightImage,
-    promoRightBgColor,
-    promoRightTextColor,
-  ]);
-
-  const handleWilayaHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const uploadWilayaAsset = async (
+    file: File | undefined,
+    fieldKey: "heroImage" | "promoLeftImage" | "promoRightImage",
+    w: number,
+    h: number
+  ) => {
     if (!file) return;
+    setIsUploadingWilayaImg(fieldKey);
+    if (fieldKey === "heroImage") setIsUploadingWilayaHero(true);
+    if (fieldKey === "promoLeftImage") setIsUploadingWilayaPromoLeft(true);
+    if (fieldKey === "promoRightImage") setIsUploadingWilayaPromoRight(true);
 
-    setIsUploadingWilayaHero(true);
-    setUploadProgressWilayaHero(0);
-
+    const toastId = `up-wilaya-${fieldKey}`;
     try {
-      toast.loading("Optimisation de l'image Hero régionale...", { id: "upload-wilaya-hero" });
-      const { blob } = await compressAndResizeImage(file, 1600, 1000);
+      toast.loading("Optimisation de l'image régionale...", { id: toastId });
+      const { blob } = await compressAndResizeImage(file, w, h);
       const uuid = generateClientUUID().substring(0, 12);
-      const storageRef = ref(storage, `banners/wilaya_hero_${uuid}_${file.name.replace(/\s+/g, "_")}`);
-
+      const path = `banners/wilaya_${fieldKey}_${uuid}_${file.name.replace(/\s+/g, "_")}`;
       const finalUrl = await new Promise<string>((resolve, reject) => {
-        const uploadTask = uploadBytesResumable(storageRef, blob);
-        uploadTask.on(
-          "state_changed",
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setUploadProgressWilayaHero(Math.round(progress));
+        uploadFileWithProgress(
+          path,
+          blob,
+          (p) => {
+            const rounded = Math.round(p);
+            if (fieldKey === "heroImage") setUploadProgressWilayaHero(rounded);
+            if (fieldKey === "promoLeftImage") setUploadProgressWilayaPromoLeft(rounded);
+            if (fieldKey === "promoRightImage") setUploadProgressWilayaPromoRight(rounded);
           },
-          (error) => reject(error),
-          async () => {
-            try {
-              const url = await getDownloadURL(uploadTask.snapshot.ref);
-              resolve(url);
-            } catch (err) {
-              reject(err instanceof Error ? err : new Error(String(err)));
-            }
-          }
+          (err) => reject(err),
+          (url) => resolve(url)
         );
       });
-
-      setWilayaHeroImage(finalUrl);
-      toast.success("Image Hero régionale enregistrée !", { id: "upload-wilaya-hero" });
+      updateCurrentWilayaField(fieldKey, finalUrl);
+      toast.success("Image régionale importée !", { id: toastId });
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : "Veuillez réessayer.";
-      toast.error(`Erreur d'importation: ${errMsg}`, { id: "upload-wilaya-hero" });
+      toast.error(`Erreur: ${err instanceof Error ? err.message : "Veuillez réessayer."}`, { id: toastId });
     } finally {
+      setIsUploadingWilayaImg(null);
       setIsUploadingWilayaHero(false);
-    }
-  };
-
-  const handleWilayaPromoLeftImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingWilayaPromoLeft(true);
-    setUploadProgressWilayaPromoLeft(0);
-
-    try {
-      toast.loading("Optimisation Promo Gauche régionale...", { id: "upload-wilaya-promo-left" });
-      const { blob } = await compressAndResizeImage(file, 800, 800);
-      const uuid = generateClientUUID().substring(0, 12);
-      const storageRef = ref(storage, `banners/wilaya_left_${uuid}_${file.name.replace(/\s+/g, "_")}`);
-
-      const finalUrl = await new Promise<string>((resolve, reject) => {
-        const uploadTask = uploadBytesResumable(storageRef, blob);
-        uploadTask.on(
-          "state_changed",
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setUploadProgressWilayaPromoLeft(Math.round(progress));
-          },
-          (error) => reject(error),
-          async () => {
-            try {
-              const url = await getDownloadURL(uploadTask.snapshot.ref);
-              resolve(url);
-            } catch (err) {
-              reject(err instanceof Error ? err : new Error(String(err)));
-            }
-          }
-        );
-      });
-
-      setWilayaPromoLeftImage(finalUrl);
-      toast.success("Image Promo Gauche régionale enregistrée !", { id: "upload-wilaya-promo-left" });
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : "Veuillez réessayer.";
-      toast.error(`Erreur d'importation: ${errMsg}`, { id: "upload-wilaya-promo-left" });
-    } finally {
       setIsUploadingWilayaPromoLeft(false);
+      setIsUploadingWilayaPromoRight(false);
     }
   };
 
-  const handleWilayaPromoRightImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleWilayaImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: "heroImage" | "promoLeftImage" | "promoRightImage"
+  ) => {
+    const dims = field === "heroImage" ? { w: 1600, h: 1000 } : { w: 800, h: 800 };
+    await uploadWilayaAsset(e.target.files?.[0], field, dims.w, dims.h);
+  };
 
-    setIsUploadingWilayaPromoRight(true);
-    setUploadProgressWilayaPromoRight(0);
-
+  const persistWilayaCampaigns = async (nextCampaigns: Record<string, WilayaCampaign>) => {
+    const payload = { campaigns: nextCampaigns, updatedAt: new Date().toISOString() };
     try {
-      toast.loading("Optimisation Promo Droite régionale...", { id: "upload-wilaya-promo-right" });
-      const { blob } = await compressAndResizeImage(file, 800, 800);
-      const uuid = generateClientUUID().substring(0, 12);
-      const storageRef = ref(storage, `banners/wilaya_right_${uuid}_${file.name.replace(/\s+/g, "_")}`);
+      await apiPost("/api/v1/settings/wilaya_campaigns", payload);
+    } catch {
+      await setDoc(doc(db, "settings", "wilaya_campaigns"), payload, { merge: true });
+    }
+  };
 
-      const finalUrl = await new Promise<string>((resolve, reject) => {
-        const uploadTask = uploadBytesResumable(storageRef, blob);
-        uploadTask.on(
-          "state_changed",
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setUploadProgressWilayaPromoRight(Math.round(progress));
+  const handleSaveWilayaCampaign = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e && "preventDefault" in e && typeof e.preventDefault === "function") {
+      e.preventDefault();
+    }
+    if (!selectedWilayaToEdit) {
+      toast.error("Veuillez choisir une Wilaya");
+      return;
+    }
+    setIsSavingWilaya(true);
+    try {
+      const updated: Record<string, WilayaCampaign> = {
+        ...wilayaCampaigns,
+        [selectedWilayaToEdit]: {
+          heroTitle: currentWilayaData.heroTitle,
+          heroSubtitle: currentWilayaData.heroSubtitle,
+          heroButtonText: currentWilayaData.heroButtonText,
+          heroImage: currentWilayaData.heroImage,
+          promoLeft: {
+            title: currentWilayaData.promoLeftTitle,
+            subtitle: currentWilayaData.promoLeftSubtitle,
+            badge: currentWilayaData.promoLeftSubtitle,
+            ctaLink: "/shop",
+            image: currentWilayaData.promoLeftImage,
           },
-          (error) => reject(error),
-          async () => {
-            try {
-              const url = await getDownloadURL(uploadTask.snapshot.ref);
-              resolve(url);
-            } catch (err) {
-              reject(err instanceof Error ? err : new Error(String(err)));
-            }
-          }
-        );
-      });
-
-      setWilayaPromoRightImage(finalUrl);
-      toast.success("Image Promo Droite régionale enregistrée !", { id: "upload-wilaya-promo-right" });
+          promoRight: {
+            title: currentWilayaData.promoRightTitle,
+            subtitle: currentWilayaData.promoRightSubtitle,
+            badge: currentWilayaData.promoRightSubtitle,
+            ctaLink: "/shop",
+            image: currentWilayaData.promoRightImage,
+          },
+        },
+      };
+      await persistWilayaCampaigns(updated);
+      setWilayaCampaigns(updated);
+      setHasWilayaCampaign(true);
+      toast.success(`Campagne pour ${selectedWilayaToEdit} sauvegardée !`);
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : "Veuillez réessayer.";
-      toast.error(`Erreur d'importation: ${errMsg}`, { id: "upload-wilaya-promo-right" });
+      toast.error(err instanceof Error ? err.message : "Erreur de sauvegarde");
     } finally {
-      setIsUploadingWilayaPromoRight(false);
+      setIsSavingWilaya(false);
+    }
+  };
+
+  const handleDeleteWilayaCampaign = async (wilayaName?: string) => {
+    const targetWilaya = wilayaName || selectedWilayaToEdit;
+    if (!targetWilaya || !wilayaCampaigns[targetWilaya]) return;
+    setIsSavingWilaya(true);
+    try {
+      const next = { ...wilayaCampaigns };
+      delete next[targetWilaya];
+      await persistWilayaCampaigns(next);
+      setWilayaCampaigns(next);
+      setHasWilayaCampaign(false);
+      toast.success(`Campagne régionale ${targetWilaya} réinitialisée.`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erreur de suppression");
+    } finally {
+      setIsSavingWilaya(false);
     }
   };
 
   return {
     wilayaCampaigns,
     setWilayaCampaigns,
+    wilayaBanners,
+    selectedWilaya: selectedWilayaToEdit,
+    setSelectedWilaya: setSelectedWilayaToEdit,
     selectedWilayaToEdit,
     setSelectedWilayaToEdit,
+    currentWilayaData,
+    updateCurrentWilayaField,
     hasWilayaCampaign,
     setHasWilayaCampaign,
-    wilayaHeroTitle,
-    setWilayaHeroTitle,
-    wilayaHeroSubtitle,
-    setWilayaHeroSubtitle,
-    wilayaHeroImage,
-    setWilayaHeroImage,
-    wilayaPromoLeftTitle,
-    setWilayaPromoLeftTitle,
-    wilayaPromoLeftBadge,
-    setWilayaPromoLeftBadge,
-    wilayaPromoLeftCtaLink,
-    setWilayaPromoLeftCtaLink,
-    wilayaPromoLeftImage,
-    setWilayaPromoLeftImage,
-    wilayaPromoLeftBgColor,
-    setWilayaPromoLeftBgColor,
-    wilayaPromoLeftTextColor,
-    setWilayaPromoLeftTextColor,
-    wilayaPromoRightTitle,
-    setWilayaPromoRightTitle,
-    wilayaPromoRightBadge,
-    setWilayaPromoRightBadge,
-    wilayaPromoRightCtaLink,
-    setWilayaPromoRightCtaLink,
-    wilayaPromoRightImage,
-    setWilayaPromoRightImage,
-    wilayaPromoRightBgColor,
-    setWilayaPromoRightBgColor,
-    wilayaPromoRightTextColor,
-    setWilayaPromoRightTextColor,
+    isSavingWilaya,
+    isUploadingWilayaImg,
     isUploadingWilayaHero,
     uploadProgressWilayaHero,
     isUploadingWilayaPromoLeft,
     uploadProgressWilayaPromoLeft,
     isUploadingWilayaPromoRight,
     uploadProgressWilayaPromoRight,
-    handleWilayaHeroImageUpload,
-    handleWilayaPromoLeftImageUpload,
-    handleWilayaPromoRightImageUpload,
+    handleWilayaImageUpload,
+    handleSaveWilayaCampaign,
+    handleDeleteWilayaCampaign,
   };
 }

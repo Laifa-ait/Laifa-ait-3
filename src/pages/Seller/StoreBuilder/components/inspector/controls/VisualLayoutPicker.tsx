@@ -1,5 +1,6 @@
 import React from "react";
 import { Check, Columns, Maximize2 } from "lucide-react";
+import { getCategoryLayoutCapabilities } from "../../../constants/categoryCanvaOptions";
 
 interface VisualLayoutPickerProps {
   mode: "category" | "product";
@@ -32,10 +33,17 @@ const PRODUCT_VISUAL_LAYOUTS = [
   { id: "vertical", label: "Liste", sublabel: "Bandeaux larges", badge: "Catalogue" },
 ];
 
-const ASPECT_RATIO_STEPS = [
+const CATEGORY_ASPECT_STEPS = [
   { id: "1/1", label: "1:1 Carré" },
   { id: "4/5", label: "4:5 Portrait" },
   { id: "16/9", label: "16/9 Large" },
+];
+
+const PRODUCT_ASPECT_STEPS = [
+  { id: "1/1", label: "1:1 Carré" },
+  { id: "4/5", label: "4:5 Portrait" },
+  { id: "4/3", label: "4:3 Standard" },
+  { id: "16/9", label: "16:9 Large" },
 ];
 
 const renderLayoutSvg = (id: string, isSelected: boolean) => {
@@ -148,120 +156,92 @@ export const VisualLayoutPicker: React.FC<VisualLayoutPickerProps> = ({
   onChangeColumnsDesktop,
 }) => {
   const options = mode === "category" ? CATEGORY_VISUAL_LAYOUTS : PRODUCT_VISUAL_LAYOUTS;
-  const normalizedRatio = aspectRatio === "4/3" ? "16/9" : aspectRatio;
+  const aspectSteps = mode === "category" ? CATEGORY_ASPECT_STEPS : PRODUCT_ASPECT_STEPS;
+  const normalizedRatio =
+    mode === "category" && aspectRatio === "4/3" ? "16/9" : aspectRatio === "circle" ? "4/5" : aspectRatio;
+  const caps = getCategoryLayoutCapabilities(activeLayout);
+
+  const showAspectRatio = Boolean(onChangeAspectRatio) && (mode === "product" ? true : caps.supportsAspectRatio);
+  const showDesktopCols =
+    Boolean(onChangeColumnsDesktop) && (mode === "product" ? activeLayout !== "carousel" : caps.supportsColumnsDesktop);
+  const desktopColChoices = mode === "product" && activeLayout === "vertical" ? [1, 2] : [2, 3, 4];
 
   return (
     <div className="space-y-3 select-none">
       <div className={`grid ${mode === "category" ? "grid-cols-2" : "grid-cols-3"} gap-2`}>
         {options.map((opt) => {
-          const isSelected = activeLayout === opt.id;
+          const isSelected = activeLayout === opt.id || (opt.id === "vertical" && activeLayout === "list");
           return (
             <button
               key={opt.id}
               type="button"
               onClick={() => onSelectLayout(opt.id)}
               className={`relative p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                isSelected
-                  ? "border-[#023859] bg-[#F0F7FA] text-[#011C40] ring-1 ring-[#023859]/25 shadow-xs"
-                  : "border-slate-200 bg-white hover:border-[#54ACBF] hover:bg-slate-50/60 text-slate-700"
+                isSelected ? "border-[#023859] bg-[#F0F7FA] text-[#011C40] ring-1 ring-[#023859]/25 shadow-xs" : "border-slate-200 bg-white hover:border-[#54ACBF] hover:bg-slate-50/60 text-slate-700"
               }`}
             >
               <div className="flex items-center justify-between w-full gap-1.5">
                 {renderLayoutSvg(opt.id, isSelected)}
                 {isSelected ? (
-                  <span className="w-4 h-4 rounded-full bg-[#023859] text-white flex items-center justify-center shrink-0">
-                    <Check className="w-2.5 h-2.5" />
-                  </span>
+                  <span className="w-4 h-4 rounded-full bg-[#023859] text-white flex items-center justify-center shrink-0"><Check className="w-2.5 h-2.5" /></span>
                 ) : (
-                  <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 shrink-0">
-                    {opt.badge}
-                  </span>
+                  <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 shrink-0">{opt.badge}</span>
                 )}
               </div>
               <div className="w-full pt-0.5">
-                <span className="block text-[11px] font-extrabold leading-tight text-slate-900">
-                  {opt.label}
-                </span>
-                <span className="block text-[9.5px] font-medium text-slate-500 leading-tight mt-0.5">
-                  {opt.sublabel}
-                </span>
+                <span className="block text-[11px] font-extrabold leading-tight text-slate-900">{opt.label}</span>
+                <span className="block text-[9.5px] font-medium text-slate-500 leading-tight mt-0.5">{opt.sublabel}</span>
               </div>
             </button>
           );
         })}
       </div>
 
-      {(onChangeAspectRatio || onChangeColumnsDesktop) &&
-        !["bubbles", "pills", "vertical", "mesh-3d", "accordion", "magazine", "arch", "polaroid"].includes(
-          activeLayout
-        ) && (
-          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
-            {onChangeAspectRatio && activeLayout !== "bento" && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-bold text-slate-700 flex items-center gap-1">
-                    <Maximize2 className="w-3 h-3 text-[#26658C]" />
-                    <span>Ratio d'image</span>
-                  </span>
-                  <span className="font-mono font-bold text-[#023859]">
-                    {normalizedRatio.replace("/", ":")}
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {ASPECT_RATIO_STEPS.map((step) => {
-                    const isAct = normalizedRatio === step.id;
-                    return (
-                      <button
-                        key={step.id}
-                        type="button"
-                        onClick={() =>
-                          onChangeAspectRatio(
-                            mode === "product" && step.id === "16/9" ? "4/3" : step.id
-                          )
-                        }
-                        className={`py-1.5 px-2 rounded-lg border text-[10px] font-bold cursor-pointer transition-all ${
-                          isAct
-                            ? "border-[#023859] bg-[#023859] text-white shadow-2xs"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                        }`}
-                      >
-                        {step.label}
-                      </button>
-                    );
-                  })}
-                </div>
+      {(showAspectRatio || showDesktopCols) && (
+        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+          {showAspectRatio && onChangeAspectRatio && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-bold text-slate-700 flex items-center gap-1"><Maximize2 className="w-3 h-3 text-[#26658C]" /><span>Ratio d&apos;image</span></span>
+                <span className="font-mono font-bold text-[#023859]">{normalizedRatio.replace("/", ":")}</span>
               </div>
-            )}
+              <div className={`grid ${mode === "product" ? "grid-cols-2" : "grid-cols-3"} gap-1.5`}>
+                {aspectSteps.map((step) => (
+                  <button
+                    key={step.id}
+                    type="button"
+                    onClick={() => onChangeAspectRatio(step.id)}
+                    className={`py-1.5 px-2 rounded-lg border text-[10px] font-bold cursor-pointer transition-all ${normalizedRatio === step.id ? "border-[#023859] bg-[#023859] text-white shadow-2xs" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}`}
+                  >
+                    {step.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-            {onChangeColumnsDesktop && activeLayout !== "carousel" && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-bold text-slate-700 flex items-center gap-1">
-                    <Columns className="w-3 h-3 text-[#26658C]" />
-                    <span>Colonnes (Desktop)</span>
-                  </span>
-                  <span className="font-mono font-bold text-[#023859]">{columnsDesktop} col.</span>
-                </div>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {[2, 3, 4].map((col) => (
-                    <button
-                      key={col}
-                      type="button"
-                      onClick={() => onChangeColumnsDesktop(col)}
-                      className={`py-1.5 px-2 rounded-lg border text-[10px] font-bold cursor-pointer transition-all ${
-                        columnsDesktop === col
-                          ? "border-[#023859] bg-[#023859] text-white shadow-2xs"
-                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                      }`}
-                    >
-                      {col} Colonnes
-                    </button>
-                  ))}
-                </div>
+          {showDesktopCols && onChangeColumnsDesktop && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-bold text-slate-700 flex items-center gap-1"><Columns className="w-3 h-3 text-[#26658C]" /><span>Colonnes (Desktop)</span></span>
+                <span className="font-mono font-bold text-[#023859]">{columnsDesktop} col.</span>
               </div>
-            )}
-          </div>
-        )}
+              <div className={`grid grid-cols-${desktopColChoices.length} gap-1.5`}>
+                {desktopColChoices.map((col) => (
+                  <button
+                    key={col}
+                    type="button"
+                    onClick={() => onChangeColumnsDesktop(col)}
+                    className={`py-1.5 px-2 rounded-lg border text-[10px] font-bold cursor-pointer transition-all ${columnsDesktop === col ? "border-[#023859] bg-[#023859] text-white shadow-2xs" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}`}
+                  >
+                    {col === 1 ? "1 Bandeau Large" : `${col} Colonnes`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

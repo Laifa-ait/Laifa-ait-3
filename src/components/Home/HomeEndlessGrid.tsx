@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Product } from "../../domains/product/product.types";
 import { ProductCard } from "../Product/ProductCard";
 import { useTranslation } from "react-i18next";
+import { collection, query, where, limit, getDocs } from "firebase/firestore";
+import { db } from "../../lib/firebase";
 
 export const HomeEndlessGrid: React.FC = () => {
   const { t } = useTranslation();
@@ -28,15 +30,19 @@ export const HomeEndlessGrid: React.FC = () => {
           // Fetch failed, proceed to fallback
         }
 
-        if (docs.length === 0) {
+        if (docs.length === 0 && db && typeof db === "object") {
           try {
-            const fallbackRes = await fetch(`/api/v1/products?limit=${INITIAL_FETCH_LIMIT}`);
-            if (fallbackRes.ok) {
-              const fallbackData = await fallbackRes.json();
-              docs = fallbackData.products || [];
+            const q = query(
+              collection(db, "products"),
+              where("status", "==", "active"),
+              limit(INITIAL_FETCH_LIMIT)
+            );
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+              docs = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Product[];
             }
           } catch {
-            // Fallback failed, proceed to next
+            // Client Firestore fallback failed, proceed to next
           }
         }
 
@@ -83,21 +89,7 @@ export const HomeEndlessGrid: React.FC = () => {
           newDocs = data.products || [];
         }
       } catch {
-        // Fetch failed, proceed to fallback
-      }
-
-      if (newDocs.length === 0) {
-        try {
-          const fallbackRes = await fetch(
-            `/api/v1/products?limit=${LOAD_MORE_LIMIT}&offset=${products.length}`
-          );
-          if (fallbackRes.ok) {
-            const data = await fallbackRes.json();
-            newDocs = data.products || [];
-          }
-        } catch {
-          // Fallback failed
-        }
+        // Fetch failed
       }
 
       const validNewDocs = newDocs.filter((d) => d && (d.stock === undefined || d.stock > 0));
@@ -133,7 +125,6 @@ export const HomeEndlessGrid: React.FC = () => {
 
   return (
     <section className="w-full max-w-[90rem] mx-auto px-4 sm:px-6 md:px-8 mb-12 sm:mb-16">
-      {/* Editorial Section Heading */}
       <div className="flex items-center justify-between mb-5 sm:mb-6">
         <div className="space-y-1">
           <h2 className="font-display text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-[#1A1836]">
@@ -145,14 +136,12 @@ export const HomeEndlessGrid: React.FC = () => {
         </div>
       </div>
 
-      {/* Product Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
         {products.map((product, i) => (
           <ProductCard key={product.id} product={product} index={i} />
         ))}
       </div>
 
-      {/* Load More CTA */}
       {hasMore && (
         <div className="flex justify-center mt-10 sm:mt-12">
           <button

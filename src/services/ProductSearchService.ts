@@ -3,23 +3,24 @@ import Fuse from "fuse.js";
 import { safeLogger } from "../utils/logger";
 import { PRODUCT_STATUSES } from "../domains/product/product.status";
 import { TrendingSearchesService } from "./TrendingSearchesService";
+import { withFirestoreDeadline } from "../utils/firestoreTimeout";
 import {
   ALGERIAN_SYNONYM_GROUPS,
   normalizeAlgerianSearchText,
-  getAlgerianSoundex
+  getAlgerianSoundex,
 } from "../utils/algerianSearchSynonyms";
 import {
   SearchableProduct,
   StoreProfile,
   SearchStoresContainer,
-  SearchRequestExpress
+  SearchRequestExpress,
 } from "../types/search";
 
 export type {
   SearchableProduct,
   StoreProfile,
   SearchStoresContainer,
-  SearchRequestExpress
+  SearchRequestExpress,
 };
 
 let cachedProducts: SearchableProduct[] = [];
@@ -27,7 +28,7 @@ let cachedStores: SearchStoresContainer | null = null;
 let cachedFuse: Fuse<SearchableProduct> | null = null;
 let lastCacheUpdate = 0;
 let isRefreshingCache = false;
-const CACHE_TTL_MS = 20 * 60 * 1000; // 20 minutes
+const CACHE_TTL_MS = 20 * 60 * 1000;
 
 function buildFuseIndex(pool: SearchableProduct[]): Fuse<SearchableProduct> {
   return new Fuse(pool, {
@@ -40,12 +41,12 @@ function buildFuseIndex(pool: SearchableProduct[]): Fuse<SearchableProduct> {
       { name: "category", weight: 0.15 },
       { name: "subcategory", weight: 0.1 },
       { name: "tags", weight: 0.1 },
-      { name: "shopName", weight: 0.05 }
+      { name: "shopName", weight: 0.05 },
     ],
     includeScore: true,
     threshold: 0.42,
     minMatchCharLength: 2,
-    ignoreLocation: true
+    ignoreLocation: true,
   });
 }
 
@@ -61,21 +62,33 @@ async function refreshMemoryIndex(): Promise<void> {
   isRefreshingCache = true;
   try {
     const [prodSnap, profilesSnap] = await Promise.all([
-      db.collection("products").where("status", "==", PRODUCT_STATUSES.ACTIVE).limit(1500).get(),
-      db.collection("publicProfiles").limit(300).get().catch(() => null)
+      withFirestoreDeadline(
+        () => db.collection("products").where("status", "==", PRODUCT_STATUSES.ACTIVE).limit(500).get(),
+        null,
+        2000,
+        "search_products_index"
+      ),
+      withFirestoreDeadline(
+        () => db.collection("publicProfiles").limit(200).get().catch(() => null),
+        null,
+        1500,
+        "search_profiles_index"
+      ),
     ]);
 
-    cachedProducts = prodSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as SearchableProduct[];
-    cachedFuse = buildFuseIndex(cachedProducts);
+    if (prodSnap) {
+      cachedProducts = prodSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as SearchableProduct[];
+      cachedFuse = buildFuseIndex(cachedProducts);
+    }
     if (profilesSnap) {
       cachedStores = {
-        stores: profilesSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as StoreProfile[]
+        stores: profilesSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as StoreProfile[],
       };
     }
     lastCacheUpdate = Date.now();
   } catch (err: unknown) {
     safeLogger.warn("[ProductSearchService] Cache refresh notice", {
-      err: err instanceof Error ? err.message : String(err)
+      err: err instanceof Error ? err.message : String(err),
     });
   } finally {
     isRefreshingCache = false;
@@ -131,7 +144,7 @@ export class ProductSearchService {
         total: filtered.length,
         page,
         limit: limitVal,
-        hasMore: offset + limitVal < filtered.length
+        hasMore: offset + limitVal < filtered.length,
       };
     }
 
@@ -146,11 +159,9 @@ export class ProductSearchService {
       const existingIds = new Set(searchResults.map((r) => r.item.id));
       for (const p of productPool) {
         if (existingIds.has(p.id)) continue;
-        const text = this.normalizeText([
-          p.name, p.title, p.category, p.brand,
-          p.translations?.ar?.name, p.translations?.en?.name,
-          ...(p.tags || [])
-        ].join(" "));
+        const text = this.normalizeText(
+          [p.name, p.title, p.category, p.brand, p.translations?.ar?.name, p.translations?.en?.name, ...(p.tags || [])].join(" ")
+        );
         let matchScore = 0;
 
         for (const term of queryTokens) {
@@ -159,11 +170,9 @@ export class ProductSearchService {
             break;
           }
           for (const group of ALGERIAN_SYNONYM_GROUPS) {
-            if (group.some((syn) => syn.includes(term) || term.includes(syn))) {
-              if (group.some((syn) => text.includes(syn))) {
-                matchScore += 0.8;
-                break;
-              }
+            if (group.some((syn) => syn.includes(term) || term.includes(syn)) && group.some((syn) => text.includes(syn))) {
+              matchScore += 0.8;
+              break;
             }
           }
           if (term.length >= 3 && this.getSoundex(term) && text.split(/\s+/).some((w) => this.getSoundex(w) === this.getSoundex(term))) {
@@ -181,12 +190,10 @@ export class ProductSearchService {
     const ranked = searchResults.map((r) => {
       const p = r.item;
       let textScore = 1 - (r.score ?? 0.5);
-      const pNameNorm = this.normalizeText(p.name || p.title || "");
-      if (pNameNorm.startsWith(normQuery)) textScore += 0.4;
+      if (this.normalizeText(p.name || p.title || "").startsWith(normQuery)) textScore += 0.4;
       const salesScore = Math.min((p.salesCount ?? 0) / 100, 1.0);
       const ratingScore = p.rating ? Math.min(p.rating / 5, 1.0) : 0.5;
-      const ranking = textScore * 0.7 + salesScore * 0.15 + ratingScore * 0.15;
-      return { item: p, ranking };
+      return { item: p, ranking: textScore * 0.7 + salesScore * 0.15 + ratingScore * 0.15 };
     });
 
     ranked.sort((a, b) => b.ranking - a.ranking);
@@ -195,9 +202,7 @@ export class ProductSearchService {
     if (minPrice !== null) finalProducts = finalProducts.filter((p) => (p.price ?? 0) >= minPrice);
     if (maxPrice !== null) finalProducts = finalProducts.filter((p) => (p.price ?? 0) <= maxPrice);
     if (wilayaFilter) finalProducts = finalProducts.filter((p) => p.wilaya === wilayaFilter);
-    if (categoryFilter && categoryFilter !== "Tous") {
-      finalProducts = finalProducts.filter((p) => p.category === categoryFilter);
-    }
+    if (categoryFilter && categoryFilter !== "Tous") finalProducts = finalProducts.filter((p) => p.category === categoryFilter);
 
     let matchedStores: StoreProfile[] = [];
     if (allStores?.stores && queryStr) {
@@ -215,12 +220,10 @@ export class ProductSearchService {
           resultsCount: finalProducts.length,
           timestamp: admin.firestore.FieldValue.serverTimestamp(),
           userId: req.user?.uid || "anonymous",
-          filters: { minPrice, maxPrice, wilaya: wilayaFilter, category: categoryFilter }
+          filters: { minPrice, maxPrice, wilaya: wilayaFilter, category: categoryFilter },
         }).catch(() => {});
       }
-    } catch {
-      // Non-fatal
-    }
+    } catch { /* ignore */ }
 
     const suggestions: string[] = [];
     const seen = new Set<string>();
@@ -242,7 +245,7 @@ export class ProductSearchService {
       page,
       limit: limitVal,
       hasMore: offset + limitVal < totalCount,
-      suggestions
+      suggestions,
     };
   }
 }

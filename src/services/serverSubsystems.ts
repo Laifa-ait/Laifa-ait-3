@@ -6,8 +6,15 @@ import { startVelocityWorker, stopVelocityWorker, drainVelocityChecks } from "..
 import { startProductCacheCleanupTimer, stopProductCacheCleanupTimer } from "./ProductSeoService";
 import { setupViteAndStaticServing } from "./ViteStaticService";
 import { closeDevViteServer } from "./devViteMiddleware";
+import {
+  verifyAndHealAllServices,
+  startServiceWatchdog,
+  stopServiceWatchdog,
+} from "./ServiceAutoHealer";
 import { validateCsrfConfiguration } from "../middlewares/csrf";
 import { safeLogger } from "../utils/logger";
+
+let isStaticPipelineAttached = false;
 
 export async function initializeSubsystems(app: Express): Promise<void> {
   const logDev = (msg: string) => {
@@ -16,7 +23,6 @@ export async function initializeSubsystems(app: Express): Promise<void> {
     }
   };
 
-  // 0. Security Configuration Guard: Validate CSRF configuration (fail-closed in production).
   if (
     process.env.NODE_ENV !== "production" &&
     (!process.env.CSRF_SECRET || process.env.CSRF_SECRET.trim().length < 32)
@@ -25,22 +31,40 @@ export async function initializeSubsystems(app: Express): Promise<void> {
   }
   validateCsrfConfiguration();
 
-  try {
-    // 1. Setup Vite dev middleware or production static asset pipeline
-    await setupViteAndStaticServing(app);
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    safeLogger.error("[Olmart Gateway] ❌ Failed to initialize Vite/static serving pipeline", { err: errorMsg });
+  if (!isStaticPipelineAttached) {
+    try {
+      await setupViteAndStaticServing(app);
+      isStaticPipelineAttached = true;
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      safeLogger.error("[Olmart Gateway] ❌ Failed to initialize Vite/static serving pipeline", { err: errorMsg });
+    }
   }
 
-  // 2. Start Product SEO cache cleanup timer with rollback guard
   try {
     startProductCacheCleanupTimer();
   } catch (err: unknown) {
     safeLogger.error("[Olmart Gateway] ❌ Failed to start SEO cache timer", { err: String(err) });
   }
 
-  // 3. Database migrations - Off by default on web instances to prevent race conditions across cluster nodes
+  // Run Auto-Healer non-blocking after port 3000 binds
+  setImmediate(() => {
+    verifyAndHealAllServices()
+      .then((report) => {
+        if (report.repairedCount > 0) {
+          safeLogger.info(
+            `⚙️ [Olmart Workers] ⚡ Auto-Healer repaired ${report.repairedCount} service(s) during startup.`
+          );
+        }
+        startServiceWatchdog();
+      })
+      .catch((err: unknown) => {
+        safeLogger.warn("[Olmart Gateway] ⚠️ Auto-Healer startup check notice", {
+          err: err instanceof Error ? err.message : String(err),
+        });
+      });
+  });
+
   if (process.env.RUN_MIGRATIONS === "true") {
     logDev("[Database] 🔄 Running startup database checks and migrations...");
     try {
@@ -52,7 +76,6 @@ export async function initializeSubsystems(app: Express): Promise<void> {
     }
   }
 
-  // 4. Background workers & Reconciliation (Dedicated worker instances only)
   if (process.env.ENABLE_WORKERS === "true" || process.env.ENABLE_BACKGROUND_WORKERS === "true") {
     try {
       startVelocityWorker();
@@ -69,6 +92,7 @@ export async function initializeSubsystems(app: Express): Promise<void> {
 }
 
 export function rollbackSubsystems(): void {
+  stopServiceWatchdog();
   closeDevViteServer().catch(() => {});
 
   try {

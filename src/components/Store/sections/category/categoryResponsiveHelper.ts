@@ -5,15 +5,15 @@ import { CategoryCardSize } from "../../../../pages/Seller/StoreBuilder/constant
  * - Phone (< 560px container)
  * - Tablet (@[560px] to 899px container — iPad / Tablet Portrait)
  * - Desktop (@[900px]+ container)
+ * Strictly honors `columnsMobile` (1 or 2) without being overridden by `cardSize`.
  */
 export function resolveCategoryGridCols(
   columnsDesktop: number,
   columnsMobile: number,
-  cardSize: CategoryCardSize = "balanced",
+  _cardSize: CategoryCardSize = "balanced",
   previewViewport: "mobile" | "tablet" | "desktop" = "desktop"
 ): string {
-  const mobileCols =
-    cardSize === "compact" ? "grid-cols-2" : columnsMobile === 1 ? "grid-cols-1" : "grid-cols-2";
+  const mobileCols = columnsMobile === 1 ? "grid-cols-1" : "grid-cols-2";
 
   if (previewViewport === "mobile") {
     return mobileCols;
@@ -32,6 +32,28 @@ export function resolveCategoryGridCols(
 }
 
 /**
+ * Resolves distinct outer card and inner media border-radius classes.
+ */
+export function resolveOuterAndMediaRadius(cardRadius: string): {
+  outerRadiusClass: string;
+  mediaRadiusClass: string;
+} {
+  if (cardRadius === "none") {
+    return { outerRadiusClass: "rounded-none", mediaRadiusClass: "rounded-none" };
+  }
+  if (cardRadius === "sm") {
+    return { outerRadiusClass: "rounded-lg", mediaRadiusClass: "rounded-md" };
+  }
+  if (cardRadius === "lg") {
+    return { outerRadiusClass: "rounded-3xl", mediaRadiusClass: "rounded-2xl" };
+  }
+  if (cardRadius === "full") {
+    return { outerRadiusClass: "rounded-full", mediaRadiusClass: "rounded-full" };
+  }
+  return { outerRadiusClass: "rounded-2xl", mediaRadiusClass: "rounded-xl" };
+}
+
+/**
  * Resolves responsive grid gap across Phone, Tablet, and Desktop.
  */
 export function resolveCategoryGapClass(
@@ -41,28 +63,30 @@ export function resolveCategoryGapClass(
   if (gapSize === "compact" || cardSize === "compact") {
     return "gap-2 @[560px]:gap-2.5 @[900px]:gap-3";
   }
-  if (gapSize === "spacious") {
+  if (gapSize === "spacious" || cardSize === "large") {
     return "gap-3 @[560px]:gap-4 @[900px]:gap-5";
   }
   return "gap-2.5 @[560px]:gap-3.5 @[900px]:gap-4";
 }
 
 /**
- * Resolves Bento mosaic spans across Phone (2 cols), Tablet (2-3 cols), and Desktop (4 cols)
- * ensuring zero orphan cards at any breakpoint.
+ * Resolves Bento mosaic spans across Phone (1 or 2 cols), Tablet (2-3 cols), and Desktop (4 cols)
+ * ensuring zero orphan cards at any breakpoint and full-width clarity when `columnsMobile === 1`.
  */
 export function resolveResponsiveBentoSpan(
   idx: number,
   total: number,
   heroH: string,
   cellH: string,
-  previewViewport: "mobile" | "tablet" | "desktop" = "desktop"
+  previewViewport: "mobile" | "tablet" | "desktop" = "desktop",
+  columnsMobile = 2
 ): string {
-  // Mobile (2-column grid): Hero is col-span-2 (idx 0).
-  // Remaining count is (total - 1). If (total - 1) is odd and idx is the last item, span full width (col-span-2) so no orphan on mobile!
   const isLastItem = idx === total - 1;
   const remainingAfterHero = total - 1;
-  const mobileFullSpan = idx === 0 || (remainingAfterHero > 0 && remainingAfterHero % 2 === 1 && isLastItem);
+  const mobileFullSpan =
+    columnsMobile === 1 ||
+    idx === 0 ||
+    (remainingAfterHero > 0 && remainingAfterHero % 2 === 1 && isLastItem);
   const mobileSpan = mobileFullSpan ? "col-span-2" : "col-span-1";
 
   if (previewViewport === "mobile") {
@@ -77,7 +101,6 @@ export function resolveResponsiveBentoSpan(
     return `col-span-1 ${cellH}`;
   }
 
-  // Desktop (@[900px] 4-column Bento grid) with Tablet (@[560px] 2-column) and Mobile (2-column) fallbacks
   if (total === 1) {
     return `col-span-2 @[560px]:col-span-2 @[900px]:col-span-4 @[900px]:row-span-2 ${heroH}`;
   }
@@ -105,9 +128,6 @@ export function resolveResponsiveBentoSpan(
     return `${mobileSpan} @[560px]:col-span-1 @[900px]:col-span-1 ${cellH}`;
   }
 
-  // For total >= 5 (excluding 6 handled above):
-  // First 5 items (idx 0..4) fill rows 1-2 (Hero 2x2 + 4 single cells = 8 cells).
-  // Remaining items after idx 4: rem = total - 5.
   const remAfterFive = total - 5;
   if (remAfterFive > 0 && idx >= 5) {
     const mod = remAfterFive % 4;

@@ -2,21 +2,9 @@ import { Response, Router } from "express";
 import { authenticateToken, authorizeAdmin, AuthenticatedRequest } from "../../../middlewares/auth";
 import { ProductApprovalSchema } from "../../../validators/adminValidators";
 import { AdminProductService } from "../services/adminProduct.service";
-import * as admin from "firebase-admin";
 import { safeLogger } from "../../../utils/logger";
 
 const router = Router();
-
-// GET /api/v1/admin/categories/list
-router.get("/admin/categories/list", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const categories = await AdminProductService.listCategoriesSimple();
-    res.json({ success: true, categories });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erreur serveur";
-    res.status(500).json({ error: message });
-  }
-});
 
 // Tags management
 router.get("/tags", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
@@ -175,60 +163,6 @@ router.post("/admin/products/:id/deny-delete", authenticateToken, authorizeAdmin
     if (message === "Produit non trouvé") {
       return res.status(404).json({ error: "Produit non trouvé" });
     }
-    res.status(500).json({ error: message });
-  }
-});
-
-// ADMIN ONLY: Category Management
-router.get("/admin/categories", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const categories = await AdminProductService.listCategoriesFull();
-    res.json({ success: true, categories });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erreur serveur";
-    res.status(500).json({ error: message });
-  }
-});
-
-router.put("/admin/categories/:id", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { commissionRate } = req.body;
-    const adminId = req.user?.uid || "";
-
-    if (commissionRate === undefined || typeof commissionRate !== "number" || commissionRate < 0 || commissionRate > 100) {
-      return res.status(400).json({ error: "Commission rate valide requis (0 à 100%)" });
-    }
-
-    const result = await AdminProductService.updateCategoryCommission({
-      categoryId: id,
-      commissionRate,
-      adminId,
-    });
-    res.json(result);
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erreur serveur";
-    res.status(500).json({ error: message });
-  }
-});
-
-router.put("/admin/categories/hierarchy", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { hierarchy } = req.body;
-    if (!Array.isArray(hierarchy)) {
-      return res.status(400).json({ error: "Format invalide" });
-    }
-    const batch = admin.firestore().batch();
-    hierarchy.forEach((item) => {
-      if (item.id) {
-        const ref = admin.firestore().collection("categories").doc(item.id);
-        batch.update(ref, { order: item.order, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-      }
-    });
-    await batch.commit();
-    res.json({ success: true });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erreur";
     res.status(500).json({ error: message });
   }
 });

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { Upload, ShoppingBag, Sparkles, Link2, Trash2, Check } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { Product } from "../../../../../../domains/product/product.types";
 
 interface StudioImagePickerProps {
@@ -28,7 +29,7 @@ function compressImageFile(file: File): Promise<string> {
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        const maxDim = 900;
+        const maxDim = 960;
         let width = img.width;
         let height = img.height;
         if (width > maxDim || height > maxDim) {
@@ -46,7 +47,7 @@ function compressImageFile(file: File): Promise<string> {
         const ctx = canvas.getContext("2d");
         if (!ctx) return reject(new Error("Canvas non supporté"));
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.78));
+        resolve(canvas.toDataURL("image/jpeg", 0.8));
       };
       img.onerror = () => reject(new Error("Image invalide"));
       img.src = String(event.target?.result || "");
@@ -84,8 +85,9 @@ export const StudioImagePicker: React.FC<StudioImagePickerProps> = ({
       const compressedDataUrl = await compressImageFile(file);
       onChange(compressedDataUrl);
       setPickerMode("none");
+      toast.success("Photo importée et appliquée au visuel !");
     } catch {
-      // Fallback ignored if file invalid
+      toast.error("Impossible de lire ce fichier image.");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

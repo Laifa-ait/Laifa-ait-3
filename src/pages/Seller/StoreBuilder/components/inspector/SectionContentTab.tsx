@@ -1,4 +1,5 @@
 import React from "react";
+import { Sparkles } from "lucide-react";
 import { CustomPageSection } from "../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../domains/product/product.types";
 import { HeroContentEditor } from "./content/HeroContentEditor";
@@ -6,6 +7,7 @@ import { ProductSelectionEditor } from "./content/ProductSelectionEditor";
 import { ListContentEditor } from "./content/ListContentEditor";
 import { InfoContentEditor } from "./content/InfoContentEditor";
 import { CategoryContentEditor } from "./content/CategoryContentEditor";
+import { KineticMarqueeContentEditor } from "./content/KineticMarqueeContentEditor";
 
 interface SectionContentTabProps {
   sectionType?: string;
@@ -29,6 +31,17 @@ export const SectionContentTab: React.FC<SectionContentTabProps> = ({
   products,
   onSettingsChange,
 }) => {
+  if (sectionType === "kinetic_marquee") {
+    return (
+      <KineticMarqueeContentEditor
+        settings={settings}
+        onSettingsChange={onSettingsChange}
+        inputClass={inputClass}
+        labelClass={labelClass}
+      />
+    );
+  }
+
   const isCategorySection = sectionType === "featured_categories" || "categories" in settings;
 
   if (isCategorySection) {
@@ -45,6 +58,17 @@ export const SectionContentTab: React.FC<SectionContentTabProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Astuce Typographie Éditoriale (Pilier 3) */}
+      <div className="px-2.5 py-2 rounded-xl bg-amber-50/90 border border-amber-200/80 flex items-center justify-between gap-2 text-[10.5px] text-amber-950">
+        <span className="flex items-center gap-1.5 font-semibold leading-tight">
+          <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+          <span>
+            Astuce Titre : écrivez <strong>*mot*</strong> pour l'italique d'art ou{" "}
+            <strong>&#123;mot&#125;</strong> pour le soulignement pinceau SVG.
+          </span>
+        </span>
+      </div>
+
       <HeroContentEditor
         sectionType={sectionType}
         settings={settings}

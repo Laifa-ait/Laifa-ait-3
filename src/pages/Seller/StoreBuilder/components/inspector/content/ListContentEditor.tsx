@@ -91,7 +91,7 @@ export const ListContentEditor: React.FC<ListContentEditorProps> = ({
               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold cursor-pointer disabled:opacity-40 transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span>+ Ajouter une catégorie</span>
+              <span>Ajouter une catégorie</span>
             </button>
           </div>
 
@@ -200,7 +200,7 @@ export const ListContentEditor: React.FC<ListContentEditorProps> = ({
               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold cursor-pointer disabled:opacity-40 transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span>+ Ajouter une question</span>
+              <span>Ajouter une question</span>
             </button>
           </div>
           {items.map((item, index) => {

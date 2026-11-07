@@ -15,23 +15,31 @@ export function useStudioUndoRedo(
   const [present, setPresent] = useState<CustomPageSection[]>(() => deepCloneSections(initialSections));
   const [future, setFuture] = useState<CustomPageSection[][]>([]);
 
+  const presentRef = useRef<CustomPageSection[]>(present);
+  useEffect(() => {
+    presentRef.current = present;
+  }, [present]);
+
   const lastPushTimeRef = useRef<number>(0);
 
   useEffect(() => {
     if (initialSections.length > 0 && present.length === 0 && past.length === 0) {
-      setPresent(deepCloneSections(initialSections));
+      const cloned = deepCloneSections(initialSections);
+      presentRef.current = cloned;
+      setPresent(cloned);
     }
   }, [initialSections, present.length, past.length]);
 
   const canUndo = past.length > 0;
   const canRedo = future.length > 0;
 
-  const pushState = useCallback((newSections: CustomPageSection[]) => {
-    setPresent((currentPresent) => {
+  const pushState = useCallback(
+    (newSections: CustomPageSection[]) => {
+      const currentPresent = presentRef.current;
       const currentJSON = JSON.stringify(currentPresent);
       const nextJSON = JSON.stringify(newSections);
 
-      if (currentJSON === nextJSON) return currentPresent;
+      if (currentJSON === nextJSON) return;
 
       const now = Date.now();
       const isFastTyping = now - lastPushTimeRef.current < 400;
@@ -40,46 +48,50 @@ export function useStudioUndoRedo(
       const clonedCurrent = deepCloneSections(currentPresent);
       const clonedNext = deepCloneSections(newSections);
 
+      presentRef.current = clonedNext;
+      setPresent(clonedNext);
+
       if (!isFastTyping) {
-        setPast((currentPast) => {
-          const updatedPast = [...currentPast, clonedCurrent];
-          return updatedPast.slice(-MAX_HISTORY_STEPS);
-        });
+        setPast((currentPast) => [...currentPast, clonedCurrent].slice(-MAX_HISTORY_STEPS));
       }
 
       setFuture([]);
       onSectionsChange(clonedNext);
-      return clonedNext;
-    });
-  }, [onSectionsChange]);
+    },
+    [onSectionsChange]
+  );
 
   const undo = useCallback(() => {
     if (past.length === 0) return;
 
     const previous = past[past.length - 1];
     const newPast = past.slice(0, past.length - 1);
-    const clonedPresent = deepCloneSections(present);
+    const clonedPresent = deepCloneSections(presentRef.current);
+    const clonedPrev = deepCloneSections(previous);
 
+    presentRef.current = clonedPrev;
     setPast(newPast);
-    setFuture([clonedPresent, ...future].slice(0, MAX_HISTORY_STEPS));
-    setPresent(deepCloneSections(previous));
+    setFuture((prevFuture) => [clonedPresent, ...prevFuture].slice(0, MAX_HISTORY_STEPS));
+    setPresent(clonedPrev);
 
-    onSectionsChange(deepCloneSections(previous));
-  }, [past, present, future, onSectionsChange]);
+    onSectionsChange(clonedPrev);
+  }, [past, onSectionsChange]);
 
   const redo = useCallback(() => {
     if (future.length === 0) return;
 
     const next = future[0];
     const newFuture = future.slice(1);
-    const clonedPresent = deepCloneSections(present);
+    const clonedPresent = deepCloneSections(presentRef.current);
+    const clonedNext = deepCloneSections(next);
 
-    setPast([...past, clonedPresent].slice(-MAX_HISTORY_STEPS));
-    setPresent(deepCloneSections(next));
+    presentRef.current = clonedNext;
+    setPast((prevPast) => [...prevPast, clonedPresent].slice(-MAX_HISTORY_STEPS));
+    setPresent(clonedNext);
     setFuture(newFuture);
 
-    onSectionsChange(deepCloneSections(next));
-  }, [past, present, future, onSectionsChange]);
+    onSectionsChange(clonedNext);
+  }, [future, onSectionsChange]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -109,7 +121,9 @@ export function useStudioUndoRedo(
   }, [undo, redo]);
 
   const setSectionsDirectly = useCallback((s: CustomPageSection[]) => {
-    setPresent(deepCloneSections(s));
+    const cloned = deepCloneSections(s);
+    presentRef.current = cloned;
+    setPresent(cloned);
   }, []);
 
   return {

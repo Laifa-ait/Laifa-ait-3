@@ -149,6 +149,7 @@ export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
       >
         <PropertiesInspector
           navMode={navMode}
+          onSelectNavMode={onSelectNavMode}
           selectedSection={selectedSection}
           sections={sections}
           products={products}

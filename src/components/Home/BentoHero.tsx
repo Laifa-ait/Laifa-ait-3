@@ -81,10 +81,30 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
   };
 
   const handleBannerClick = (b: Banner) => {
-    if (b.ctaLink) {
-      navigate(b.ctaLink);
+    const rType = b.redirect_type;
+    if (rType === "category" && b.target_category) {
+      navigate(`/shop?category=${encodeURIComponent(b.target_category)}`);
+      return;
+    }
+    if (rType === "campaign" && b.id) {
+      navigate(`/campaign/${b.id}`);
+      return;
+    }
+    if (rType === "custom_url" && (b.cta_link || b.ctaLink)) {
+      const target = b.cta_link || b.ctaLink || "/shop";
+      if (target.startsWith("http")) {
+        window.location.href = target;
+      } else {
+        navigate(target);
+      }
+      return;
+    }
+    if (b.cta_link || b.ctaLink) {
+      navigate(b.cta_link || b.ctaLink || "/shop");
     } else if (b.tag_id) {
       navigate(`/tags/${b.tag_id}`);
+    } else if (b.target_category) {
+      navigate(`/shop?category=${encodeURIComponent(b.target_category)}`);
     } else {
       navigate("/shop");
     }

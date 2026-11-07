@@ -19,12 +19,13 @@ node_modules
 *.suo
 
 # Build outputs
-!dist
-!dist/
-!dist/**
+dist
 dist-ssr
+dist-server
 .aistudio
 bun.lock
+bunfig.toml
+.npmrc
 app/
 *.tsbuildinfo
 patch*.cjs

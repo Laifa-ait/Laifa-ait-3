@@ -45,6 +45,49 @@ const optStr = (max = 500) =>
     .optional()
     .transform((val) => (val === null ? undefined : val));
 
+const surfaceTextureEnum = z
+  .enum(["none", "film-grain", "cotton-paper", "zellige-watermark", "silk-mesh", "architectural-grid"])
+  .nullable()
+  .optional()
+  .transform((v) => v ?? undefined);
+
+const ambientLightingEnum = z
+  .enum(["natural", "golden-hour", "spotlight-atelier", "neon-aura"])
+  .nullable()
+  .optional()
+  .transform((v) => v ?? undefined);
+
+const cardMaterialEnum = z
+  .enum(["solid-matte", "frosted-crystal", "velvet-shadow"])
+  .nullable()
+  .optional()
+  .transform((v) => v ?? undefined);
+
+const frameShapeEnum = z
+  .enum([
+    "sharp-couture",
+    "soft-modern",
+    "casbah-arch",
+    "medallion-oval",
+    "polaroid-atelier",
+    "chamfered-tech",
+  ])
+  .nullable()
+  .optional()
+  .transform((v) => v ?? undefined);
+
+const headingAccentStyleEnum = z
+  .enum(["accent-color", "metallic-gold", "copper-bronze"])
+  .nullable()
+  .optional()
+  .transform((v) => v ?? undefined);
+
+const headingUnderlineStyleEnum = z
+  .enum(["brush-stroke", "golden-wave"])
+  .nullable()
+  .optional()
+  .transform((v) => v ?? undefined);
+
 export const sectionStylesSchema = z
   .object({
     backgroundColor: hexColor,
@@ -56,6 +99,14 @@ export const sectionStylesSchema = z
     divider: z.union([z.enum(["none", "wave", "slant", "curve"]), z.null()]).optional().transform((v) => (v === null ? undefined : v)),
     animation: z.union([z.enum(["none", "fade", "slide-up", "zoom"]), z.null()]).optional().transform((v) => (v === null ? undefined : v)),
     shadow: z.union([z.enum(["none", "sm", "floating", "brutal"]), z.null()]).optional().transform((v) => (v === null ? undefined : v)),
+    surfaceTexture: surfaceTextureEnum,
+    ambientLighting: ambientLightingEnum,
+    cardMaterial: cardMaterialEnum,
+    frameShape: frameShapeEnum,
+    letterSpacing: z.number().min(-0.1).max(0.5).nullable().optional().transform((v) => v ?? undefined),
+    lineHeight: z.number().min(0.8).max(2.2).nullable().optional().transform((v) => v ?? undefined),
+    headingAccentStyle: headingAccentStyleEnum,
+    headingUnderlineStyle: headingUnderlineStyleEnum,
   })
   .passthrough()
   .optional();
@@ -98,6 +149,22 @@ const productCardDesignSchemaFields = {
   ratingValue: z.number().min(0).max(5).optional(),
 };
 
+const bannerContentPositionEnum = z
+  .enum([
+    "top-left",
+    "top-center",
+    "top-right",
+    "center-left",
+    "center",
+    "center-right",
+    "bottom-left",
+    "bottom-center",
+    "bottom-right",
+  ])
+  .nullable()
+  .optional()
+  .transform((v) => v ?? undefined);
+
 // 1. Hero Banner
 const heroBannerSchema = z.object({
   id: z.string().min(1),
@@ -111,30 +178,52 @@ const heroBannerSchema = z.object({
       badgeText: optStr(80),
       imageUrl: optionalSafeMediaUrl.transform((v) => v || "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80"),
       mobileImageUrl: optionalSafeMediaUrl,
+      backgroundImage: optionalSafeMediaUrl,
+      backgroundImageMobile: optionalSafeMediaUrl,
       ctaText: optStr(80),
-      ctaLink: optStr(300),
+      ctaLink: optStr(3000),
       textAlignment: z.enum(["left", "center", "right"]).nullable().optional().transform((v) => v || "center"),
+      verticalAlignment: z.enum(["top", "center", "bottom"]).nullable().optional().transform((v) => v ?? undefined),
+      contentPosition: bannerContentPositionEnum,
       overlayOpacity: z.number().min(0).max(100).nullable().optional().transform((v) => v ?? 35),
       imagePositionDesktop: optStr(60),
       imagePositionTablet: optStr(60),
       imagePositionMobile: optStr(60),
+      backgroundPosition: optStr(60),
+      backgroundPositionTablet: optStr(60),
+      backgroundPositionMobile: optStr(60),
       imageFit: z.enum(["cover", "contain"]).nullable().optional().transform((v) => v ?? undefined),
+      imageAspectRatio: z.enum(["4/5", "1/1", "3/4", "16/9"]).nullable().optional().transform((v) => v ?? undefined),
+      imageSide: z.enum(["right", "left"]).nullable().optional().transform((v) => v ?? undefined),
+      imageShadow: z.enum(["none", "sm", "md", "lg", "xl", "glow", "brutal"]).nullable().optional().transform((v) => v ?? undefined),
+      imageMargin: z.number().min(0).max(80).nullable().optional().transform((v) => (v === null ? undefined : v)),
       bannerHeightDesktop: z.enum(["sm", "md", "lg", "xl"]).nullable().optional().transform((v) => v ?? undefined),
       bannerHeightMobile: z.enum(["sm", "md", "lg"]).nullable().optional().transform((v) => v ?? undefined),
       badgeBgColor: hexColor,
       badgeTextColor: hexColor,
+      badgeStyle: z.enum(["solid", "soft", "outline"]).nullable().optional().transform((v) => v ?? undefined),
       titleColor: hexColor,
+      titleSizeDesktop: z.enum(["sm", "md", "lg", "xl"]).nullable().optional().transform((v) => v ?? undefined),
+      titleSizeMobile: z.enum(["sm", "md", "lg", "xl"]).nullable().optional().transform((v) => v ?? undefined),
+      textShadow: z.enum(["none", "sm", "md", "lg"]).nullable().optional().transform((v) => v ?? undefined),
       subtitleColor: hexColor,
       ctaBgColor: hexColor,
       ctaTextColor: hexColor,
-      ctaStyle: z.enum(["solid", "outline", "pill", "glass"]).nullable().optional().transform((v) => v ?? undefined),
+      ctaStyle: z.enum(["solid", "outline", "pill", "glass", "sharp"]).nullable().optional().transform((v) => v ?? undefined),
+      ctaShadow: z.enum(["none", "sm", "md", "lg", "glow", "brutal"]).nullable().optional().transform((v) => v ?? undefined),
       showBadge: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
       showSubtitle: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
       showCta: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
       socialProofBadge: optStr(160),
+      showSocialProofBadge: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
       secondaryCtaText: optStr(80),
-      secondaryCtaLink: optStr(300),
-      secondaryCtaStyle: z.enum(["solid", "outline", "pill", "glass"]).nullable().optional().transform((v) => v ?? undefined),
+      secondaryCtaLink: optStr(3000),
+      secondaryCtaStyle: z.enum(["solid", "outline", "pill", "glass", "sharp"]).nullable().optional().transform((v) => v ?? undefined),
+      secondaryCtaShadow: z.enum(["none", "sm", "md", "lg", "glow", "brutal"]).nullable().optional().transform((v) => v ?? undefined),
+      secondaryCtaBgColor: hexColor,
+      secondaryCtaTextColor: hexColor,
+      showSecondaryCta: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
+      heroLayout: z.enum(["editorial-split", "cinema-full", "atelier-collage"]).nullable().optional().transform((v) => v ?? undefined),
     })
     .passthrough(),
   styles: sectionStylesSchema,
@@ -147,8 +236,14 @@ const promoSlideSchema = z
   .object({
     id: z.string().min(1),
     imageUrl: optionalSafeMediaUrl.transform((v) => v || ""),
+    badge: optStr(80),
     title: optStr(160),
-    link: optStr(300),
+    subtitle: optStr(320),
+    highlightPrice: optStr(60),
+    ctaText: optStr(80),
+    link: optStr(3000),
+    contentPosition: bannerContentPositionEnum,
+    overlayOpacity: z.number().min(0).max(95).nullable().optional().transform((v) => v ?? undefined),
   })
   .passthrough();
 
@@ -160,8 +255,45 @@ const promoCarouselSchema = z.object({
     .object({
       ...commonSectionSettings,
       slides: z.array(promoSlideSchema).max(12).default([]),
+      carouselStyle: z
+        .enum(["editorial_luxury", "floating_glass", "split_magazine", "offer_spotlight", "lookbook_peek"])
+        .nullable()
+        .optional()
+        .transform((v) => v || "editorial_luxury"),
+      bannerHeight: z.enum(["sm", "md", "lg", "xl"]).nullable().optional().transform((v) => v ?? "md"),
+      overlayOpacity: z.number().min(0).max(95).nullable().optional().transform((v) => v ?? 45),
+      showArrows: z.boolean().nullable().optional().transform((v) => v ?? true),
+      showDots: z.boolean().nullable().optional().transform((v) => v ?? true),
+      showSlideCounter: z.boolean().nullable().optional().transform((v) => v ?? true),
       autoplay: z.boolean().nullable().optional().transform((v) => v ?? true),
       intervalSec: z.number().min(1).max(30).nullable().optional().transform((v) => v ?? 5),
+      contentPosition: bannerContentPositionEnum,
+      verticalAlignment: z.enum(["top", "center", "bottom"]).nullable().optional().transform((v) => v ?? undefined),
+      activePresetId: optStr(80),
+    })
+    .passthrough(),
+  styles: sectionStylesSchema,
+  isVisible: z.boolean().default(true),
+  order: z.number().int().nonnegative().default(0),
+});
+
+// 2b. Kinetic Marquee Section (Pilier 3)
+const kineticMarqueeSchema = z.object({
+  id: z.string().min(1),
+  type: z.literal("kinetic_marquee"),
+  title: optStr(160),
+  settings: z
+    .object({
+      ...commonSectionSettings,
+      textFr: z.string().max(300).nullable().optional().transform((v) => v ?? "FAIT MAIN EN ALGÉRIE • ÉDITION LIMITÉE • LIVRAISON 69 WILAYAS"),
+      textAr: optStr(300),
+      showBilingual: z.boolean().nullable().optional().transform((v) => v ?? true),
+      speed: z.enum(["slow", "normal", "fast"]).nullable().optional().transform((v) => v ?? "normal"),
+      textStyle: z.enum(["solid", "hollow-stroke", "alternating"]).nullable().optional().transform((v) => v ?? "alternating"),
+      separator: z.enum(["star", "diamond", "crescent", "dot"]).nullable().optional().transform((v) => v ?? "star"),
+      direction: z.enum(["ltr", "rtl"]).nullable().optional().transform((v) => v ?? "ltr"),
+      tiltDeg: z.union([z.literal(-2), z.literal(0), z.literal(2)]).nullable().optional().transform((v) => v ?? 0),
+      uppercase: z.boolean().nullable().optional().transform((v) => v ?? true),
     })
     .passthrough(),
   styles: sectionStylesSchema,
@@ -316,6 +448,7 @@ const brandStorySchema = z.object({
       videoUrl: optionalSafeMediaUrl,
       signature: optStr(120),
       yearsOfExperience: z.number().int().min(0).max(200).nullable().optional().transform((v) => v ?? undefined),
+      dropCap: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
     })
     .passthrough(),
   styles: sectionStylesSchema,
@@ -459,6 +592,7 @@ const contactFooterSchema = z.object({
 export const customPageSectionSchema = z.discriminatedUnion("type", [
   heroBannerSchema,
   promoCarouselSchema,
+  kineticMarqueeSchema,
   featuredCategoriesSchema,
   curatedCollectionsSchema,
   productFeedSchema("new_arrivals"),
@@ -488,6 +622,14 @@ export const storeConfigThemeSchema = z
     spacingYPx: z.number().min(0).max(160).nullable().optional().transform((v) => v ?? undefined),
     titleFontSizePx: z.number().min(8).max(120).nullable().optional().transform((v) => v ?? undefined),
     bodyFontSizePx: z.number().min(8).max(60).nullable().optional().transform((v) => v ?? undefined),
+    surfaceTexture: surfaceTextureEnum,
+    ambientLighting: ambientLightingEnum,
+    cardMaterial: cardMaterialEnum,
+    frameShape: frameShapeEnum,
+    letterSpacing: z.number().min(-0.1).max(0.5).nullable().optional().transform((v) => v ?? undefined),
+    lineHeight: z.number().min(0.8).max(2.2).nullable().optional().transform((v) => v ?? undefined),
+    headingAccentStyle: headingAccentStyleEnum,
+    headingUnderlineStyle: headingUnderlineStyleEnum,
   })
   .passthrough();
 
@@ -565,6 +707,65 @@ export const storeConfigSchema = z
     customPages: z.array(customPageItemSchema).max(30).optional(),
     collectionPageConfig: collectionPageConfigSchema.optional(),
     mediaGallery: z.array(mediaGalleryItemSchema).max(100).optional(),
+    announcementBar: z
+      .object({
+        enabled: z.boolean().default(false),
+        text: optStr(240).transform((v) => v ?? ""),
+        link: optStr(300),
+        bgColor: hexColor,
+        textColor: hexColor,
+        dismissible: z.boolean().optional(),
+      })
+      .passthrough()
+      .optional(),
+    headerConfig: z
+      .object({
+        layout: z.enum(["left", "center", "minimal"]).default("left"),
+        sticky: z.boolean().default(true),
+        showSearch: z.boolean().default(true),
+        showTrustBar: z.boolean().default(true),
+        navLinks: z
+          .array(
+            z.object({
+              id: z.string().min(1).max(80),
+              label: z.string().min(1).max(60),
+              target: z.enum(["home", "collection", "about", "url"]),
+              url: optStr(300),
+            })
+          )
+          .max(10)
+          .default([]),
+      })
+      .passthrough()
+      .optional(),
+    commerceConfig: z
+      .object({
+        codEnabled: z.boolean().default(true),
+        freeShippingThresholdDZD: z.number().nonnegative().max(10000000).optional(),
+        minOrderAmountDZD: z.number().nonnegative().max(10000000).optional(),
+        whatsappOrderEnabled: z.boolean().default(false),
+        whatsappNumber: optStr(40),
+        preparationTimeHours: optStr(60),
+        showTrustBadges: z.boolean().default(true),
+      })
+      .passthrough()
+      .optional(),
+    storeStatus: z
+      .object({
+        mode: z.enum(["open", "vacation", "password"]).default("open"),
+        vacationMessage: optStr(500),
+        storefrontPassword: optStr(100),
+      })
+      .passthrough()
+      .optional(),
+    pixelsConfig: z
+      .object({
+        metaPixelId: optStr(80),
+        tiktokPixelId: optStr(80),
+        ga4MeasurementId: optStr(80),
+      })
+      .passthrough()
+      .optional(),
     socialLinks: z
       .object({
         instagram: optStr(150),

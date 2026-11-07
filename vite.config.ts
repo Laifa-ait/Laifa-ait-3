@@ -7,15 +7,20 @@ import {defineConfig, loadEnv} from 'vite';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export default defineConfig(({mode}) => {
-  const env = loadEnv(mode, process.cwd(), '');
+export default defineConfig(({mode, command}) => {
+  const isBuild = command === 'build';
+  const effectiveEnv = isBuild ? 'production' : mode;
+  if (isBuild) {
+    process.env.NODE_ENV = 'production';
+  }
+  const env = loadEnv(effectiveEnv, process.cwd(), '');
 
   return {
     define: {
-      'process.env.NODE_ENV': JSON.stringify(mode),
+      'process.env.NODE_ENV': JSON.stringify(effectiveEnv),
     },
     plugins: [
-      react(), 
+      react({ jsxRuntime: 'automatic' }), 
       tailwindcss(),
     ],
     base: '/',
@@ -23,7 +28,7 @@ export default defineConfig(({mode}) => {
       target: 'es2022',
       outDir: 'dist',
       emptyOutDir: true,
-      sourcemap: process.env.NODE_ENV === 'production' ? false : 'hidden',
+      sourcemap: false,
       chunkSizeWarningLimit: 600,
       rollupOptions: {
         external: ['firebase-admin', 'firebase-admin/firestore'],
@@ -96,9 +101,11 @@ export default defineConfig(({mode}) => {
       dedupe: ['react', 'react-dom'],
     },
     optimizeDeps: {
-      holdUntilCrawlEnd: false,
+      holdUntilCrawlEnd: true,
       include: [
-        'react', 'react-dom', 'react-router-dom', 'react-i18next', 'i18next',
+        'react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime',
+        'react-router-dom', 'react-i18next', 'i18next', 'i18next-browser-languagedetector', 'i18next-http-backend',
+        'react-helmet-async', 'react-error-boundary', 'react-hot-toast', 'clsx', 'tailwind-merge',
         'firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage',
         'lucide-react', 'motion/react', '@tanstack/react-query', 'zustand', 'date-fns'
       ]

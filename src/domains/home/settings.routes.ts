@@ -123,6 +123,19 @@ router.get("/api/v1/homepage-categories-v2/:id", validateIdParam(), async (req: 
   }
 });
 
+// POST homepage-categories-v2 document by id (Admin only)
+router.post("/api/v1/homepage-categories-v2/:id", authenticateToken, authorizeAdmin, async (req: AuthenticatedSettingsRequest, res: Response) => {
+  try {
+    const id = decodeURIComponent(req.params.id);
+    const data = (req.body as Record<string, unknown>) || {};
+    await SettingsService.saveHomepageCategoriesV2ById(id, data);
+    return res.json({ success: true, data: { id, ...data } });
+  } catch (error: unknown) {
+    safeLogger.error("Error saving homepage category visual", { err: error instanceof Error ? error.message : String(error) });
+    return res.status(500).json({ error: "Erreur interne lors de la sauvegarde du visuel de catégorie" });
+  }
+});
+
 // GET any platform stats document by id
 router.get("/api/v1/platform-stats/:id", validateIdParam({ reservedNames: ["trending_searches", "trending", "searches"], passReservedToNext: true }), async (req: Request, res: Response) => {
   try {

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticateToken, authorizeAdmin, require2FA } from "../../middlewares/auth";
 
 import adminSellerRouter from "./routes/adminSeller.routes";
+import adminCategoryRouter from "./routes/adminCategory.routes";
 import adminProductRouter from "./routes/adminProduct.routes";
 import adminMarketingRouter from "./routes/adminMarketing.routes";
 import adminHomepageRouter from "./routes/adminHomepage.routes";
@@ -21,6 +22,7 @@ adminRouter.use(["/admin", "/tags"], authorizeAdmin);
 
 adminRouter.use(adminOverviewRouter);
 adminRouter.use(adminSellerRouter);
+adminRouter.use(adminCategoryRouter);
 adminRouter.use(adminProductRouter);
 adminRouter.use(adminMarketingRouter);
 adminRouter.use(adminHomepageRouter);

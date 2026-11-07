@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { CustomPageSection, PromoCarouselSettings, CustomPageTheme } from "../../../domains/seller/customPage.types";
+import {
+  CustomPageSection,
+  PromoCarouselSettings,
+  CustomPageTheme,
+  PromoCarouselStyleVariant,
+} from "../../../domains/seller/customPage.types";
 import {
   buildSectionContainerStyle,
   resolveBorderRadiusClass,
@@ -10,6 +15,7 @@ import {
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { useStudioStore } from "../../../pages/Seller/StoreBuilder/store/useStudioStore";
 import { resolveBannerPosition } from "../../../pages/Seller/StoreBuilder/components/inspector/controls/AlignmentMatrix3x3";
+import { PromoCarouselSlideRenderer } from "./PromoCarouselSlideRenderer";
 
 interface SectionPromoCarouselProps {
   section: CustomPageSection<"promo_carousel">;
@@ -18,6 +24,13 @@ interface SectionPromoCarouselProps {
   isSelected?: boolean;
   onSelect?: () => void;
 }
+
+const HEIGHT_CLASS_MAP: Record<string, string> = {
+  sm: "h-56 @sm:h-64 @md:h-72",
+  md: "h-64 @sm:h-80 @md:h-96",
+  lg: "h-72 @sm:h-96 @md:h-[440px]",
+  xl: "h-80 @sm:h-[420px] @md:h-[520px]",
+};
 
 export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
   section,
@@ -30,19 +43,25 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
   const styles = section.styles || {};
   const slides = Array.isArray(settings.slides) ? settings.slides : [];
   const [currentIndex, setCurrentIndex] = useState(0);
+
   const selectSection = useStudioStore((s) => s.selectSection);
   const selectedSectionId = useStudioStore((s) => s.selectedSectionId);
   const selectedSubElement = useStudioStore((s) => s.selectedSubElement);
 
+  const isStudioSlideFocused =
+    isEditable &&
+    selectedSectionId === section.id &&
+    Boolean(selectedSubElement?.startsWith("slide-"));
+
   useEffect(() => {
-    if (!settings.autoplay || slides.length <= 1) return;
+    if (!settings.autoplay || slides.length <= 1 || isStudioSlideFocused) return;
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % slides.length);
     }, (settings.intervalSec || 5) * 1000);
     return () => clearInterval(interval);
-  }, [slides.length, settings.autoplay, settings.intervalSec]);
+  }, [slides.length, settings.autoplay, settings.intervalSec, isStudioSlideFocused]);
 
-  // Automatically jump to the slide selected in the Studio left tree or inspector
+  // Synchronize live canvas carousel with slide selected in Inspector or Structure Tree
   useEffect(() => {
     if (selectedSectionId === section.id && selectedSubElement?.startsWith("slide-")) {
       const idx = parseInt(selectedSubElement.replace("slide-", ""), 10);
@@ -54,16 +73,32 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
 
   const safeIdx = currentIndex < slides.length ? currentIndex : 0;
   const currentSlide = slides[safeIdx];
-  const isSlideFocused =
-    isEditable &&
-    selectedSectionId === section.id &&
-    selectedSubElement === `slide-${safeIdx}`;
+  const nextSlide = slides.length > 1 ? slides[(safeIdx + 1) % slides.length] : undefined;
+
+  const carouselStyle: PromoCarouselStyleVariant =
+    settings.carouselStyle || "editorial_luxury";
+  const heightClass = HEIGHT_CLASS_MAP[settings.bannerHeight || "md"] || HEIGHT_CLASS_MAP.md;
+  const overlayOpacity =
+    typeof currentSlide?.overlayOpacity === "number"
+      ? currentSlide.overlayOpacity
+      : typeof settings.overlayOpacity === "number"
+      ? settings.overlayOpacity
+      : 45;
 
   const bannerPos = resolveBannerPosition(
-    currentSlide?.contentPosition || settings.contentPosition,
+    currentSlide?.contentPosition || settings.contentPosition || "bottom-left",
     settings.textAlignment || "left",
     settings.verticalAlignment || "bottom"
   );
+
+  const handleGoToSlide = (idx: number, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setCurrentIndex(idx);
+    if (isEditable) {
+      onSelect?.();
+      selectSection(section.id, `slide-${idx}`);
+    }
+  };
 
   return (
     <div
@@ -73,116 +108,122 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
         styles.borderRadius
       )} ${resolveShadowClass(styles.shadow)} ${resolveAnimationClass(styles.animation)} ${
         isEditable && isSelected
-          ? "ring-2 ring-[#F97316] shadow-xl z-10"
+          ? "ring-2 ring-[#023859] shadow-xl z-10"
           : isEditable
-          ? "hover:ring-2 hover:ring-[#F97316]/50 cursor-pointer"
+          ? "hover:ring-2 hover:ring-[#023859]/50 cursor-pointer"
           : ""
       }`}
     >
-      {isEditable && isSelected && (
-        <div
-          className="mb-3 flex items-center justify-between bg-[#111827] text-white px-3 py-2 rounded-xl text-xs"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <span className="flex items-center gap-1.5 font-semibold">
-            <Sparkles className="w-3.5 h-3.5 text-[#F97316]" />
-            <span>Carrousel Promotionnel ({slides.length} diapositive{slides.length > 1 ? "s" : ""})</span>
-          </span>
-          <span className="text-[11px] text-[#FB923C] font-semibold">
-            Gérez les diapositives dans l'onglet Contenu à droite →
-          </span>
-        </div>
-      )}
-
       {slides.length === 0 ? (
-        <div className="p-10 text-center bg-slate-100 rounded-2xl text-slate-500 text-xs font-medium">
-          Carrousel promotionnel vide. Cliquez sur « + Ajouter une diapositive » dans le panneau de droite.
+        <div className="p-10 text-center bg-slate-100 rounded-2xl text-slate-600 text-xs font-semibold flex flex-col items-center gap-2">
+          <Sparkles className="w-5 h-5 text-[#023859]" />
+          <span>Aucune diapositive configurée. Ouvrez l&apos;onglet Réglages pour ajouter vos offres.</span>
         </div>
       ) : (
         <div
-          onClick={(e) => {
-            if (!isEditable) return;
-            e.stopPropagation();
-            onSelect?.();
-            selectSection(section.id, `slide-${safeIdx}`);
-          }}
-          className={`relative h-56 @sm:h-72 @md:h-96 w-full bg-slate-900 overflow-hidden ${resolveBorderRadiusClass(
+          className={`relative w-full overflow-hidden ${resolveBorderRadiusClass(
             styles.borderRadius
-          )} ${isSlideFocused ? "ring-2 ring-[#3B82F6]" : ""}`}
+          )}`}
         >
-          {currentSlide?.imageUrl && (
-            <img
-              src={currentSlide.imageUrl}
-              alt={currentSlide.title || "Diapositive promotionnelle"}
-              className="w-full h-full object-cover transition-all duration-500"
-            />
+          {/* Subtle Studio Floating Slide Switcher Pill (Only visible when editing in Studio) */}
+          {isEditable && isSelected && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="absolute top-3 left-3 z-20 flex items-center gap-1 p-1 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/20 shadow-lg"
+            >
+              {slides.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={(e) => handleGoToSlide(idx, e)}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer ${
+                    idx === safeIdx
+                      ? "bg-[#F97316] text-white shadow-2xs"
+                      : "text-white/75 hover:text-white hover:bg-white/10"
+                  }`}
+                >
+                  Slide {idx + 1}
+                </button>
+              ))}
+            </div>
           )}
-          <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent flex flex-col p-6 @sm:p-8 ${bannerPos.flexContainerClass}`}>
-            {currentSlide?.title && (
-              <h2
-                onClick={(e) => {
-                  if (!isEditable) return;
-                  e.stopPropagation();
-                  onSelect?.();
-                  selectSection(section.id, `slide-${safeIdx}`);
-                }}
-                className="font-extrabold text-xl @sm:text-3xl max-w-2xl drop-shadow-sm rounded px-1.5 py-0.5 hover:ring-1 hover:ring-white/60"
-                style={{ color: styles.textColor || "#FFFFFF" }}
-              >
-                {currentSlide.title}
-              </h2>
-            )}
-            {currentSlide?.link && (
-              <span
-                className="mt-3 inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold shadow-md"
-                style={{
-                  backgroundColor: styles.buttonBgColor || theme.primaryColor || "#F97316",
-                  color: styles.buttonTextColor || "#FFFFFF",
-                }}
-              >
-                Découvrir l'offre →
-              </span>
-            )}
-          </div>
 
+          <PromoCarouselSlideRenderer
+            slide={currentSlide}
+            nextSlide={nextSlide}
+            slideIndex={safeIdx}
+            totalSlides={slides.length}
+            carouselStyle={carouselStyle}
+            heightClass={heightClass}
+            overlayOpacity={overlayOpacity}
+            globalPosition={bannerPos}
+            styles={styles}
+            theme={theme}
+            isEditable={isEditable}
+            onFocusSlide={() => {
+              if (!isEditable) return;
+              onSelect?.();
+              selectSection(section.id, `slide-${safeIdx}`);
+            }}
+            onNextSlide={() => handleGoToSlide((safeIdx + 1) % slides.length)}
+          />
+
+          {/* Non-overlapping Bottom Architectural Control Bar */}
           {slides.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCurrentIndex((prev) => (prev - 1 + slides.length) % slides.length);
-                }}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center cursor-pointer"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCurrentIndex((prev) => (prev + 1) % slides.length);
-                }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center cursor-pointer"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-              <div className="absolute bottom-4 right-5 flex items-center gap-1.5 z-10">
-                {slides.map((_, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentIndex(idx);
-                    }}
-                    className={`h-2.5 rounded-full transition-all cursor-pointer ${
-                      idx === safeIdx ? "w-7 bg-[#F97316]" : "w-2.5 bg-white/60 hover:bg-white"
-                    }`}
-                  />
-                ))}
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="absolute bottom-3 left-4 right-4 z-20 flex items-center justify-between gap-3 pointer-events-none"
+            >
+              {/* Dots & Counter Pill */}
+              <div className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-950/65 backdrop-blur-md border border-white/15">
+                {settings.showSlideCounter !== false && (
+                  <span className="text-[10px] font-mono font-extrabold text-white/90 pr-1 border-r border-white/20">
+                    {String(safeIdx + 1).padStart(2, "0")}/{String(slides.length).padStart(2, "0")}
+                  </span>
+                )}
+                {settings.showDots !== false && (
+                  <div className="flex items-center gap-1.5">
+                    {slides.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        aria-label={`Aller à la diapositive ${idx + 1}`}
+                        onClick={(e) => handleGoToSlide(idx, e)}
+                        className={`h-2 rounded-full transition-all cursor-pointer ${
+                          idx === safeIdx
+                            ? "w-6 bg-[#F97316]"
+                            : "w-2 bg-white/55 hover:bg-white"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            </>
+
+              {/* Safe Navigation Arrows (Bottom-Right Dock - Never overlaps title!) */}
+              {settings.showArrows !== false && (
+                <div className="pointer-events-auto flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    aria-label="Diapositive précédente"
+                    onClick={(e) =>
+                      handleGoToSlide((safeIdx - 1 + slides.length) % slides.length, e)
+                    }
+                    className="w-8 h-8 @sm:w-9 @sm:h-9 rounded-full bg-slate-950/75 hover:bg-slate-950 text-white border border-white/20 flex items-center justify-center shadow-md cursor-pointer transition-transform active:scale-95"
+                  >
+                    <ChevronLeft className="w-4 h-4 @sm:w-5 @sm:h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Diapositive suivante"
+                    onClick={(e) => handleGoToSlide((safeIdx + 1) % slides.length, e)}
+                    className="w-8 h-8 @sm:w-9 @sm:h-9 rounded-full bg-slate-950/75 hover:bg-slate-950 text-white border border-white/20 flex items-center justify-center shadow-md cursor-pointer transition-transform active:scale-95"
+                  >
+                    <ChevronRight className="w-4 h-4 @sm:w-5 @sm:h-5" />
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

@@ -40,6 +40,7 @@ export function useSellerStudio() {
     saveStatus,
     setSaveStatus,
     hasUnsavedChanges,
+    saveDraft,
     triggerAutoSave,
   } = useStudioSaveManager();
 
@@ -194,9 +195,15 @@ export function useSellerStudio() {
   const publishStudio = async (changeSummary?: string) => {
     try {
       setSaveStatus("saving");
+      await saveDraft(sections);
       await apiPost("/api/v1/seller/studio/layout/publish", { changeSummary });
       setSaveStatus("saved");
-      toast.success("🎉 Boutique publiée avec succès !");
+      const targetSlug = storeConfig?.shopSlug || storeConfig?.sellerId || "";
+      toast.success(
+        targetSlug
+          ? `Boutique publiée en direct sur /store/${targetSlug} !`
+          : "Boutique publiée avec succès !"
+      );
       await fetchStudioData();
     } catch (err: unknown) {
       setSaveStatus("error");

@@ -1,4 +1,9 @@
-import { CategoryItem } from "../../../../pages/Seller/StoreBuilder/constants/categoryPresetTypes";
+import React from "react";
+import {
+  CategoryItem,
+  CategoryImagePosition,
+  CategoryImageFit,
+} from "../../../../pages/Seller/StoreBuilder/constants/categoryPresetTypes";
 
 const CURATED_CATEGORY_PHOTOS: Array<{ keywords: string[]; url: string }> = [
   {
@@ -42,7 +47,7 @@ const CURATED_CATEGORY_PHOTOS: Array<{ keywords: string[]; url: string }> = [
     url: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80",
   },
   {
-    keywords: ["bijou", "montre", "horlogerie", "joaillerie", "or", "argent"],
+    keywords: ["bijou", "montre", "horlogerie", "joaillerie", "or", "argent", "perle"],
     url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80",
   },
   {
@@ -63,7 +68,7 @@ const CURATED_CATEGORY_PHOTOS: Array<{ keywords: string[]; url: string }> = [
   },
 ];
 
-const FALLBACK_EDITORIAL_PHOTOS = [
+export const FALLBACK_EDITORIAL_PHOTOS = [
   "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80",
   "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80",
   "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=800&q=80",
@@ -72,11 +77,6 @@ const FALLBACK_EDITORIAL_PHOTOS = [
   "https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=800&q=80",
 ];
 
-/**
- * Resolves a high-definition editorial image for a category card.
- * Preserves any user-uploaded or custom HTTP/data image, while replacing empty or
- * legacy geometric SVG placeholders (`id="cbg"`) with curated studio photography.
- */
 export function resolveCategoryPhoto(cat: CategoryItem, index = 0): string {
   const raw = (cat.imageUrl || "").trim();
   const isLegacyGeometricSvg = raw.startsWith("data:image/svg+xml") && raw.includes("cbg");
@@ -97,6 +97,33 @@ export function resolveCategoryPhoto(cat: CategoryItem, index = 0): string {
   }
 
   return FALLBACK_EDITORIAL_PHOTOS[index % FALLBACK_EDITORIAL_PHOTOS.length];
+}
+
+export function resolveCategoryImageClasses(
+  cat: CategoryItem,
+  defaultPos: CategoryImagePosition = "center",
+  defaultFit: CategoryImageFit = "cover"
+): { posClass: string; fitClass: string } {
+  const pos = cat.imagePosition || defaultPos;
+  const fit = cat.imageFit || defaultFit;
+
+  const posClass =
+    pos === "top" ? "object-top" : pos === "bottom" ? "object-bottom" : "object-center";
+
+  const fitClass = fit === "contain" ? "object-contain p-2 bg-slate-50" : "object-cover";
+
+  return { posClass, fitClass };
+}
+
+export function handleCategoryImageError(
+  e: React.SyntheticEvent<HTMLImageElement>,
+  index = 0
+): void {
+  const target = e.currentTarget;
+  const fallback = FALLBACK_EDITORIAL_PHOTOS[index % FALLBACK_EDITORIAL_PHOTOS.length];
+  if (target.src !== fallback) {
+    target.src = fallback;
+  }
 }
 
 export const QUICK_READY_CATEGORY_CARDS: Array<{

@@ -1,38 +1,66 @@
 import { useState } from "react";
-import { db, storage } from "../../lib/firebase";
+import { db } from "../../lib/firebase";
 import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import toast from "react-hot-toast";
-import { DbBanner, compressAndResizeImage } from "./useBannerTypes";
-import { generateClientUUID } from "../../utils/secureCrypto";
+import {
+  BANNER_COLOR_THEMES,
+  BannerColorThemePreset,
+  BannerContentPosition,
+  BannerImageFit,
+  BannerImagePosition,
+  BannerRedirectType,
+  BannerShadowIntensity,
+  BannerTextAlign,
+  BannerZone,
+  DbBanner,
+} from "./useBannerTypes";
+import { uploadBannerImageAsset } from "./bannerUploadHelper";
+import { apiPost, apiPut } from "../../lib/api";
 
-export function useBannerModal(
-  banners: DbBanner[],
-  fetchData: () => Promise<void>
-) {
-  const [activeTab, setActiveTab] = useState<"banners" | "tags">("banners");
-  const [selectedZone, setSelectedZone] = useState<"carousel_main" | "grid_top" | "grid_bottom" | "sidebar">("carousel_main");
+export function useBannerModal(banners: DbBanner[], fetchData: () => Promise<void>) {
+  const [activeTab, setActiveTab] = useState<"banners" | "tags" | "wilayas">("banners");
+  const [selectedZone, setSelectedZone] = useState<BannerZone>("carousel_main");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingBanner, setEditingBanner] = useState<DbBanner | null>(null);
 
-  // Form Fields
   const [title, setTitle] = useState("");
   const [titleColor, setTitleColor] = useState("#FFFFFF");
   const [subtitle, setSubtitle] = useState("");
-  const [subtitleColor, setSubtitleColor] = useState("#F3F4F6");
-  const [buttonText, setButtonText] = useState("Acheter maintenant");
-  const [btnBgColor, setBtnBgColor] = useState("#E11D48");
-  const [btnTextColor, setBtnTextColor] = useState("#FFFFFF");
+  const [subtitleColor, setSubtitleColor] = useState("#F3E8EE");
+  const [badge, setBadge] = useState("");
+  const [badgeColor, setBadgeColor] = useState("#E99856");
+  const [discountLabel, setDiscountLabel] = useState("");
+  const [buttonText, setButtonText] = useState("Découvrir la sélection");
+  const [btnBgColor, setBtnBgColor] = useState("#E99856");
+  const [btnTextColor, setBtnTextColor] = useState("#1A1836");
+  const [secondaryButtonText, setSecondaryButtonText] = useState("");
+  const [secondaryCtaLink, setSecondaryCtaLink] = useState("");
+
   const [desktopImage, setDesktopImage] = useState("");
   const [mobileImage, setMobileImage] = useState("");
+  const [redirectType, setRedirectType] = useState<BannerRedirectType>("shop");
   const [tagId, setTagId] = useState("");
+  const [ctaLink, setCtaLink] = useState("/shop");
+  const [targetCategory, setTargetCategory] = useState("");
+
   const [sortOrder, setSortOrder] = useState<number>(1);
   const [isActive, setIsActive] = useState(true);
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  const [showCountdown, setShowCountdown] = useState<boolean>(false);
 
-  // Product Selection & A/B Testing & Targeting
+  const [textAlign, setTextAlign] = useState<BannerTextAlign>("left");
+  const [contentPosition, setContentPosition] = useState<BannerContentPosition>("bottom");
+  const [overlayOpacity, setOverlayOpacity] = useState<number>(55);
+  const [overlayColor, setOverlayColor] = useState<string>("#1A1836");
+  const [shadowIntensity, setShadowIntensity] = useState<BannerShadowIntensity>("medium");
+  const [imageMargin, setImageMargin] = useState<number>(0);
+  const [imageFit, setImageFit] = useState<BannerImageFit>("cover");
+  const [imagePosition, setImagePosition] = useState<BannerImagePosition>("center");
+  const [bgColor, setBgColor] = useState<string>("#1A1836");
+  const [translations, setTranslations] = useState<Record<string, Record<string, string>>>({ fr: {}, ar: {}, en: {} });
+
   const [featuredProducts, setFeaturedProducts] = useState<string[]>([]);
   const [targetUserType, setTargetUserType] = useState<"all" | "new" | "logged_in">("all");
   const [targetRegions, setTargetRegions] = useState<string[]>([]);
@@ -40,33 +68,57 @@ export function useBannerModal(
   const [previewDeviceMode, setPreviewDeviceMode] = useState<"desktop" | "mobile" | "tablet">("desktop");
   const [abGroup, setAbGroup] = useState<"all" | "A" | "B">("all");
 
-  // Interactive Live Preview Modal State
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [previewBannerData, setPreviewBannerData] = useState<DbBanner | null>(null);
 
-  // Upload States
   const [isUploadingDesktop, setIsUploadingDesktop] = useState(false);
   const [uploadProgressDesktop, setUploadProgressDesktop] = useState(0);
   const [isUploadingMobile, setIsUploadingMobile] = useState(false);
   const [uploadProgressMobile, setUploadProgressMobile] = useState(0);
 
+  const applyColorTheme = (theme: BannerColorThemePreset) => {
+    setTitleColor(theme.titleColor);
+    setSubtitleColor(theme.subtitleColor);
+    setBtnBgColor(theme.btnBgColor);
+    setBtnTextColor(theme.btnTextColor);
+    setBadgeColor(theme.badgeColor);
+    setBgColor(theme.bgColor);
+    setOverlayColor(theme.overlayColor);
+  };
+
   const resetBannerForm = () => {
     setEditingBanner(null);
     setTitle("");
-    setTitleColor("#FFFFFF");
     setSubtitle("");
-    setSubtitleColor("#F3F4F6");
-    setButtonText("Acheter maintenant");
-    setBtnBgColor("#E11D48");
-    setBtnTextColor("#FFFFFF");
+    setBadge("");
+    setDiscountLabel("");
+    setButtonText("Découvrir la sélection");
+    setSecondaryButtonText("");
+    setSecondaryCtaLink("");
+    applyColorTheme(BANNER_COLOR_THEMES[0]);
     setDesktopImage("");
     setMobileImage("");
+    setRedirectType("shop");
     setTagId("");
+    setCtaLink("/shop");
+    setTargetCategory("");
     setSortOrder(banners.length + 1);
     setIsActive(true);
     setStartDate("");
     setEndDate("");
+    setShowCountdown(false);
+    setTextAlign("left");
+    setContentPosition("bottom");
+    setOverlayOpacity(55);
+    setShadowIntensity("medium");
+    setImageMargin(0);
+    setImageFit("cover");
+    setImagePosition("center");
+    setTranslations({ fr: {}, ar: {}, en: {} });
     setFeaturedProducts([]);
+    setTargetUserType("all");
+    setTargetRegions([]);
+    setSelectedZone("carousel_main");
     setAbGroup("all");
   };
 
@@ -75,24 +127,46 @@ export function useBannerModal(
     setIsModalOpen(true);
   };
 
-  const handleEditBanner = (banner: DbBanner) => {
-    setEditingBanner(banner);
-    setTitle(banner.title || "");
-    setTitleColor(banner.title_color || "#FFFFFF");
-    setSubtitle(banner.subtitle || "");
-    setSubtitleColor(banner.subtitle_color || "#F3F4F6");
-    setButtonText(banner.button_text || "Acheter maintenant");
-    setBtnBgColor(banner.btn_bg_color || "#E11D48");
-    setBtnTextColor(banner.btn_text_color || "#FFFFFF");
-    setDesktopImage(banner.desktop_image || "");
-    setMobileImage(banner.mobile_image || "");
-    setTagId(banner.tag_id || "");
-    setSortOrder(banner.sort_order || 1);
-    setIsActive(banner.is_active !== undefined ? banner.is_active : true);
-    setStartDate(banner.start_date || "");
-    setEndDate(banner.end_date || "");
-    setFeaturedProducts(banner.featured_products || []);
-    setAbGroup(banner.ab_group || "all");
+  const handleEditBanner = (b: DbBanner) => {
+    setEditingBanner(b);
+    setTitle(b.title || "");
+    setTitleColor(b.title_color || "#FFFFFF");
+    setSubtitle(b.subtitle || "");
+    setSubtitleColor(b.subtitle_color || "#F3E8EE");
+    setBadge(b.badge || "");
+    setBadgeColor(b.badge_color || "#E99856");
+    setDiscountLabel(b.discount_label || "");
+    setButtonText(b.button_text || "Découvrir la sélection");
+    setBtnBgColor(b.btn_bg_color || "#E99856");
+    setBtnTextColor(b.btn_text_color || "#1A1836");
+    setSecondaryButtonText(b.secondary_button_text || "");
+    setSecondaryCtaLink(b.secondary_cta_link || "");
+    setDesktopImage(b.desktop_image || "");
+    setMobileImage(b.mobile_image || "");
+    setRedirectType(b.redirect_type || (b.tag_id ? "tag" : b.cta_link || b.ctaLink ? "custom_url" : "shop"));
+    setTagId(b.tag_id || "");
+    setCtaLink(b.cta_link || b.ctaLink || "/shop");
+    setTargetCategory(b.target_category || "");
+    setSortOrder(b.sort_order || b.order || 1);
+    setIsActive(b.is_active !== undefined ? b.is_active : true);
+    setStartDate(b.start_date ? b.start_date.slice(0, 16) : "");
+    setEndDate(b.end_date ? b.end_date.slice(0, 16) : "");
+    setShowCountdown(Boolean(b.show_countdown));
+    setTextAlign(b.text_align || "left");
+    setContentPosition(b.content_position || "bottom");
+    setOverlayOpacity(b.overlay_opacity !== undefined ? b.overlay_opacity : 55);
+    setOverlayColor(b.overlay_color || "#1A1836");
+    setShadowIntensity(b.shadow_intensity || "medium");
+    setImageMargin(b.image_margin || 0);
+    setImageFit(b.image_fit || "cover");
+    setImagePosition(b.image_position || "center");
+    setBgColor(b.bg_color || "#1A1836");
+    setTranslations(b.translations || { fr: {}, ar: {}, en: {} });
+    setFeaturedProducts(b.featured_products || []);
+    setTargetUserType(b.target_user_type || "all");
+    setTargetRegions(b.target_regions || []);
+    setSelectedZone(b.zone || "carousel_main");
+    setAbGroup(b.ab_group || "all");
     setIsModalOpen(true);
   };
 
@@ -102,227 +176,96 @@ export function useBannerModal(
   };
 
   const handleDesktopImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      toast.error("Format de fichier non supporté. JPG, PNG et WebP uniquement.");
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Le fichier dépasse la limite maximale de 10 Mo.");
-      return;
-    }
-
-    setIsUploadingDesktop(true);
-    setUploadProgressDesktop(0);
-
-    try {
-      toast.loading("Optimisation, redimensionnement et compression...", { id: "upload-desktop-toast" });
-
-      const { blob } = await compressAndResizeImage(file, 1920, 1080);
-      const uuid = generateClientUUID().substring(0, 12);
-      const storageRef = ref(storage, `banners/desktop_${uuid}_${file.name.replace(/\s+/g, "_")}`);
-
-      const finalUrl = await new Promise<string>((resolve, reject) => {
-        const uploadTask = uploadBytesResumable(storageRef, blob);
-        uploadTask.on(
-          "state_changed",
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setUploadProgressDesktop(Math.round(progress));
-          },
-          (error) => reject(error),
-          async () => {
-            try {
-              const url = await getDownloadURL(uploadTask.snapshot.ref);
-              resolve(url);
-            } catch (err) {
-              reject(err);
-            }
-          }
-        );
-      });      setDesktopImage(finalUrl);
-      toast.success("Image Desktop importée et optimisée (1920x1080) ! 📸", { id: "upload-desktop-toast" });
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : "Veuillez réessayer.";
-      toast.error(`Erreur d'importation: ${errMsg}`, { id: "upload-desktop-toast" });
-      console.error(err);
-    } finally {
-      setIsUploadingDesktop(false);
-    }
+    await uploadBannerImageAsset(e.target.files?.[0], "desktop", 1920, 1080, "up-desk", setIsUploadingDesktop, setUploadProgressDesktop, setDesktopImage);
   };
 
   const handleMobileImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      toast.error("Format de fichier non supporté. JPG, PNG et WebP uniquement.");
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Le fichier dépasse la limite maximale de 10 Mo.");
-      return;
-    }
-
-    setIsUploadingMobile(true);
-    setUploadProgressMobile(0);
-
-    try {
-      toast.loading("Optimisation et compression pour mobile...", { id: "upload-mobile-toast" });
-
-      const { blob } = await compressAndResizeImage(file, 1080, 1080);
-      const uuid = generateClientUUID().substring(0, 12);
-      const storageRef = ref(storage, `banners/mobile_${uuid}_${file.name.replace(/\s+/g, "_")}`);
-
-      const finalUrl = await new Promise<string>((resolve, reject) => {
-        const uploadTask = uploadBytesResumable(storageRef, blob);
-        uploadTask.on(
-          "state_changed",
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setUploadProgressMobile(Math.round(progress));
-          },
-          (error) => reject(error),
-          async () => {
-            try {
-              const url = await getDownloadURL(uploadTask.snapshot.ref);
-              resolve(url);
-            } catch (err) {
-              reject(err);
-            }
-          }
-        );
-      });
-
-      setMobileImage(finalUrl);
-      toast.success("Image Mobile importée et optimisée (1080x1080) ! 📱", { id: "upload-mobile-toast" });
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : "Veuillez réessayer.";
-      toast.error(`Erreur d'importation: ${errMsg}`, { id: "upload-mobile-toast" });
-      console.error(err);
-    } finally {
-      setIsUploadingMobile(false);
-    }
+    await uploadBannerImageAsset(e.target.files?.[0], "mobile", 1080, 1080, "up-mob", setIsUploadingMobile, setUploadProgressMobile, setMobileImage);
   };
 
   const handleSaveBanner = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!desktopImage) {
-      toast.error("Veuillez sélectionner une image Desktop obligatoire");
+      toast.error("Veuillez sélectionner ou coller une image Desktop obligatoire");
       return;
     }
-
     setIsSubmitting(true);
+    const resolvedCtaLink =
+      redirectType === "category" && targetCategory
+        ? `/shop?category=${encodeURIComponent(targetCategory)}`
+        : redirectType === "custom_url"
+        ? ctaLink || "/shop"
+        : redirectType === "shop"
+        ? "/shop"
+        : ctaLink || "";
+
+    const numericOrder = Number(sortOrder) || 1;
     const payload = {
-      title,
-      title_color: titleColor,
-      subtitle,
-      subtitle_color: subtitleColor,
-      button_text: buttonText,
-      btn_bg_color: btnBgColor,
-      btn_text_color: btnTextColor,
-      desktop_image: desktopImage,
-      mobile_image: mobileImage || null,
-      tag_id: tagId,
-      sort_order: Number(sortOrder) || 1,
-      is_active: Boolean(isActive),
-      featured_products: featuredProducts,
-      ab_group: abGroup,
-      zone: selectedZone,
+      title, title_color: titleColor, subtitle, subtitle_color: subtitleColor,
+      badge, badge_color: badgeColor, discount_label: discountLabel,
+      button_text: buttonText, btn_bg_color: btnBgColor, btn_text_color: btnTextColor,
+      secondary_button_text: secondaryButtonText, secondary_cta_link: secondaryCtaLink,
+      desktop_image: desktopImage, mobile_image: mobileImage || null,
+      redirect_type: redirectType, tag_id: tagId,
+      cta_link: resolvedCtaLink, ctaLink: resolvedCtaLink,
+      target_category: targetCategory, sort_order: numericOrder, order: numericOrder,
+      is_active: Boolean(isActive), isActive: Boolean(isActive),
+      featured_products: featuredProducts, target_user_type: targetUserType,
+      target_regions: targetRegions, ab_group: abGroup, zone: selectedZone,
       start_date: startDate ? new Date(startDate).toISOString() : null,
       end_date: endDate ? new Date(endDate).toISOString() : null,
+      show_countdown: Boolean(showCountdown), text_align: textAlign,
+      content_position: contentPosition, overlay_opacity: Number(overlayOpacity),
+      overlay_color: overlayColor, shadow_intensity: shadowIntensity,
+      image_margin: Number(imageMargin) || 0, image_fit: imageFit,
+      image_position: imagePosition, bg_color: bgColor,
+      translations: {
+        ...translations,
+        fr: { ...(translations.fr || {}), title: translations.fr?.title || title, subtitle: translations.fr?.subtitle || subtitle, button_text: translations.fr?.button_text || buttonText, badge: translations.fr?.badge || badge },
+      },
     };
 
     try {
       if (editingBanner) {
-        await updateDoc(doc(db, "banners", editingBanner.id), payload);
+        try { await apiPut(`/api/v1/admin/banners/${editingBanner.id}`, payload); } catch { await updateDoc(doc(db, "banners", editingBanner.id), payload); }
         toast.success("Bannière mise à jour avec succès");
       } else {
-        await addDoc(collection(db, "banners"), {
-          ...payload,
-          views: 0,
-          clicks: 0,
-          created_at: new Date().toISOString(),
-        });
+        const createBody = { ...payload, views: 0, clicks: 0, created_at: new Date().toISOString() };
+        try { await apiPost("/api/v1/admin/banners", createBody); } catch { await addDoc(collection(db, "banners"), createBody); }
         toast.success("Bannière créée avec succès");
       }
-
       setIsModalOpen(false);
       resetBannerForm();
-      fetchData();
+      await fetchData();
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : "Erreur lors de la sauvegarde de la bannière";
-      toast.error(errMsg);
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la sauvegarde de la bannière");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return {
-    activeTab,
-    setActiveTab,
-    selectedZone,
-    setSelectedZone,
-    isModalOpen,
-    setIsModalOpen,
-    isSubmitting,
-    editingBanner,
-    title,
-    setTitle,
-    titleColor,
-    setTitleColor,
-    subtitle,
-    setSubtitle,
-    subtitleColor,
-    setSubtitleColor,
-    buttonText,
-    setButtonText,
-    btnBgColor,
-    setBtnBgColor,
-    btnTextColor,
-    setBtnTextColor,
-    desktopImage,
-    setDesktopImage,
-    mobileImage,
-    setMobileImage,
-    tagId,
-    setTagId,
-    sortOrder,
-    setSortOrder,
-    isActive,
-    setIsActive,
-    startDate,
-    setStartDate,
-    endDate,
-    setEndDate,
-    featuredProducts,
-    setFeaturedProducts,
-    targetUserType,
-    setTargetUserType,
-    targetRegions,
-    setTargetRegions,
-    productSearchTerm,
-    setProductSearchTerm,
-    previewDeviceMode,
-    setPreviewDeviceMode,
-    abGroup,
-    setAbGroup,
-    isPreviewModalOpen,
-    setIsPreviewModalOpen,
-    previewBannerData,
-    setPreviewBannerData,
-    isUploadingDesktop,
-    uploadProgressDesktop,
-    isUploadingMobile,
-    uploadProgressMobile,
-    resetBannerForm,
-    handleOpenAddModal,
-    handleEditBanner,
-    handleOpenPreviewModal,
-    handleDesktopImageUpload,
-    handleMobileImageUpload,
-    handleSaveBanner,
+    activeTab, setActiveTab, selectedZone, setSelectedZone, isModalOpen, setIsModalOpen,
+    isSubmitting, editingBanner, title, setTitle, titleColor, setTitleColor,
+    subtitle, setSubtitle, subtitleColor, setSubtitleColor, badge, setBadge,
+    badgeColor, setBadgeColor, discountLabel, setDiscountLabel,
+    buttonText, setButtonText, btnBgColor, setBtnBgColor, btnTextColor, setBtnTextColor,
+    secondaryButtonText, setSecondaryButtonText, secondaryCtaLink, setSecondaryCtaLink,
+    desktopImage, setDesktopImage, mobileImage, setMobileImage,
+    redirectType, setRedirectType, tagId, setTagId, ctaLink, setCtaLink,
+    targetCategory, setTargetCategory, sortOrder, setSortOrder, isActive, setIsActive,
+    startDate, setStartDate, endDate, setEndDate, showCountdown, setShowCountdown,
+    textAlign, setTextAlign, contentPosition, setContentPosition,
+    overlayOpacity, setOverlayOpacity, overlayColor, setOverlayColor,
+    shadowIntensity, setShadowIntensity, imageMargin, setImageMargin,
+    imageFit, setImageFit, imagePosition, setImagePosition, bgColor, setBgColor,
+    translations, setTranslations, applyColorTheme,
+    featuredProducts, setFeaturedProducts, targetUserType, setTargetUserType,
+    targetRegions, setTargetRegions, productSearchTerm, setProductSearchTerm,
+    previewDeviceMode, setPreviewDeviceMode, abGroup, setAbGroup,
+    isPreviewModalOpen, setIsPreviewModalOpen, previewBannerData, setPreviewBannerData,
+    isUploadingDesktop, uploadProgressDesktop, isUploadingMobile, uploadProgressMobile,
+    resetBannerForm, handleOpenAddModal, handleEditBanner, handleOpenPreviewModal,
+    handleDesktopImageUpload, handleMobileImageUpload, handleSaveBanner,
   };
 }

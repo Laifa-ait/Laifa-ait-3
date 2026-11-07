@@ -6,6 +6,8 @@ import { StoreSettingsInspectorPanel } from "../context/StoreSettingsInspectorPa
 import { PagesInspectorPanel } from "../context/PagesInspectorPanel";
 import { CatalogInspectorPanel } from "../context/CatalogInspectorPanel";
 import { OrdersInspectorPanel } from "../context/OrdersInspectorPanel";
+import { SetupGuideInspectorPanel } from "../context/SetupGuideInspectorPanel";
+import { HeaderNavigationInspectorPanel } from "../context/HeaderNavigationInspectorPanel";
 import { StoreIdentityEditor } from "../identity/StoreIdentityEditor";
 import { StudioNavMode } from "./studio.types";
 import {
@@ -19,6 +21,7 @@ import { Product } from "../../../../../domains/product/product.types";
 
 interface PropertiesInspectorProps {
   navMode: StudioNavMode;
+  onSelectNavMode?: (mode: StudioNavMode) => void;
   selectedSection: CustomPageSection | null;
   sections?: CustomPageSection[];
   products?: Product[];
@@ -43,6 +46,7 @@ interface PropertiesInspectorProps {
 
 export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
   navMode,
+  onSelectNavMode,
   selectedSection,
   sections = [],
   products = [],
@@ -62,16 +66,34 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
 }) => {
   return (
     <aside className="w-full md:w-[330px] md:min-w-[330px] md:max-w-[330px] bg-[#FFFFFF] border-l border-[#E5E7EB] flex flex-col h-full shrink-0 overflow-y-auto min-w-0 min-h-0">
-      {navMode === "pages" ? (
+      {navMode === "launchpad" ? (
+        <SetupGuideInspectorPanel
+          storeConfig={storeConfig}
+          sections={sections}
+          products={products}
+          onSelectNavMode={
+            onSelectNavMode ||
+            (() => {
+              /* fallback no-op */
+            })
+          }
+        />
+      ) : navMode === "header" ? (
+        <HeaderNavigationInspectorPanel
+          storeConfig={storeConfig}
+          onSaveConfig={onSaveConfig}
+        />
+      ) : navMode === "pages" ? (
         <PagesInspectorPanel
           storeConfig={storeConfig}
           sections={sections}
           onSaveConfig={onSaveConfig}
         />
-      ) : navMode === "theme" ? (
+      ) : navMode === "theme" || navMode === "atelier" ? (
         <ThemeInspectorPanel
           storeConfig={storeConfig}
           currentTheme={currentTheme}
+          initialTab={navMode === "atelier" ? "atelier" : "architectures"}
           sections={sections}
           mediaGallery={mediaGallery}
           onUploadMedia={onUploadMedia}

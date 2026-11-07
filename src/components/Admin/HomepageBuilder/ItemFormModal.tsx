@@ -60,41 +60,15 @@ interface ItemFormModalProps {
   handleSaveItem: (e: React.FormEvent) => void;
 }
 
-export const ItemFormModal: React.FC<ItemFormModalProps> = ({
-  isModalOpen,
-  setIsModalOpen,
-  editItem,
-  secName,
-  setSecName,
-  secType,
-  setSecType,
-  secLayout,
-  setSecLayout,
-  secBackgroundColor,
-  setSecBackgroundColor,
-  secLimit,
-  setSecLimit,
-  secStyle,
-  setSecStyle,
-  secThemeName,
-  setSecThemeName,
-  secCategory,
-  setSecCategory,
-  secTitle,
-  setSecTitle,
-  secSubtitle,
-  setSecSubtitle,
-  secIsActive,
-  setSecIsActive,
-  secTargetAudience,
-  setSecTargetAudience,
-  secTargetRegions,
-  setSecTargetRegions,
-  secManualLinks,
-  setSecManualLinks,
-  allProducts,
-  handleSaveItem,
-}) => {
+export const ItemFormModal: React.FC<ItemFormModalProps> = (props) => {
+  const {
+    isModalOpen, setIsModalOpen, editItem, secName, setSecName, secType, setSecType,
+    secLayout, setSecLayout, secBackgroundColor, setSecBackgroundColor, secLimit, setSecLimit,
+    secStyle, setSecStyle, secThemeName, setSecThemeName, secThemeImage, setSecThemeImage,
+    secCategory, setSecCategory, secTitle, setSecTitle, secSubtitle, setSecSubtitle,
+    secIsActive, setSecIsActive, secTargetAudience, setSecTargetAudience, secTargetRegions,
+    setSecTargetRegions, secManualLinks, setSecManualLinks, allProducts, handleSaveItem,
+  } = props;
   const { t } = useTranslation();
   const [tab, setTab] = useState<"general" | "products" | "targeting">("general");
 
@@ -213,6 +187,8 @@ export const ItemFormModal: React.FC<ItemFormModalProps> = ({
               setSecBackgroundColor={setSecBackgroundColor}
               secThemeName={secThemeName}
               setSecThemeName={setSecThemeName}
+              secThemeImage={secThemeImage}
+              setSecThemeImage={setSecThemeImage}
             />
           )}
 

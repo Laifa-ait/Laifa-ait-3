@@ -1,7 +1,7 @@
 import React from "react";
 import { Layers, RefreshCw, Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { CATEGORY_KEYS, CategoryPhotoConfig } from "./types";
+import { CATEGORY_KEYS, CategoryKeyDefinition, CategoryPhotoConfig } from "./types";
 
 interface CategoryPhotosListProps {
   selectedKey: string;
@@ -9,6 +9,7 @@ interface CategoryPhotosListProps {
   configs: Record<string, CategoryPhotoConfig>;
   loading: boolean;
   onRefresh: () => void;
+  dynamicCategories?: CategoryKeyDefinition[];
 }
 
 export const CategoryPhotosList: React.FC<CategoryPhotosListProps> = ({
@@ -17,15 +18,17 @@ export const CategoryPhotosList: React.FC<CategoryPhotosListProps> = ({
   configs,
   loading,
   onRefresh,
+  dynamicCategories,
 }) => {
   const { t } = useTranslation();
+  const listToRender = dynamicCategories && dynamicCategories.length > 0 ? dynamicCategories : CATEGORY_KEYS;
 
   return (
     <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
         <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
           <Layers className="w-4 h-4 text-emerald-600" />
-          <span>{t("Choix de la Catégorie")}</span>
+          <span>{t("Choix de la Catégorie")} ({listToRender.length})</span>
         </h3>
         <button
           type="button"
@@ -38,7 +41,7 @@ export const CategoryPhotosList: React.FC<CategoryPhotosListProps> = ({
       </div>
 
       <div className="space-y-1.5 max-h-[520px] overflow-y-auto pr-1">
-        {CATEGORY_KEYS.map((cat) => {
+        {listToRender.map((cat) => {
           const isSelected = cat.key === selectedKey;
           const cfg = configs[cat.key];
           const displayImg = cfg?.image || cat.defaultImage;

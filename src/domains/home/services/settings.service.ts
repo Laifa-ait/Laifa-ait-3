@@ -1,5 +1,6 @@
 import { admin, db } from "../../../config/firebase-admin";
 import { safeLogger } from "../../../utils/logger";
+import { withFirestoreDeadline } from "../../../utils/firestoreTimeout";
 
 const settingsCache = new Map<string, { data: unknown; expiry: number }>();
 
@@ -18,41 +19,24 @@ export class SettingsService {
       return cached.data as T;
     }
 
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const data = await fetcher();
-        if (data !== undefined && data !== null) {
-          settingsCache.set(key, { data, expiry: Date.now() + ttlMs });
-        }
-        return data;
-      } catch (err: unknown) {
-        const errorObj = err as { message?: string; code?: string };
-        const isRateLimit =
-          errorObj?.message?.includes("Rate exceeded") ||
-          errorObj?.message?.includes("RESOURCE_EXHAUSTED") ||
-          errorObj?.message?.includes("rate limit") ||
-          errorObj?.code === "resource-exhausted" ||
-          errorObj?.code === "unavailable";
+    const fallbackValue = (cached?.data as T | undefined) ?? null;
 
-        if (attempt < 2 && isRateLimit) {
-          const delay = 350 * Math.pow(2, attempt) + Math.floor(Math.random() * 150);
-          await new Promise((r) => setTimeout(r, delay));
-          continue;
-        }
-
-        // Return stale cache if available when backend/Firestore is rate limited
-        if (cached?.data) {
-          return cached.data as T;
-        }
-
-        safeLogger.warn("[Olmart Gateway] Settings fetch error", {
-          settingKey: key,
-          err: errorObj?.message || String(err),
-        });
-        return null;
+    try {
+      const data = await withFirestoreDeadline(fetcher, fallbackValue as T, 1500, `settings:${key}`);
+      if (data !== undefined && data !== null) {
+        settingsCache.set(key, { data, expiry: Date.now() + ttlMs });
       }
+      return data;
+    } catch (err: unknown) {
+      if (cached?.data) {
+        return cached.data as T;
+      }
+      safeLogger.warn("[Olmart Gateway] Settings fetch error", {
+        settingKey: key,
+        err: err instanceof Error ? err.message : String(err),
+      });
+      return null;
     }
-    return cached?.data ? (cached.data as T) : null;
   }
 
   static async getHomepageCategories(): Promise<Record<string, unknown>[]> {
@@ -125,6 +109,19 @@ export class SettingsService {
     return data || {};
   }
 
+  static async saveHomepageCategoriesV2ById(id: string, payload: Record<string, unknown>): Promise<void> {
+    await db.collection("homepage_categories_v2").doc(id).set(
+      {
+        ...payload,
+        id,
+        key: id,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    this.clearCache();
+  }
+
   static async getPlatformStatsById(id: string): Promise<Record<string, unknown>> {
     const data = await this.getCachedOrFetch(`stats_${id}`, async () => {
       const docSnap = await db.collection("platform_stats").doc(id).get();
@@ -143,8 +140,39 @@ export class SettingsService {
 
   static async getCategoriesHierarchy(): Promise<Record<string, unknown>> {
     const data = await this.getCachedOrFetch("categories-hierarchy", async () => {
+      const { deduplicateCategoryHierarchy, deduplicateCategoryOrder, resolveCanonicalCategoryKey } = await import(
+        "../../../utils/categoryCanonical"
+      );
       const docSnap = await db.collection("settings").doc("categories").get();
-      return docSnap.exists ? (docSnap.data() as Record<string, unknown>) : {};
+      if (!docSnap.exists) return {};
+      const raw = (docSnap.data() as Record<string, unknown>) || {};
+      const disabled = Array.isArray(raw.disabledCategories)
+        ? new Set(
+            raw.disabledCategories
+              .filter((x): x is string => typeof x === "string")
+              .map((x) => resolveCanonicalCategoryKey(x))
+          )
+        : new Set<string>();
+      const rawHierarchy = deduplicateCategoryHierarchy(
+        (raw.hierarchy as Record<string, Record<string, string[]>> | undefined) || {}
+      );
+      const activeHierarchy: Record<string, Record<string, string[]>> = {};
+      Object.entries(rawHierarchy).forEach(([k, v]) => {
+        if (!disabled.has(k)) {
+          activeHierarchy[k] = v;
+        }
+      });
+      const availableKeys = Object.keys(activeHierarchy);
+      const rawSortOrder = Array.isArray(raw.sortOrder)
+        ? raw.sortOrder.filter((k): k is string => typeof k === "string")
+        : availableKeys;
+      const sortOrder = deduplicateCategoryOrder(rawSortOrder, availableKeys);
+
+      return {
+        ...raw,
+        hierarchy: activeHierarchy,
+        sortOrder,
+      };
     });
     return data || {};
   }

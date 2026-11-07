@@ -3,14 +3,22 @@ import { ArrowUpRight, Camera } from "lucide-react";
 import {
   CategoryItem,
   CategoryCardSize,
+  CategoryImagePosition,
+  CategoryImageFit,
 } from "../../../../pages/Seller/StoreBuilder/constants/categoryPresetTypes";
 import { getLucideCategoryIcon } from "../../../../pages/Seller/StoreBuilder/constants/categoryCanvaOptions";
-import { resolveCategoryPhoto } from "./categoryImageHelper";
+import {
+  resolveCategoryPhoto,
+  resolveCategoryImageClasses,
+  handleCategoryImageError,
+} from "./categoryImageHelper";
 
 interface CategoryShopifyPillsProps {
   categories: CategoryItem[];
   cardRadius: string;
   pillShowImage: boolean;
+  columnsDesktop?: number;
+  columnsMobile?: number;
   showTitle?: boolean;
   showBadge: boolean;
   showItemCount: boolean;
@@ -18,6 +26,8 @@ interface CategoryShopifyPillsProps {
   hoverCardClass: string;
   cardSize?: CategoryCardSize;
   cardSkin?: string;
+  imagePosition?: CategoryImagePosition;
+  imageFit?: CategoryImageFit;
   primaryColor?: string;
   isEditable?: boolean;
   selectedSectionId?: string | null;
@@ -32,6 +42,8 @@ export const CategoryShopifyPills: React.FC<CategoryShopifyPillsProps> = ({
   categories,
   cardRadius,
   pillShowImage,
+  columnsDesktop = 3,
+  columnsMobile = 1,
   showTitle = true,
   showBadge,
   showItemCount,
@@ -39,6 +51,8 @@ export const CategoryShopifyPills: React.FC<CategoryShopifyPillsProps> = ({
   hoverCardClass,
   cardSize = "balanced",
   cardSkin = "editorial",
+  imagePosition = "center",
+  imageFit = "cover",
   primaryColor = "#023859",
   isEditable,
   selectedSectionId,
@@ -53,25 +67,43 @@ export const CategoryShopifyPills: React.FC<CategoryShopifyPillsProps> = ({
       ? "rounded-none"
       : cardRadius === "sm"
       ? "rounded-xl"
-      : cardRadius === "md" || cardRadius === "lg"
+      : cardRadius === "md"
       ? "rounded-2xl"
+      : cardRadius === "lg"
+      ? "rounded-3xl"
       : "rounded-full";
 
   const avatarRadiusClass =
     cardRadius === "none"
       ? "rounded-none"
-      : cardRadius === "sm" || cardRadius === "md" || cardRadius === "lg"
+      : cardRadius === "sm"
+      ? "rounded-lg"
+      : cardRadius === "md" || cardRadius === "lg"
       ? "rounded-xl"
       : "rounded-full";
 
   const isDarkSkin = cardSkin === "dark-glass";
-  const mobilePillCols = cardSize === "compact" ? "grid-cols-2" : "grid-cols-1";
+  const mobilePillCols = columnsMobile === 2 ? "grid-cols-2" : "grid-cols-1";
+  const desktopPillCols =
+    columnsDesktop <= 2
+      ? "@[560px]:grid-cols-2"
+      : columnsDesktop === 4
+      ? "@[560px]:grid-cols-2 @[900px]:grid-cols-4"
+      : "@[560px]:grid-cols-2 @[900px]:grid-cols-3";
+
+  const thumbDimClass =
+    cardSize === "compact"
+      ? "w-10 h-10 @[560px]:w-11 @[560px]:h-11"
+      : cardSize === "large"
+      ? "w-13 h-13 @[560px]:w-15 @[560px]:h-15"
+      : "w-11 h-11 @[560px]:w-12 @[560px]:h-12";
 
   return (
-    <div className={`grid ${mobilePillCols} @[560px]:grid-cols-2 @[900px]:grid-cols-3 ${gapClass}`}>
+    <div className={`grid ${mobilePillCols} ${desktopPillCols} ${gapClass}`}>
       {categories.map((cat, idx) => {
         const IconComp = getLucideCategoryIcon(cat.iconName);
         const photoUrl = resolveCategoryPhoto(cat, idx);
+        const { posClass, fitClass } = resolveCategoryImageClasses(cat, imagePosition, imageFit);
         const countText = getCountLabel(cat);
         const idxLabel = String(idx + 1).padStart(2, "0");
         const isCardSelected =
@@ -96,18 +128,19 @@ export const CategoryShopifyPills: React.FC<CategoryShopifyPillsProps> = ({
             <div className="flex items-center gap-2.5 @[560px]:gap-3 min-w-0">
               {pillShowImage ? (
                 <div
-                  className={`w-11 h-11 @[560px]:w-12 @[560px]:h-12 ${avatarRadiusClass} overflow-hidden shrink-0 relative bg-slate-100 ring-1 ring-inset ring-black/[0.06]`}
+                  className={`${thumbDimClass} ${avatarRadiusClass} overflow-hidden shrink-0 relative bg-slate-100 ring-1 ring-inset ring-black/[0.06]`}
                 >
                   <img
                     src={photoUrl}
                     alt={cat.name}
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    onError={(e) => handleCategoryImageError(e, idx)}
+                    className={`w-full h-full ${posClass} ${fitClass} transition-transform duration-300 group-hover:scale-105`}
                   />
                 </div>
               ) : (
                 <div
-                  className={`w-10 h-10 @[560px]:w-11 @[560px]:h-11 ${avatarRadiusClass} flex items-center justify-center shrink-0 transition-colors duration-200 ${
+                  className={`${thumbDimClass} ${avatarRadiusClass} flex items-center justify-center shrink-0 transition-colors duration-200 ${
                     isDarkSkin
                       ? "bg-white/10 text-white group-hover:bg-white group-hover:text-slate-950"
                       : "bg-slate-100 text-slate-700 group-hover:bg-slate-900 group-hover:text-white"

@@ -4,6 +4,8 @@ import { Product } from "../product.types";
 import { PRODUCT_STATUSES, isPubliclyVisible } from "../product.status";
 import NodeCache from "node-cache";
 import { safeLogger } from "../../../utils/logger";
+import { getCategoryQueryAliases } from "../../../utils/categoryCanonical";
+import { withFirestoreDeadline } from "../../../utils/firestoreTimeout";
 
 const cache = new NodeCache({ stdTTL: 300, maxKeys: 1000, useClones: true });
 
@@ -38,8 +40,8 @@ productCatalogRouter.get("/api/v1/public/home-endless-grid", async (req, res) =>
         .orderBy("createdAt", "desc");
 
       if (lastDocId) {
-        const lastDocSnap = await db.collection("products").doc(lastDocId).get();
-        if (lastDocSnap.exists) {
+        const lastDocSnap = await withFirestoreDeadline(() => db.collection("products").doc(lastDocId).get(), null, 1200, "endless_cursor");
+        if (lastDocSnap && lastDocSnap.exists) {
           finalQ = finalQ.startAfter(lastDocSnap);
         }
       } else if (queryOffset > 0) {
@@ -47,7 +49,8 @@ productCatalogRouter.get("/api/v1/public/home-endless-grid", async (req, res) =>
       }
 
       finalQ = finalQ.limit(queryLimit);
-      const snap = await finalQ.get();
+      const snap = await withFirestoreDeadline(() => finalQ.get(), null, 1500, "endless_grid");
+      if (!snap) throw new Error("Firestore deadline");
       products = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
       if (snap.docs.length === queryLimit && snap.docs.length > 0) {
         nextCursor = snap.docs[snap.docs.length - 1].id;
@@ -55,8 +58,8 @@ productCatalogRouter.get("/api/v1/public/home-endless-grid", async (req, res) =>
     } catch {
       safeLogger.warn("Composite index query failed for home-endless-grid. Using bounded limit fallback.");
       const fetchCap = Math.min(queryOffset + queryLimit, 50);
-      const snap = await db.collection("products").limit(fetchCap).get();
-      products = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
+      const snap = await withFirestoreDeadline(() => db.collection("products").limit(fetchCap).get(), null, 1500, "endless_fallback");
+      products = (snap?.docs || []).map((doc) => ({ id: doc.id, ...doc.data() } as Product));
       products = products.filter((p) => !p.status || isPubliclyVisible(p));
       products.sort((a, b) => {
         const timeA = typeof a.createdAt === "object" && a.createdAt && "seconds" in a.createdAt 
@@ -309,7 +312,12 @@ productCatalogRouter.get("/api/v1/products/shop", async (req, res) => {
     queryRef = queryRef.where("status", "==", PRODUCT_STATUSES.ACTIVE);
 
     if (category && category !== "Tous") {
-      queryRef = queryRef.where("category", "==", String(category));
+      const aliases = getCategoryQueryAliases(String(category));
+      if (aliases.length > 1) {
+        queryRef = queryRef.where("category", "in", aliases);
+      } else {
+        queryRef = queryRef.where("category", "==", String(category));
+      }
     }
     if (subcategory) {
       queryRef = queryRef.where("subcategory", "==", String(subcategory));

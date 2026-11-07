@@ -1,8 +1,8 @@
-import React from "react";
-import { ArrowUpRight } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ArrowUpRight, Clock, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Banner } from "../../domains/home/homepage.types";
-import { getOptimizedImageUrl } from "../../utils/imageUtils";
+import { getOptimizedImageUrl, getBannerFallbackImage } from "../../utils/imageUtils";
 
 interface BentoHeroSlideProps {
   banner: Banner;
@@ -11,6 +11,14 @@ interface BentoHeroSlideProps {
   onBannerClick: (banner: Banner) => void;
   lang: string;
 }
+
+const SHADOW_MAP: Record<string, string> = {
+  none: "",
+  soft: "shadow-md",
+  medium: "shadow-xl",
+  strong: "shadow-[0_20px_50px_rgba(0,0,0,0.7)]",
+  glow: "shadow-[0_0_40px_rgba(233,152,86,0.5)] ring-2 ring-[#E99856]/40",
+};
 
 export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
   banner,
@@ -22,8 +30,9 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
   const { t } = useTranslation();
 
   const getTranslatedValue = (b: Banner, key: "title" | "subtitle" | "button_text"): string => {
-    if (b.translations?.[lang]?.[key]) {
-      return b.translations[lang][key];
+    const langBlock = b.translations?.[lang as "fr" | "ar" | "en"];
+    if (langBlock?.[key]) {
+      return langBlock[key] || "";
     }
     const flatKey = `${key}_${lang}` as keyof Banner;
     const flatVal = b[flatKey];
@@ -36,10 +45,7 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
         : key === "subtitle"
         ? b.subtitle
         : b.button_text || b.ctaText || b.buttonText) || "";
-    if (rawVal) {
-      return t(rawVal, rawVal);
-    }
-    return "";
+    return rawVal ? t(rawVal, rawVal) : "";
   };
 
   const title = getTranslatedValue(banner, "title");
@@ -47,99 +53,181 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
   const buttonText = getTranslatedValue(banner, "button_text");
 
   const rawDesktop = banner.desktop_image || banner.desktopImage || banner.imageUrl;
-  const desktopImageUrl = getOptimizedImageUrl(rawDesktop, 1400);
+  const desktopImageUrl = getOptimizedImageUrl(rawDesktop, 1400, title);
   const rawMobile = banner.mobile_image || banner.mobileImageUrl || rawDesktop;
-  const mobileImageUrl = getOptimizedImageUrl(rawMobile, 800);
+  const mobileImageUrl = getOptimizedImageUrl(rawMobile, 800, title);
+  const fallbackBannerUrl = getBannerFallbackImage(banner);
+
+  const [imgError, setImgError] = useState(false);
+  useEffect(() => {
+    setImgError(false);
+  }, [desktopImageUrl, mobileImageUrl]);
 
   const hasCustomButtonColor = Boolean(banner.btn_bg_color);
-  const hasContent = Boolean(title || subtitle || buttonText);
+  const hasContent = Boolean(title || subtitle || buttonText || banner.badge || banner.discount_label);
+
+  const marginPx = banner.image_margin ?? 0;
+  const bgColor = banner.bg_color || "#1A1836";
+  const imageFit = banner.image_fit || "cover";
+  const imagePosition = banner.image_position || "center";
+  const overlayOpacity = banner.overlay_opacity ?? 65;
+  const overlayColor = banner.overlay_color || "#1A1836";
+  const shadowClass = SHADOW_MAP[banner.shadow_intensity || "none"] || "";
+
+  const alignClass =
+    banner.text_align === "center"
+      ? "items-center text-center mx-auto"
+      : banner.text_align === "right"
+      ? "items-end text-right ms-auto"
+      : "items-start text-start";
+
+  const posClass =
+    banner.content_position === "top"
+      ? "justify-start"
+      : banner.content_position === "center"
+      ? "justify-center"
+      : "justify-end";
 
   return (
     <div
       key={banner.id || index}
       onClick={() => onBannerClick(banner)}
       className="h-full flex-shrink-0 relative overflow-hidden flex items-center cursor-pointer select-none"
-      style={{ width: `${100 / totalBanners}%` }}
+      style={{
+        width: `${100 / totalBanners}%`,
+        backgroundColor: bgColor,
+        padding: marginPx > 0 ? `${marginPx}px` : undefined,
+      }}
     >
-      {/* Responsive Background Imagery */}
-      <picture className="absolute inset-0 w-full h-full">
-        {mobileImageUrl && mobileImageUrl !== desktopImageUrl && (
-          <source media="(max-width: 640px)" srcSet={mobileImageUrl} />
-        )}
-        <img
-          loading="eager"
-          src={desktopImageUrl || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=1200"}
-          alt={title || "Bannière Olmart"}
-          className="w-full h-full object-cover object-center"
-          referrerPolicy="no-referrer"
-        />
-      </picture>
-
-      {/* Subtle Legibility Gradient strictly at the bottom */}
-      {hasContent && (
-        <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[#1A1836]/95 via-[#42164B]/50 to-transparent pointer-events-none" />
-      )}
-
-      {/* Structured Content Container docked at the bottom */}
-      {hasContent && (
-        <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6 md:p-8 flex flex-col justify-end items-start z-10 max-w-[85%] sm:max-w-[72%] md:max-w-[58%]">
-          {/* Optional Kicker (clean unboxed text with typographic separator) */}
-          {banner.badge && (
-            <div className="inline-flex items-center gap-2 text-[#E99856] text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-1.5 sm:mb-2 drop-shadow-xs">
-              <span>Olmart Prestige</span>
-              <span aria-hidden="true" className="text-[#E0B4B2]">·</span>
-              <span className="text-[#E0B4B2]">{banner.badge}</span>
-            </div>
+      <div
+        className={`relative w-full h-full overflow-hidden ${
+          marginPx > 0 ? "rounded-2xl" : ""
+        } ${shadowClass}`}
+      >
+        <picture className="absolute inset-0 w-full h-full">
+          {!imgError && mobileImageUrl && mobileImageUrl !== desktopImageUrl && (
+            <source media="(max-width: 640px)" srcSet={mobileImageUrl} />
           )}
-
-          {/* Title */}
-          {title && (
-            <h2
-              className="text-xl sm:text-3xl md:text-4xl font-display font-bold tracking-tight mb-1.5 sm:mb-2 leading-tight text-start drop-shadow-md text-balance"
-              style={{ color: banner.title_color || "#FFFFFF" }}
-            >
-              {title}
-            </h2>
-          )}
-
-          {/* Subtitle */}
-          {subtitle && (
-            <p
-              className="text-xs sm:text-sm font-medium mb-3 sm:mb-4 max-w-md text-start leading-relaxed drop-shadow-sm text-[#E0B4B2]/95"
-              style={{ color: banner.subtitle_color || undefined }}
-            >
-              {subtitle}
-            </p>
-          )}
-
-          {/* Clean Primary CTA Button */}
-          <div className="pt-0.5">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onBannerClick(banner);
-              }}
-              style={
-                hasCustomButtonColor
-                  ? {
-                      backgroundColor: banner.btn_bg_color,
-                      color: banner.btn_text_color || "#FFFFFF",
-                    }
-                  : undefined
+          <img
+            loading="eager"
+            src={imgError ? fallbackBannerUrl : desktopImageUrl || fallbackBannerUrl}
+            alt={title || "Bannière Olmart"}
+            style={{ objectFit: imageFit, objectPosition: imagePosition }}
+            className="w-full h-full"
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              if (!imgError) {
+                setImgError(true);
               }
-              className={`group relative inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-extrabold text-xs sm:text-sm tracking-tight transition-all duration-200 cursor-pointer border-none shadow-md active:scale-95 whitespace-nowrap ${
-                !hasCustomButtonColor
-                  ? "bg-gradient-to-r from-[#E99856] to-[#f0aa6e] text-[#1A1836] hover:from-[#f3ab6e] hover:to-[#E99856] shadow-[#1A1836]/30"
-                  : "hover:brightness-105"
-              }`}
-            >
-              <span>{buttonText || t("Découvrir la sélection", "Découvrir la sélection")}</span>
-              <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 stroke-[2.5]" />
-            </button>
+              if (e.currentTarget.src !== fallbackBannerUrl) {
+                e.currentTarget.src = fallbackBannerUrl;
+              }
+            }}
+          />
+        </picture>
+
+        {hasContent && overlayOpacity > 0 && (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: `linear-gradient(to top, ${overlayColor} 0%, ${overlayColor}99 45%, transparent 100%)`,
+              opacity: overlayOpacity / 100,
+            }}
+          />
+        )}
+
+        {banner.discount_label && (
+          <div className="absolute top-4 end-4 z-20 px-3 py-1 rounded-full bg-rose-600 text-white text-xs sm:text-sm font-black uppercase tracking-wider shadow-lg flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{banner.discount_label}</span>
           </div>
-        </div>
-      )}
+        )}
+
+        {banner.show_countdown && (
+          <div className="absolute top-4 start-4 z-20 px-3 py-1.5 rounded-xl bg-black/75 backdrop-blur-md border border-white/20 text-white text-[11px] font-mono font-bold flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+            <span>{t("Offre limitée")}</span>
+          </div>
+        )}
+
+        {hasContent && (
+          <div
+            className={`absolute inset-0 p-4 sm:p-6 md:p-8 flex flex-col ${posClass} ${alignClass} z-10 max-w-[90%] sm:max-w-[75%] md:max-w-[62%]`}
+          >
+            {banner.badge && (
+              <div
+                style={{ color: banner.badge_color || "#E99856" }}
+                className="inline-flex items-center gap-2 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest mb-1.5 sm:mb-2 drop-shadow-xs"
+              >
+                <span>Olmart Prestige</span>
+                <span aria-hidden="true" className="opacity-70">·</span>
+                <span>{banner.badge}</span>
+              </div>
+            )}
+
+            {title && (
+              <h2
+                className="text-xl sm:text-3xl md:text-4xl font-display font-bold tracking-tight mb-1.5 sm:mb-2 leading-tight drop-shadow-md text-balance"
+                style={{ color: banner.title_color || "#FFFFFF" }}
+              >
+                {title}
+              </h2>
+            )}
+
+            {subtitle && (
+              <p
+                className="text-xs sm:text-sm font-medium mb-3 sm:mb-4 max-w-md leading-relaxed drop-shadow-sm text-[#E0B4B2]/95"
+                style={{ color: banner.subtitle_color || undefined }}
+              >
+                {subtitle}
+              </p>
+            )}
+
+            <div className="pt-0.5 flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBannerClick(banner);
+                }}
+                style={
+                  hasCustomButtonColor
+                    ? {
+                        backgroundColor: banner.btn_bg_color,
+                        color: banner.btn_text_color || "#FFFFFF",
+                      }
+                    : undefined
+                }
+                className={`group relative inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-extrabold text-xs sm:text-sm tracking-tight transition-all duration-200 cursor-pointer border-none shadow-md active:scale-95 whitespace-nowrap ${
+                  !hasCustomButtonColor
+                    ? "bg-gradient-to-r from-[#E99856] to-[#f0aa6e] text-[#1A1836] hover:from-[#f3ab6e] hover:to-[#E99856]"
+                    : "hover:brightness-105"
+                }`}
+              >
+                <span>{buttonText || t("Découvrir la sélection", "Découvrir la sélection")}</span>
+                <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 stroke-[2.5]" />
+              </button>
+
+              {banner.secondary_button_text && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onBannerClick({
+                      ...banner,
+                      cta_link: banner.secondary_cta_link || "/shop",
+                      redirect_type: "custom_url",
+                    });
+                  }}
+                  className="px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-white/15 hover:bg-white/25 backdrop-blur-md text-white border border-white/30 transition-all cursor-pointer"
+                >
+                  {banner.secondary_button_text}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

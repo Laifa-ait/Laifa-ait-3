@@ -6,6 +6,7 @@ import { apiGet, apiPost } from "../lib/api";
 import { safeLogger } from "../utils/logger";
 import { queryKeys } from "../lib/queryKeys";
 import { productsApi } from "../services/api/products.api";
+import { deduplicateCategoryHierarchy, deduplicateCategoryOrder } from "../utils/categoryCanonical";
 
 interface ShopContextType {
   fetchFeaturedProducts: (nbLimit?: number) => Promise<Product[]>;
@@ -46,32 +47,27 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const refreshHierarchy = async () => {
     try {
-      const data = await apiGet<{ hierarchy?: Record<string, Record<string, string[]>>; sortOrder?: string[] }>("/api/v1/settings/categories");
+      const data = await apiGet<{
+        hierarchy?: Record<string, Record<string, string[]>>;
+        sortOrder?: string[];
+        isCustomized?: boolean;
+      }>("/api/v1/settings/categories");
       if (data && data.hierarchy && Object.keys(data.hierarchy).length > 0) {
-        const rawHierarchy: Record<string, Record<string, string[]>> = { ...PRODUCT_HIERARCHY };
-        Object.entries(data.hierarchy).forEach(([catKey, subMap]) => {
-          if (rawHierarchy[catKey]) {
-            rawHierarchy[catKey] = { ...rawHierarchy[catKey], ...subMap };
-          } else {
-            rawHierarchy[catKey] = subMap;
-          }
-        });
-        const sortOrder = data.sortOrder || Object.keys(rawHierarchy);
-        
+        const mergedInput: Record<string, Record<string, string[]>> = data.isCustomized
+          ? { ...data.hierarchy }
+          : { ...PRODUCT_HIERARCHY, ...data.hierarchy };
+
+        const rawHierarchy = deduplicateCategoryHierarchy(mergedInput);
+        const availableKeys = Object.keys(rawHierarchy);
+        const sortOrder = deduplicateCategoryOrder(data.sortOrder || availableKeys, availableKeys);
         const sortedHierarchy: Record<string, Record<string, string[]>> = {};
-        
+
         sortOrder.forEach((key: string) => {
           if (rawHierarchy[key]) {
             sortedHierarchy[key] = rawHierarchy[key];
           }
         });
-        
-        Object.keys(rawHierarchy).forEach((key) => {
-          if (!sortedHierarchy[key]) {
-            sortedHierarchy[key] = rawHierarchy[key];
-          }
-        });
-        
+
         setCategoryHierarchy(sortedHierarchy);
       }
     } catch (err) {
@@ -80,7 +76,10 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   React.useEffect(() => {
-    refreshHierarchy();
+    const timer = setTimeout(() => {
+      refreshHierarchy();
+    }, 650);
+    return () => clearTimeout(timer);
   }, []);
 
   const fetchFeaturedProducts = async (nbLimit = 20): Promise<Product[]> => {

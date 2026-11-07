@@ -40,11 +40,12 @@ if (!process.env.NODE_ENV) {
   const isRunningTsx = Boolean(
     process.env.npm_lifecycle_event === "dev" ||
     process.env.TSX_TSCONFIG_PATH ||
+    process.env.NODE_OPTIONS?.includes("tsx") ||
     process.execPath.includes("tsx") ||
     process.argv.some((arg) => arg.includes("tsx")) ||
     process.execArgv.some((arg) => arg.includes("tsx"))
   );
-  process.env.NODE_ENV = isCloudRunInstance || !isRunningTsx ? "production" : "development";
+  process.env.NODE_ENV = isRunningTsx ? "development" : isCloudRunInstance ? "production" : "production";
 }
 
 

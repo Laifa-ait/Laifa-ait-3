@@ -200,6 +200,36 @@ export const DYNAMIC_CATEGORIES: Record<string, CategoryStructure> = {
       },
     ],
   },
+  "Auto & Moto": {
+    id: "auto",
+    name: "Auto & Moto",
+    hasColor: true,
+    allowed_filters: [
+      {
+        id: "accessory_type",
+        label: "Type d'article",
+        type: "radio",
+        options: ["Pièces Mécaniques", "Pneumatiques", "Intérieur", "Extérieur", "Entretien", "Électronique", "Moto & Scooter", "Autre"],
+      },
+      {
+        id: "compatibility",
+        label: "Compatible",
+        type: "radio",
+        options: ["Voiture", "Moto", "Quad", "Scooter", "Universel"],
+      },
+      {
+        id: "material",
+        label: "Matériau principal",
+        type: "select",
+        options: ["Plastique", "Métal", "Tissu", "Cuir", "Caoutchouc", "Autre"],
+      },
+      {
+        id: "dimensions",
+        label: "Dimensions / Référence OEM",
+        type: "text",
+      },
+    ],
+  },
   "Auto & Moto - Accessoires": {
     id: "auto",
     name: "Auto & Moto - Accessoires",
@@ -369,6 +399,30 @@ export const DYNAMIC_CATEGORIES: Record<string, CategoryStructure> = {
         label: "Type de fabrication",
         type: "radio",
         options: ["100% Fait main artisanal", "Semi-artisanal", "Traditionnel revisité"],
+      },
+    ],
+  },
+  "Scolaire & Bureau": {
+    id: "school_office",
+    name: "Scolaire & Bureau",
+    hasColor: true,
+    allowed_filters: [
+      {
+        id: "school_level",
+        label: "Cycle / Usage",
+        type: "select",
+        options: ["Primaire", "Moyen (BEM)", "Secondaire (BAC)", "Universitaire", "Bureau Professionnel", "Tous niveaux"],
+      },
+      {
+        id: "language",
+        label: "Langue (Livres & Manuels)",
+        type: "select",
+        options: ["Arabe", "Français", "Anglais", "Bilingue", "Non applicable"],
+      },
+      {
+        id: "format",
+        label: "Format / Dimensions",
+        type: "text",
       },
     ],
   },

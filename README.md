@@ -1,137 +1,110 @@
-# OLMART — Marketplace E-Commerce Multi-Vendeurs
+# OLMART — Super-App & Marketplace E-Commerce Multi-Vendeurs (69 Wilayas)
 
 [![Olmart CI](https://github.com/Laifa-ait/Laifa-ait-3/actions/workflows/ci.yml/badge.svg)](https://github.com/Laifa-ait/Laifa-ait-3/actions/workflows/ci.yml)
-![Vite 8](https://img.shields.io/badge/Vite-8.2-646CFF.svg)
+![Vite 8.3](https://img.shields.io/badge/Vite-8.3-646CFF.svg)
 ![React 19](https://img.shields.io/badge/React-19.0-61DAFB.svg)
 ![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict_5.8-3178C6.svg)
-![Code Style: Prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg)
-![Tests: Vitest](https://img.shields.io/badge/tests-vitest_4.1-44a833.svg)
+![Tailwind CSS 4.3](https://img.shields.io/badge/Tailwind_CSS-4.3-38B2AC.svg)
+![Tests: Vitest & Playwright](https://img.shields.io/badge/tests-Vitest_4.1_%7C_Playwright-44a833.svg)
 ![License: Proprietary](https://img.shields.io/badge/license-Proprietary-red.svg)
 
-Plateforme e-commerce et Super-App de niveau industriel dédiée au marché algérien, couvrant l'ensemble des 69 wilayas. Ce système intègre une gestion multi-vendeurs robuste, des transactions ACID sécurisées, une messagerie directe, ainsi que les applications dédiées **Olma Immo** (immobilier) et **Olma Auto** (recherche de véhicules par marque, petites annonces automobiles & pièces détachées).
+Plateforme e-commerce et Super-App de niveau industriel dédiée au marché algérien, couvrant l'ensemble des **69 wilayas**. Le système intègre :
+* **Marketplace E-Commerce & Taxonomie Canonique** : Catalogue unifié avec navigation guidée par tiroir en 3 étapes (`Rayon` ➔ `Sous-catégorie` ➔ `Spécialité`), gouvernance des catégories en temps réel par l'administrateur (`/api/v1/admin/categories`), et paiement à la livraison (COD).
+* **Studio Vendeur 3.0 (Architecture type Shopify Online Store 2.0)** : Constructeur de boutique en temps réel avec *Setup Launchpad* (6 jalons), barre d'annonce promotionnelle, en-tête et menus personnalisables, sections & sous-blocs dynamiques, archétypes sectoriels, configuration COD/livraison gratuite (DZD), Mode Vacances/Pré-lancement et pixels marketing (**Meta Pixel**, **TikTok Pixel**, **GA4**).
+* **Univers Verticaux Dédiés** :
+  * **Olma Immo (`/immo`)** : Annonces immobilières vérifiées et planification de visites.
+  * **Olma Auto (`/auto`)** : Recherche de véhicules par marque (39 marques), annonces automobiles et pièces détachées.
+  * **Olma Artisans & Bricolage (`/artisans`)** : Annuaire de professionnels et artisans qualifiés par wilaya.
 
 ---
 
 ## 🏛️ Architecture & Gouvernance
 
-L'application est structurée selon une approche modulaire guidée par le domaine (Domain-Driven Design simplifié) :
+L'application est structurée selon une approche modulaire guidée par le domaine (**Domain-Driven Design**) avec une limite stricte de **250 lignes maximum par fichier** (`max-lines` imposé par ESLint) :
 
 ```text
 /
-├── app.ts                  # Définition des middlewares globaux Express & Sécurité (Helmet, CORS, Rate-limiting)
-├── server.ts               # Point d'entrée serveur (Configuration du serveur Express & Vite Middleware)
-├── vite.config.ts          # Configuration de production Vite 8 (Compilateurs Oxc et Rolldown en Rust)
-├── vitest.config.ts        # Configuration du framework de test unitaire & d'intégration
+├── app.ts                  # Middlewares globaux Express, Sécurité (Helmet, CORS, CSRF, Rate-limiting) & montage des routes /api/v1/*
+├── server.core.ts          # Cœur serveur Express compilé par Esbuild vers dist/server.cjs pour la production
+├── server.ts               # Point d'entrée runtime (Serveur HTTP port 3000 + Vite Middleware en dev)
+├── vite.config.ts          # Configuration de build Vite 8.3 & Tailwind CSS 4.3
+├── vitest.config.ts        # Configuration des tests unitaires, d'intégration & de concurrence ACID
+├── playwright.config.ts    # Configuration des parcours End-to-End (E2E) multi-univers
+├── e2e/                    # Suites E2E Playwright (Checkout, Studio Vendeur, Immo, Auto & Artisans)
 ├── src/
-│   ├── components/         # Composants UI partagés, hautement optimisés pour React 19
-│   ├── domains/            # Logique métier et contrôleurs isolés par domaine (notifications, orders, tickets, etc.)
-│   ├── hooks/              # Custom hooks partagés pour la gestion des états réactifs
-│   ├── lib/                # Connecteurs Firebase (SDK Client sécurisé, helpers de transactions)
-│   ├── tests/              # Suites de tests automatisées (Vitest / Playwright)
-│   └── types/              # Déclarations strictes des modèles et interfaces métiers TypeScript
+│   ├── components/         # Composants UI modulaires (< 250 lignes) : Shop Drawer, Store Sections OS 2.0, Layout
+│   ├── domains/            # Logique métier et contrôleurs isolés par domaine (product, seller, order, admin, etc.)
+│   ├── hooks/              # Hooks partagés pour la gestion d'état réactive
+│   ├── lib/                # Connecteurs Firebase Client & utilitaires d'appels API (/api/v1/* avec Bearer Token)
+│   ├── pages/              # Vues applicatives (Public, Seller/StoreBuilder Studio 3.0, Admin, Immo, Auto, Artisans)
+│   ├── tests/              # Tests unitaires, sécurité RBAC et concurrence Firestore (Vitest)
+│   ├── types/              # Interfaces et contrats TypeScript stricts (zéro `any`)
+│   └── utils/              # Taxonomie canonique (categoryCanonical.ts), traductions et helpers
 ```
 
 ---
 
 ## 🔒 Sécurité & Intégrité (Olmart Core Mandate)
 
-* **Transactions Firestore ACID** : Toute opération modifiant des stocks, des paniers ou des soldes financiers utilise obligatoirement un bloc transactionnel sérialisé `db.runTransaction()` côté serveur.
-* **Server-Controlled Authorization** : L'accès aux privilèges d'administration est vérifié exclusivement côté serveur via des custom claims d'authentification. Aucune liste d'autorisations (allowlist) n'est stockée côté client.
-* **Herméticité aux IDOR** : Chaque requête d'accès ou d'écriture de document fait l'objet d'un contrôle d'ownership serveur strict en validant `req.user.uid === resource.ownerId`.
-* **Sanitization active** : Utilisation systématique d'isomorphic-dompurify pour assainir les entrées utilisateur et configuration CSP restrictive au niveau réseau.
+* **Exclusivité des Endpoints `/api/v1/`** : Toutes les routes serveur et appels clients utilisent exclusivement le préfixe `/api/v1/` et renvoient une enveloppe typée `{ success: true, data: T }` ou `{ error: string }`.
+* **Transactions Firestore ACID (`db.runTransaction`)** : Toute décrémentation de stock, validation de panier, publication de layout Studio 3.0 ou réservation d'URL (`shopSlug`) s'exécute obligatoirement dans une transaction Firestore atomique.
+* **Server-Controlled Authorization (RBAC)** : Les privilèges administrateur sont établis et vérifiés exclusivement côté serveur via Firebase Custom Claims. Aucune liste d'emails administrateur n'est exposée côté client (`VITE_*`).
+* **Herméticité aux IDOR & Compatibilité Iframe** : L'authentification transite explicitement par le header `Authorization: Bearer <token>`, avec vérification systématique `req.user.uid === resource.ownerId`.
+* **Sanitization Active** : Assainissement des entrées via `isomorphic-dompurify`, validation de schémas via **Zod 4**, et politique CSP stricte.
 
 ---
 
 ## 🛠️ Stack Technique & Compilateurs
 
-* **Frontend** : React 19.0 (Architecture réactive sans side-effects dans les cycles d'effets) + Tailwind CSS 4.0.
-* **Compilateurs de production** : 
-  - **Oxc & Rolldown** (Rust) pour le bundle frontend (performance décuplée).
-  - **Esbuild** (Go) pour la compilation du serveur Express en format CommonJS (`dist/server.cjs`).
-* **Backend** : Node.js (Express v4 + Firebase Admin SDK v13).
-* **AI Engine** : Intégration du SDK `@google/genai` pour les appels Gemini 1.5 Flash exécutés exclusivement côté serveur.
+* **Frontend** : React 19.0 + TypeScript 5.8 Strict + Tailwind CSS 4.3 + Zustand 5 + TanStack Query 5.
+* **Compilateurs de production** :
+  * **Vite 8.3 (Oxc & Rolldown en Rust)** pour le bundle client.
+  * **Esbuild** pour le bundle serveur autonome (`dist/server.cjs`).
+* **Backend** : Node.js 22 (Express 4 + Firebase Admin SDK 13 + Pino Logger).
+* **AI Engine** : SDK officiel `@google/genai` exécuté exclusivement côté serveur.
 
 ---
 
-## 📋 Prérequis
+## 📋 Prérequis & Environnement Strict
 
-* **Node.js** : `v22.x` (géré via `.nvmrc`)
-* **npm** : `10.x` ou supérieur
-* **Java Runtime (JRE)** : `17+` (obligatoire pour démarrer l'émulateur local Firestore/Storage lors des tests)
+L'infrastructure CI et la production exigent des versions verrouillées pour prévenir toute dérive (`lockfile drift`) :
+* **Node.js** : `v22.23.2` (défini dans `.nvmrc`, plage `>=22.22.0 <23`)
+* **npm** : `10.9.4` (`packageManager` verrouillé dans `package.json`)
+* **Java Runtime (JRE)** : `17+` (requis uniquement pour l'exécution locale de la suite d'émulateurs Firebase)
 
----
-
-## 🛡️ Charte Stricte : Sécurité & Configuration de l'Environnement Local
-
-À la suite des derniers audits de sécurité et du durcissement de notre infrastructure (Shift-Left Security), de nouvelles barrières restrictives ont été mises en place pour protéger l'application dès la phase de développement.
-**Chaque contributeur DOIT respecter impérativement cette procédure d'initialisation.**
-
-### 1. Prérequis d'Environnement Stricts
-L'infrastructure CI et les environnements de production exigent des versions exactes pour prévenir les dérives (lockfile drift) :
-* **Node.js** : `v22.23.2` obligatoire.
-* **npm** : `10.9.4` obligatoire.
-* N'utilisez **JAMAIS** `npm install` lors du premier setup ou sur le serveur CI. Utilisez toujours :
-  ```bash
-  npm ci
-  ```
-
-### 2. Le Secret CSRF (Blocage Explicite - Pas de solution de repli)
-Le mécanisme de protection CSRF ne tolère **plus aucun mot de passe de repli codé en dur** (ex: `olmart_dev_csrf_...`). Si le secret est manquant ou faible (< 32 caractères, ou contenu dans une blacklist de mots courants), **le serveur crashera (Exit 1) immédiatement au démarrage, même en développement local.**
-
-**Action requise :** Générez une clé robuste à 64 caractères et ajoutez-la à votre fichier `.env.local` ou `.env` :
-```bash
-# Génération d'une clé hexadécimale sécurisée sous Linux/Mac :
-openssl rand -hex 32
-
-# Ajoutez la valeur générée dans votre .env :
-CSRF_SECRET=votre_clef_generee_ici_...
-```
-
-### 3. Git Hooks & Validation Continue (Husky)
-Les hooks locaux ont été réactivés et verrouillés (`.husky/pre-commit`). 
-Toute tentative de commit déclenchera automatiquement `lint-staged` pour formater (Prettier) et vérifier (ESLint) vos fichiers modifiés.
-* **Ne forcez jamais un commit avec `--no-verify`.**
-* Si les hooks ne s'installent pas automatiquement après le `npm ci`, forcez l'installation locale :
-  ```bash
-  npm run prepare
-  chmod +x .husky/pre-commit
-  ```
-
-### 4. Environnement Conteneurisé & Pipeline CI/CD
-* **Image Docker (Production) :** L'image Docker finale s'exécute sous un utilisateur non-root (`USER node`), exclut les dépendances dev, et verrouille les fichiers statiques en lecture seule (`chmod -R a-w dist public`). Aucun secret n'est intégré dans l'image.
-* **CI GitHub Actions :** Toute Pull Request fait l'objet d'un pipeline automatisé strict et bloquant :
-  * Audit de sécurité bloquant des dépendances de production (`npm run audit:ci`)
-  * Typecheck TypeScript strict (`tsc --noEmit`) & Linting (`eslint`)
-  * Suite de tests automatisés Vitest avec rapport de couverture
-  * Validation d'intégrité de compilation du Dockerfile multi-stage (`docker build`)
+> **Règle de gouvernance `package.json` :** Toute mise à jour de dépendance doit s'accompagner d'une régénération de `package-lock.json` et d'une vérification `npm ci --dry-run` avant commit.
 
 ---
 
 ## ⚙️ Configuration & Variables d'Environnement
 
-Le serveur Express écoute sur le port spécifié par la variable d'environnement `PORT` (injectée dynamiquement par Cloud Run, ex: `8080`) avec un fallback sur le port `3000` et l'adresse `0.0.0.0`.
+Le serveur Express écoute sur le port `3000` (`0.0.0.0`) et prend également en charge le port injecté par Cloud Run (`PORT`).
 
-Créez un fichier `.env` à la racine à partir du modèle :
-```bash
-cp .env.example .env
-```
-
-### Variables Firebase indispensables (Client & Admin) :
-* `VITE_FIREBASE_API_KEY` : Clé d'API du client Web.
-* `VITE_FIREBASE_AUTH_DOMAIN` : Domaine d'authentification client.
-* `VITE_FIREBASE_PROJECT_ID` : ID du projet Firebase.
-* `FIREBASE_PROJECT_ID` : ID du projet (Backend Admin SDK).
-* `FIREBASE_SERVICE_ACCOUNT_KEY` : Jeton de compte de service JSON pour l'authentification Admin SDK.
+1. Copiez le modèle d'environnement :
+   ```bash
+   cp .env.example .env
+   ```
+2. **Secret CSRF (`CSRF_SECRET`)** :
+   * En **production** (`NODE_ENV=production`), `CSRF_SECRET` est strictement obligatoire (minimum 32 caractères aléatoires, aucun secret faible toléré sous peine d'arrêt immédiat au démarrage).
+   * En **développement et test** (`NODE_ENV=development` / `test`), une clé éphémère est générée si non définie afin de faciliter l'exécution locale et les tests E2E.
+   ```bash
+   # Générer une clé hexadécimale robuste de 64 caractères :
+   openssl rand -hex 32
+   ```
+3. **Variables Firebase principales (Client & Admin)** :
+   * `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID`
+   * `FIREBASE_PROJECT_ID`, `FIREBASE_DATABASE_ID=(default)`, `FIREBASE_STORAGE_BUCKET`
+   * `FIREBASE_SERVICE_ACCOUNT_KEY` (ou identité managée ADC sur Cloud Run)
 
 ---
 
 ## 🚀 Installation & Démarrage
 
 ```bash
-# 1. Installation propre et déterministe des dépendances
+# 1. Installation déterministe des dépendances
 npm ci
 
-# 2. Démarrage du serveur en mode développement (Port 3000, Proxy actif)
+# 2. Démarrage du serveur full-stack en développement (Port 3000)
 npm run dev
 ```
 
@@ -141,25 +114,27 @@ npm run dev
 
 | Commande | Description |
 |---|---|
-| `npm run dev` | Lance le serveur Express et monte l'instance de développement Vite 8 |
-| `npm run build` | Compile l'application frontend et bundle le serveur dans `dist/server.cjs` |
-| `npm start` | Démarre l'application de production compilée (depuis `dist/server.cjs`) |
-| `npm test` | Exécute la suite complète de tests unitaires et d'intégration via Vitest |
-| `npm run lint` | Exécute ESLint sur l'ensemble de la codebase |
-| `npm run typecheck` | Lance une analyse stricte de conformité des types TypeScript (`tsc --noEmit`) |
-| `npm run format` | Applique le formatage Prettier sur les fichiers sources |
+| `npm run dev` | Démarre le serveur Express (`tsx server.ts`) avec le middleware Vite sur le port `3000` |
+| `npm run build` | Compile le frontend (`vite build`) et le serveur (`esbuild server.core.ts` ➔ `dist/server.cjs`) |
+| `npm start` | Démarre le serveur applicatif (`node server.ts`) |
+| `npm run lint` | Vérifie l'ensemble du code avec ESLint (incluant la règle `max-lines <= 250` et zéro `any`) |
+| `npm run typecheck` | Vérifie le typage TypeScript strict (`tsc --noEmit`) |
+| `npm test` | Exécute la suite de tests unitaires et d'intégration via Vitest |
+| `npm run test:concurrency` | Teste la résistance aux conditions de course sur les stocks Firestore (`db.runTransaction`) |
+| `npm run test:e2e` | Lance la suite de tests End-to-End Playwright (Checkout, Studio 3.0, Immo, Auto, Artisans) |
+| `npm run lint:firestore-rules` | Vérifie la cohérence et la sécurité des règles `firestore.rules` |
+| `npm run validate:assets` | Vérifie l'intégrité des images et ressources statiques du projet |
+| `npm run format` | Formate les fichiers sources avec Prettier |
 
 ---
 
 ## 🩺 Endpoints de Supervision (Healthchecks)
 
-Pour vérifier l'état et l'intégrité de l'application en cours d'exécution :
-* **Liveness Probe** : `GET /api/v1/health/live` ➔ Renvoie `{ status: "alive" }` (HTTP 200) si le serveur est réactif.
-* **Readiness/Health Probe** : `GET /api/v1/health` ➔ Analyse la mémoire système et certifie l'état de la connexion Firebase Admin (`{ firebase: "ok" }`).
+* **Liveness Probe** : `GET /api/v1/health/live` ➔ Renvoie `{ status: "alive" }` (`HTTP 200`).
+* **Readiness / Health Probe** : `GET /api/v1/health` ➔ Certifie la connectivité Firebase Admin et les métriques mémoire du processus.
 
 ---
 
 ## 📜 Licence
 
-Ce projet est la propriété exclusive d'**OLMART**. Tous droits réservés.
-Consultez le fichier [`LICENSE`](./LICENSE) pour plus de détails.
+Ce projet est la propriété exclusive d'**OLMART**. Tous droits réservés. Consultez le fichier [`LICENSE`](./LICENSE) pour plus de détails.

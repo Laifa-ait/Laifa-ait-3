@@ -12,6 +12,19 @@ export const applyMediaToSection = (
     return;
   }
   const settings = selectedSection.settings as unknown as Record<string, unknown>;
+  if (selectedSection.type === "hero_banner") {
+    updateSection(selectedSection.id, {
+      settings: {
+        ...settings,
+        imageUrl: url,
+        backgroundImage: url,
+      } as unknown as CustomPageSection["settings"],
+    });
+    onSuccess();
+    toast.success("Visuel appliqué à la bannière principale.");
+    return;
+  }
+
   const field =
     typeof settings.imageUrl === "string"
       ? "imageUrl"

@@ -5,21 +5,34 @@
  * Icons: lucide-react only
  */
 
-import React, { useEffect } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { AppRouter } from "./AppRouter";
-import { InstallPrompt } from "./components/InstallPrompt";
 import { useTranslation } from "react-i18next";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MetaTags } from "./components/MetaTags";
-import { GlobalSearchModal } from "./components/common/GlobalSearchModal";
-import { DataConsentBanner } from "./components/Consent/DataConsentBanner";
 import { useTranslationRealtimeSync } from "./hooks/useTranslationRealtimeSync";
+
+const GlobalSearchModal = React.lazy(() =>
+  import("./components/common/GlobalSearchModal").then((m) => ({ default: m.GlobalSearchModal }))
+);
+const DataConsentBanner = React.lazy(() =>
+  import("./components/Consent/DataConsentBanner").then((m) => ({ default: m.DataConsentBanner }))
+);
+const InstallPrompt = React.lazy(() =>
+  import("./components/InstallPrompt").then((m) => ({ default: m.InstallPrompt }))
+);
 
 const App = () => {
   const { i18n } = useTranslation();
+  const [deferredReady, setDeferredReady] = useState(false);
 
-  // Instant real-time Firestore synchronization for translations
+  // Instant real-time Firestore synchronization for translations (deferred internally after first paint)
   useTranslationRealtimeSync();
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDeferredReady(true), 450);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const handleLangChange = (lng: string) => {
@@ -39,23 +52,27 @@ const App = () => {
 
   return (
     <ErrorBoundary>
-      <MetaTags 
+      <MetaTags
         schema={{
           "@context": "https://schema.org",
           "@type": "Organization",
-          "name": "Olma Marketplace",
-          "url": "https://olma-dz.com",
-          "logo": "https://olma-dz.com/assets/icon.png",
-          "sameAs": [
+          name: "Olma Marketplace",
+          url: "https://olma-dz.com",
+          logo: "https://olma-dz.com/assets/icon.png",
+          sameAs: [
             "https://facebook.com/olmadz",
-            "https://instagram.com/olmadz"
-          ]
+            "https://instagram.com/olmadz",
+          ],
         }}
       />
       <AppRouter />
-      <GlobalSearchModal />
-      <DataConsentBanner />
-      <InstallPrompt />
+      {deferredReady && (
+        <Suspense fallback={null}>
+          <GlobalSearchModal />
+          <DataConsentBanner />
+          <InstallPrompt />
+        </Suspense>
+      )}
     </ErrorBoundary>
   );
 };

@@ -122,12 +122,36 @@ export const SectionInspectorPanel: React.FC<SectionInspectorPanelProps> = ({
     fieldOrPatch: keyof CustomPageSectionStyles | Partial<CustomPageSectionStyles>,
     value?: unknown
   ) => {
-    onUpdateSection(section.id, {
-      styles:
-        typeof fieldOrPatch === "string"
-          ? { ...section.styles, [fieldOrPatch]: value }
-          : { ...section.styles, ...fieldOrPatch },
-    });
+    const nextStyles: CustomPageSectionStyles =
+      typeof fieldOrPatch === "string"
+        ? { ...section.styles, [fieldOrPatch]: value }
+        : { ...section.styles, ...fieldOrPatch };
+
+    const isPresetSchemeSwitch =
+      typeof fieldOrPatch === "object" &&
+      fieldOrPatch !== null &&
+      "colorScheme" in fieldOrPatch &&
+      fieldOrPatch.colorScheme !== "custom";
+
+    if (isPresetSchemeSwitch && section.type === "hero_banner") {
+      onUpdateSection(section.id, {
+        styles: nextStyles,
+        settings: {
+          ...section.settings,
+          titleColor: "",
+          subtitleColor: "",
+          ctaBgColor: "",
+          ctaTextColor: "",
+          badgeBgColor: "",
+          badgeTextColor: "",
+          secondaryCtaBgColor: "",
+          secondaryCtaTextColor: "",
+        },
+      });
+      return;
+    }
+
+    onUpdateSection(section.id, { styles: nextStyles });
   };
 
   const settings = (section.settings || {}) as Record<string, unknown>;

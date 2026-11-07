@@ -3,6 +3,8 @@ import { Sparkles } from "lucide-react";
 import {
   CategoryItem,
   CategoryCardSize,
+  CategoryImagePosition,
+  CategoryImageFit,
 } from "../../../pages/Seller/StoreBuilder/constants/categoryPresets";
 import { CategoryMesh3DRow } from "./category/CategoryMesh3DRow";
 import { CategoryShopifyBento } from "./category/CategoryShopifyBento";
@@ -13,6 +15,7 @@ import { CategoryEditorialModels } from "./category/CategoryEditorialModels";
 import {
   resolveCategoryGridCols,
   resolveCategoryGapClass,
+  resolveOuterAndMediaRadius,
 } from "./category/categoryResponsiveHelper";
 
 interface FeaturedCategoriesRendererProps {
@@ -53,7 +56,7 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
   const borderRadius = String(settings.borderRadius || "md");
   const hoverEffect = String(settings.hoverEffect || "zoom");
   const textPosition = String(
-    settings.textPosition || (layout === "overlay" ? "overlay-bottom" : "below")
+    settings.textPosition || (layout === "overlay" || layout === "bento" || layout === "glass-dock" ? "overlay-bottom" : "below")
   );
   const overlayOpacity =
     typeof settings.overlayOpacity === "number" ? settings.overlayOpacity / 100 : 0.4;
@@ -69,6 +72,8 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
   const columnsDesktop = Number(settings.columnsDesktop ?? 4);
   const columnsMobile = Number(settings.columnsMobile ?? 2);
   const gapSize = String(settings.gapSize || "normal");
+  const imagePosition = (settings.imagePosition as CategoryImagePosition) || "center";
+  const imageFit = (settings.imageFit as CategoryImageFit) || "cover";
 
   const getCountLabel = (cat: CategoryItem) => {
     if (Array.isArray(cat.productIds) && cat.productIds.length > 0) {
@@ -88,15 +93,7 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
     circle: "aspect-[4/5]",
   };
 
-  const radiusClassMap: Record<string, string> = {
-    none: "rounded-none",
-    sm: "rounded-xl",
-    md: "rounded-2xl",
-    lg: "rounded-2xl",
-    full: "rounded-2xl",
-  };
-
-  const hoverImgClass = hoverEffect === "zoom" ? "group-hover:scale-[1.02]" : "";
+  const hoverImgClass = hoverEffect === "zoom" ? "group-hover:scale-[1.03]" : "";
 
   const hoverCardClass =
     hoverEffect === "none"
@@ -107,7 +104,8 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
 
   const effectiveOverlay =
     layout === "overlay" || textPosition === "overlay-bottom" || textPosition === "overlay-center";
-  const cardRadiusClass = radiusClassMap[borderRadius] || "rounded-2xl";
+  const { outerRadiusClass } = resolveOuterAndMediaRadius(borderRadius);
+  const aspectRatioClass = aspectClassMap[aspectRatio] || "aspect-[4/5]";
   const containerGridColsClass = resolveCategoryGridCols(
     columnsDesktop,
     columnsMobile,
@@ -118,9 +116,12 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
 
   const sharedProps = {
     categories,
-    cardRadiusClass,
+    cardRadius: borderRadius,
+    cardRadiusClass: outerRadiusClass,
+    aspectRatioClass,
     hoverImgClass,
     hoverCardClass,
+    textPosition,
     overlayOpacity,
     glassmorphism,
     showTitle,
@@ -129,6 +130,10 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
     gapClass,
     cardSize,
     cardSkin,
+    columnsDesktop,
+    columnsMobile,
+    imagePosition,
+    imageFit,
     primaryColor: theme.primaryColor,
     sectionId: "standalone",
     getCountLabel,
@@ -165,17 +170,11 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
         ) : layout === "bubbles" ? (
           <CategoryShopifyStories
             {...sharedProps}
-            bubbleSize={bubbleSize}
+            bubbleSize={cardSize === "compact" ? "sm" : cardSize === "large" ? "lg" : bubbleSize}
             bubbleRing={bubbleRing}
-            columnsDesktop={columnsDesktop}
-            columnsMobile={columnsMobile}
           />
         ) : layout === "pills" ? (
-          <CategoryShopifyPills
-            {...sharedProps}
-            cardRadius={borderRadius}
-            pillShowImage={pillShowImage}
-          />
+          <CategoryShopifyPills {...sharedProps} pillShowImage={pillShowImage} />
         ) : layout === "bento" ? (
           <CategoryShopifyBento {...sharedProps} />
         ) : layout === "accordion" ||
@@ -193,9 +192,7 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
             layout={layout}
             carouselRef={carouselRef}
             containerGridColsClass={containerGridColsClass}
-            aspectRatioClass={aspectClassMap[aspectRatio] || "aspect-[4/5]"}
             effectiveOverlay={effectiveOverlay}
-            textPosition={textPosition}
           />
         )}
       </div>

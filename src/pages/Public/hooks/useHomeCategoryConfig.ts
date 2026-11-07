@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { resolveCanonicalCategoryKey } from "../../../utils/categoryCanonical";
 
 export interface CategoryCardConfig {
   key: string;
@@ -7,6 +8,7 @@ export interface CategoryCardConfig {
   subtitle: string;
   image: string;
   gradient: string;
+  subcategoriesPreview?: string[];
   featuredProductIds?: string[];
   withExploreButton?: boolean;
 }
@@ -20,13 +22,6 @@ interface CustomCategoryItem {
   featuredProductIds?: string[];
 }
 
-const normalize = (val: string): string =>
-  val
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]/g, "");
-
 export const useHomeCategoryConfig = (
   customCategories: CustomCategoryItem[] = [],
   categoryHierarchy: Record<string, unknown> | Record<string, Record<string, string[]>> = {},
@@ -38,144 +33,159 @@ export const useHomeCategoryConfig = (
   const defaultCategoryMapping = useMemo<CategoryCardConfig[]>(
     () => [
       {
+        key: "Maison & Déco",
+        title: t("cat_maison_deco", "Maison & Décoration"),
+        subtitle: t("cat_home_desc", "Salons d'architecte, Mobilier & Luminaires"),
+        image: "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&q=80&w=800",
+        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+      },
+      {
+        key: "Électronique",
+        title: t("cat_tech", "Tech & Performance"),
+        subtitle: t("cat_tech_desc", "Smartphones, PC Pro, Audio & Domotique"),
+        image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80&w=800",
+        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+      },
+      {
+        key: "Électroménager",
+        title: t("cat_electromenager", "Électroménager"),
+        subtitle: t("cat_electromenager_desc", "Froid, Cuisson encastrable & Caféterie"),
+        image: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800",
+        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+      },
+      {
+        key: "Mode",
+        title: t("cat_fashion_title", "Mode & Élégance"),
+        subtitle: t("cat_fashion_desc", "Prêt-à-porter, Maroquinerie & Horlogerie"),
+        image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=800",
+        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+      },
+      {
+        key: "Artisanat & Tradition",
+        title: t("cat_artisanat", "Artisanat & Tradition"),
+        subtitle: t("cat_artisanat_desc", "Haute couture algérienne, Dinanderie & Tapis"),
+        image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&q=80&w=800",
+        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+      },
+      {
+        key: "Beauté & Santé",
+        title: t("cat_beaute", "Beauté & Soins"),
+        subtitle: t("cat_beaute_desc", "Haute Parfumerie, Dermo-cosmétique & Soins"),
+        image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=800",
+        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+      },
+      {
+        key: "Auto & Moto",
+        title: t("cat_auto", "Auto & Moto"),
+        subtitle: t("cat_auto_desc", "Pièces OEM, Pneumatiques & Équipement"),
+        image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=800",
+        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+      },
+      {
+        key: "Sport & Loisirs",
+        title: t("cat_sport", "Sport & Fitness"),
+        subtitle: t("cat_sport_desc", "Musculation, Running, Cyclisme & Outdoor"),
+        image: "https://images.unsplash.com/photo-1517649763962-0c6232662000?auto=format&fit=crop&q=80&w=800",
+        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+      },
+      {
+        key: "Bébé & Puériculture",
+        title: t("cat_bebe", "Bébé & Puériculture"),
+        subtitle: t("cat_bebe_desc", "Poussettes Trio, Chambre & Premier Âge"),
+        image: "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&q=80&w=800",
+        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+      },
+      {
+        key: "Bricolage & Outillage",
+        title: t("cat_bricolage", "Bricolage & Outillage"),
+        subtitle: t("cat_bricolage_desc", "Électroportatif Pro, Plomberie & Chantier"),
+        image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=800",
+        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+      },
+      {
         key: "Jeux & Jouets",
         title: t("cat_jouets", "Jeux & Jouets"),
-        subtitle: t("cat_jouets_desc", "Découvrez notre collection"),
-        image: "/images/placeholders/product.svg",
-        gradient: "from-zinc-950/80 via-zinc-950/20 to-transparent",
+        subtitle: t("cat_jouets_desc", "Jeux éducatifs, Figurines & Plein air"),
+        image: "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&q=80&w=800",
+        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
       },
       {
         key: "Supermarché",
         title: t("cat_supermarche", "Supermarché"),
-        subtitle: t("cat_supermarche_desc", "Produits frais & quotidien"),
-        image: "/images/placeholders/product.svg",
-        gradient: "from-zinc-900/80 via-zinc-900/20 to-transparent",
+        subtitle: t("cat_supermarche_desc", "Épicerie fine, Huile de Kabylie & Quotidien"),
+        image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800",
+        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
         withExploreButton: true,
       },
       {
         key: "Scolaire & Bureau",
         title: t("cat_scolaire", "Scolaire & Bureau"),
-        subtitle: t("cat_scolaire_desc", "Livres, fournitures & rentrée"),
-        image: "/images/placeholders/product.svg",
-        gradient: "from-zinc-950/80 via-zinc-950/20 to-transparent",
-      },
-      {
-        key: "Mode",
-        title: t("cat_fashion_title", "Mode & Élégance"),
-        subtitle: t("cat_fashion_desc", "Prêt-à-porter, Chaussures & Sacs..."),
-        image: "/images/placeholders/product.svg",
-        gradient: "from-zinc-950/80 via-zinc-950/20 to-transparent",
-      },
-      {
-        key: "Maison & Déco",
-        title: t("cat_maison_deco", "Maison & Décoration"),
-        subtitle: t("cat_home_desc", "Salons, Mobilier, Linge de maison..."),
-        image: "/images/placeholders/product.svg",
-        gradient: "from-zinc-950/80 via-zinc-950/20 to-transparent",
-      },
-      {
-        key: "Électronique",
-        title: t("cat_tech", "Tech & Performance"),
-        subtitle: t("cat_tech_desc", "Gadgets connectés, Audio & PC..."),
-        image: "/images/placeholders/product.svg",
-        gradient: "from-zinc-950/80 via-zinc-950/20 to-transparent",
-      },
-      {
-        key: "Beauté & Santé",
-        title: t("cat_beaute", "Beauté & Soins"),
-        subtitle: t("cat_beaute_desc", "Parfums, Cosmétiques & Bien-être..."),
-        image: "/images/placeholders/product.svg",
-        gradient: "from-zinc-950/80 via-zinc-950/20 to-transparent",
-      },
-      {
-        key: "Électroménager",
-        title: t("cat_electromenager", "Électroménager"),
-        subtitle: t("cat_electromenager_desc", "Froid, Cuisson & Petit déjeuner..."),
-        image: "/images/placeholders/product.svg",
-        gradient: "from-zinc-950/80 via-zinc-950/20 to-transparent",
-      },
-      {
-        key: "Auto & Moto",
-        title: t("cat_auto", "Auto & Moto"),
-        subtitle: t("cat_auto_desc", "Pièces détachées, Huiles & Entretien..."),
-        image: "/images/placeholders/product.svg",
-        gradient: "from-zinc-950/80 via-zinc-950/20 to-transparent",
-      },
-      {
-        key: "Bricolage & Outillage",
-        title: t("cat_bricolage", "Outillage & Travaux"),
-        subtitle: t("cat_bricolage_desc", "Outillage pro, Jardin & Maison..."),
-        image: "/images/placeholders/product.svg",
-        gradient: "from-zinc-950/80 via-zinc-950/20 to-transparent",
-      },
-      {
-        key: "Sport & Loisirs",
-        title: t("cat_sport", "Sport & Fitness"),
-        subtitle: t("cat_sport_desc", "Musculation, Running & Plein air..."),
-        image: "/images/placeholders/product.svg",
-        gradient: "from-zinc-950/80 via-zinc-950/20 to-transparent",
-      },
-      {
-        key: "Bébé & Puériculture",
-        title: t("cat_bebe", "Bébé & Puériculture"),
-        subtitle: t("cat_bebe_desc", "Poussettes, Sommeil, Éveil & Jeux..."),
-        image: "/images/placeholders/product.svg",
-        gradient: "from-zinc-950/80 via-zinc-950/20 to-transparent",
-      },
-      {
-        key: "Artisanat & Tradition",
-        title: t("cat_artisanat", "Artisanat & Tradition"),
-        subtitle: t("cat_artisanat_desc", "Céramique, Tissage, Cuir & Terroir..."),
-        image: "/images/placeholders/product.svg",
-        gradient: "from-zinc-950/80 via-zinc-950/20 to-transparent",
+        subtitle: t("cat_scolaire_desc", "Papeterie, Livres, Manuels & Maroquinerie"),
+        image: "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?auto=format&fit=crop&q=80&w=800",
+        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
       },
     ],
     [t]
   );
 
   const activeCategoriesConfig = useMemo<CategoryCardConfig[]>(() => {
-    const safeHierarchy = categoryHierarchy || {};
-    const baseMap = Object.keys(safeHierarchy).map((catKey) => {
-      const catKeyNorm = normalize(catKey);
-      const defaultMapping =
-        defaultCategoryMapping.find((dm) => dm.key === catKey) ||
-        defaultCategoryMapping.find((dm) => normalize(dm.key) === catKeyNorm);
+    const safeHierarchy = (categoryHierarchy || {}) as Record<string, Record<string, string[]>>;
+    const seenCanonicalKeys = new Set<string>();
+    const deduplicatedItems: CategoryCardConfig[] = [];
 
-      const translatedTitle = defaultMapping?.title || t(`categories.${catKey}`, t(`cat_${catKey}`, catKey));
-      const translatedSub = defaultMapping?.subtitle || t("home.discover_category_articles", { category: translatedTitle });
-
-      return (
-        defaultMapping || {
-          key: catKey,
-          title: translatedTitle,
-          subtitle: translatedSub,
-          image: "/images/placeholders/product.svg",
-          gradient: "from-zinc-950/80 via-zinc-950/20 to-transparent",
-        }
-      );
-    });
-
-    return baseMap.map((categoryItem) => {
-      const custom = customCategories.find((cc) => cc.id === categoryItem.key);
-      if (custom) {
-        const title = custom.title || categoryItem.title;
-        return {
-          ...categoryItem,
-          title,
-          subtitle: custom.subtitle || categoryItem.subtitle,
-          image: custom.image || categoryItem.image,
-          gradient: custom.gradient || categoryItem.gradient,
-          featuredProductIds: custom.featuredProductIds || [],
-        };
+    Object.keys(safeHierarchy).forEach((rawKey) => {
+      const canonicalKey = resolveCanonicalCategoryKey(rawKey);
+      if (!canonicalKey || seenCanonicalKeys.has(canonicalKey)) {
+        return;
       }
-      return {
-        ...categoryItem,
-        featuredProductIds: [],
-      };
+      seenCanonicalKeys.add(canonicalKey);
+
+      const defaultMapping = defaultCategoryMapping.find((dm) => dm.key === canonicalKey);
+      const subMap = safeHierarchy[canonicalKey] || safeHierarchy[rawKey] || {};
+      const subcategoriesPreview = Object.keys(subMap).slice(0, 3);
+
+      const baseCard: CategoryCardConfig = defaultMapping
+        ? { ...defaultMapping, subcategoriesPreview }
+        : {
+            key: canonicalKey,
+            title: t(`categories.${canonicalKey}`, canonicalKey),
+            subtitle:
+              subcategoriesPreview.length > 0
+                ? subcategoriesPreview.join(" • ")
+                : t("home.discover_category_articles", { category: canonicalKey }),
+            image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800",
+            gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+            subcategoriesPreview,
+          };
+
+      const custom = customCategories.find((cc) => resolveCanonicalCategoryKey(cc.id) === canonicalKey);
+      if (custom) {
+        const hasValidImage =
+          custom.image &&
+          !custom.image.includes("placeholder") &&
+          custom.image.trim().length > 0;
+
+        deduplicatedItems.push({
+          ...baseCard,
+          title: custom.title || baseCard.title,
+          subtitle: custom.subtitle || baseCard.subtitle,
+          image: hasValidImage ? (custom.image as string) : baseCard.image,
+          gradient: custom.gradient || baseCard.gradient,
+          featuredProductIds: custom.featuredProductIds || [],
+        });
+      } else {
+        deduplicatedItems.push({
+          ...baseCard,
+          featuredProductIds: [],
+        });
+      }
     });
+
+    return deduplicatedItems;
   }, [customCategories, defaultCategoryMapping, categoryHierarchy, t]);
 
   const sortedCategoryCards = useMemo<CategoryCardConfig[]>(() => {
+    const canonicalOrder = Object.keys(categoryHierarchy || {}).map((k) => resolveCanonicalCategoryKey(k));
     return [...activeCategoriesConfig].sort((a, b) => {
       const aCount = categoriesVisiteesCount?.[a.key] || 0;
       const bCount = categoriesVisiteesCount?.[b.key] || 0;
@@ -187,9 +197,7 @@ export const useHomeCategoryConfig = (
       if (favoriteCategory === a.key) return -1;
       if (favoriteCategory === b.key) return 1;
 
-      const defaultOrder = Object.keys(categoryHierarchy);
-      const defaultOrderArray = Array.isArray(defaultOrder) ? defaultOrder : [];
-      return defaultOrderArray.indexOf(a.key) - defaultOrderArray.indexOf(b.key);
+      return canonicalOrder.indexOf(a.key) - canonicalOrder.indexOf(b.key);
     });
   }, [activeCategoriesConfig, categoriesVisiteesCount, favoriteCategory, categoryHierarchy]);
 

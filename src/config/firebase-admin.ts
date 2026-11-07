@@ -57,7 +57,7 @@ const envProjectId =
   process.env.GCLOUD_PROJECT ||
   process.env.GOOGLE_CLOUD_PROJECT;
 const configProjectId = typeof firebaseConfig.projectId === "string" ? firebaseConfig.projectId : undefined;
-const targetProjectId = envProjectId || configProjectId;
+const targetProjectId = envProjectId || configProjectId || "original-micron-7sjh2";
 
 try {
   if (admin.apps.length > 0) {
@@ -143,6 +143,12 @@ const setupFirestore = () => {
     } else {
       db = adminApp.firestore();
       safeLogger.info("[Firestore Core] 🟢 Connected and mapped Named Database: [(default)]");
+    }
+
+    try {
+      db.settings({ ignoreUndefinedProperties: true });
+    } catch {
+      // Settings may already be locked if Firestore instance was previously initialized in same process
     }
 
     firebaseInitState = FirebaseInitState.READY;

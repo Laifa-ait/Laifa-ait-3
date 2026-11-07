@@ -68,14 +68,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(false);
       return;
     }
+    // Global iframe safety deadline: never allow Firebase Auth initialization to block protected routes > 1200ms
+    const bootGuardTimer = setTimeout(() => {
+      setLoading(false);
+    }, 1200);
+
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      clearTimeout(bootGuardTimer);
       setCurrentUser(user);
       if (!user) {
         setUserProfile(null);
         setLoading(false);
       } else {
         setUserProfile((prev) => prev || createBaselineProfile(user));
-        const safetyTimer = setTimeout(() => setLoading(false), 1500);
+        const safetyTimer = setTimeout(() => setLoading(false), 1200);
         try {
           const profile = await syncUserProfileWithBackend(user, undefined, "auto_sync");
           if (profile) setUserProfile(profile);
@@ -85,20 +91,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       }
     });
-    return () => unsubscribeAuth();
+    return () => {
+      clearTimeout(bootGuardTimer);
+      unsubscribeAuth();
+    };
   }, []);
 
   useEffect(() => {
     if (!currentUser || !isFirebaseInitialized) return;
     const fetchProfile = async () => {
       try {
-        const data = await apiGet<UserProfile>("/api/v1/auth/profile");
+        const data = await apiGet<UserProfile>("/api/v1/auth/profile", 1);
         if (data) setUserProfile(data);
       } catch (err) {
         safeLogger.warn("AuthContext: Periodic profile fetch retry finished", { err: err instanceof Error ? err.message : String(err) });
       }
     };
-    fetchProfile();
     const interval = setInterval(fetchProfile, 60000);
     return () => clearInterval(interval);
   }, [currentUser]);

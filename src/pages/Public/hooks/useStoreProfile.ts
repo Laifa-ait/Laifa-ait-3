@@ -11,6 +11,7 @@ import { checkStoreFollowStatus, toggleStoreFollow } from "../../../services/sto
 import { PublicStoreInfo } from "../StoreProfile";
 import { PublicShopResponse } from "../../../domains/seller/shop.types";
 import { StoreLayoutVersion } from "../../../domains/seller/customPage.types";
+import { buildFiveActsHomeLayout } from "../../Seller/StoreBuilder/constants/fiveActsLayoutPreset";
 
 export function useStoreProfile() {
   const { sellerId } = useParams();
@@ -157,7 +158,7 @@ export function useStoreProfile() {
   );
 
   const [adjustingImage, setAdjustingImage] = useState<{ file: File; type: "logo" | "banner"; src: string } | null>(null);
-  const [activeTab, setActiveTab] = useState<"products" | "about">("products");
+  const [activeTab, setActiveTab] = useState<"home" | "products" | "collections" | "reviews" | "about">("home");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -307,15 +308,25 @@ export function useStoreProfile() {
             fetchedShop = shop;
             setStoreInfo(shop);
 
-            const validStudioLayout =
-              shop.hasPaidStudioSubscription &&
+            const validStudioLayout: StoreLayoutVersion =
               shop.publishedLayout &&
               Array.isArray(shop.publishedLayout.sections) &&
               shop.publishedLayout.sections.length > 0
                 ? shop.publishedLayout
-                : null;
+                : {
+                    versionNumber: 1,
+                    status: "published",
+                    updatedAt: new Date().toISOString(),
+                    sections: buildFiveActsHomeLayout(
+                      shop.shopName || "Notre Maison",
+                      shop.shopDescription || "Créations authentiques livrées sur les 69 wilayas.",
+                      shop.bannerUrl,
+                      Array.isArray(res.products) ? res.products.map((p) => p.id) : []
+                    ),
+                  };
 
             setPublishedLayout(validStudioLayout);
+            setActiveTab("home");
             setActiveCoupons(shop.activeCoupons || []);
             setTrustMetrics(shop.trustMetrics || null);
             setErrorType(null);

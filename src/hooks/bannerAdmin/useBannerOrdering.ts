@@ -3,6 +3,7 @@ import { db } from "../../lib/firebase";
 import { writeBatch, doc } from "firebase/firestore";
 import toast from "react-hot-toast";
 import { DbBanner } from "./useBannerTypes";
+import { apiPut } from "../../lib/api";
 
 export function useBannerOrdering(
   banners: DbBanner[],
@@ -13,13 +14,25 @@ export function useBannerOrdering(
 
   const saveNewReorder = async (list: DbBanner[]) => {
     try {
-      const batch = writeBatch(db);
-      list.forEach((b, index) => {
-        batch.update(doc(db, "banners", b.id), { sort_order: index + 1 });
-      });
-      await batch.commit();
+      const items = list.map((b, index) => ({
+        id: b.id,
+        order: index + 1,
+        sort_order: index + 1,
+      }));
+      try {
+        await apiPut("/api/v1/admin/banners/reorder", { items });
+      } catch {
+        const batch = writeBatch(db);
+        list.forEach((b, index) => {
+          batch.update(doc(db, "banners", b.id), {
+            sort_order: index + 1,
+            order: index + 1,
+          });
+        });
+        await batch.commit();
+      }
       toast.success("Ordre de tri réordonné avec succès !");
-      fetchData();
+      await fetchData();
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : "Erreur lors de la sauvegarde du re-tri";
       toast.error(errMsg);

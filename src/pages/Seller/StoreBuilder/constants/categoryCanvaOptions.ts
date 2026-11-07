@@ -25,7 +25,13 @@ import {
   Baby,
   LucideIcon,
 } from "lucide-react";
-import { CategoryLayoutType, CategoryAspectRatio, CategoryHoverEffect, CategoryCardRadius } from "./categoryPresets";
+import {
+  CategoryLayoutType,
+  CategoryAspectRatio,
+  CategoryHoverEffect,
+  CategoryCardRadius,
+  CategoryLayoutCapabilities,
+} from "./categoryPresetTypes";
 
 export interface LayoutOptionItem {
   id: CategoryLayoutType;
@@ -48,6 +54,49 @@ export const CATEGORY_LAYOUT_OPTIONS: LayoutOptionItem[] = [
   { id: "pills", label: "Dock Capsules Pro", sublabel: "Bandeaux rapides avec photo", icon: Bookmark },
   { id: "carousel", label: "Lookbook Slider", sublabel: "Défilement horizontal fluide", icon: SlidersHorizontal },
 ];
+
+/**
+ * Matrice de cohérence fonctionnelle par modèle de Porte des Collections.
+ * Garantit qu'aucun contrôle affiché dans l'inspecteur ou la QuickBar n'est inactif ou contradictoire.
+ */
+export function getCategoryLayoutCapabilities(
+  layout: string,
+  textPosition = "below",
+  showTitle = true
+): CategoryLayoutCapabilities {
+  const isOverlayText =
+    textPosition === "overlay-bottom" ||
+    textPosition === "overlay-center" ||
+    layout === "overlay" ||
+    layout === "bento" ||
+    layout === "glass-dock" ||
+    layout === "accordion";
+
+  return {
+    supportsAspectRatio: ["grid", "overlay", "glass-dock", "carousel", "arch", "polaroid"].includes(
+      layout
+    ),
+    supportsColumnsDesktop: [
+      "grid",
+      "overlay",
+      "glass-dock",
+      "arch",
+      "polaroid",
+      "bubbles",
+      "pills",
+      "mesh-3d",
+    ].includes(layout),
+    supportsColumnsMobile: !["accordion", "magazine"].includes(layout),
+    supportsBorderRadius: !["arch", "bubbles"].includes(layout),
+    supportsTextPositionChoice:
+      showTitle && ["grid", "overlay", "carousel", "arch", "bento", "glass-dock"].includes(layout),
+    supportsOverlayContrast: showTitle && isOverlayText,
+    supportsGlassDockToggle:
+      showTitle &&
+      isOverlayText &&
+      ["grid", "overlay", "carousel", "bento", "glass-dock", "arch"].includes(layout),
+  };
+}
 
 export interface AspectRatioOption {
   id: CategoryAspectRatio;

@@ -16,6 +16,21 @@ export type View =
 
 export type Language = "fr" | "ar" | "en";
 
+export interface BannerTranslationFields {
+  title?: string;
+  subtitle?: string;
+  button_text?: string;
+  badge?: string;
+}
+
+export type BannerRedirectType = "tag" | "campaign" | "category" | "custom_url" | "shop";
+export type BannerShadowIntensity = "none" | "soft" | "medium" | "strong" | "glow";
+export type BannerTextAlign = "left" | "center" | "right";
+export type BannerContentPosition = "bottom" | "center" | "top";
+export type BannerImageFit = "cover" | "contain";
+export type BannerImagePosition = "center" | "top" | "bottom" | "left" | "right";
+export type BannerZone = "carousel_main" | "grid_top" | "grid_bottom" | "sidebar";
+
 export interface HomepageSection {
   id: string;
   name: string;
@@ -30,6 +45,7 @@ export interface HomepageSection {
     | "collections";
   orderIndex: number;
   isActive: boolean;
+  is_active?: boolean;
   startDate?: AppTimestamp;
   endDate?: AppTimestamp;
   targetAudience?: "all" | "new" | "logged_in" | "vip";
@@ -49,7 +65,7 @@ export interface HomepageSection {
   category?: string;
   imageUrl?: string;
   bannerImage?: string;
-  manualProducts?: string[]; // IDs or URLs of the products to display manually
+  manualProducts?: string[];
   style?: string;
   rules?: {
     type: "manual" | "auto";
@@ -70,6 +86,8 @@ export interface Banner {
   id: string;
   name?: string;
   badge?: string;
+  badge_color?: string;
+  discount_label?: string;
   type?: "carousel" | "static" | "video";
   position?:
     | "hero"
@@ -78,7 +96,7 @@ export interface Banner {
     | "footer"
     | "top_bar"
     | "popup";
-  zone?: "carousel_main" | "grid_top" | "grid_bottom" | "sidebar";
+  zone?: BannerZone;
   layout?: string;
   imageUrl?: string;
   desktop_image?: string;
@@ -94,12 +112,27 @@ export interface Banner {
   buttonText?: string;
   btn_bg_color?: string;
   btn_text_color?: string;
+  secondary_button_text?: string;
+  secondary_cta_link?: string;
   ctaText?: string;
   ctaLink?: string;
+  cta_link?: string;
+  redirect_type?: BannerRedirectType;
+  target_category?: string;
   tag_id?: string;
   linkedProductIds?: string[];
   backgroundColor?: string;
+  bg_color?: string;
   textColor?: string;
+  text_align?: BannerTextAlign;
+  content_position?: BannerContentPosition;
+  overlay_opacity?: number;
+  overlay_color?: string;
+  shadow_intensity?: BannerShadowIntensity;
+  image_margin?: number;
+  image_fit?: BannerImageFit;
+  image_position?: BannerImagePosition;
+  show_countdown?: boolean;
   orderIndex?: number;
   sort_order?: number;
   isActive?: boolean;
@@ -121,4 +154,15 @@ export interface Banner {
   translations?: Record<string, Record<string, string>>;
   createdAt?: AppTimestamp;
   created_at?: AppTimestamp;
+}
+
+export interface CustomCategory {
+  id: string;
+  name?: string;
+  slug?: string;
+  image_url?: string;
+  imageUrl?: string;
+  sort_order?: number;
+  is_active?: boolean;
+  [key: string]: unknown;
 }

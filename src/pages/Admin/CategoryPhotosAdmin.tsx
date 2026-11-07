@@ -1,23 +1,49 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Camera, Save } from "lucide-react";
 import { apiGet, apiPost } from "../../lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../../lib/queryKeys";
 import toast from "react-hot-toast";
-
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../../lib/firebase";
-import { CATEGORY_KEYS, CategoryPhotoConfig } from "./CategoryPhotos/types";
+import { useCategories } from "../../hooks/admin/useCategories";
+import { CATEGORY_KEYS, CategoryKeyDefinition, CategoryPhotoConfig } from "./CategoryPhotos/types";
 import { CategoryPhotosList } from "./CategoryPhotos/CategoryPhotosList";
 import { CategoryPhotoPreview } from "./CategoryPhotos/CategoryPhotoPreview";
 import { CategoryPhotoForm } from "./CategoryPhotos/CategoryPhotoForm";
 
+interface RemoteCategoryVisual {
+  id: string;
+  key?: string;
+  title?: string;
+  subtitle?: string;
+  image?: string;
+}
+
 export const CategoryPhotosAdmin: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { categories: adminCategories, mutate: mutateCategories } = useCategories();
 
-  const [selectedKey, setSelectedKey] = useState<string>("Électronique");
+  const mergedCategoryDefinitions = useMemo<CategoryKeyDefinition[]>(() => {
+    const map = new Map<string, CategoryKeyDefinition>();
+    CATEGORY_KEYS.forEach((item) => map.set(item.key, item));
+    adminCategories.forEach((cat) => {
+      const key = cat.name || cat.id;
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          defaultTitle: cat.title || key,
+          defaultSubtitle: cat.subtitle || "Découvrez notre sélection",
+          defaultImage: cat.image || "/images/placeholders/product.svg",
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [adminCategories]);
+
+  const [selectedKey, setSelectedKey] = useState<string>("Maison & Déco");
   const [configs, setConfigs] = useState<Record<string, CategoryPhotoConfig>>({});
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -30,7 +56,7 @@ export const CategoryPhotosAdmin: React.FC = () => {
     setLoading(true);
     try {
       const newConfigs: Record<string, CategoryPhotoConfig> = {};
-      CATEGORY_KEYS.forEach((item) => {
+      mergedCategoryDefinitions.forEach((item) => {
         newConfigs[item.key] = {
           key: item.key,
           title: item.defaultTitle,
@@ -40,28 +66,27 @@ export const CategoryPhotosAdmin: React.FC = () => {
       });
 
       try {
-        const dataList = await apiGet<Array<{ id: string; key?: string; title?: string; subtitle?: string; image?: string }>>(
+        const res = await apiGet<{ categories?: RemoteCategoryVisual[] } | RemoteCategoryVisual[]>(
           "/api/v1/settings/homepage-categories"
         );
-        if (Array.isArray(dataList)) {
-          dataList.forEach((docItem) => {
-            const catKey = docItem.id || docItem.key;
-            if (catKey) {
-              const prev = newConfigs[catKey] || {
-                key: catKey,
-                title: catKey,
-                subtitle: "Découvrez nos sélections",
-                image: "/images/placeholders/product.svg",
-              };
-              newConfigs[catKey] = {
-                key: catKey,
-                title: docItem.title || prev.title,
-                subtitle: docItem.subtitle || prev.subtitle,
-                image: docItem.image || prev.image,
-              };
-            }
-          });
-        }
+        const dataList = Array.isArray(res) ? res : Array.isArray(res?.categories) ? res.categories : [];
+        dataList.forEach((docItem) => {
+          const catKey = docItem.id || docItem.key;
+          if (catKey) {
+            const prev = newConfigs[catKey] || {
+              key: catKey,
+              title: catKey,
+              subtitle: "Découvrez nos sélections",
+              image: "/images/placeholders/product.svg",
+            };
+            newConfigs[catKey] = {
+              key: catKey,
+              title: docItem.title || prev.title,
+              subtitle: docItem.subtitle || prev.subtitle,
+              image: docItem.image || prev.image,
+            };
+          }
+        });
       } catch (err) {
         console.warn("Could not fetch remote categories list, using defaults:", err);
       }
@@ -73,20 +98,25 @@ export const CategoryPhotosAdmin: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [mergedCategoryDefinitions, t]);
 
   useEffect(() => {
-    loadAllConfigs();
+    void loadAllConfigs();
   }, [loadAllConfigs]);
 
   useEffect(() => {
-    const current = configs[selectedKey] || CATEGORY_KEYS.find((c) => c.key === selectedKey);
+    const current = configs[selectedKey];
+    const fallback = mergedCategoryDefinitions.find((c) => c.key === selectedKey);
     if (current) {
       setTitle(current.title || "");
       setSubtitle(current.subtitle || "");
       setImageUrl(current.image || "");
+    } else if (fallback) {
+      setTitle(fallback.defaultTitle || "");
+      setSubtitle(fallback.defaultSubtitle || "");
+      setImageUrl(fallback.defaultImage || "");
     }
-  }, [selectedKey, configs]);
+  }, [selectedKey, configs, mergedCategoryDefinitions]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -140,7 +170,10 @@ export const CategoryPhotosAdmin: React.FC = () => {
         [selectedKey]: updatedItem,
       }));
 
-      await queryClient.invalidateQueries({ queryKey: queryKeys.home.data() });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.home.data() }),
+        mutateCategories(),
+      ]);
       toast.success(t(`Photo et titres pour "${selectedKey}" enregistrés ! ✨`), { id: "save-cat-photo" });
     } catch (err) {
       console.error(err);
@@ -159,10 +192,10 @@ export const CategoryPhotosAdmin: React.FC = () => {
             <span>{t("Administration des Visuels")}</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-            {t("Catégorie Photo")}
+            {t("Visuels & Photos Rayons")}
           </h1>
           <p className="text-slate-500 font-medium text-sm mt-1">
-            {t("Gérez directement les photos, visuels, titres et sous-titres des cartes de catégories affichées sur la page d'accueil (section Univers Produits).")}
+            {t("Gérez directement les photos, visuels, titres et sous-titres des cartes de catégories affichées sur la page d'accueil.")}
           </p>
         </div>
 
@@ -185,6 +218,7 @@ export const CategoryPhotosAdmin: React.FC = () => {
             configs={configs}
             loading={loading}
             onRefresh={loadAllConfigs}
+            dynamicCategories={mergedCategoryDefinitions}
           />
         </div>
 

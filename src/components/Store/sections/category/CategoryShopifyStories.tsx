@@ -1,7 +1,15 @@
 import React from "react";
 import { ArrowUpRight, Camera } from "lucide-react";
-import { CategoryItem } from "../../../../pages/Seller/StoreBuilder/constants/categoryPresetTypes";
-import { resolveCategoryPhoto } from "./categoryImageHelper";
+import {
+  CategoryItem,
+  CategoryImagePosition,
+  CategoryImageFit,
+} from "../../../../pages/Seller/StoreBuilder/constants/categoryPresetTypes";
+import {
+  resolveCategoryPhoto,
+  resolveCategoryImageClasses,
+  handleCategoryImageError,
+} from "./categoryImageHelper";
 
 interface CategoryShopifyStoriesProps {
   categories: CategoryItem[];
@@ -16,6 +24,8 @@ interface CategoryShopifyStoriesProps {
   showBadge: boolean;
   showItemCount: boolean;
   cardSkin?: string;
+  imagePosition?: CategoryImagePosition;
+  imageFit?: CategoryImageFit;
   textColor?: string;
   primaryColor?: string;
   isEditable?: boolean;
@@ -40,6 +50,8 @@ export const CategoryShopifyStories: React.FC<CategoryShopifyStoriesProps> = ({
   showBadge,
   showItemCount,
   cardSkin = "editorial",
+  imagePosition = "center",
+  imageFit = "cover",
   textColor = "#0F172A",
   primaryColor = "#023859",
   isEditable,
@@ -51,7 +63,9 @@ export const CategoryShopifyStories: React.FC<CategoryShopifyStoriesProps> = ({
   onEditItem,
 }) => {
   const sizeDimClass =
-    bubbleSize === "sm"
+    columnsMobile === 1
+      ? "w-24 h-24 @[560px]:w-24 @[560px]:h-24 @[900px]:w-28 @[900px]:h-28"
+      : bubbleSize === "sm"
       ? "w-16 h-16 @[560px]:w-20 @[560px]:h-20 @[900px]:w-22 @[900px]:h-22"
       : bubbleSize === "lg"
       ? "w-20 h-20 @[560px]:w-24 @[560px]:h-24 @[900px]:w-28 @[900px]:h-28"
@@ -64,7 +78,7 @@ export const CategoryShopifyStories: React.FC<CategoryShopifyStoriesProps> = ({
       ? "p-1 bg-white border-2 border-slate-900 shadow-xs"
       : "p-[2.5px] @[560px]:p-[3px] bg-gradient-to-tr from-[#023859] via-[#54ACBF] to-amber-300 shadow-sm";
 
-  const mobileCols = columnsMobile === 1 ? "grid-cols-2" : columnsMobile === 2 ? "grid-cols-2" : "grid-cols-3";
+  const mobileCols = columnsMobile === 1 ? "grid-cols-1" : "grid-cols-2";
   const responsiveCols =
     columnsDesktop <= 2
       ? `${mobileCols} @[560px]:grid-cols-2`
@@ -78,6 +92,7 @@ export const CategoryShopifyStories: React.FC<CategoryShopifyStoriesProps> = ({
     <div className={`grid ${responsiveCols} ${gapClass} py-1`}>
       {categories.map((cat, idx) => {
         const photoUrl = resolveCategoryPhoto(cat, idx);
+        const { posClass, fitClass } = resolveCategoryImageClasses(cat, imagePosition, imageFit);
         const countText = getCountLabel(cat);
         const idxLabel = String(idx + 1).padStart(2, "0");
         const isCardSelected =
@@ -101,7 +116,6 @@ export const CategoryShopifyStories: React.FC<CategoryShopifyStoriesProps> = ({
               {idxLabel}
             </span>
 
-            {/* Sculpted Circular Medallion */}
             <div className={`relative ${showTitle ? "mb-2 @[560px]:mb-3 mt-1" : "my-1"}`}>
               <div
                 className={`rounded-full transition-transform duration-200 ease-out group-hover:scale-[1.03] ${sizeDimClass} ${ringStyleClass}`}
@@ -111,7 +125,8 @@ export const CategoryShopifyStories: React.FC<CategoryShopifyStoriesProps> = ({
                     src={photoUrl}
                     alt={cat.name}
                     referrerPolicy="no-referrer"
-                    className={`w-full h-full object-cover transition-transform duration-300 ease-out ${hoverImgClass}`}
+                    onError={(e) => handleCategoryImageError(e, idx)}
+                    className={`w-full h-full ${posClass} ${fitClass} transition-transform duration-300 ease-out ${hoverImgClass}`}
                   />
                 </div>
               </div>
@@ -141,9 +156,7 @@ export const CategoryShopifyStories: React.FC<CategoryShopifyStoriesProps> = ({
               <div className="w-full flex flex-col items-center">
                 <h3
                   className="font-bold text-xs @[560px]:text-sm tracking-tight leading-snug line-clamp-1 px-0.5"
-                  style={{
-                    color: isDarkSkin ? "#FFFFFF" : textColor,
-                  }}
+                  style={{ color: isDarkSkin ? "#FFFFFF" : textColor }}
                 >
                   {cat.name}
                 </h3>

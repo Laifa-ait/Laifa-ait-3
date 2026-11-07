@@ -1,7 +1,8 @@
 import { useCallback } from "react";
-import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { deleteObject, ref } from "firebase/storage";
 import { apiPut } from "../../../../lib/api";
 import { storage } from "../../../../lib/firebase";
+import { uploadFile } from "../../../../services/storage.service";
 import { MediaGalleryItem, StoreConfig } from "../../../../domains/seller/customPage.types";
 
 interface UseStudioMediaManagerProps {
@@ -28,12 +29,13 @@ export function useStudioMediaManager({
       const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
       const safeName = file.name.replace(/[^a-zA-Z0-9_.-]/g, "_").slice(-70).replace(/\.[^.]+$/, "") || "image";
       const fileName = `studio_${Date.now()}_${safeName}.${extension}`;
-      const fileRef = ref(storage, `shops/${userId}/${fileName}`);
+      const storagePath = `shops/${userId}/${fileName}`;
+      const fileRef = ref(storage, storagePath);
 
-      await uploadBytes(fileRef, file, { contentType: file.type });
+      const resolvedUrl = await uploadFile(storagePath, file, { contentType: file.type });
       const item: MediaGalleryItem = {
         id: fileName,
-        url: await getDownloadURL(fileRef),
+        url: resolvedUrl,
         type: "image",
         name: file.name.slice(0, 160),
         sizeBytes: file.size,

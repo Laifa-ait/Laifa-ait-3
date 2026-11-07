@@ -8,16 +8,13 @@ import {
   MediaGalleryItem,
   CustomPageSection,
 } from "../customPage.types";
-import { LegacyStoreAdapter } from "./legacyStore.adapter";
+import { LegacyStoreAdapter, stripUndefinedDeep } from "./legacyStore.adapter";
 import { invalidatePublicStorefrontCache } from "./storePublic.service";
 import { safeLogger } from "../../../utils/logger";
 
 const MAX_HISTORY_RETENTION = 10;
 
 export class StoreLayoutService {
-  /**
-   * Retrieves or initializes Store Studio configuration and layout.
-   */
   static async getOrInitStudioData(sellerId: string): Promise<StudioDataResponse> {
     const [configDoc, layoutDoc, userDoc, pubDoc, productsSnap, historySnap] = await Promise.all([
       db.collection("store_configs").doc(sellerId).get(),
@@ -34,7 +31,9 @@ export class StoreLayoutService {
 
     if (!configDoc.exists) {
       safeLogger.info(`[StoreStudio] Initializing legacy store config for seller: ${sellerId}`);
-      storeConfig = LegacyStoreAdapter.buildStoreConfig(sellerId, userDoc.data() || {}, pubDoc.data() || {});
+      storeConfig = stripUndefinedDeep(
+        LegacyStoreAdapter.buildStoreConfig(sellerId, userDoc.data() || {}, pubDoc.data() || {})
+      );
       await db.runTransaction(async (t) => {
         const slugRef = db.collection("store_slugs").doc(storeConfig.shopSlug);
         const slugDoc = await t.get(slugRef);
@@ -49,7 +48,9 @@ export class StoreLayoutService {
 
     if (!layoutDoc.exists) {
       safeLogger.info(`[StoreStudio] Initializing legacy draft layout for seller: ${sellerId}`);
-      const initialDraft = LegacyStoreAdapter.buildInitialLayoutVersion(storeConfig, activeProductIds);
+      const initialDraft = stripUndefinedDeep(
+        LegacyStoreAdapter.buildInitialLayoutVersion(storeConfig, activeProductIds)
+      );
       layoutDocData = {
         sellerId,
         draft: initialDraft,
@@ -77,9 +78,7 @@ export class StoreLayoutService {
     const mediaGallery: MediaGalleryItem[] = [];
     if (Array.isArray(storeConfig.mediaGallery)) {
       storeConfig.mediaGallery.forEach((item) => {
-        if (item && item.url && !mediaGallery.some((m) => m.id === item.id)) {
-          mediaGallery.push(item);
-        }
+        if (item && item.url && !mediaGallery.some((m) => m.id === item.id)) mediaGallery.push(item);
       });
     }
     if (storeConfig.logoUrl && !mediaGallery.some((m) => m.url === storeConfig.logoUrl)) {
@@ -95,18 +94,9 @@ export class StoreLayoutService {
       }
     });
 
-    return {
-      storeConfig,
-      draftLayout: layoutDocData.draft,
-      publishedLayout: layoutDocData.published,
-      historyList,
-      mediaGallery,
-    };
+    return { storeConfig, draftLayout: layoutDocData.draft, publishedLayout: layoutDocData.published, historyList, mediaGallery };
   }
 
-  /**
-   * Updates store configuration with transactional slug uniqueness and atomic synchronization to users and publicProfiles.
-   */
   static async updateStoreConfig(sellerId: string, payload: Partial<StoreConfig>): Promise<StoreConfig> {
     return await db.runTransaction(async (t) => {
       const configRef = db.collection("store_configs").doc(sellerId);
@@ -124,38 +114,43 @@ export class StoreLayoutService {
           throw new Error(`Le lien personnalisé '${targetSlug}' est déjà utilisé par une autre boutique.`);
         }
         t.set(newSlugRef, { sellerId, slug: targetSlug, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-        if (existingConfig?.shopSlug) {
-          t.delete(db.collection("store_slugs").doc(existingConfig.shopSlug));
-        }
+        if (existingConfig?.shopSlug) t.delete(db.collection("store_slugs").doc(existingConfig.shopSlug));
       }
 
       const baseConfig = existingConfig || LegacyStoreAdapter.buildStoreConfig(sellerId, {});
-      const mergedConfig: StoreConfig = {
+      const mergedConfig = stripUndefinedDeep<StoreConfig>({
         ...baseConfig,
         ...payload,
-        theme: {
-          ...baseConfig.theme,
-          ...(payload.theme || {}),
-        },
-        seo: {
-          ...baseConfig.seo,
-          ...(payload.seo || {}),
-        },
-        socialLinks: {
-          ...(baseConfig.socialLinks || {}),
-          ...(payload.socialLinks || {}),
-        },
-        contacts: {
-          ...(baseConfig.contacts || {}),
-          ...(payload.contacts || {}),
-        },
+        theme: { ...baseConfig.theme, ...(payload.theme || {}) },
+        seo: { ...baseConfig.seo, ...(payload.seo || {}) },
+        ...(payload.announcementBar || baseConfig.announcementBar
+          ? { announcementBar: { ...(baseConfig.announcementBar || { enabled: false, text: "" }), ...(payload.announcementBar || {}) } }
+          : {}),
+        ...(payload.headerConfig || baseConfig.headerConfig
+          ? {
+              headerConfig: {
+                ...(baseConfig.headerConfig || { layout: "left", sticky: true, showSearch: true, showTrustBar: true, navLinks: [] }),
+                ...(payload.headerConfig || {}),
+              },
+            }
+          : {}),
+        ...(payload.commerceConfig || baseConfig.commerceConfig
+          ? { commerceConfig: { ...(baseConfig.commerceConfig || { codEnabled: true, whatsappOrderEnabled: false }), ...(payload.commerceConfig || {}) } }
+          : {}),
+        ...(payload.storeStatus || baseConfig.storeStatus
+          ? { storeStatus: { ...(baseConfig.storeStatus || { mode: "open" }), ...(payload.storeStatus || {}) } }
+          : {}),
+        ...(payload.pixelsConfig || baseConfig.pixelsConfig
+          ? { pixelsConfig: { ...(baseConfig.pixelsConfig || {}), ...(payload.pixelsConfig || {}) } }
+          : {}),
+        socialLinks: { ...(baseConfig.socialLinks || {}), ...(payload.socialLinks || {}) },
+        contacts: { ...(baseConfig.contacts || {}), ...(payload.contacts || {}) },
         sellerId,
         updatedAt: new Date().toISOString(),
-      };
+      });
 
       t.set(configRef, mergedConfig);
 
-      // Atomic sync to users and publicProfiles to maintain single source of truth
       const syncFields: Record<string, unknown> = {
         shopName: mergedConfig.shopName,
         storeName: mergedConfig.shopName,
@@ -167,30 +162,19 @@ export class StoreLayoutService {
         wilaya: mergedConfig.wilaya || "",
         commune: mergedConfig.commune || "",
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        ...(mergedConfig.logoUrl
+          ? { logoUrl: mergedConfig.logoUrl, photoURL: mergedConfig.logoUrl, avatarUrl: mergedConfig.logoUrl }
+          : {}),
+        ...(mergedConfig.bannerUrl ? { bannerUrl: mergedConfig.bannerUrl, coverUrl: mergedConfig.bannerUrl } : {}),
       };
-
-      if (mergedConfig.logoUrl) {
-        syncFields.logoUrl = mergedConfig.logoUrl;
-        syncFields.photoURL = mergedConfig.logoUrl;
-        syncFields.avatarUrl = mergedConfig.logoUrl;
-      }
-      if (mergedConfig.bannerUrl) {
-        syncFields.bannerUrl = mergedConfig.bannerUrl;
-        syncFields.coverUrl = mergedConfig.bannerUrl;
-      }
 
       t.set(userRef, syncFields, { merge: true });
       t.set(pubRef, syncFields, { merge: true });
-
       invalidatePublicStorefrontCache(sellerId, mergedConfig.shopSlug);
-
       return mergedConfig;
     });
   }
 
-  /**
-   * Verifies product ownership for all products referenced in layout sections.
-   */
   private static async verifyProductOwnership(sellerId: string, sections: CustomPageSection[]): Promise<void> {
     const referencedProductIds = new Set<string>();
     sections.forEach((sec) => {
@@ -203,17 +187,11 @@ export class StoreLayoutService {
         });
       }
     });
-
     if (referencedProductIds.size === 0) return;
 
     const idList = Array.from(referencedProductIds);
-    // Firestore in operator supports up to 30 elements
-    const chunks: string[][] = [];
     for (let i = 0; i < idList.length; i += 30) {
-      chunks.push(idList.slice(i, i + 30));
-    }
-
-    for (const chunk of chunks) {
+      const chunk = idList.slice(i, i + 30);
       const snap = await db.collection("products").where(admin.firestore.FieldPath.documentId(), "in", chunk).get();
       snap.docs.forEach((doc) => {
         const prod = doc.data();
@@ -224,68 +202,46 @@ export class StoreLayoutService {
     }
   }
 
-  /**
-   * Saves a draft layout after rigorous IDOR and product ownership verification.
-   */
   static async saveDraftLayout(sellerId: string, sections: CustomPageSection[]): Promise<StoreLayoutVersion> {
-    await this.verifyProductOwnership(sellerId, sections);
+    const cleanSections = stripUndefinedDeep(sections);
+    await this.verifyProductOwnership(sellerId, cleanSections);
 
     const layoutRef = db.collection("store_layouts").doc(sellerId);
     const layoutDoc = await layoutRef.get();
     const currentData = layoutDoc.data() as StoreLayoutDocument | undefined;
-
     const draftVersion: StoreLayoutVersion = {
-      versionNumber: (currentData?.currentVersion || 1),
-      sections,
+      versionNumber: currentData?.currentVersion || 1,
+      sections: cleanSections,
       status: "draft",
       updatedAt: new Date().toISOString(),
     };
 
-    await layoutRef.set(
-      {
-        sellerId,
-        draft: draftVersion,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
-
+    await layoutRef.set({ sellerId, draft: draftVersion, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
     return draftVersion;
   }
 
-  /**
-   * Publishes draft layout atomically, logs history snapshot, and prunes older versions.
-   */
   static async publishLayout(sellerId: string, changeSummary?: string): Promise<StoreLayoutVersion> {
     const layoutRef = db.collection("store_layouts").doc(sellerId);
     return await db.runTransaction(async (t) => {
       const doc = await t.get(layoutRef);
-      if (!doc.exists) {
-        throw new Error("Aucun agencement trouvé pour cette boutique.");
-      }
+      if (!doc.exists) throw new Error("Aucun agencement trouvé pour cette boutique.");
       const data = doc.data() as StoreLayoutDocument;
       if (!data.draft || data.draft.sections.length === 0) {
         throw new Error("Le brouillon est vide. Impossible de publier un agencement sans sections.");
       }
 
       const newVersionNumber = (data.currentVersion || 1) + 1;
-      const publishedVersion: StoreLayoutVersion = {
+      const publishedVersion: StoreLayoutVersion = stripUndefinedDeep({
         versionNumber: newVersionNumber,
         sections: data.draft.sections,
-        status: "published",
+        status: "published" as const,
         publishedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         changeSummary: changeSummary || "Mise en ligne de l'agencement",
-      };
-
-      t.update(layoutRef, {
-        published: publishedVersion,
-        currentVersion: newVersionNumber,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      const historyRef = layoutRef.collection("history").doc(String(newVersionNumber));
-      t.set(historyRef, {
+      t.update(layoutRef, { published: publishedVersion, currentVersion: newVersionNumber, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+      t.set(layoutRef.collection("history").doc(String(newVersionNumber)), {
         versionNumber: newVersionNumber,
         sellerId,
         snapshot: publishedVersion,
@@ -299,33 +255,21 @@ export class StoreLayoutService {
     });
   }
 
-  /**
-   * Rolls back layout draft to a previous historical version.
-   */
   static async rollbackLayout(sellerId: string, versionNumber: number): Promise<StoreLayoutVersion> {
     const layoutRef = db.collection("store_layouts").doc(sellerId);
     const historyDoc = await layoutRef.collection("history").doc(String(versionNumber)).get();
+    if (!historyDoc.exists) throw new Error(`La version historique #${versionNumber} est introuvable.`);
 
-    if (!historyDoc.exists) {
-      throw new Error(`La version historique #${versionNumber} est introuvable.`);
-    }
-
-    const historyData = historyDoc.data();
-    const snapshot = historyData?.snapshot as StoreLayoutVersion;
-
-    const restoredDraft: StoreLayoutVersion = {
+    const snapshot = historyDoc.data()?.snapshot as StoreLayoutVersion;
+    const restoredDraft: StoreLayoutVersion = stripUndefinedDeep({
       versionNumber: snapshot.versionNumber,
       sections: snapshot.sections,
-      status: "draft",
+      status: "draft" as const,
       updatedAt: new Date().toISOString(),
       changeSummary: `Restauration depuis la version #${versionNumber}`,
-    };
-
-    await layoutRef.update({
-      draft: restoredDraft,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
+    await layoutRef.update({ draft: restoredDraft, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
     return restoredDraft;
   }
 }

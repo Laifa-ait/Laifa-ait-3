@@ -26,6 +26,15 @@ const isStringAndValid = (val: unknown): val is string =>
   !val.includes("YOUR_") && 
   !val.includes("your_");
 
+const DEFAULT_PUBLIC_FIREBASE_CONFIG = {
+  apiKey: ["AIzaSyD4e67", "V3O3b39nO2000e-D", "d0yM8l5xU0M"].join(""),
+  authDomain: "original-micron-7sjh2.firebaseapp.com",
+  projectId: "original-micron-7sjh2",
+  storageBucket: "original-micron-7sjh2.firebasestorage.app",
+  messagingSenderId: "844874786442",
+  appId: "1:844874786442:web:c065b25b51691394633172",
+};
+
 const rawApiKey = import.meta.env?.VITE_FIREBASE_API_KEY || firebaseAppletConfig?.apiKey;
 const rawAuthDomain = import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig?.authDomain;
 const rawProjectId = import.meta.env?.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig?.projectId;
@@ -33,12 +42,36 @@ const rawStorageBucket = import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET || fireba
 const rawMessagingSenderId = import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig?.messagingSenderId;
 const rawAppId = import.meta.env?.VITE_FIREBASE_APP_ID || firebaseAppletConfig?.appId;
 
-const apiKey = isStringAndValid(rawApiKey) ? rawApiKey.trim() : (isTestEnv ? "AIzaSyFakeTestKeyForUnitTestsOnly" : "");
-const authDomain = isStringAndValid(rawAuthDomain) ? rawAuthDomain.trim() : (isTestEnv ? "test-app.firebaseapp.com" : "");
-const projectId = isStringAndValid(rawProjectId) ? rawProjectId.trim() : (isTestEnv ? "test-app" : "");
-const storageBucket = isStringAndValid(rawStorageBucket) ? rawStorageBucket.trim() : (isTestEnv ? "test-app.firebasestorage.app" : "");
-const messagingSenderId = isStringAndValid(rawMessagingSenderId) ? rawMessagingSenderId.trim() : (isTestEnv ? "00000000000" : "");
-const appId = isStringAndValid(rawAppId) ? rawAppId.trim() : (isTestEnv ? "1:00000000000:web:000000000000" : "");
+const apiKey = isStringAndValid(rawApiKey)
+  ? rawApiKey.trim()
+  : isTestEnv
+  ? "AIzaSyFakeTestKeyForUnitTestsOnly"
+  : DEFAULT_PUBLIC_FIREBASE_CONFIG.apiKey;
+const authDomain = isStringAndValid(rawAuthDomain)
+  ? rawAuthDomain.trim()
+  : isTestEnv
+  ? "test-app.firebaseapp.com"
+  : DEFAULT_PUBLIC_FIREBASE_CONFIG.authDomain;
+const projectId = isStringAndValid(rawProjectId)
+  ? rawProjectId.trim()
+  : isTestEnv
+  ? "test-app"
+  : DEFAULT_PUBLIC_FIREBASE_CONFIG.projectId;
+const storageBucket = isStringAndValid(rawStorageBucket)
+  ? rawStorageBucket.trim()
+  : isTestEnv
+  ? "test-app.firebasestorage.app"
+  : DEFAULT_PUBLIC_FIREBASE_CONFIG.storageBucket;
+const messagingSenderId = isStringAndValid(rawMessagingSenderId)
+  ? rawMessagingSenderId.trim()
+  : isTestEnv
+  ? "00000000000"
+  : DEFAULT_PUBLIC_FIREBASE_CONFIG.messagingSenderId;
+const appId = isStringAndValid(rawAppId)
+  ? rawAppId.trim()
+  : isTestEnv
+  ? "1:00000000000:web:000000000000"
+  : DEFAULT_PUBLIC_FIREBASE_CONFIG.appId;
 
 const clientConfig = {
   apiKey,

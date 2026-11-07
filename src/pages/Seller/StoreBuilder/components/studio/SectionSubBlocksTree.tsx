@@ -127,13 +127,26 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
             type="button"
             onClick={(e) => {
               const newIdx = slides.length;
-              patchSettings({ slides: [...slides, { id: `slide_${Date.now()}`, imageUrl: products[0]?.images?.[0] || "", title: `Slide ${newIdx + 1}`, link: "#catalog" }] });
+              patchSettings({
+                slides: [
+                  ...slides,
+                  {
+                    id: `slide_${Date.now()}`,
+                    imageUrl: products[0]?.images?.[0] || "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1200&q=80",
+                    badge: `OFFRE #${newIdx + 1}`,
+                    title: `Offre Spéciale #${newIdx + 1}`,
+                    subtitle: "Découvrez notre sélection en promotion.",
+                    ctaText: "Découvrir l'offre",
+                    link: "#catalog",
+                  },
+                ],
+              });
               focusSubBlock(`slide-${newIdx}`, e);
             }}
             className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold text-[#023859] hover:bg-[#F0F7FA] cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ Ajouter une slide</span>
+            <span>Ajouter une slide</span>
           </button>
         )}
       </div>
@@ -191,7 +204,7 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
             className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold text-[#023859] hover:bg-[#F0F7FA] cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ Ajouter une catégorie</span>
+            <span>Ajouter une catégorie</span>
           </button>
         )}
       </div>
@@ -242,7 +255,7 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
             className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold text-[#023859] hover:bg-[#F0F7FA] cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ Ajouter une question</span>
+            <span>Ajouter une question</span>
           </button>
         )}
       </div>

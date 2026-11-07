@@ -92,4 +92,15 @@ describe("Adversarial Verification — Server Bootstrap, Vite Resilience & Failu
       expect(typeof res.body.csrfToken).toBe("string");
     });
   });
+
+  describe("5. Autonomous Service Detection & Self-Healing (/api/v1/health/services)", () => {
+    it("GET /api/v1/health/services returns structured SystemSelfHealReport with monitored services", async () => {
+      const res = await request(app).get("/api/v1/health/services");
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toBeDefined();
+      expect(Array.isArray(res.body.data.services)).toBe(true);
+      expect(res.body.data.totalServices).toBeGreaterThanOrEqual(6);
+    });
+  });
 });

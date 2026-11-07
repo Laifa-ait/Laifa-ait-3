@@ -1,148 +1,102 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";
-import { ArrowRight } from "lucide-react";
-import {
-  CategoryCardData,
-  getCategoryTheme,
-} from "./categoryThemes";
-import { Category3DIllustration } from "./Category3DIllustration";
+import { ArrowUpRight } from "lucide-react";
+import { CategoryCardData, getCategoryTheme } from "./categoryThemes";
 
 export type { CategoryCardData };
 
 interface CategoryCardProps {
   card: CategoryCardData;
   index: number;
-  scrollVelocity: number;
+  isGridMode?: boolean;
   onSelect: (key: string) => void;
 }
 
 export const CategoryCard: React.FC<CategoryCardProps> = ({
   card,
   index,
-  scrollVelocity,
+  isGridMode = false,
   onSelect,
 }) => {
   const { t } = useTranslation();
   const theme = getCategoryTheme(card.key, index);
-  const IconComponent = theme.icon;
+  const [imgError, setImgError] = useState(false);
 
   const displayTitle = card.title ? t(card.title, card.title) : theme.defaultTitle;
-  const displaySubtitle = card.subtitle ? t(card.subtitle, card.subtitle) : theme.defaultSubtitle;
-  const itemCount = theme.defaultCount;
 
-  // Interactive 3D Glide & Magnetic Follow state
-  const [isHovered, setIsHovered] = useState(false);
-  const [glideCoords, setGlideCoords] = useState({ x: 0, y: 0, rotate: 0 });
+  const hasCustomPhoto =
+    card.image &&
+    card.image.trim().length > 0 &&
+    !card.image.includes("placeholder");
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const normX = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
-    const normY = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+  const resolvedImage = !imgError && hasCustomPhoto ? card.image : theme.defaultImage;
 
-    setIsHovered(true);
-    setGlideCoords({
-      x: Math.max(-14, Math.min(14, normX * 12)),
-      y: Math.max(-10, Math.min(10, normY * 10)),
-      rotate: Math.max(-8, Math.min(8, normX * 8)),
-    });
-  };
-
-  const handlePointerLeave = () => {
-    setIsHovered(false);
-    setGlideCoords({ x: 0, y: 0, rotate: 0 });
-  };
-
-  const isInteracting = isHovered || Math.abs(scrollVelocity) > 0.4;
-  const currentX = glideCoords.x - scrollVelocity * 1.2;
+  const formattedIndex = String(index + 1).padStart(2, "0");
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
+    <motion.article
+      initial={{ opacity: 0, y: 18 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.35, delay: index * 0.04 }}
-      whileHover={{ y: -5, transition: { duration: 0.22 } }}
-      onPointerMove={handlePointerMove}
-      onPointerLeave={handlePointerLeave}
-      onPointerCancel={handlePointerLeave}
+      transition={{ duration: 0.4, delay: Math.min(index * 0.035, 0.28) }}
       onClick={() => onSelect(card.key)}
-      className={`relative flex flex-col justify-between w-[80vw] sm:w-[310px] md:w-[340px] h-[170px] sm:h-[180px] p-4 sm:p-5 rounded-3xl cursor-pointer shadow-sm hover:shadow-lg transition-all duration-300 shrink-0 snap-start group border overflow-visible select-none touch-pan-x ${theme.bgCard} ${theme.border}`}
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-[1.5rem] bg-[#12111A] p-1.5 cursor-pointer select-none shadow-[0_14px_34px_-12px_rgba(20,18,32,0.18)] hover:shadow-[0_24px_48px_-12px_rgba(26,24,54,0.32)] border border-[#1A1836]/15 hover:border-[#E99856]/60 transition-all duration-500 ${
+        isGridMode
+          ? "w-full h-[300px] sm:h-[320px]"
+          : "w-[235px] sm:w-[260px] md:w-[276px] h-[310px] sm:h-[336px] shrink-0 snap-start touch-pan-x"
+      }`}
     >
-      {/* Ambient Radial Mesh Glow */}
-      <div
-        className={`absolute inset-0 rounded-3xl pointer-events-none ${theme.radialGlow} transition-opacity duration-300 group-hover:opacity-100 opacity-70`}
-      />
+      {/* Inner Architectural Portrait Frame */}
+      <div className="relative w-full h-full rounded-[1.15rem] overflow-hidden flex flex-col justify-between p-4 sm:p-5 bg-neutral-100">
+        {/* Full-Bleed Natural Bright Photography (No Dark Filter) */}
+        <img
+          src={resolvedImage}
+          alt={displayTitle}
+          loading="lazy"
+          onError={() => setImgError(true)}
+          className="absolute inset-0 w-full h-full object-cover object-center scale-100 group-hover:scale-110 transition-transform duration-700 ease-out"
+        />
 
-      {/* Top Section: 3D Floating Illustration (Left) & Frosted Glass Disc with Count Badge (Right) */}
-      <div className="relative z-10 flex items-start justify-between w-full h-[85px] sm:h-[90px]">
-        {/* 3D Floating Illustration Popping from Top-Left */}
-        <motion.div
-          animate={
-            isInteracting
-              ? {
-                  x: currentX,
-                  y: glideCoords.y - 3,
-                  rotate: glideCoords.rotate,
-                  scale: 1.08,
-                }
-              : {
-                  x: 0,
-                  y: [0, -4, 0],
-                  rotate: 0,
-                  scale: 1,
-                }
-          }
-          transition={
-            isInteracting
-              ? { type: "spring", stiffness: 320, damping: 22 }
-              : {
-                  y: { repeat: Infinity, duration: 3.5, ease: "easeInOut" },
-                  type: "spring",
-                  stiffness: 240,
-                  damping: 24,
-                }
-          }
-          className="absolute -top-3.5 -left-1.5 sm:-left-1 pointer-events-none"
-        >
-          <Category3DIllustration categoryKey={card.key} className="w-36 h-28 sm:w-40 sm:h-30" />
-        </motion.div>
+        {/* Ultra-light bottom text contrast only — photo remains 100% bright & unfiltered */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 to-transparent"
+        />
 
-        {/* Top-Right Frosted Glass Capsule / Disc & Count Badge */}
-        <div className="ml-auto relative flex items-center justify-center">
-          <div
-            className={`w-13 h-13 sm:w-14 sm:h-14 rounded-full flex items-center justify-center ${theme.discBg} transition-transform duration-300 group-hover:scale-105`}
-          >
-            <IconComponent className={`w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] ${theme.iconColor}`} />
+        {/* Top Bar: Monospace Index + Edition Tag Only (Top-Right Icon Removed) */}
+        <div className="relative z-10 flex items-center justify-start w-full">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-black/45 backdrop-blur-md border border-white/20">
+            <span className="font-mono text-[10px] font-bold tracking-widest text-[#E99856]">
+              /{formattedIndex}
+            </span>
+            <span className="w-1 h-1 rounded-full bg-white/40" />
+            <span className="font-sans text-[9px] font-bold uppercase tracking-[0.14em] text-white truncate max-w-[155px]">
+              {theme.editionTag}
+            </span>
           </div>
-
-          {/* Small item count badge at bottom right of the disc */}
-          <span
-            className="absolute -bottom-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full bg-white/85 backdrop-blur-md border border-[#E0B4B2]/60 text-[10px] font-mono tabular-nums font-bold flex items-center justify-center shadow-xs text-[#1A1836]"
-          >
-            {itemCount}
-          </span>
         </div>
-      </div>
 
-      {/* Bottom Content Row: Title, Subtitle, and Action Arrow Button */}
-      <div className="relative z-10 flex items-end justify-between gap-3 pt-1">
-        <div className="space-y-0.5 max-w-[76%]">
-          <h3 className="font-bold text-[#1A1836] text-base sm:text-lg tracking-tight leading-snug line-clamp-1 font-sans">
+        {/* Bottom Plinth: Simple Typography Title + Action Row Only */}
+        <div className="relative z-10 mt-auto pt-4">
+          {/* Kinetic Accent Line */}
+          <div className="w-8 h-[2.5px] bg-[#E99856] rounded-full mb-2 group-hover:w-14 transition-all duration-300 shadow-2xs" />
+
+          {/* Category Title in Simple Clean Sans-Serif Typography */}
+          <h3 className="font-sans font-semibold text-white text-lg sm:text-xl tracking-normal leading-snug line-clamp-1 drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]">
             {displayTitle}
           </h3>
-          <p className="font-medium text-[#42164B]/80 text-[11px] sm:text-xs line-clamp-1 leading-normal font-sans">
-            {displaySubtitle}
-          </p>
-        </div>
 
-        {/* Circular Action Arrow Button */}
-        <div
-          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full text-white flex items-center justify-center shrink-0 shadow-md transition-all duration-200 group-hover:scale-110 active:scale-95 group-hover:shadow-lg cursor-pointer ${theme.btnBg}`}
-        >
-          <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 rtl:rotate-180 stroke-[2.4]" />
+          {/* Bottom Action Divider */}
+          <div className="mt-3 pt-2.5 border-t border-white/25 flex items-center justify-between font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-[#E99856] group-hover:text-white transition-colors drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">
+            <span>{t("Explorer le rayon")}</span>
+            <span className="w-6 h-6 rounded-full bg-black/35 backdrop-blur-xs border border-white/20 group-hover:bg-[#E99856] group-hover:text-[#12111A] group-hover:border-[#E99856] flex items-center justify-center transition-all duration-300">
+              <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </span>
+          </div>
         </div>
       </div>
-    </motion.div>
+    </motion.article>
   );
 };
+

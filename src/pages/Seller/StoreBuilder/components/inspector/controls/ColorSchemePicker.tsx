@@ -37,7 +37,8 @@ export function buildHarmoniousColorSchemes(theme?: CustomPageTheme): ComputedCo
       ? theme.surfaceColor
       : "#FAF6F0";
   const accent = theme?.accentColor || primary || "#F97316";
-  const scheme3BtnBg = isDarkColor(primary) ? "#FFFFFF" : "#111827";
+  const isPrimaryDark = isDarkColor(primary);
+  const scheme3BtnBg = isPrimaryDark ? "#FFFFFF" : "#111827";
 
   return [
     {
@@ -63,9 +64,9 @@ export function buildHarmoniousColorSchemes(theme?: CustomPageTheme): ComputedCo
       name: "Scheme 3 • Marque",
       subtitle: "Fond primaire & contraste auto",
       backgroundColor: primary,
-      textColor: readableTextColor(primary),
+      textColor: isPrimaryDark ? "#FFFFFF" : "#111827",
       buttonBgColor: scheme3BtnBg,
-      buttonTextColor: readableTextColor(scheme3BtnBg),
+      buttonTextColor: isPrimaryDark ? "#111827" : "#FFFFFF",
     },
     {
       id: "scheme_4",
@@ -149,8 +150,12 @@ export const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({
                 className="h-12 w-full rounded-lg border border-black/10 px-2.5 py-1.5 flex items-center justify-between shadow-2xs mb-2"
               >
                 <div className="flex flex-col leading-none">
-                  <span className="text-sm font-extrabold tracking-tight">Aa</span>
-                  <span className="text-[8px] opacity-75 font-medium mt-0.5">Titre & texte</span>
+                  <span style={{ color: scheme.textColor }} className="text-sm font-extrabold tracking-tight">
+                    Aa
+                  </span>
+                  <span style={{ color: scheme.textColor }} className="text-[8px] opacity-90 font-medium mt-0.5">
+                    Titre & texte
+                  </span>
                 </div>
                 <span
                   style={{ backgroundColor: scheme.buttonBgColor, color: scheme.buttonTextColor }}

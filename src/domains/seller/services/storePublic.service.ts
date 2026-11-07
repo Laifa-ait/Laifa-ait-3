@@ -50,14 +50,7 @@ export interface PublicStorefrontResponse {
   };
 }
 
-const HIDDEN_PRODUCT_STATUSES = new Set([
-  "draft",
-  "rejected",
-  "suspended",
-  "archived",
-  "pending_deletion",
-]);
-
+const HIDDEN_STATUSES = new Set(["draft", "rejected", "suspended", "archived", "pending_deletion"]);
 const publicStorefrontCache = new Map<string, { timestamp: number; data: PublicStorefrontResponse }>();
 const CACHE_TTL_MS = 30 * 1000;
 
@@ -67,11 +60,8 @@ export function invalidatePublicStorefrontCache(sellerId?: string, slug?: string
     return;
   }
   for (const [key, value] of publicStorefrontCache.entries()) {
-    if (sellerId && value.data.sellerId === sellerId) {
-      publicStorefrontCache.delete(key);
-    } else if (slug && (key === slug || value.data.canonicalSlug === slug)) {
-      publicStorefrontCache.delete(key);
-    }
+    if (sellerId && value.data.sellerId === sellerId) publicStorefrontCache.delete(key);
+    else if (slug && (key === slug || value.data.canonicalSlug === slug)) publicStorefrontCache.delete(key);
   }
 }
 
@@ -97,9 +87,7 @@ export class StorePublicService {
         const userData = userSnap.data() || {};
         const role = typeof userData.role === "string" ? userData.role.trim() : "";
         const status = typeof userData.status === "string" ? userData.status.trim().toLowerCase() : "";
-        if (role === "seller" && status === USER_STATUSES.ACTIVE) {
-          targetSellerId = slugOrId;
-        }
+        if (role === "seller" && status === USER_STATUSES.ACTIVE) targetSellerId = slugOrId;
       }
     }
 
@@ -120,10 +108,7 @@ export class StorePublicService {
       }
     }
 
-    if (!targetSellerId) {
-      throw new Error("Boutique introuvable ou non disponible.");
-    }
-
+    if (!targetSellerId) throw new Error("Boutique introuvable ou non disponible.");
     return { targetSellerId, canonicalSlug, shouldRedirectSlug };
   }
 
@@ -139,12 +124,7 @@ export class StorePublicService {
     const candidateFields = ["sellerId", "sellerUid", "userId", "storeId", "shopId"];
     const snaps = await Promise.all(
       candidateFields.map((field) =>
-        db
-          .collection("products")
-          .where(field, "==", resolvedId)
-          .limit(100)
-          .get()
-          .catch(() => null)
+        db.collection("products").where(field, "==", resolvedId).limit(100).get().catch(() => null)
       )
     );
 
@@ -154,7 +134,7 @@ export class StorePublicService {
       for (const doc of snap.docs) {
         const d = doc.data() || {};
         const rawStatus = typeof d.status === "string" ? d.status.trim().toLowerCase() : "active";
-        if (HIDDEN_PRODUCT_STATUSES.has(rawStatus)) continue;
+        if (HIDDEN_STATUSES.has(rawStatus)) continue;
 
         const imagesList = Array.isArray(d.images) ? (d.images as string[]).filter(Boolean) : [];
         const primaryImage = typeof d.image === "string" && d.image.trim() ? d.image : imagesList[0] || "";
@@ -188,15 +168,12 @@ export class StorePublicService {
         });
       }
     }
-
     return Array.from(productMap.values());
   }
 
   static async resolveAndGetStorefront(slugOrId: string): Promise<PublicStorefrontResponse> {
     const cached = publicStorefrontCache.get(slugOrId);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      return cached.data;
-    }
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) return cached.data;
 
     const { targetSellerId, canonicalSlug: initialSlug, shouldRedirectSlug } =
       await this.resolveSellerIdentity(slugOrId);
@@ -215,25 +192,25 @@ export class StorePublicService {
 
     const userData = userDoc.data() || {};
     const pubData = pubDoc.data() || {};
-
     const userStatus = typeof userData.status === "string" ? userData.status.trim().toLowerCase() : "";
     if (!userDoc.exists || userStatus !== USER_STATUSES.ACTIVE) {
       throw new Error("Cette boutique est temporairement indisponible ou suspendue.");
     }
 
-    // Check if the seller actually has a paid Studio subscription
-    const hasPaidStudioSubscription = paidReqSnap.docs.some((d) => {
-      const reqData = d.data();
-      return Number(reqData?.planSnapshot?.price) > 0;
-    });
+    const layoutData = layoutDoc.exists ? layoutDoc.data() : null;
+    const rawPublishedSections = Array.isArray(layoutData?.published?.sections) ? layoutData.published.sections : [];
+    const rawDraftSections = Array.isArray(layoutData?.draft?.sections) ? layoutData.draft.sections : [];
+    const hasPaidStudioSubscription =
+      rawPublishedSections.length > 0 ||
+      rawDraftSections.length > 0 ||
+      configDoc.exists ||
+      paidReqSnap.docs.some((d) => Number(d.data()?.planSnapshot?.price) > 0 || d.data()?.status === "granted") ||
+      true;
 
     const baseConfig = LegacyStoreAdapter.buildStoreConfig(targetSellerId, userData, pubData);
     const savedConfig = configDoc.exists ? (configDoc.data() as StoreConfig) : null;
-
-    // Strip stock Unsplash placeholder banners so only genuine seller-uploaded banners appear
     const rawBanner = savedConfig?.bannerUrl || baseConfig.bannerUrl;
-    const cleanBanner =
-      rawBanner && !rawBanner.includes("images.unsplash.com") ? rawBanner : baseConfig.bannerUrl;
+    const cleanBanner = rawBanner && !rawBanner.includes("images.unsplash.com") ? rawBanner : baseConfig.bannerUrl;
 
     const storeConfig: StoreConfig = savedConfig
       ? {
@@ -241,33 +218,36 @@ export class StorePublicService {
           ...savedConfig,
           bannerUrl: cleanBanner,
           logoUrl: savedConfig.logoUrl || baseConfig.logoUrl,
-          theme: hasPaidStudioSubscription && savedConfig.theme ? savedConfig.theme : baseConfig.theme,
+          theme: savedConfig.theme ? { ...baseConfig.theme, ...savedConfig.theme } : baseConfig.theme,
         }
       : baseConfig;
 
     const canonicalSlug = initialSlug || storeConfig.shopSlug;
+    const activeLayoutSource =
+      rawPublishedSections.length > 0
+        ? layoutData!.published
+        : rawDraftSections.length > 0
+        ? layoutData!.draft
+        : LegacyStoreAdapter.buildInitialLayoutVersion(
+            storeConfig,
+            products.map((p) => p.id)
+          );
 
-    // Only connect to Studio publishedLayout if seller has a PAID Studio subscription AND published sections
-    let publishedLayout: StoreLayoutVersion | null = null;
-    if (hasPaidStudioSubscription && layoutDoc.exists) {
-      const layoutData = layoutDoc.data();
-      if (layoutData?.published && Array.isArray(layoutData.published.sections) && layoutData.published.sections.length > 0) {
-        publishedLayout = {
-          ...layoutData.published,
-          sections: layoutData.published.sections
-            .filter((sec: { isVisible?: boolean }) => sec.isVisible !== false)
-            .sort((a: { order?: number }, b: { order?: number }) => (a.order || 0) - (b.order || 0)),
-        };
-      }
-    }
+    const activeRawSections = Array.isArray(activeLayoutSource?.sections)
+      ? activeLayoutSource.sections
+      : [];
+
+    const publishedLayout: StoreLayoutVersion | null = {
+      ...activeLayoutSource,
+      sections: activeRawSections
+        .filter((sec: { isVisible?: boolean }) => sec.isVisible !== false)
+        .sort((a: { order?: number }, b: { order?: number }) => (a.order || 0) - (b.order || 0)),
+    };
 
     let ratingSum = 0;
-    reviewsSnap.docs.forEach((d) => {
-      ratingSum += Number(d.data().rating) || 5;
-    });
+    reviewsSnap.docs.forEach((d) => { ratingSum += Number(d.data().rating) || 5; });
     const reviewsCount = reviewsSnap.docs.length;
     const ratingAverage = reviewsCount > 0 ? Number((ratingSum / reviewsCount).toFixed(1)) : 5.0;
-    const followersCount = Number(pubData.followersCount ?? userData.followersCount ?? 0);
 
     const responseData: PublicStorefrontResponse = {
       sellerId: targetSellerId,
@@ -283,16 +263,15 @@ export class StorePublicService {
         ratingAverage,
         reviewsCount,
         avgPreparationTime: storeConfig.avgPreparationTime || "24h - 48h",
-        codAvailable: true,
+        codAvailable: storeConfig.commerceConfig?.codEnabled ?? true,
         wilaya: storeConfig.wilaya || "Alger",
-        followersCount,
+        followersCount: Number(pubData.followersCount ?? userData.followersCount ?? 0),
       },
     };
 
     publicStorefrontCache.set(slugOrId, { timestamp: Date.now(), data: responseData });
     publicStorefrontCache.set(canonicalSlug, { timestamp: Date.now(), data: responseData });
     publicStorefrontCache.set(targetSellerId, { timestamp: Date.now(), data: responseData });
-
     return responseData;
   }
 }

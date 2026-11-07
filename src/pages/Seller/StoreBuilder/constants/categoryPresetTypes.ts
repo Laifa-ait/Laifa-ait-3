@@ -1,8 +1,13 @@
+export type CategoryImagePosition = "top" | "center" | "bottom";
+export type CategoryImageFit = "cover" | "contain";
+
 export interface CategoryItem {
   id: string;
   name: string;
   subtitle?: string;
   imageUrl?: string;
+  imagePosition?: CategoryImagePosition;
+  imageFit?: CategoryImageFit;
   slug: string;
   link?: string;
   iconName?: string;
@@ -37,6 +42,16 @@ export type CategoryAspectRatio = "1/1" | "4/5" | "16/9" | "circle" | "4/3";
 export type CategoryHoverEffect = "zoom" | "lift" | "glow" | "shine" | "grayscale-reveal" | "none";
 export type CategoryTextPosition = "below" | "overlay-bottom" | "overlay-center" | "card-inside" | "none";
 export type CategoryCardRadius = "none" | "sm" | "md" | "lg" | "full";
+
+export interface CategoryLayoutCapabilities {
+  supportsAspectRatio: boolean;
+  supportsColumnsDesktop: boolean;
+  supportsColumnsMobile: boolean;
+  supportsBorderRadius: boolean;
+  supportsTextPositionChoice: boolean;
+  supportsOverlayContrast: boolean;
+  supportsGlassDockToggle: boolean;
+}
 
 export interface CategoryPreset {
   id: string;

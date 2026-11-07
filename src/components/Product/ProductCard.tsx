@@ -7,7 +7,7 @@ import { useComparatorStore } from "../../store/useComparatorStore";
 import { Product } from "../../domains/product/product.types";
 import { formatPrice } from "../../utils/format";
 import { getTranslatedField } from "../../utils/translations";
-import { getOptimizedImageUrl } from "../../utils/imageUtils";
+import { getOptimizedImageUrl, getFallbackSubImage } from "../../utils/imageUtils";
 
 const getEnergyColor = (cls?: string) => {
   switch (cls) {
@@ -102,6 +102,10 @@ export const ProductCard = React.memo(
       return "bg-white border border-[#EFE6E6] hover:border-[#E0B4B2] shadow-[0_2px_8px_rgba(26,24,54,0.04)] hover:shadow-[0_12px_28px_rgba(26,24,54,0.09)] hover:-translate-y-0.5";
     };
 
+    const fallbackImg = getFallbackSubImage(
+      `${getTranslatedField(product, "name", lang)} ${product.category || ""}`
+    );
+
     return (
       <div
         className={`group flex flex-col overflow-hidden rounded-2xl transition-all duration-200 cursor-pointer h-full relative ${getContainerStyles()} ${sectionStyle || ""}`}
@@ -110,14 +114,20 @@ export const ProductCard = React.memo(
         {/* Photo Container */}
         <div className="relative aspect-[3/4] sm:aspect-[4/5] w-full overflow-hidden bg-[#FAF7F6]">
           <img
-            src={getOptimizedImageUrl(product.image, 600) || "/images/placeholders/product.svg"}
+            src={getOptimizedImageUrl(product.image, 600) || fallbackImg}
             alt={getTranslatedField(product, "name", lang)}
             loading="lazy"
             decoding="async"
             referrerPolicy="no-referrer"
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src = "/images/placeholders/product.svg";
+              const target = e.currentTarget as HTMLImageElement;
+              if (target.dataset.fallbackApplied !== "1") {
+                target.dataset.fallbackApplied = "1";
+                target.src = fallbackImg;
+              } else {
+                target.src = "/images/placeholders/product.svg";
+              }
             }}
           />
 

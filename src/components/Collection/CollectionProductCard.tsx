@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Product } from "../../domains/product/product.types";
 import { formatPrice } from "../../utils/format";
 import { getTranslatedField } from "../../utils/translations";
-import { getOptimizedImageUrl } from "../../utils/imageUtils";
+import { getOptimizedImageUrl, getFallbackSubImage } from "../../utils/imageUtils";
 import { useCart } from "../../context/CartContext";
 
 interface CollectionProductCardProps {
@@ -35,6 +35,10 @@ export const CollectionProductCard: React.FC<CollectionProductCardProps> = React
     setTimeout(() => setJustAdded(false), 1500);
   };
 
+  const fallbackImg = getFallbackSubImage(
+    `${getTranslatedField(product, "name", lang)} ${product.category || ""}`
+  );
+
   return (
     <article
       onClick={() => navigate(`/product/${product.id}`)}
@@ -43,13 +47,19 @@ export const CollectionProductCard: React.FC<CollectionProductCardProps> = React
       {/* Product Image Stage: object-contain with gentle warm backdrop to never crop */}
       <div className="relative aspect-square w-full p-3 sm:p-4 flex items-center justify-center bg-gradient-to-b from-slate-50/90 via-white to-slate-100/50 select-none overflow-hidden border-b border-slate-100">
         <img
-          src={getOptimizedImageUrl(product.image, 600) || "/images/placeholders/product.svg"}
+          src={getOptimizedImageUrl(product.image, 600) || fallbackImg}
           alt={getTranslatedField(product, "name", lang)}
           loading="lazy"
           decoding="async"
           className="max-h-full max-w-full object-contain transition-transform duration-500 ease-out group-hover:scale-105"
           onError={(e) => {
-            (e.currentTarget as HTMLImageElement).src = "/images/placeholders/product.svg";
+            const target = e.currentTarget as HTMLImageElement;
+            if (target.dataset.fallbackApplied !== "1") {
+              target.dataset.fallbackApplied = "1";
+              target.src = fallbackImg;
+            } else {
+              target.src = "/images/placeholders/product.svg";
+            }
           }}
         />
 

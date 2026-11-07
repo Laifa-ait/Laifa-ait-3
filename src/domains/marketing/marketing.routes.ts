@@ -1,67 +1,15 @@
 import { Router, Request, Response } from "express";
-import { db, admin } from "../../config/firebase-admin";
+import { db } from "../../config/firebase-admin";
 import { optionalAuthenticateToken, AuthenticatedRequest } from "../../middlewares/auth";
 import { CouponService } from "./coupon.service";
-import { safeLogger } from "../../utils/logger";
+import { analyticsRouter } from "./analytics.routes";
 import nodeCache from "node-cache";
 
 const cache = new nodeCache({ stdTTL: 300, maxKeys: 1000, useClones: false });
 const router = Router();
 
-// POST analytics track
-router.post("/api/v1/analytics/track", async (req: Request, res: Response) => {
-  try {
-    const { events } = req.body;
-    if (!events || !Array.isArray(events)) {
-      return res.status(400).json({ error: "Invalid events payload" });
-    }
-
-    const batch = admin.firestore().batch();
-    events.forEach((evt: Record<string, unknown>) => {
-      const ref = admin.firestore().collection("analytics_events").doc();
-      batch.set(ref, {
-        ...evt,
-        serverTimestamp: admin.firestore.FieldValue.serverTimestamp(),
-      });
-    });
-
-    await batch.commit();
-    return res.json({ success: true, count: events.length });
-  } catch (error) {
-    safeLogger.error("Analytics track error", { err: error instanceof Error ? error.message : String(error) });
-    return res.status(500).json({ error: "Failed to track events" });
-  }
-});
-
-// POST sponsorship analytics track
-router.post("/api/v1/sponsorship/analytics/track", async (req: Request, res: Response) => {
-  try {
-    const { productId, action } = req.body;
-    if (!productId || !["impression", "click"].includes(action)) {
-      return res.status(400).json({ error: "productId and valid action required" });
-    }
-
-    const snap = await db.collection("sponsorship_requests")
-      .where("productId", "==", productId)
-      .where("status", "==", "approved")
-      .limit(1)
-      .get();
-
-    if (!snap.empty) {
-      const docRef = snap.docs[0].ref;
-      const fieldToIncrement = action === "impression" ? "impressionsCount" : "clicksCount";
-      await docRef.update({
-        [fieldToIncrement]: admin.firestore.FieldValue.increment(1),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-    }
-
-    return res.json({ success: true });
-  } catch (error: unknown) {
-    safeLogger.error("Sponsorship analytics error", { err: error instanceof Error ? error.message : String(error) });
-    return res.status(500).json({ error: "Failed to record sponsorship event" });
-  }
-});
+// Mount resilient named-DB analytics router (/api/v1/analytics/track & /api/v1/sponsorship/analytics/track)
+router.use(analyticsRouter);
 
 // GET campaign products
 router.get("/api/v1/campaigns/:bannerId/products", async (req: Request, res: Response) => {

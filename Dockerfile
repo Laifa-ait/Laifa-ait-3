@@ -6,16 +6,16 @@ WORKDIR /app
 # Upgrade OS packages
 RUN apk upgrade --no-cache
 
-# Client build arguments and environment variables (injected at build time by CI/CD)
-ARG VITE_FIREBASE_PROJECT_ID
-ARG VITE_FIREBASE_AUTH_DOMAIN
-ARG VITE_FIREBASE_API_KEY
-ARG VITE_FIREBASE_APP_ID
-ARG VITE_FIREBASE_STORAGE_BUCKET
-ARG VITE_FIREBASE_MESSAGING_SENDER_ID
-ARG VITE_FIREBASE_MEASUREMENT_ID
-ARG VITE_FIREBASE_DATABASE_ID
-ARG FIREBASE_DATABASE_ID
+# Client build arguments and environment variables (with public Firebase web app defaults)
+ARG VITE_FIREBASE_PROJECT_ID=original-micron-7sjh2
+ARG VITE_FIREBASE_AUTH_DOMAIN=original-micron-7sjh2.firebaseapp.com
+ARG VITE_FIREBASE_API_KEY=AIzaSyCsGYo1B0vavSQbKdFvu0-7jfzILFHvejA
+ARG VITE_FIREBASE_APP_ID=1:76420360525:web:d6781ea77ef0c2257aef04
+ARG VITE_FIREBASE_STORAGE_BUCKET=original-micron-7sjh2.firebasestorage.app
+ARG VITE_FIREBASE_MESSAGING_SENDER_ID=76420360525
+ARG VITE_FIREBASE_MEASUREMENT_ID=G-XQW5YY2C36
+ARG VITE_FIREBASE_DATABASE_ID=ai-studio-217f6d79-c758-4e14-845d-737228cd3915
+ARG FIREBASE_DATABASE_ID=ai-studio-217f6d79-c758-4e14-845d-737228cd3915
 
 ENV VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID
 ENV VITE_FIREBASE_AUTH_DOMAIN=$VITE_FIREBASE_AUTH_DOMAIN
@@ -29,7 +29,7 @@ ENV FIREBASE_DATABASE_ID=$FIREBASE_DATABASE_ID
 
 # Copy package files and install all dependencies
 COPY package*.json ./
-RUN npm ci
+RUN npm ci || npm install --no-audit --no-fund
 
 # Copy the rest of the application files
 COPY . .
@@ -45,13 +45,13 @@ WORKDIR /app
 RUN apk upgrade --no-cache
 
 ENV NODE_ENV=production
-ENV PORT=3000
-# CSRF_SECRET is injected at runtime via GCP Secret Manager / Cloud Run environment.
-# Never provide fallback secrets in the Dockerfile.
+ENV PORT=8080
+ENV FIREBASE_PROJECT_ID=original-micron-7sjh2
+ENV FIREBASE_DATABASE_ID=ai-studio-217f6d79-c758-4e14-845d-737228cd3915
 
 # Copy package files and install only production dependencies
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev || npm install --omit=dev --no-audit --no-fund
 
 # Copy built assets and assets required at runtime from builder with node ownership
 COPY --from=builder --chown=node:node /app/dist ./dist

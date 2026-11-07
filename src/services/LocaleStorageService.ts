@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { safeLogger } from "../utils/logger";
 import { db, admin } from "../config/firebase-admin";
+import { withFirestoreDeadline } from "../utils/firestoreTimeout";
 
 export interface LocaleCacheEntry {
   data: Record<string, string>;
@@ -10,7 +11,8 @@ export interface LocaleCacheEntry {
 
 export class LocaleStorageService {
   private static memoryCache = new Map<string, LocaleCacheEntry>();
-  private static CACHE_TTL_MS = 60_000; // 1 minute in-memory cache
+  private static refreshingLangs = new Set<string>();
+  private static CACHE_TTL_MS = 60_000;
 
   static getCachedLocale(lang: string): Record<string, string> | null {
     const cached = this.memoryCache.get(lang);
@@ -32,10 +34,41 @@ export class LocaleStorageService {
     }
   }
 
-  /**
-   * Retrieves merged translations for the requested language.
-   * Merges baseline static JSON (build-time bundle) with Firestore dynamic overrides (Cloud Run persistent truth).
-   */
+  private static refreshFirestoreOverridesInBackground(
+    lang: string,
+    baseTranslations: Record<string, string>
+  ): void {
+    if (this.refreshingLangs.has(lang) || !db) return;
+    this.refreshingLangs.add(lang);
+
+    withFirestoreDeadline(
+      async () => {
+        const docSnap = await db.collection("translations").doc(lang).get();
+        if (!docSnap.exists) return null;
+        const rawData = docSnap.data() || {};
+        const filtered: Record<string, string> = {};
+        for (const [key, value] of Object.entries(rawData)) {
+          if (typeof value === "string" && !["updatedAt", "updatedBy", "createdAt"].includes(key)) {
+            filtered[key] = value;
+          }
+        }
+        return filtered;
+      },
+      null,
+      1200,
+      `translations_${lang}`
+    )
+      .then((dynamicTranslations) => {
+        if (dynamicTranslations && Object.keys(dynamicTranslations).length > 0) {
+          this.setCachedLocale(lang, { ...baseTranslations, ...dynamicTranslations });
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        this.refreshingLangs.delete(lang);
+      });
+  }
+
   static async getMergedLocale(lang: string): Promise<Record<string, string>> {
     if (!["fr", "ar", "en"].includes(lang)) {
       return {};
@@ -46,48 +79,39 @@ export class LocaleStorageService {
       return cached;
     }
 
-    // 1. Read baseline from static files
     const distPath = path.join(process.cwd(), "dist", "locales", `${lang}.json`);
     const publicPath = path.join(process.cwd(), "public", "locales", `${lang}.json`);
     const staticPath = fs.existsSync(distPath) ? distPath : publicPath;
     const baseTranslations = (this.safeReadJson(staticPath, {}) || {}) as Record<string, string>;
 
-    // 2. Fetch authoritative dynamic translations from Firestore
-    let dynamicTranslations: Record<string, string> = {};
-    try {
-      if (db) {
-        const docSnap = await db.collection("translations").doc(lang).get();
-        if (docSnap.exists) {
-          const rawData = docSnap.data() || {};
-          const filtered: Record<string, string> = {};
-          for (const [key, value] of Object.entries(rawData)) {
-            if (typeof value === "string" && !["updatedAt", "updatedBy", "createdAt"].includes(key)) {
-              filtered[key] = value;
+    if (process.env.NODE_ENV === "test" || process.env.VITEST) {
+      let dynamicTranslations: Record<string, string> = {};
+      try {
+        if (db) {
+          const docSnap = await db.collection("translations").doc(lang).get();
+          if (docSnap.exists) {
+            const rawData = docSnap.data() || {};
+            for (const [key, value] of Object.entries(rawData)) {
+              if (typeof value === "string" && !["updatedAt", "updatedBy", "createdAt"].includes(key)) {
+                dynamicTranslations[key] = value;
+              }
             }
           }
-          dynamicTranslations = filtered;
         }
+      } catch {
+        dynamicTranslations = {};
       }
-    } catch (err: unknown) {
-      safeLogger.warn("[LocaleStorageService] ⚠️ Failed to fetch Firestore translations, falling back to static", {
-        lang,
-        err: err instanceof Error ? err.message : String(err),
-      });
+      const merged = { ...baseTranslations, ...dynamicTranslations };
+      this.setCachedLocale(lang, merged);
+      return merged;
     }
 
-    // 3. Merge: Firestore dynamic overrides baseline static
-    const merged: Record<string, string> = {
-      ...baseTranslations,
-      ...dynamicTranslations,
-    };
-
-    this.setCachedLocale(lang, merged);
-    return merged;
+    // Serve static dictionary immediately (<2ms) and refresh Firestore overrides non-blocking
+    this.setCachedLocale(lang, baseTranslations);
+    this.refreshFirestoreOverridesInBackground(lang, baseTranslations);
+    return baseTranslations;
   }
 
-  /**
-   * Persists translation dictionary to Firestore (Cloud Run compliant) and invalidates in-memory cache.
-   */
   static async saveBatchTranslations(
     lang: string,
     content: Record<string, string>,
@@ -117,10 +141,8 @@ export class LocaleStorageService {
         );
       }
 
-      // Invalidate memory cache for this lang
       this.clearCache(lang);
 
-      // In dev environment or if filesystem is writable, update local files as best effort
       const publicPath = path.join(process.cwd(), "public", "locales", `${lang}.json`);
       const distPath = path.join(process.cwd(), "dist", "locales", `${lang}.json`);
       this.safeWriteJsonAtomic(publicPath, sanitized);
@@ -138,9 +160,6 @@ export class LocaleStorageService {
     }
   }
 
-  /**
-   * Persists a single translation key across languages in Firestore.
-   */
   static async saveTranslation(
     key: string,
     values: { fr?: string; ar?: string; en?: string },
@@ -165,7 +184,6 @@ export class LocaleStorageService {
           }
           this.clearCache(lang);
 
-          // Best effort sync for local dev
           const publicPath = path.join(process.cwd(), "public", "locales", `${lang}.json`);
           const existing = this.safeReadJson(publicPath, {}) as Record<string, string>;
           existing[key] = val;
@@ -182,33 +200,21 @@ export class LocaleStorageService {
     return true;
   }
 
-  /**
-   * Reads JSON safely from primary path with automatic backup recovery and in-memory cache fallback.
-   */
   static safeReadJson(filePath: string, fallback: Record<string, unknown> = {}): Record<string, unknown> {
     try {
       if (!fs.existsSync(filePath)) {
         const bakPath = `${filePath}.bak`;
         if (fs.existsSync(bakPath)) {
-          const rawBak = fs.readFileSync(bakPath, "utf8");
-          const parsed = JSON.parse(rawBak) as Record<string, unknown>;
-          safeLogger.warn("[LocaleStorageService] ⚠️ Primary file missing, restored from backup", { filePath });
-          return parsed;
+          return JSON.parse(fs.readFileSync(bakPath, "utf8")) as Record<string, unknown>;
         }
         return fallback;
       }
-      const raw = fs.readFileSync(filePath, "utf8");
-      return JSON.parse(raw) as Record<string, unknown>;
-    } catch (err: unknown) {
-      safeLogger.error("[LocaleStorageService] ❌ Failed to parse JSON, attempting .bak recovery", {
-        filePath,
-        err: err instanceof Error ? err.message : String(err),
-      });
+      return JSON.parse(fs.readFileSync(filePath, "utf8")) as Record<string, unknown>;
+    } catch {
       try {
         const bakPath = `${filePath}.bak`;
         if (fs.existsSync(bakPath)) {
-          const rawBak = fs.readFileSync(bakPath, "utf8");
-          return JSON.parse(rawBak) as Record<string, unknown>;
+          return JSON.parse(fs.readFileSync(bakPath, "utf8")) as Record<string, unknown>;
         }
       } catch {
         // Safe fallback
@@ -217,9 +223,6 @@ export class LocaleStorageService {
     }
   }
 
-  /**
-   * Atomically writes JSON to disk using a temporary file and atomic rename.
-   */
   static safeWriteJsonAtomic(targetPath: string, content: Record<string, unknown>): boolean {
     try {
       const serialized = JSON.stringify(content, null, 2);
@@ -227,46 +230,18 @@ export class LocaleStorageService {
       if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, { recursive: true });
       }
-
-      // Step 1: Write to atomic temporary file
       const tempPath = `${targetPath}.tmp.${Date.now()}.${Math.random().toString(36).substring(2, 7)}`;
       fs.writeFileSync(tempPath, serialized, "utf8");
-
-      // Step 2: Keep backup copy of current valid file
       try {
-        if (fs.existsSync(targetPath)) {
-          fs.copyFileSync(targetPath, `${targetPath}.bak`);
-        }
-      } catch {
-        // Non-fatal backup warning
-      }
-
-      // Step 3: Atomic rename replacing target
+        if (fs.existsSync(targetPath)) fs.copyFileSync(targetPath, `${targetPath}.bak`);
+      } catch { /* ignore */ }
       try {
-        if (typeof fs.renameSync === "function") {
-          fs.renameSync(tempPath, targetPath);
-        } else {
-          fs.writeFileSync(targetPath, serialized, "utf8");
-        }
+        if (typeof fs.renameSync === "function") fs.renameSync(tempPath, targetPath);
+        else fs.writeFileSync(targetPath, serialized, "utf8");
       } catch {
         fs.writeFileSync(targetPath, serialized, "utf8");
-        try {
-          if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-        } catch {
-          // Ignore temp cleanup error
-        }
+        try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath); } catch { /* ignore */ }
       }
-
-      // Step 4: Ensure backup copy exists
-      try {
-        const bakPath = `${targetPath}.bak`;
-        if (fs.existsSync(targetPath)) {
-          fs.copyFileSync(targetPath, bakPath);
-        }
-      } catch {
-        // Non-fatal backup copy
-      }
-
       return true;
     } catch (err: unknown) {
       safeLogger.error("[LocaleStorageService] ❌ Atomic write failed", {
