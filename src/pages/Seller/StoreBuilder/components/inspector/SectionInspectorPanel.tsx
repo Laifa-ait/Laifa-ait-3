@@ -1,18 +1,9 @@
 import React, { useEffect } from "react";
 import {
-  Sliders,
-  Type,
-  SlidersHorizontal,
-  Layout,
-  Smartphone,
-  Settings,
-  ChevronRight,
-  X,
+  Sliders, Type, SlidersHorizontal, Layout, Smartphone, Settings, ChevronRight, X,
 } from "lucide-react";
 import {
-  CustomPageSection,
-  CustomPageSectionStyles,
-  CustomPageTheme,
+  CustomPageSection, CustomPageSectionStyles, CustomPageTheme,
 } from "../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../domains/product/product.types";
 import { SectionContentTab } from "./SectionContentTab";
@@ -33,6 +24,7 @@ interface SectionInspectorPanelProps {
 const SECTION_TYPE_LABELS: Record<string, string> = {
   hero_banner: "Bannière Principale",
   promo_carousel: "Carrousel Promotionnel",
+  kinetic_marquee: "Bandeau Cinétique",
   featured_categories: "Rayons & Catégories",
   curated_collections: "Collections Privées",
   new_arrivals: "Nouveautés",
@@ -78,11 +70,7 @@ function formatSubElementLabel(sub: string): string {
 }
 
 export const SectionInspectorPanel: React.FC<SectionInspectorPanelProps> = ({
-  section,
-  sections = [],
-  products,
-  currentTheme,
-  onUpdateSection,
+  section, sections = [], products, currentTheme, onUpdateSection,
 }) => {
   const activeTab = useStudioStore((s) => s.activeInspectorTab);
   const setActiveTab = useStudioStore((s) => s.setActiveInspectorTab);
@@ -138,14 +126,8 @@ export const SectionInspectorPanel: React.FC<SectionInspectorPanelProps> = ({
         styles: nextStyles,
         settings: {
           ...section.settings,
-          titleColor: "",
-          subtitleColor: "",
-          ctaBgColor: "",
-          ctaTextColor: "",
-          badgeBgColor: "",
-          badgeTextColor: "",
-          secondaryCtaBgColor: "",
-          secondaryCtaTextColor: "",
+          titleColor: "", subtitleColor: "", ctaBgColor: "", ctaTextColor: "",
+          badgeBgColor: "", badgeTextColor: "", secondaryCtaBgColor: "", secondaryCtaTextColor: "",
         },
       });
       return;
@@ -160,7 +142,7 @@ export const SectionInspectorPanel: React.FC<SectionInspectorPanelProps> = ({
   const sectionDisplayName = section.title || sectionTypeLabel;
 
   return (
-    <aside className="w-full bg-white flex flex-col h-full shrink-0 min-w-0 min-h-0">
+    <aside className="w-full bg-white flex flex-col h-full shrink-0 min-w-0 min-h-0" data-testid="section-inspector-panel">
       <div className="p-3 border-b border-slate-200 bg-white space-y-2">
         <div className="min-w-0">
           <input
@@ -204,9 +186,10 @@ export const SectionInspectorPanel: React.FC<SectionInspectorPanelProps> = ({
       <div className="flex p-1 bg-slate-100 border-b border-slate-200 text-[11px] font-medium gap-0.5">
         {[
           { id: "content" as const, label: "Contenu", icon: Type },
-          { id: "style" as const, label: "Couleurs", icon: SlidersHorizontal },
-          { id: "layout" as const, label: "Espace", icon: Layout },
-          { id: "responsive" as const, label: "Écrans", icon: Smartphone },
+          { id: "style" as const, label: "Style", icon: SlidersHorizontal },
+          { id: "layout" as const, label: "Disposition", icon: Layout },
+          { id: "responsive" as const, label: "Responsive", icon: Smartphone },
+          { id: "advanced" as const, label: "Avancé", icon: Settings },
         ].map((tab) => {
           const Icon = tab.icon;
           const isAct = activeTab === tab.id;
@@ -214,11 +197,10 @@ export const SectionInspectorPanel: React.FC<SectionInspectorPanelProps> = ({
             <button
               key={tab.id}
               type="button"
+              data-testid={`inspector-tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 py-1.5 px-1.5 rounded-lg text-center transition-colors cursor-pointer flex items-center justify-center gap-1 ${
-                isAct
-                  ? "bg-white text-[#011C40] font-bold shadow-2xs"
-                  : "text-slate-500 hover:text-[#011C40]"
+              className={`flex-1 py-1.5 px-1 rounded-lg text-center transition-colors cursor-pointer flex items-center justify-center gap-1 ${
+                isAct ? "bg-white text-[#011C40] font-bold shadow-2xs" : "text-slate-500 hover:text-[#011C40]"
               }`}
             >
               <Icon className="w-3.5 h-3.5 text-[#023859] shrink-0" />
@@ -226,38 +208,23 @@ export const SectionInspectorPanel: React.FC<SectionInspectorPanelProps> = ({
             </button>
           );
         })}
-        <button
-          type="button"
-          onClick={() => setActiveTab("advanced")}
-          className={`p-1.5 rounded-lg cursor-pointer flex items-center justify-center shrink-0 ${
-            activeTab === "advanced" ? "bg-white text-[#011C40] font-bold shadow-2xs" : "text-slate-500"
-          }`}
-        >
-          <Settings className="w-3.5 h-3.5 text-slate-500" />
-        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3.5 space-y-4 text-[13px]">
         {activeTab === "content" && (
-          <SectionContentTab
-            sectionType={section.type}
-            settings={settings}
-            sections={sections}
-            products={products}
-            onSettingsChange={handleSettingsChange}
-          />
+          <SectionContentTab sectionType={section.type} settings={settings} sections={sections} products={products} onSettingsChange={handleSettingsChange} />
         )}
         {activeTab === "style" && (
-          <SectionStyleTab styles={styles} theme={currentTheme} onStylesChange={handleStylesChange} />
+          <SectionStyleTab styles={styles} settings={settings} theme={currentTheme} onStylesChange={handleStylesChange} onSettingsChange={handleSettingsChange} />
         )}
         {activeTab === "layout" && (
           <SectionLayoutTab styles={styles} settings={settings} onStylesChange={handleStylesChange} onSettingsChange={handleSettingsChange} />
         )}
         {activeTab === "responsive" && (
-          <SectionResponsiveTab settings={settings} onSettingsChange={handleSettingsChange} />
+          <SectionResponsiveTab section={section} settings={settings} styles={styles} theme={currentTheme} onSettingsChange={handleSettingsChange} onStylesChange={handleStylesChange} />
         )}
         {activeTab === "advanced" && (
-          <SectionAdvancedTab sectionId={section.id} settings={settings} onSettingsChange={handleSettingsChange} />
+          <SectionAdvancedTab sectionId={section.id} settings={settings} styles={styles} onSettingsChange={handleSettingsChange} onStylesChange={handleStylesChange} />
         )}
       </div>
     </aside>

@@ -11,6 +11,12 @@ import { SectionContentAndTrust } from "./SectionContentAndTrust";
 import { CanvasSectionFloatingDock } from "./CanvasSectionFloatingDock";
 import { ArtisticAtmosphereLayer } from "../ArtisticAtmosphereLayer";
 import {
+  resolveResponsiveSectionValues,
+  sanitizeControlledCssClasses,
+  sanitizeAnchorId,
+  isSectionConditionallyVisible,
+} from "./responsiveInheritanceHelper";
+import {
   useStudioStore,
   StudioInspectorTab,
   StudioSectionActionType,
@@ -61,26 +67,45 @@ export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({
   const triggerSectionAction = useStudioStore((s) => s.triggerSectionAction);
 
   const settingsRecord = (section.settings || {}) as Record<string, unknown>;
-  const hideOnMobile = Boolean(settingsRecord.hideOnMobile);
-  const hideOnDesktop = Boolean(settingsRecord.hideOnDesktop);
   const isLocked = Boolean(settingsRecord.isLocked);
-  const anchorId =
-    typeof settingsRecord.anchorId === "string" && settingsRecord.anchorId.trim()
-      ? settingsRecord.anchorId.trim()
-      : undefined;
+  const anchorId = sanitizeAnchorId((settingsRecord.anchorId as string) || "") || undefined;
+  const safeCustomClasses = sanitizeControlledCssClasses((settingsRecord.customCssClasses as string) || "");
+  const ariaLabel = typeof settingsRecord.ariaLabel === "string" && settingsRecord.ariaLabel.trim() ? settingsRecord.ariaLabel.trim() : undefined;
+  const ariaRole = typeof settingsRecord.ariaRole === "string" && settingsRecord.ariaRole.trim() ? settingsRecord.ariaRole.trim() : undefined;
+  const sectionOpacity = typeof settingsRecord.sectionOpacity === "number" ? Math.min(100, Math.max(50, settingsRecord.sectionOpacity)) / 100 : 1;
 
-  const isViewportHidden =
-    (previewViewport === "mobile" && hideOnMobile) ||
-    (previewViewport === "desktop" && hideOnDesktop);
+  const responsiveVals = resolveResponsiveSectionValues(section, theme, previewViewport);
+  const isConditionallyVisible = isSectionConditionallyVisible(settingsRecord, products.length);
+  const isViewportHidden = responsiveVals.isHiddenOnViewport || !isConditionallyVisible;
 
   if ((!section.isVisible || isViewportHidden) && !isEditable) {
     return null;
   }
 
+  // Propagate viewport-resolved responsive settings & styles down to child renderers
+  const effectiveTheme: CustomPageTheme = {
+    ...theme,
+    titleFontSizePx: responsiveVals.titleFontSizePx,
+    bodyFontSizePx: responsiveVals.bodyFontSizePx,
+    spacingYPx: responsiveVals.paddingY,
+  };
+  const effectiveSection: CustomPageSection = {
+    ...section,
+    settings: {
+      ...section.settings,
+      textAlignment: responsiveVals.textAlignment,
+      columnsDesktop: responsiveVals.columns,
+    } as CustomPageSection["settings"],
+    styles: {
+      ...section.styles,
+      paddingY: responsiveVals.paddingY,
+      paddingX: responsiveVals.paddingX,
+    },
+  };
+
   const isSelected = Boolean(propIsSelected || (isEditable && selectedSectionId === section.id));
   const isHovered = Boolean(isEditable && hoveredSectionId === section.id);
-  const sectionBadgeLabel =
-    section.title || SECTION_BADGE_LABELS[section.type] || section.type.replace(/_/g, " ");
+  const sectionBadgeLabel = section.title || SECTION_BADGE_LABELS[section.type] || section.type.replace(/_/g, " ");
 
   const handleSelect = () => {
     if (isEditable) selectSection(section.id);
@@ -97,15 +122,10 @@ export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({
     selectSection(section.id, null);
     setActiveInspectorTab(inspectorTab);
     if (onSelectSection) onSelectSection(section.id);
-    window.dispatchEvent(
-      new CustomEvent("studio:open-inspector-tab", {
-        detail: { sectionId: section.id, tab: inspectorTab },
-      })
-    );
+    window.dispatchEvent(new CustomEvent("studio:open-inspector-tab", { detail: { sectionId: section.id, tab: inspectorTab } }));
   };
 
-  const hiddenOpacityClass =
-    (!section.isVisible || isViewportHidden) && isEditable ? "opacity-50 grayscale" : "";
+  const hiddenOpacityClass = (!section.isVisible || isViewportHidden) && isEditable ? "opacity-50 grayscale" : "";
   const shopifyOutlineClass = isEditable
     ? isSelected
       ? "ring-2 ring-[var(--store-primary,#023859)] rounded-2xl overflow-hidden shadow-md"
@@ -117,11 +137,7 @@ export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({
   const animType = section.styles?.animation || "fade";
   const shouldAnimate = !prefersReducedMotion && animType !== "none";
   const initialAnim = shouldAnimate
-    ? animType === "slide-up"
-      ? { opacity: 0, y: 18 }
-      : animType === "zoom"
-      ? { opacity: 0, scale: 0.97 }
-      : { opacity: 0 }
+    ? animType === "slide-up" ? { opacity: 0, y: 18 } : animType === "zoom" ? { opacity: 0, scale: 0.97 } : { opacity: 0 }
     : false;
 
   return (
@@ -130,16 +146,21 @@ export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({
       data-studio-section-id={section.id}
       data-section-type={section.type}
       data-anchor-id={anchorId}
+      aria-label={ariaLabel}
+      role={ariaRole}
+      style={sectionOpacity < 1 ? { opacity: sectionOpacity } : undefined}
       initial={initialAnim}
       whileInView={shouldAnimate ? { opacity: 1, y: 0, scale: 1 } : undefined}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: prefersReducedMotion ? 0 : 0.42, ease: "easeOut" }}
       onMouseEnter={isEditable ? () => hoverElement(section.id) : undefined}
       onMouseLeave={isEditable ? () => clearHover() : undefined}
-      className={`relative group/sec transition-all ${hiddenOpacityClass} ${shopifyOutlineClass}`}
+      className={`relative group/sec transition-all ${hiddenOpacityClass} ${shopifyOutlineClass} ${safeCustomClasses}`.trim()}
     >
+      {anchorId && <span id={anchorId} className="absolute -top-16 pointer-events-none" aria-hidden="true" />}
+
       {(section.styles?.surfaceTexture || section.styles?.ambientLighting) && (
-        <ArtisticAtmosphereLayer theme={theme} sectionStyles={section.styles} />
+        <ArtisticAtmosphereLayer theme={effectiveTheme} sectionStyles={effectiveSection.styles} />
       )}
 
       {isEditable && (isHovered || isSelected) && (
@@ -160,86 +181,34 @@ export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({
         <span className="absolute bottom-2 right-2 z-20 bg-gray-800 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
           {!section.isVisible
             ? "Masquée"
-            : hideOnMobile && previewViewport === "mobile"
+            : !isConditionallyVisible
+            ? "Masquée (Condition)"
+            : previewViewport === "mobile"
             ? "Masquée sur Mobile"
+            : previewViewport === "tablet"
+            ? "Masquée sur Tablette"
             : "Masquée sur PC"}
         </span>
       )}
 
       {section.type === "hero_banner" && (
-        <SectionHeroBanner
-          section={section as CustomPageSection<"hero_banner">}
-          theme={theme}
-          isEditable={isEditable}
-          isSelected={isSelected}
-          onSelect={handleSelect}
-          previewViewport={previewViewport}
-        />
+        <SectionHeroBanner section={effectiveSection as CustomPageSection<"hero_banner">} theme={effectiveTheme} isEditable={isEditable} isSelected={isSelected} onSelect={handleSelect} previewViewport={previewViewport} />
       )}
-
       {section.type === "promo_carousel" && (
-        <SectionPromoCarousel
-          section={section as CustomPageSection<"promo_carousel">}
-          theme={theme}
-          isEditable={isEditable}
-          isSelected={isSelected}
-          onSelect={handleSelect}
-        />
+        <SectionPromoCarousel section={effectiveSection as CustomPageSection<"promo_carousel">} theme={effectiveTheme} isEditable={isEditable} isSelected={isSelected} onSelect={handleSelect} />
       )}
-
       {section.type === "kinetic_marquee" && (
-        <KineticMarqueeSection
-          section={section as CustomPageSection<"kinetic_marquee">}
-          theme={theme}
-          isEditable={isEditable}
-          isSelected={isSelected}
-          onSelect={handleSelect}
-        />
+        <KineticMarqueeSection section={effectiveSection as CustomPageSection<"kinetic_marquee">} theme={effectiveTheme} isEditable={isEditable} isSelected={isSelected} onSelect={handleSelect} />
       )}
-
       {section.type === "featured_categories" && (
-        <SectionFeaturedCategories
-          section={section as CustomPageSection<"featured_categories">}
-          theme={theme}
-          isEditable={isEditable}
-          isSelected={isSelected}
-          onSelect={handleSelect}
-          previewViewport={previewViewport}
-        />
+        <SectionFeaturedCategories section={effectiveSection as CustomPageSection<"featured_categories">} theme={effectiveTheme} isEditable={isEditable} isSelected={isSelected} onSelect={handleSelect} previewViewport={previewViewport} />
       )}
-
-      {(section.type === "featured_products" ||
-        section.type === "new_arrivals" ||
-        section.type === "best_sellers" ||
-        section.type === "product_grid") && (
-        <SectionProductFeeds
-          section={section as CustomPageSection<"featured_products" | "new_arrivals" | "best_sellers" | "product_grid">}
-          theme={theme}
-          products={products}
-          isEditable={isEditable}
-          isSelected={isSelected}
-          onSelect={handleSelect}
-          previewViewport={previewViewport}
-        />
+      {(section.type === "featured_products" || section.type === "new_arrivals" || section.type === "best_sellers" || section.type === "product_grid") && (
+        <SectionProductFeeds section={effectiveSection as CustomPageSection<"featured_products" | "new_arrivals" | "best_sellers" | "product_grid">} theme={effectiveTheme} products={products} isEditable={isEditable} isSelected={isSelected} onSelect={handleSelect} previewViewport={previewViewport} />
       )}
-
-      {section.type !== "hero_banner" &&
-        section.type !== "promo_carousel" &&
-        section.type !== "kinetic_marquee" &&
-        section.type !== "featured_categories" &&
-        section.type !== "featured_products" &&
-        section.type !== "new_arrivals" &&
-        section.type !== "best_sellers" &&
-        section.type !== "product_grid" && (
-          <SectionContentAndTrust
-            section={section}
-            theme={theme}
-            products={products}
-            isEditable={isEditable}
-            isSelected={isSelected}
-            onSelect={handleSelect}
-          />
-        )}
+      {section.type !== "hero_banner" && section.type !== "promo_carousel" && section.type !== "kinetic_marquee" && section.type !== "featured_categories" && section.type !== "featured_products" && section.type !== "new_arrivals" && section.type !== "best_sellers" && section.type !== "product_grid" && (
+        <SectionContentAndTrust section={effectiveSection} theme={effectiveTheme} products={products} isEditable={isEditable} isSelected={isSelected} onSelect={handleSelect} />
+      )}
     </motion.div>
   );
 };

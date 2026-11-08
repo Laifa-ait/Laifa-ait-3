@@ -91,21 +91,28 @@ export function buildStoreThemeCssVariables(
   theme: CustomPageTheme,
   isDarkMode = false
 ): React.CSSProperties & Record<`--${string}`, string> {
+  const rawTheme = theme as unknown as Record<string, unknown>;
   const primary = theme.primaryColor || "#B45309";
   const secondary = isDarkMode ? "#F8FAFC" : theme.secondaryColor || "#18181B";
   const accent = theme.accentColor || primary;
   const canvas = isDarkMode ? "#0F172A" : theme.canvasColor || "#FAF6F0";
   const surface = isDarkMode ? "#1E293B" : theme.surfaceColor || "#FFFFFF";
+  const textColor = isDarkMode ? "#F8FAFC" : (rawTheme.textColor as string) || secondary;
+  const borderColor = isDarkMode ? "#334155" : (rawTheme.borderColor as string) || "#E4E7EC";
+  const buttonColor = (rawTheme.buttonColor as string) || primary;
   const headingFont = resolveHeadingFontStack(theme);
   const bodyFont = resolveBodyFontStack(theme);
   const radiusPx = typeof theme.borderRadiusPx === "number" ? theme.borderRadiusPx : 16;
   const spacingYPx = typeof theme.spacingYPx === "number" ? theme.spacingYPx : 28;
   const titleSizePx = typeof theme.titleFontSizePx === "number" ? theme.titleFontSizePx : 36;
   const bodySizePx = typeof theme.bodyFontSizePx === "number" ? theme.bodyFontSizePx : 15;
+  const headingWeight = typeof rawTheme.headingFontWeight === "number" ? String(rawTheme.headingFontWeight) : "700";
+  const lineHeight = typeof theme.lineHeight === "number" ? String(theme.lineHeight) : "1.2";
+  const buttonHeightPx = typeof rawTheme.buttonHeightPx === "number" ? `${rawTheme.buttonHeightPx}px` : "44px";
 
   return {
     backgroundColor: canvas,
-    color: secondary,
+    color: textColor,
     fontFamily: bodyFont,
     fontSize: `${bodySizePx}px`,
     "--store-bg-60": canvas,
@@ -116,10 +123,16 @@ export function buildStoreThemeCssVariables(
     "--store-accent": accent,
     "--store-canvas": canvas,
     "--store-surface": surface,
+    "--store-text": textColor,
+    "--store-border": borderColor,
+    "--store-btn-bg": buttonColor,
+    "--store-btn-height": buttonHeightPx,
     "--store-border-radius": `${radiusPx}px`,
     "--store-spacing-y": `${spacingYPx}px`,
     "--store-title-size": `${titleSizePx}px`,
     "--store-body-size": `${bodySizePx}px`,
+    "--store-heading-weight": headingWeight,
+    "--store-line-height": lineHeight,
     "--store-font": bodyFont,
     "--store-font-heading": headingFont,
     "--store-font-body": bodyFont,
