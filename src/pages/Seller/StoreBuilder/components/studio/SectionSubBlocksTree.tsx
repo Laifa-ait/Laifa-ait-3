@@ -1,13 +1,13 @@
 import React from "react";
 import {
-  Type, AlignLeft, MousePointerClick, Image as ImageIcon, Plus, Copy,
-  Trash2, Sparkles, Grid, HelpCircle, MoveUp, MoveDown,
+  Plus, Copy, Trash2, Sparkles, Grid, HelpCircle, MoveUp, MoveDown,
 } from "lucide-react";
 import {
   CustomPageSection, PromoSlide, CategoryItem, CuratedCollectionItem, FaqItem,
 } from "../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../domains/product/product.types";
 import { useStudioStore } from "../../store/useStudioStore";
+import { SectionStaticSubBlocks } from "./SectionStaticSubBlocks";
 
 interface SectionSubBlocksTreeProps {
   sec: CustomPageSection;
@@ -16,16 +16,27 @@ interface SectionSubBlocksTreeProps {
   onUpdateSection?: (id: string, updatedData: Partial<CustomPageSection>) => void;
 }
 
-const HERO_SUB_BLOCKS = [
-  { key: "title", label: "En-tête & Titre", icon: Type },
-  { key: "subtitle", label: "Sous-titre", icon: AlignLeft },
-  { key: "ctaPrimary", label: "Bouton Principal", icon: MousePointerClick },
-  { key: "ctaSecondary", label: "Bouton Secondaire", icon: MousePointerClick },
-  { key: "background", label: "Fond & Image", icon: ImageIcon },
-];
+const EXPANDABLE_SECTION_TYPES = new Set([
+  "hero_banner",
+  "promo_carousel",
+  "featured_categories",
+  "curated_collections",
+  "featured_products",
+  "new_arrivals",
+  "best_sellers",
+  "product_grid",
+  "brand_story",
+  "showcase_video",
+  "verified_reviews",
+  "delivery_info",
+  "return_policy",
+  "faq_accordion",
+  "contact_footer",
+  "kinetic_marquee",
+]);
 
 export function hasExpandableSubBlocks(sectionType: string): boolean {
-  return ["hero_banner", "promo_carousel", "featured_categories", "curated_collections", "faq_accordion"].includes(sectionType);
+  return EXPANDABLE_SECTION_TYPES.has(sectionType);
 }
 
 function swapItems<T>(list: T[], from: number, to: number): T[] {
@@ -59,32 +70,6 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
   const patchSettings = (patch: Record<string, unknown>) => {
     onUpdateSection?.(sec.id, { settings: { ...settings, ...patch } });
   };
-
-  if (sec.type === "hero_banner") {
-    return (
-      <div className="mt-2 pl-4 pr-1 py-1 border-l-2 border-[#54ACBF]/50 space-y-1">
-        {HERO_SUB_BLOCKS.map((item) => {
-          const Icon = item.icon;
-          const isAct = selectedSectionId === sec.id && (selectedSubElement === item.key || (item.key === "ctaPrimary" && selectedSubElement === "cta"));
-          return (
-            <button
-              key={item.key}
-              type="button"
-              onMouseEnter={() => hoverElement(sec.id, item.key)}
-              onMouseLeave={() => hoverElement(sec.id, null)}
-              onClick={(e) => focusSubBlock(item.key, e)}
-              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-[11px] cursor-pointer transition-colors ${
-                isAct ? "bg-[#023859] text-white font-bold shadow-2xs" : "text-[#475467] hover:bg-[#F0F7FA] font-medium"
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">{item.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
 
   if (sec.type === "promo_carousel") {
     const slides = Array.isArray(settings.slides) ? (settings.slides as PromoSlide[]) : [];
@@ -246,5 +231,13 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
     );
   }
 
-  return null;
+  return (
+    <SectionStaticSubBlocks
+      sec={sec}
+      selectedSectionId={selectedSectionId}
+      selectedSubElement={selectedSubElement}
+      onHoverSubBlock={(subKey) => hoverElement(sec.id, subKey)}
+      onFocusSubBlock={focusSubBlock}
+    />
+  );
 };

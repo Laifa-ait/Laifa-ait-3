@@ -48,15 +48,8 @@ interface StoreSectionRendererProps {
 }
 
 export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({
-  section,
-  theme,
-  products,
-  isEditable,
-  isSelected: propIsSelected,
-  sectionIndex = 0,
-  totalSections = 1,
-  onSelectSection,
-  previewViewport = "desktop",
+  section, theme, products, isEditable, isSelected: propIsSelected,
+  sectionIndex = 0, totalSections = 1, onSelectSection, previewViewport = "desktop",
 }) => {
   const prefersReducedMotion = useReducedMotion();
   const hoveredSectionId = useStudioStore((s) => s.hoveredSectionId);
@@ -70,6 +63,7 @@ export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({
   const settingsRecord = (section.settings || {}) as Record<string, unknown>;
   const hideOnMobile = Boolean(settingsRecord.hideOnMobile);
   const hideOnDesktop = Boolean(settingsRecord.hideOnDesktop);
+  const isLocked = Boolean(settingsRecord.isLocked);
   const anchorId =
     typeof settingsRecord.anchorId === "string" && settingsRecord.anchorId.trim()
       ? settingsRecord.anchorId.trim()
@@ -153,6 +147,7 @@ export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({
           sectionId={section.id}
           sectionLabel={sectionBadgeLabel}
           isVisible={section.isVisible}
+          isLocked={isLocked}
           isFirstSection={sectionIndex <= 0}
           isLastSection={sectionIndex >= totalSections - 1}
           colorScheme={section.styles?.colorScheme}
@@ -218,11 +213,7 @@ export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({
         section.type === "best_sellers" ||
         section.type === "product_grid") && (
         <SectionProductFeeds
-          section={
-            section as CustomPageSection<
-              "featured_products" | "new_arrivals" | "best_sellers" | "product_grid"
-            >
-          }
+          section={section as CustomPageSection<"featured_products" | "new_arrivals" | "best_sellers" | "product_grid">}
           theme={theme}
           products={products}
           isEditable={isEditable}

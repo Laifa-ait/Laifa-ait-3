@@ -189,6 +189,8 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
                   text={title}
                   theme={theme}
                   sectionStyles={styles}
+                  isEditable={isEditable}
+                  editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
                   onClick={(e) => isEditable && triggerSubTab("style", e)}
                   className={`text-base @[560px]:text-xl @[900px]:text-2xl font-extrabold tracking-tight rounded px-1 ${isEditable ? "cursor-pointer hover:ring-1 hover:ring-[#26658C]" : ""}`}
                   style={{ color: styles.textColor || "#111827" }}

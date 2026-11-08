@@ -8,6 +8,8 @@ import {
   EyeOff,
   Trash2,
   SlidersHorizontal,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import {
   StudioSectionActionType,
@@ -18,6 +20,7 @@ export interface CanvasSectionFloatingDockProps {
   sectionId: string;
   sectionLabel: string;
   isVisible: boolean;
+  isLocked?: boolean;
   isFirstSection?: boolean;
   isLastSection?: boolean;
   colorScheme?: string;
@@ -36,6 +39,7 @@ const SCHEME_SHORT_LABELS: Record<string, string> = {
 export const CanvasSectionFloatingDock: React.FC<CanvasSectionFloatingDockProps> = ({
   sectionLabel,
   isVisible,
+  isLocked = false,
   isFirstSection = false,
   isLastSection = false,
   colorScheme,
@@ -50,15 +54,18 @@ export const CanvasSectionFloatingDock: React.FC<CanvasSectionFloatingDockProps>
       data-testid="canvas-section-floating-dock"
       className="w-full flex items-center justify-between gap-2 bg-white/95 backdrop-blur-md text-[#011C40] px-3 py-1.5 border-b border-slate-200/90 shadow-xs select-none rounded-t-xl"
     >
-      {/* Left: Single Clean Section Title */}
       <div className="flex items-center gap-2 min-w-0">
-        <span className="w-2 h-2 rounded-full bg-[#023859] shrink-0" />
+        <span className={`w-2 h-2 rounded-full shrink-0 ${isLocked ? "bg-amber-500" : "bg-[#023859]"}`} />
         <span className="text-[11px] font-extrabold tracking-tight text-[#011C40] truncate">
           {sectionLabel}
         </span>
+        {isLocked && (
+          <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 shrink-0">
+            Verrouillée
+          </span>
+        )}
       </div>
 
-      {/* Right: Clear, Well-Spaced Section Action Buttons */}
       <div className="flex items-center gap-1 shrink-0">
         {onSelectInspectorTab && (
           <>
@@ -85,7 +92,7 @@ export const CanvasSectionFloatingDock: React.FC<CanvasSectionFloatingDockProps>
 
         <button
           type="button"
-          disabled={isFirstSection}
+          disabled={isFirstSection || isLocked}
           onClick={(e) => onAction("move-up", e)}
           className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center transition-colors cursor-pointer"
           title="Monter cette section"
@@ -95,7 +102,7 @@ export const CanvasSectionFloatingDock: React.FC<CanvasSectionFloatingDockProps>
 
         <button
           type="button"
-          disabled={isLastSection}
+          disabled={isLastSection || isLocked}
           onClick={(e) => onAction("move-down", e)}
           className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center transition-colors cursor-pointer"
           title="Descendre cette section"
@@ -128,18 +135,28 @@ export const CanvasSectionFloatingDock: React.FC<CanvasSectionFloatingDockProps>
           className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
           title={isVisible ? "Masquer cette section" : "Afficher cette section"}
         >
-          {isVisible ? (
-            <Eye className="w-3.5 h-3.5" />
-          ) : (
-            <EyeOff className="w-3.5 h-3.5 text-amber-600" />
-          )}
+          {isVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 text-amber-600" />}
         </button>
 
         <button
           type="button"
+          onClick={(e) => onAction("toggle-lock", e)}
+          data-testid="dock-toggle-lock"
+          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
+            isLocked ? "bg-amber-100 text-amber-800 hover:bg-amber-200" : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+          }`}
+          title={isLocked ? "Déverrouiller la section" : "Verrouiller la section"}
+        >
+          {isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+        </button>
+
+        <button
+          type="button"
+          disabled={isLocked}
           onClick={(e) => onAction("delete", e)}
-          className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-600 text-red-600 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-          title="Supprimer cette section"
+          data-testid="dock-delete-section"
+          className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-600 text-red-600 hover:text-white disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center transition-colors cursor-pointer"
+          title={isLocked ? "Section verrouillée — déverrouillez pour supprimer" : "Supprimer cette section"}
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>

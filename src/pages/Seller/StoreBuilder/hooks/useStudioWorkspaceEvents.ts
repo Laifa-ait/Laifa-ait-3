@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { toast } from "react-hot-toast";
 import { SECTION_CATALOG } from "../constants/sectionCatalog";
 import {
   CustomPageSection,
@@ -60,12 +61,25 @@ export function useStudioWorkspaceEvents({
     if (!pendingSectionAction) return;
     const { sectionId, action } = pendingSectionAction;
     const idx = sections.findIndex((s) => s.id === sectionId);
-    if (action === "move-up" && idx > 0) {
+    const targetSec = idx >= 0 ? sections[idx] : undefined;
+    const isLocked = Boolean((targetSec?.settings as Record<string, unknown> | undefined)?.isLocked);
+
+    if (action === "toggle-lock" && targetSec && updateSection) {
+      const nextLocked = !isLocked;
+      updateSection(sectionId, {
+        settings: {
+          ...((targetSec.settings as unknown as Record<string, unknown>) || {}),
+          isLocked: nextLocked,
+        } as unknown as CustomPageSection["settings"],
+      });
+      toast.success(nextLocked ? "Section verrouillée" : "Section déverrouillée");
+    } else if ((action === "move-up" || action === "move-down" || action === "delete") && isLocked) {
+      toast.error("Cette section est verrouillée. Déverrouillez-la avant de la déplacer ou la supprimer.");
+    } else if (action === "move-up" && idx > 0) {
       reorderSections(idx, idx - 1);
     } else if (action === "move-down" && idx >= 0 && idx < sections.length - 1) {
       reorderSections(idx, idx + 1);
-    } else if (action === "cycle-color-scheme" && idx >= 0 && updateSection) {
-      const targetSec = sections[idx];
+    } else if (action === "cycle-color-scheme" && targetSec && updateSection) {
       const schemes = buildHarmoniousColorSchemes(currentTheme);
       const currentSchemeId = targetSec.styles?.colorScheme;
       const currentIdx = schemes.findIndex((s) => s.id === currentSchemeId);
@@ -141,10 +155,12 @@ export function useStudioWorkspaceEvents({
       if (!sectionId || !patch) return;
       const targetSec = sections.find((s) => s.id === sectionId);
       if (!targetSec) return;
+      const { __sectionTitle, ...cleanPatch } = patch;
       updateSection(sectionId, {
+        ...(typeof __sectionTitle === "string" ? { title: __sectionTitle } : {}),
         settings: {
           ...((targetSec.settings as unknown as Record<string, unknown>) || {}),
-          ...patch,
+          ...cleanPatch,
         } as unknown as CustomPageSection["settings"],
       });
     };

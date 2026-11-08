@@ -133,7 +133,7 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
         <StudioTopBar
           viewport={viewport} setViewport={setViewport} saveStatus={saveStatus}
           shopName={storeConfig?.shopName || "Ma Boutique"} shopSlug={storeConfig?.shopSlug}
-          isPublished={isPublished} historyList={historyList} onSaveDraft={onSaveDraft}
+          isPublished={isPublished} historyList={historyList} onSaveDraft={() => onSaveDraft?.()}
           onPublish={publishStudio} onRollback={onRollback} showLeftSidebar={showLeftSidebar}
           onToggleLeftSidebar={() => setShowLeftSidebar((prev) => !prev)}
           showRightSidebar={showRightSidebar}
@@ -142,7 +142,7 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
             const hide = showLeftSidebar || showRightSidebar;
             setShowLeftSidebar(!hide); setShowRightSidebar(!hide);
           }}
-          canUndo={canUndo} canRedo={canRedo} onUndo={undo} onRedo={redo}
+          canUndo={Boolean(canUndo)} canRedo={Boolean(canRedo)} onUndo={() => undo?.()} onRedo={() => redo?.()}
         />
       </div>
 

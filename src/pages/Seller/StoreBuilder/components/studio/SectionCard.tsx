@@ -3,7 +3,7 @@ import {
   MoveUp, MoveDown, Eye, EyeOff, GripVertical, Trash2, Copy,
   ChevronRight, ChevronDown, Image as ImageIcon, ShoppingBag,
   BookOpen, Award, Truck, HelpCircle, Layout, Grid, Layers,
-  Sparkles, ShieldCheck, Phone, RotateCcw,
+  Sparkles, ShieldCheck, Phone, RotateCcw, Lock, Unlock,
 } from "lucide-react";
 import { CustomPageSection } from "../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../domains/product/product.types";
@@ -24,10 +24,7 @@ interface SectionCardProps {
   onDuplicateSection?: (id: string) => void;
 }
 
-const SECTION_TYPE_MAP: Record<
-  string,
-  { icon: React.ComponentType<{ className?: string }>; label: string; color: string }
-> = {
+const SECTION_TYPE_MAP: Record<string, { icon: React.ComponentType<{ className?: string }>; label: string; color: string }> = {
   hero_banner: { icon: ImageIcon, label: "Bannière principale", color: "bg-[#F0F7FA] text-[#023859]" },
   promo_carousel: { icon: Sparkles, label: "Carrousel promo", color: "bg-amber-50 text-amber-600" },
   featured_categories: { icon: Grid, label: "Catégories", color: "bg-[#F0F7FA] text-[#023859]" },
@@ -43,6 +40,7 @@ const SECTION_TYPE_MAP: Record<
   return_policy: { icon: RotateCcw, label: "Retours & échanges", color: "bg-cyan-50 text-cyan-600" },
   faq_accordion: { icon: HelpCircle, label: "Questions FAQ", color: "bg-indigo-50 text-indigo-600" },
   contact_footer: { icon: Phone, label: "Contact boutique", color: "bg-slate-100 text-slate-700" },
+  kinetic_marquee: { icon: Sparkles, label: "Bandeau défilant", color: "bg-teal-50 text-teal-600" },
 };
 
 export const SectionCard: React.FC<SectionCardProps> = ({
@@ -50,6 +48,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
   onSelectSection, onUpdateSection, onReorder, onToggleVisibility, onRequestDelete, onDuplicateSection,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [dropPosition, setDropPosition] = useState<"before" | "after" | null>(null);
   const canExpand = hasExpandableSubBlocks(sec.type);
   const [isExpanded, setIsExpanded] = useState<boolean>(isSelected && canExpand);
 
@@ -57,6 +56,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
   const hoverElement = useStudioStore((s) => s.hoverElement);
   const clearHover = useStudioStore((s) => s.clearHover);
   const selectSection = useStudioStore((s) => s.selectSection);
+  const triggerSectionAction = useStudioStore((s) => s.triggerSectionAction);
 
   useEffect(() => {
     if (isSelected && canExpand) setIsExpanded(true);
@@ -68,6 +68,18 @@ export const SectionCard: React.FC<SectionCardProps> = ({
   const SectionIcon = typeConfig.icon;
   const settings = (sec.settings || {}) as Record<string, unknown>;
   const imageUrl = (settings.imageUrl || settings.bannerUrl) as string | undefined;
+  const isLocked = Boolean(settings.isLocked);
+
+  const handleToggleLock = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onUpdateSection) {
+      onUpdateSection(sec.id, {
+        settings: { ...settings, isLocked: !isLocked } as unknown as CustomPageSection["settings"],
+      });
+    } else {
+      triggerSectionAction(sec.id, "toggle-lock");
+    }
+  };
 
   const handleSelectMainSection = () => {
     window.dispatchEvent(new CustomEvent("studio:navigate-page", { detail: { viewMode: "home" } }));
@@ -80,10 +92,11 @@ export const SectionCard: React.FC<SectionCardProps> = ({
 
   return (
     <article
-      draggable
+      draggable={!isLocked}
       onMouseEnter={() => hoverElement(sec.id)}
-      onMouseLeave={() => clearHover()}
+      onMouseLeave={() => { clearHover(); setDropPosition(null); }}
       onDragStart={(e) => {
+        if (isLocked) { e.preventDefault(); return; }
         setIsDragging(true);
         setIsDraggingSection(true);
         e.dataTransfer.setData("text/plain", idx.toString());
@@ -91,28 +104,35 @@ export const SectionCard: React.FC<SectionCardProps> = ({
       }}
       onDragEnd={() => {
         setIsDragging(false);
+        setDropPosition(null);
         setIsDraggingSection(false);
       }}
       onDragOver={(e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
+        const rect = e.currentTarget.getBoundingClientRect();
+        setDropPosition(e.clientY < rect.top + rect.height / 2 ? "before" : "after");
       }}
+      onDragLeave={() => setDropPosition(null)}
       onDrop={(e) => {
         e.preventDefault();
+        setDropPosition(null);
         setIsDraggingSection(false);
+        if (isLocked) return;
         const fromIdx = parseInt(e.dataTransfer.getData("text/plain"), 10);
         if (!isNaN(fromIdx) && fromIdx !== idx) onReorder(fromIdx, idx);
       }}
       className={[
-        "rounded-xl border bg-white p-2.5 transition-all cursor-pointer select-none",
-        isSelected
-          ? "border-[#023859] bg-[#F0F7FA]/70 ring-1 ring-[#023859]/25 shadow-xs"
-          : "border-[#E5E7EB] hover:border-[#54ACBF] hover:shadow-2xs",
+        "relative rounded-xl border bg-white p-2.5 transition-all cursor-pointer select-none",
+        isSelected ? "border-[#023859] bg-[#F0F7FA]/70 ring-1 ring-[#023859]/25 shadow-xs" : "border-[#E5E7EB] hover:border-[#54ACBF] hover:shadow-2xs",
         !sec.isVisible ? "opacity-60 bg-[#F9FAFB]" : "",
         isDragging ? "opacity-30 border-dashed border-[#023859]" : "",
       ].join(" ")}
       onClick={handleSelectMainSection}
     >
+      {dropPosition === "before" && <div data-testid="drop-indicator-before" className="pointer-events-none absolute -top-1.5 left-2 right-2 h-1 rounded-full bg-[#023859] shadow-xs z-20" />}
+      {dropPosition === "after" && <div data-testid="drop-indicator-after" className="pointer-events-none absolute -bottom-1.5 left-2 right-2 h-1 rounded-full bg-[#023859] shadow-xs z-20" />}
+
       <div className="flex items-center gap-1.5 min-w-0">
         {canExpand ? (
           <button
@@ -127,7 +147,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
           <span className="w-2 shrink-0" />
         )}
 
-        <span title="Glisser pour réorganiser" className="hidden md:flex h-7 w-4 items-center justify-center text-[#9CA3AF] hover:text-[#011C40] cursor-grab active:cursor-grabbing shrink-0">
+        <span title={isLocked ? "Section verrouillée" : "Glisser pour réorganiser"} className="hidden md:flex h-7 w-4 items-center justify-center text-[#9CA3AF] hover:text-[#011C40] cursor-grab active:cursor-grabbing shrink-0">
           <GripVertical className="h-4 w-4" />
         </span>
 
@@ -143,38 +163,20 @@ export const SectionCard: React.FC<SectionCardProps> = ({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-[13px] font-bold text-[#011C40] block">
-              {sec.title || typeConfig.label}
-            </span>
-            {!sec.isVisible && (
-              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 shrink-0">Masquée</span>
-            )}
+            <span className="truncate text-[13px] font-bold text-[#011C40] block">{sec.title || typeConfig.label}</span>
+            {isLocked && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 shrink-0">Verrouillé</span>}
+            {!sec.isVisible && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 shrink-0">Masquée</span>}
           </div>
           <span className="block truncate text-[10px] text-[#667085] font-semibold uppercase tracking-wider">
             {idx + 1}. {typeConfig.label}
           </span>
         </div>
 
-        {/* Boutons rapides tactiles dans l'en-tête pour mobile/tablette */}
         <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            aria-label="Monter la section"
-            title="Monter d'un cran"
-            disabled={idx === 0}
-            onClick={(e) => { e.stopPropagation(); if (idx > 0) onReorder(idx, idx - 1); }}
-            className="h-7 w-7 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-[#F9FAFB] hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#011C40] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-          >
+          <button type="button" aria-label="Monter la section" title="Monter d'un cran" disabled={idx === 0 || isLocked} onClick={(e) => { e.stopPropagation(); if (idx > 0 && !isLocked) onReorder(idx, idx - 1); }} className="h-7 w-7 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-[#F9FAFB] hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#011C40] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
             <MoveUp className="h-3.5 w-3.5" />
           </button>
-          <button
-            type="button"
-            aria-label="Descendre la section"
-            title="Descendre d'un cran"
-            disabled={idx === totalSections - 1}
-            onClick={(e) => { e.stopPropagation(); if (idx < totalSections - 1) onReorder(idx, idx + 1); }}
-            className="h-7 w-7 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-[#F9FAFB] hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#011C40] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-          >
+          <button type="button" aria-label="Descendre la section" title="Descendre d'un cran" disabled={idx === totalSections - 1 || isLocked} onClick={(e) => { e.stopPropagation(); if (idx < totalSections - 1 && !isLocked) onReorder(idx, idx + 1); }} className="h-7 w-7 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-[#F9FAFB] hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#011C40] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
             <MoveDown className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -186,55 +188,27 @@ export const SectionCard: React.FC<SectionCardProps> = ({
 
       <div className="mt-2 pt-2 border-t border-[#E5E7EB]/70 flex items-center justify-between gap-1" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            aria-label={`Monter ${sec.title || typeConfig.label}`}
-            title="Monter la section"
-            disabled={idx === 0}
-            onClick={(e) => { e.stopPropagation(); if (idx > 0) onReorder(idx, idx - 1); }}
-            className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#475467] hover:text-[#023859] disabled:opacity-30 disabled:cursor-not-allowed text-[10px] font-bold transition-colors cursor-pointer"
-          >
-            <MoveUp className="h-3 w-3" />
-            <span>Monter</span>
+          <button type="button" aria-label={`Monter ${sec.title || typeConfig.label}`} disabled={idx === 0 || isLocked} onClick={(e) => { e.stopPropagation(); if (idx > 0 && !isLocked) onReorder(idx, idx - 1); }} className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] text-[#475467] hover:text-[#023859] disabled:opacity-30 disabled:cursor-not-allowed text-[10px] font-bold transition-colors cursor-pointer">
+            <MoveUp className="h-3 w-3" /><span>Monter</span>
           </button>
-          <button
-            type="button"
-            aria-label={`Descendre ${sec.title || typeConfig.label}`}
-            title="Descendre la section"
-            disabled={idx === totalSections - 1}
-            onClick={(e) => { e.stopPropagation(); if (idx < totalSections - 1) onReorder(idx, idx + 1); }}
-            className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#475467] hover:text-[#023859] disabled:opacity-30 disabled:cursor-not-allowed text-[10px] font-bold transition-colors cursor-pointer"
-          >
-            <MoveDown className="h-3 w-3" />
-            <span>Descendre</span>
+          <button type="button" aria-label={`Descendre ${sec.title || typeConfig.label}`} disabled={idx === totalSections - 1 || isLocked} onClick={(e) => { e.stopPropagation(); if (idx < totalSections - 1 && !isLocked) onReorder(idx, idx + 1); }} className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] text-[#475467] hover:text-[#023859] disabled:opacity-30 disabled:cursor-not-allowed text-[10px] font-bold transition-colors cursor-pointer">
+            <MoveDown className="h-3 w-3" /><span>Descendre</span>
           </button>
         </div>
 
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            title={sec.isVisible ? "Masquer la section" : "Afficher la section"}
-            onClick={(e) => { e.stopPropagation(); onToggleVisibility(sec.id); }}
-            className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0FDF4] hover:border-[#86EFAC] text-[#475467] text-[11px] font-medium transition-colors cursor-pointer"
-          >
+          <button type="button" data-testid={`lock-section-${sec.id}`} title={isLocked ? "Déverrouiller la section" : "Verrouiller la section"} onClick={handleToggleLock} className={`h-7 px-2 flex items-center justify-center rounded-md border text-[11px] font-medium transition-colors cursor-pointer ${isLocked ? "border-amber-300 bg-amber-50 text-amber-800" : "border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#475467]"}`}>
+            {isLocked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+          </button>
+          <button type="button" title={sec.isVisible ? "Masquer la section" : "Afficher la section"} onClick={(e) => { e.stopPropagation(); onToggleVisibility(sec.id); }} className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0FDF4] hover:border-[#86EFAC] text-[#475467] text-[11px] font-medium transition-colors cursor-pointer">
             {sec.isVisible ? <Eye className="h-3.5 w-3.5 text-[#16A34A]" /> : <EyeOff className="h-3.5 w-3.5 text-[#9CA3AF]" />}
           </button>
           {onDuplicateSection && (
-            <button
-              type="button"
-              title="Dupliquer la section"
-              onClick={(e) => { e.stopPropagation(); onDuplicateSection(sec.id); }}
-              className="h-7 px-2 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#475467] hover:text-[#023859] transition-colors cursor-pointer"
-            >
+            <button type="button" title="Dupliquer la section" onClick={(e) => { e.stopPropagation(); onDuplicateSection(sec.id); }} className="h-7 px-2 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] text-[#475467] hover:text-[#023859] transition-colors cursor-pointer">
               <Copy className="h-3.5 w-3.5" />
             </button>
           )}
-          <button
-            type="button"
-            title="Supprimer la section"
-            onClick={(e) => { e.stopPropagation(); onRequestDelete(sec); }}
-            className="h-7 px-2 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-white hover:bg-[#FEF2F2] hover:border-[#FCA5A5] text-[#DC2626] transition-colors cursor-pointer"
-          >
+          <button type="button" disabled={isLocked} data-testid={`delete-section-${sec.id}`} aria-label={isLocked ? "Section verrouillée (suppression désactivée)" : "Supprimer la section"} title={isLocked ? "Section verrouillée — déverrouillez pour supprimer" : "Supprimer la section"} onClick={(e) => { e.stopPropagation(); if (!isLocked) onRequestDelete(sec); }} className="h-7 px-2 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-white hover:bg-[#FEF2F2] hover:border-[#FCA5A5] text-[#DC2626] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>

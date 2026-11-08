@@ -15,6 +15,7 @@ export type StudioSectionActionType =
   | "cycle-color-scheme"
   | "duplicate"
   | "toggle-visibility"
+  | "toggle-lock"
   | "delete";
 
 export interface PendingSectionAction {

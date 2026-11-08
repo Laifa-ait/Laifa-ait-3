@@ -8,6 +8,7 @@ import {
 } from "./sectionStyleHelper";
 import { Truck, ShieldCheck, RotateCcw, Star, Phone, Mail, MapPin, Clock } from "lucide-react";
 import { EditorialHeading } from "../EditorialHeading";
+import { CanvasInlineText } from "./CanvasInlineText";
 
 interface SectionTrustAndContactProps {
   section: CustomPageSection;
@@ -51,6 +52,7 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
             <div>
               <EditorialHeading
                 as="h2" text={String(rawSettings.title || "Avis Clients Vérifiés")} theme={theme} sectionStyles={styles}
+                isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
                 onClick={(e) => handleSubElementClick("title", e)}
                 className={`text-xl @md:text-2xl font-extrabold rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`}
               />
@@ -103,26 +105,19 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
               <div>
                 <EditorialHeading
                   as="h2" text={String(rawSettings.title || "Livraison Rapide 69 Wilayas")} theme={theme} sectionStyles={styles}
+                  isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
                   onClick={(e) => handleSubElementClick("title", e)}
                   className={`text-lg @md:text-xl font-extrabold rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`}
                 />
-                <p className="text-xs opacity-75 mt-0.5">
+                <p className="text-xs opacity-75 mt-0.5" onClick={(e) => handleSubElementClick("tarifs", e)}>
                   Délai d&apos;expédition indicatif : <strong>{String(rawSettings.defaultTimeframe || "24h - 48h")}</strong> • Paiement à la livraison
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold">
-                Stop-Desk : dès {deskPrice.toLocaleString("fr-DZ")} DA
-              </span>
-              <span className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold">
-                Domicile : dès {homePrice.toLocaleString("fr-DZ")} DA
-              </span>
-              {freeAbove && (
-                <span className="px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-bold">
-                  Gratuit dès {freeAbove.toLocaleString("fr-DZ")} DA
-                </span>
-              )}
+            <div className="flex flex-wrap items-center gap-2" onClick={(e) => handleSubElementClick("tarifs", e)}>
+              <span className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold">Stop-Desk : dès {deskPrice.toLocaleString("fr-DZ")} DA</span>
+              <span className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold">Domicile : dès {homePrice.toLocaleString("fr-DZ")} DA</span>
+              {freeAbove && <span className="px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-bold">Gratuit dès {freeAbove.toLocaleString("fr-DZ")} DA</span>}
             </div>
           </div>
         </div>
@@ -146,6 +141,7 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <EditorialHeading
                   as="h2" text={String(rawSettings.title || "Conditions de Retours & Échanges")} theme={theme} sectionStyles={styles}
+                  isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
                   onClick={(e) => handleSubElementClick("title", e)}
                   className={`text-lg font-extrabold rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`}
                 />
@@ -153,9 +149,15 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
                   Délai {delayDays} jours • {feeLabel}
                 </span>
               </div>
-              <p className="text-xs @sm:text-sm opacity-80 leading-relaxed">
-                {String(rawSettings.conditions || "Les demandes d'échange ou de retour sont traitées selon les conditions définies par le vendeur à réception du colis.")}
-              </p>
+              <CanvasInlineText
+                as="p"
+                multiline
+                value={String(rawSettings.conditions || "Les demandes d'échange ou de retour sont traitées selon les conditions définies par le vendeur à réception du colis.")}
+                isEditable={isEditable}
+                editConfig={{ sectionId: section.id, settingKey: "conditions", subElement: "conditions" }}
+                onClick={(e) => handleSubElementClick("conditions", e)}
+                className="text-xs @sm:text-sm opacity-80 leading-relaxed"
+              />
             </div>
           </div>
         </div>
@@ -171,6 +173,7 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
         <div className={widthClass}>
           <EditorialHeading
             as="h2" text={String(rawSettings.title || "Questions Fréquentes")} theme={theme} sectionStyles={styles}
+            isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
             onClick={(e) => handleSubElementClick("title", e)}
             className={`text-xl @md:text-2xl font-extrabold mb-5 ${alignClass} ${isSubActive("title") ? "ring-2 ring-[#2563EB] rounded" : ""}`}
           />
@@ -199,24 +202,30 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5" style={{ color: accentColor }} />
-            <h3 onClick={(e) => handleSubElementClick("title", e)} style={{ fontFamily: "var(--store-font-heading, inherit)" }} className={`font-extrabold text-base @md:text-lg rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`}>
-              {String(rawSettings.title || "Service Client & Contact")}
-            </h3>
+            <CanvasInlineText
+              as="h3"
+              value={String(rawSettings.title || "Service Client & Contact")}
+              isEditable={isEditable}
+              editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
+              onClick={(e) => handleSubElementClick("title", e)}
+              style={{ fontFamily: "var(--store-font-heading, inherit)" }}
+              className={`font-extrabold text-base @md:text-lg rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`}
+            />
           </div>
           {Boolean(rawSettings.workingHours) && (
-            <p className="text-xs opacity-80 flex items-center gap-1.5">
+            <p className="text-xs opacity-80 flex items-center gap-1.5" onClick={(e) => handleSubElementClick("coordonnees", e)}>
               <Clock className="w-3.5 h-3.5" style={{ color: accentColor }} />
               <span>{String(rawSettings.workingHours)}</span>
             </p>
           )}
           {(Boolean(rawSettings.address) || Boolean(rawSettings.wilaya)) && (
-            <p className="text-xs opacity-80 flex items-center gap-1.5">
+            <p className="text-xs opacity-80 flex items-center gap-1.5" onClick={(e) => handleSubElementClick("coordonnees", e)}>
               <MapPin className="w-3.5 h-3.5" style={{ color: accentColor }} />
               <span>{[rawSettings.address, rawSettings.wilaya].filter(Boolean).join(" • ")}</span>
             </p>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-3 text-xs font-bold">
+        <div className="flex flex-wrap items-center gap-3 text-xs font-bold" onClick={(e) => handleSubElementClick("coordonnees", e)}>
           {Boolean(rawSettings.shopPhone) && (
             <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 border border-white/15">
               <Phone className="w-3.5 h-3.5" style={{ color: accentColor }} />
