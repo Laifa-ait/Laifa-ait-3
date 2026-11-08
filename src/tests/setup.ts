@@ -1,21 +1,38 @@
 import fs from "fs";
+import path from "path";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import { CHECKOUT_TRANSLATIONS } from "../locales/checkoutTranslations";
 
 // Configure React 19 act() environment globally for all hook and component tests
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
-// Initialize a default i18next instance for component tests that call useTranslation() directly
+function loadRealLocaleDictionary(lang: "fr" | "ar" | "en"): Record<string, unknown> {
+  try {
+    const filePath = path.resolve(process.cwd(), "public", "locales", `${lang}.json`);
+    const baseDict = fs.existsSync(filePath)
+      ? (JSON.parse(fs.readFileSync(filePath, "utf8")) as Record<string, unknown>)
+      : {};
+    const checkoutDict = CHECKOUT_TRANSLATIONS[lang] || {};
+    return { ...baseDict, ...checkoutDict };
+  } catch {
+    return CHECKOUT_TRANSLATIONS[lang] || {};
+  }
+}
+
+// Initialize i18next with the real Olmart FR/AR/EN dictionaries + checkout translations for coherent test rendering
 if (!i18n.isInitialized) {
   i18n.use(initReactI18next).init({
     lng: "fr",
     fallbackLng: "fr",
+    supportedLngs: ["fr", "ar", "en"],
+    load: "languageOnly",
     ns: ["translation"],
     defaultNS: "translation",
     resources: {
-      fr: { translation: {} },
-      ar: { translation: {} },
-      en: { translation: {} },
+      fr: { translation: loadRealLocaleDictionary("fr") },
+      ar: { translation: loadRealLocaleDictionary("ar") },
+      en: { translation: loadRealLocaleDictionary("en") },
     },
     interpolation: { escapeValue: false },
     react: { useSuspense: false },
@@ -66,14 +83,19 @@ process.env.FIREBASE_DATABASE_ID = process.env.FIREBASE_DATABASE_ID || "(default
 const firestorePortActive = isPortListening(8085);
 process.env.FIREBASE_EMULATOR_ACTIVE = firestorePortActive ? "true" : "false";
 
-const hasEmulatorHost = Boolean(process.env.FIRESTORE_EMULATOR_HOST && process.env.FIRESTORE_EMULATOR_HOST.trim().length > 0);
+const hasEmulatorHost = Boolean(
+  process.env.FIRESTORE_EMULATOR_HOST && process.env.FIRESTORE_EMULATOR_HOST.trim().length > 0
+);
 
 if (!firestorePortActive && !hasEmulatorHost && process.env.ALLOW_TESTS_WITHOUT_EMULATOR !== "true") {
-  throw new Error("Refus: aucun émulateur détecté (port 8085 inactif et FIRESTORE_EMULATOR_HOST non défini).");
+  throw new Error(
+    "Refus: aucun émulateur détecté (port 8085 inactif et FIRESTORE_EMULATOR_HOST non défini)."
+  );
 }
 
 // Always route to loopback emulator host to guarantee zero outbound network calls to GCP production
 process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || "127.0.0.1:8085";
-process.env.FIREBASE_STORAGE_EMULATOR_HOST = process.env.FIREBASE_STORAGE_EMULATOR_HOST || "127.0.0.1:9199";
-process.env.FIREBASE_AUTH_EMULATOR_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST || "127.0.0.1:9099";
-
+process.env.FIREBASE_STORAGE_EMULATOR_HOST =
+  process.env.FIREBASE_STORAGE_EMULATOR_HOST || "127.0.0.1:9199";
+process.env.FIREBASE_AUTH_EMULATOR_HOST =
+  process.env.FIREBASE_AUTH_EMULATOR_HOST || "127.0.0.1:9099";
