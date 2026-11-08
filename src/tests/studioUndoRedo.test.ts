@@ -78,7 +78,7 @@ describe("useStudioUndoRedo Real Production Hook Tests", () => {
     const { result } = renderHook(() => useStudioUndoRedo([section1], onSectionsChange));
 
     act(() => {
-      result.current.pushState([section1, section2]);
+      result.current.pushState([section1, section2], undefined, "Ajout section");
     });
 
     expect(result.current.sections).toEqual([section1, section2]);
@@ -86,7 +86,6 @@ describe("useStudioUndoRedo Real Production Hook Tests", () => {
     expect(result.current.canRedo).toBe(false);
     expect(onSectionsChange).toHaveBeenCalledWith([section1, section2]);
 
-    // Perform Undo
     act(() => {
       result.current.undo();
     });
@@ -96,7 +95,6 @@ describe("useStudioUndoRedo Real Production Hook Tests", () => {
     expect(result.current.canRedo).toBe(true);
     expect(onSectionsChange).toHaveBeenLastCalledWith([section1]);
 
-    // Perform Redo
     act(() => {
       result.current.redo();
     });
@@ -131,6 +129,25 @@ describe("useStudioUndoRedo Real Production Hook Tests", () => {
 
     expect(result.current.theme?.primaryColor).toBe("#023859");
     expect(onThemeChange).toHaveBeenLastCalledWith(expect.objectContaining({ primaryColor: "#023859" }));
+  });
+
+  it("should cleanly reset history on rollback via resetHistory", () => {
+    const onSectionsChange = vi.fn();
+    const { result } = renderHook(() => useStudioUndoRedo([section1], onSectionsChange));
+
+    act(() => {
+      result.current.pushState([section1, section2], undefined, "Ajout");
+    });
+    expect(result.current.canUndo).toBe(true);
+
+    act(() => {
+      result.current.resetHistory([section2], baseTheme, "Version #1 restaurée");
+    });
+
+    expect(result.current.sections).toEqual([section2]);
+    expect(result.current.canUndo).toBe(false);
+    expect(result.current.canRedo).toBe(false);
+    expect(result.current.currentActionLabel).toBe("Version #1 restaurée");
   });
 
   it("should guarantee deep clone immutability so mutating present does not mutate history", () => {
@@ -175,7 +192,7 @@ describe("useStudioUndoRedo Real Production Hook Tests", () => {
     expect(result.current.sections).toEqual([section1, section2]);
   });
 
-  it("should preserve referential stability of setSectionsDirectly across renders to prevent infinite fetch loops", () => {
+  it("should preserve referential stability of setSectionsDirectly across renders", () => {
     const onSectionsChange = vi.fn();
     const { result, rerender } = renderHook(() => useStudioUndoRedo([section1], onSectionsChange));
 

@@ -30,9 +30,12 @@ export function useSellerStudio() {
 
   const selectedSectionId = useStudioStore((s) => s.selectedSectionId);
   const selectSectionInStore = useStudioStore((s) => s.selectSection);
-  const setSelectedSectionId = useCallback((id: string | null) => {
-    selectSectionInStore(id);
-  }, [selectSectionInStore]);
+  const setSelectedSectionId = useCallback(
+    (id: string | null) => {
+      selectSectionInStore(id);
+    },
+    [selectSectionInStore]
+  );
 
   const initialSectionsRef = useRef<CustomPageSection[]>([]);
   const isFetchingRef = useRef(false);
@@ -45,8 +48,11 @@ export function useSellerStudio() {
     saveDraft,
     triggerAutoSave,
     syncServerDraftRevision,
-    confirmedServerRevision,
-  } = useStudioSaveManager();
+  } = useStudioSaveManager({
+    backupKey: currentUser?.uid
+      ? `olmart_studio_unsaved_backup_${currentUser.uid}`
+      : "olmart_studio_unsaved_backup",
+  });
 
   const { uploadMedia, deleteMedia } = useStudioMediaManager({
     userId: currentUser?.uid,
@@ -65,6 +71,7 @@ export function useSellerStudio() {
   const {
     sections,
     setSectionsDirectly,
+    resetHistory,
     pushState,
     pushThemeState,
     undo,
@@ -78,40 +85,49 @@ export function useSellerStudio() {
     onThemeChange: handleRestoreThemeFromHistory,
   });
 
-  const fetchStudioData = useCallback(async () => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
-    try {
-      setLoading(true);
-      const [studioRes, prodRes] = await Promise.all([
-        apiGet<{ success: boolean; data: StudioDataResponse }>("/api/v1/seller/studio"),
-        apiGet<{ success: boolean; products: Product[] }>("/api/v1/seller/products").catch(() => ({ success: true, products: [] })),
-      ]);
+  const fetchStudioData = useCallback(
+    async (resetUndoHistory = false) => {
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
+      try {
+        setLoading(true);
+        const [studioRes, prodRes] = await Promise.all([
+          apiGet<{ success: boolean; data: StudioDataResponse }>("/api/v1/seller/studio"),
+          apiGet<{ success: boolean; products: Product[] }>("/api/v1/seller/products").catch(() => ({
+            success: true,
+            products: [],
+          })),
+        ]);
 
-      if (studioRes?.success && studioRes.data) {
-        setStoreConfig(studioRes.data.storeConfig);
-        const draftSections = studioRes.data.draftLayout?.sections || [];
-        syncServerDraftRevision(studioRes.data.draftLayout?.draftRevision ?? 1);
-        initialSectionsRef.current = draftSections;
-        setSectionsDirectly(draftSections, studioRes.data.storeConfig?.theme);
-        setHistoryList(studioRes.data.historyList || []);
-        setMediaGallery(studioRes.data.mediaGallery || []);
-        setPublishedLayout(studioRes.data.publishedLayout || null);
-        if (draftSections.length > 0) {
-          setSelectedSectionId(draftSections[0].id);
+        if (studioRes?.success && studioRes.data) {
+          setStoreConfig(studioRes.data.storeConfig);
+          const draftSections = studioRes.data.draftLayout?.sections || [];
+          syncServerDraftRevision(studioRes.data.draftLayout?.draftRevision ?? 1);
+          initialSectionsRef.current = draftSections;
+          if (resetUndoHistory) {
+            resetHistory(draftSections, studioRes.data.storeConfig?.theme, "Version restaurée");
+          } else {
+            setSectionsDirectly(draftSections, studioRes.data.storeConfig?.theme);
+          }
+          setHistoryList(studioRes.data.historyList || []);
+          setMediaGallery(studioRes.data.mediaGallery || []);
+          setPublishedLayout(studioRes.data.publishedLayout || null);
+          if (draftSections.length > 0) {
+            setSelectedSectionId(draftSections[0].id);
+          }
         }
+        if (prodRes && Array.isArray(prodRes.products)) {
+          setProducts(prodRes.products);
+        }
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Erreur lors du chargement du Studio");
+      } finally {
+        isFetchingRef.current = false;
+        setLoading(false);
       }
-      if (prodRes && Array.isArray(prodRes.products)) {
-        setProducts(prodRes.products);
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erreur lors du chargement du Studio";
-      toast.error(msg);
-    } finally {
-      isFetchingRef.current = false;
-      setLoading(false);
-    }
-  }, [setSectionsDirectly, setSelectedSectionId, syncServerDraftRevision]);
+    },
+    [resetHistory, setSectionsDirectly, setSelectedSectionId, syncServerDraftRevision]
+  );
 
   useEffect(() => {
     if (hasInitialFetchedRef.current) return;
@@ -130,17 +146,15 @@ export function useSellerStudio() {
       isVisible: true,
       order: sections.length,
     };
-    const updated = [...sections, newSection];
-    pushState(updated, undefined, `Ajout section: ${title}`);
+    pushState([...sections, newSection], undefined, `Ajout section: ${title}`);
     setSelectedSectionId(newSection.id);
     toast.success("Nouvelle section ajoutée");
   };
 
   const updateSection = (sectionId: string, updates: Partial<CustomPageSection>) => {
     const target = sections.find((s) => s.id === sectionId);
-    const label = `Édition: ${target?.title || target?.type || "Section"}`;
     const updated = sections.map((sec) => (sec.id === sectionId ? { ...sec, ...updates } : sec));
-    pushState(updated, undefined, label);
+    pushState(updated, undefined, `Édition: ${target?.title || target?.type || "Section"}`);
   };
 
   const reorderSections = (fromIndex: number, toIndex: number) => {
@@ -148,17 +162,14 @@ export function useSellerStudio() {
     const updated = [...sections];
     const [moved] = updated.splice(fromIndex, 1);
     updated.splice(toIndex, 0, moved);
-    const reordered = updated.map((sec, idx) => ({ ...sec, order: idx }));
-    pushState(reordered, undefined, "Réorganisation des sections");
+    pushState(updated.map((sec, idx) => ({ ...sec, order: idx })), undefined, "Réorganisation des sections");
   };
 
   const deleteSection = (sectionId: string) => {
     const target = sections.find((s) => s.id === sectionId);
     const updated = sections.filter((sec) => sec.id !== sectionId);
     pushState(updated, undefined, `Suppression: ${target?.title || target?.type || "Section"}`);
-    if (selectedSectionId === sectionId) {
-      setSelectedSectionId(updated[0]?.id || null);
-    }
+    if (selectedSectionId === sectionId) setSelectedSectionId(updated[0]?.id || null);
     toast.success("Section supprimée");
   };
 
@@ -180,8 +191,7 @@ export function useSellerStudio() {
     };
     const updated = [...sections];
     updated.splice(targetIdx + 1, 0, copy);
-    const reordered = updated.map((sec, idx) => ({ ...sec, order: idx }));
-    pushState(reordered, undefined, `Duplication: ${original.title || original.type}`);
+    pushState(updated.map((sec, idx) => ({ ...sec, order: idx })), undefined, `Duplication: ${original.title || original.type}`);
     setSelectedSectionId(copy.id);
     toast.success("Section dupliquée");
   };
@@ -196,17 +206,14 @@ export function useSellerStudio() {
   const saveStoreConfig = async (updatedConfigPayload: Partial<StoreConfig>) => {
     try {
       setSaveStatus("saving");
-      if (updatedConfigPayload.theme) {
-        pushThemeState(updatedConfigPayload.theme, "Palette & Typographie");
-      }
+      if (updatedConfigPayload.theme) pushThemeState(updatedConfigPayload.theme, "Palette & Typographie");
       const res = await apiPut<{ success: boolean; data: StoreConfig }>("/api/v1/seller/store/config", updatedConfigPayload);
       if (res?.data) setStoreConfig(res.data);
       setSaveStatus("saved");
       toast.success("Paramètres de la boutique mis à jour !");
     } catch (err: unknown) {
       setSaveStatus("error");
-      const msg = err instanceof Error ? err.message : "Erreur de mise à jour";
-      toast.error(msg);
+      toast.error(err instanceof Error ? err.message : "Erreur de mise à jour");
       throw err;
     }
   };
@@ -214,15 +221,14 @@ export function useSellerStudio() {
   const publishStudio = async (changeSummary?: string) => {
     try {
       setSaveStatus("saving");
-      // 1. Garantir l'enregistrement de la révision la plus récente avant publication
-      await saveDraft(sections);
-
-      // 2. Publier la révision exacte confirmée par le serveur
+      const confirmedRevision = await saveDraft(sections);
+      if (confirmedRevision === null) {
+        return;
+      }
       await apiPost("/api/v1/seller/studio/layout/publish", {
         changeSummary: changeSummary || "Mise en ligne de la vitrine",
-        expectedRevision: confirmedServerRevision,
+        expectedRevision: confirmedRevision,
       });
-
       setSaveStatus("saved");
       const targetSlug = storeConfig?.shopSlug || storeConfig?.sellerId || "";
       toast.success(targetSlug ? `Boutique publiée en direct sur /store/${targetSlug} !` : "Boutique publiée avec succès !");
@@ -239,7 +245,7 @@ export function useSellerStudio() {
       await apiPost("/api/v1/seller/studio/layout/rollback", { versionNumber });
       setSaveStatus("saved");
       toast.success(`Restauration vers version #${versionNumber} effectuée !`);
-      await fetchStudioData();
+      await fetchStudioData(true);
     } catch (err: unknown) {
       setSaveStatus("error");
       toast.error(err instanceof Error ? err.message : "Échec de la restauration");

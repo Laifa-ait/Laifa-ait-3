@@ -108,7 +108,7 @@ describe("Phase 1 - useStudioSaveManager Atomic Revisions & FIFO Queue", () => {
     const { result } = renderHook(() => useStudioSaveManager());
 
     // 1. Déclenchement du premier enregistrement
-    let p1: Promise<void> | undefined;
+    let p1: Promise<number | null> | undefined;
     act(() => {
       p1 = result.current.saveDraft([section1]);
     });

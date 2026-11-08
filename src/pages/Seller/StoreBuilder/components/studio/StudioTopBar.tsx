@@ -1,246 +1,271 @@
-import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React from "react";
 import {
+  Check,
+  Loader2,
+  AlertCircle,
   ExternalLink,
-  Send,
-  ArrowLeft,
-  History,
-  Save,
-  PanelLeft,
-  PanelRight,
-  Search,
+  Rocket,
+  Undo2,
+  Redo2,
+  Monitor,
+  Tablet,
+  Smartphone,
+  ShieldCheck,
+  Command,
+  WifiOff,
+  Clock,
 } from "lucide-react";
-import { SaveStatus } from "../../hooks/useSellerStudio";
-import { StoreHistoryEntry } from "../../../../../domains/seller/customPage.types";
-import { StudioHistoryModal } from "../topbar/StudioHistoryModal";
-import { StudioDirectPublishModal } from "../topbar/StudioDirectPublishModal";
-import { StudioTopBarViewport } from "../topbar/StudioTopBarViewport";
+import { StudioViewport } from "../../store/useStudioStore";
+import { SaveStatus } from "../../hooks/useStudioSaveManager";
 
 interface StudioTopBarProps {
-  viewport: "mobile" | "tablet" | "desktop";
-  setViewport: (vp: "mobile" | "tablet" | "desktop") => void;
-  saveStatus: SaveStatus;
   shopName?: string;
   shopSlug?: string;
-  isPublished?: boolean;
-  historyList?: StoreHistoryEntry[];
-  onSaveDraft?: () => void;
-  onPublish: (changeSummary?: string) => void;
-  onRollback?: (versionNumber: number) => void;
-  showLeftSidebar?: boolean;
-  onToggleLeftSidebar?: () => void;
-  showRightSidebar?: boolean;
-  onToggleRightSidebar?: () => void;
-  onToggleBothSidebars?: () => void;
-  canUndo?: boolean;
-  canRedo?: boolean;
-  onUndo?: () => void;
-  onRedo?: () => void;
+  sellerId?: string;
+  saveStatus: SaveStatus;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+  viewport: StudioViewport;
+  onViewportChange: (vp: StudioViewport) => void;
+  previewMode: "edit" | "preview";
+  onPreviewModeChange: (mode: "edit" | "preview") => void;
+  auditScore: number;
+  onOpenAudit: () => void;
+  onOpenCommandPalette: () => void;
+  onSaveDraft: () => void;
+  onPublish: () => void;
 }
 
 export const StudioTopBar: React.FC<StudioTopBarProps> = ({
-  viewport,
-  setViewport,
-  saveStatus,
-  shopName = "Ma Boutique",
+  shopName,
   shopSlug,
-  isPublished,
-  historyList = [],
-  onSaveDraft,
-  onPublish,
-  onRollback,
-  showLeftSidebar = true,
-  onToggleLeftSidebar,
-  showRightSidebar = true,
-  onToggleRightSidebar,
+  sellerId,
+  saveStatus,
   canUndo,
   canRedo,
   onUndo,
   onRedo,
+  viewport,
+  onViewportChange,
+  previewMode,
+  onPreviewModeChange,
+  auditScore,
+  onOpenAudit,
+  onOpenCommandPalette,
+  onSaveDraft,
+  onPublish,
 }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
-  const [changeSummary, setChangeSummary] = useState("");
-
-  const handleBack = () => {
-    const target = location.pathname.startsWith("/dashboard/seller")
-      ? "/dashboard/seller"
-      : "/seller";
-    navigate(target);
-  };
-
   const renderSaveStatus = () => {
-    if (saveStatus === "saving") {
-      return (
-        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#B45309] bg-[#FFFBEB] border border-[#B45309]/20">
-          <span className="w-2 h-2 rounded-full bg-[#B45309] animate-pulse" />
-          <span>Sauvegarde…</span>
-        </span>
-      );
+    switch (saveStatus) {
+      case "saving":
+        return (
+          <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50/90 border border-amber-200/80 px-2.5 py-1 rounded-md text-[11px] font-bold">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span className="hidden sm:inline">Enregistrement...</span>
+          </div>
+        );
+      case "retrying":
+        return (
+          <div className="flex items-center gap-1.5 text-amber-700 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-md text-[11px] font-bold">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span className="hidden sm:inline">Nouvelle tentative...</span>
+          </div>
+        );
+      case "unsaved":
+        return (
+          <button
+            type="button"
+            onClick={onSaveDraft}
+            title="Cliquez pour sauvegarder immédiatement"
+            className="flex items-center gap-1.5 text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors"
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Modifications non enregistrées</span>
+          </button>
+        );
+      case "offline":
+        return (
+          <button
+            type="button"
+            onClick={onSaveDraft}
+            title="Connexion perdue — cliquez pour réessayer"
+            className="flex items-center gap-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors"
+          >
+            <WifiOff className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Connexion perdue</span>
+          </button>
+        );
+      case "conflict":
+        return (
+          <button
+            type="button"
+            onClick={onSaveDraft}
+            title="Conflit multi-appareils détecté"
+            className="flex items-center gap-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-300 px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors"
+          >
+            <AlertCircle className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Échec de sauvegarde (Conflit)</span>
+          </button>
+        );
+      case "error":
+        return (
+          <button
+            type="button"
+            onClick={onSaveDraft}
+            title="Cliquez pour relancer la sauvegarde"
+            className="flex items-center gap-1.5 text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors"
+          >
+            <AlertCircle className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Échec de sauvegarde</span>
+          </button>
+        );
+      case "saved":
+      case "idle":
+      default:
+        return (
+          <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50/90 border border-emerald-200/80 px-2.5 py-1 rounded-md text-[11px] font-bold">
+            <Check className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Sauvegardé</span>
+          </div>
+        );
     }
-    if (saveStatus === "saved") {
-      return (
-        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#16A34A] bg-[#F0FDF4] border border-[#16A34A]/20">
-          <span className="w-2 h-2 rounded-full bg-[#16A34A]" />
-          <span>Synchronisé</span>
-        </span>
-      );
-    }
-    if (saveStatus === "error") {
-      return (
-        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#DC2626] bg-[#FEF2F2] border border-[#DC2626]/20">
-          <span className="w-2 h-2 rounded-full bg-[#DC2626]" />
-          <span>Erreur</span>
-        </span>
-      );
-    }
-    return (
-      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] text-[#023859] bg-[#F0F7FA] border border-[#54ACBF]/30 font-semibold">
-        <span className="w-2 h-2 rounded-full bg-[#16A34A]" />
-        <span>Prêt</span>
-      </span>
-    );
   };
 
   return (
-    <header className="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-2xs select-none">
-      {/* Left: Back & Sidebar Toggles */}
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="p-2 text-slate-600 hover:text-[#011C40] hover:bg-[#F0F7FA] rounded-lg transition-colors cursor-pointer"
-          title="Retour au Tableau de bord"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-
-        <div className="h-4 w-px bg-slate-200 mx-1" />
-
-        <button
-          type="button"
-          onClick={onToggleLeftSidebar}
-          className={`p-2 rounded-lg transition-colors cursor-pointer ${
-            showLeftSidebar
-              ? "text-[#023859] bg-[#F0F7FA] border border-[#54ACBF]/40"
-              : "text-slate-600 hover:text-[#011C40] hover:bg-slate-100 border border-transparent"
-          }`}
-          title="Afficher/Masquer le panneau de navigation"
-        >
-          <PanelLeft className="w-4 h-4" />
-        </button>
-
-        <span className="text-xs font-black text-[#011C40] tracking-tight max-w-[150px] sm:max-w-[220px] truncate">
-          {shopName}
-        </span>
+    <header className="h-14 bg-white border-b border-slate-200/80 px-3 sm:px-5 flex items-center justify-between gap-2 sticky top-0 z-30 shrink-0 shadow-[0_1px_2px_rgba(1,28,64,0.03)]">
+      {/* Left: Brand & Store Title */}
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="w-8 h-8 rounded-lg bg-[#011C40] text-white flex items-center justify-center font-black text-xs tracking-wider shrink-0 shadow-xs">
+          OS
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xs sm:text-sm font-black text-[#011C40] truncate">
+              {shopName || "Ma Boutique Olmart"}
+            </h1>
+            <span className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-black uppercase tracking-widest bg-[#023859]/10 text-[#023859]">
+              Studio 3.0
+            </span>
+          </div>
+          <p className="text-[10px] text-slate-400 truncate hidden sm:block">
+            Éditeur Visuel Temps Réel
+          </p>
+        </div>
       </div>
 
-      {/* Center: Undo/Redo & Viewport Switcher */}
-      <StudioTopBarViewport
-        viewport={viewport}
-        setViewport={setViewport}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={onUndo}
-        onRedo={onRedo}
-      />
+      {/* Center: Viewport Switcher & Undo/Redo */}
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center bg-slate-100/90 p-0.5 rounded-lg border border-slate-200/70">
+          <button
+            type="button"
+            onClick={onUndo}
+            disabled={!canUndo}
+            title="Annuler (Ctrl+Z)"
+            className="p-1.5 rounded-md text-slate-600 hover:text-[#011C40] hover:bg-white disabled:opacity-35 disabled:pointer-events-none transition-all"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onRedo}
+            disabled={!canRedo}
+            title="Rétablir (Ctrl+Y)"
+            className="p-1.5 rounded-md text-slate-600 hover:text-[#011C40] hover:bg-white disabled:opacity-35 disabled:pointer-events-none transition-all"
+          >
+            <Redo2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
-      {/* Right: Actions & Publishing */}
-      <div className="flex items-center gap-1.5">
+        <div className="hidden md:flex items-center bg-slate-100/90 p-0.5 rounded-lg border border-slate-200/70">
+          {(
+            [
+              { id: "desktop", label: "Bureau", icon: Monitor },
+              { id: "tablet", label: "Tablette", icon: Tablet },
+              { id: "mobile", label: "Mobile", icon: Smartphone },
+            ] as const
+          ).map((vp) => {
+            const Icon = vp.icon;
+            const active = viewport === vp.id;
+            return (
+              <button
+                key={vp.id}
+                type="button"
+                onClick={() => onViewportChange(vp.id)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
+                  active
+                    ? "bg-white text-[#011C40] shadow-2xs"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span className="hidden lg:inline">{vp.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={() =>
+            onPreviewModeChange(previewMode === "edit" ? "preview" : "edit")
+          }
+          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${
+            previewMode === "preview"
+              ? "bg-[#023859] text-white border-[#023859]"
+              : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+          }`}
+        >
+          {previewMode === "preview" ? "Quitter l'aperçu" : "Aperçu client"}
+        </button>
+      </div>
+
+      {/* Right: Audit, Command Palette, Save Status & Publish */}
+      <div className="flex items-center gap-1.5 sm:gap-2">
         {renderSaveStatus()}
 
         <button
           type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent("studio:open-command-palette"))}
-          className="h-8 px-2.5 text-slate-600 hover:text-[#023859] bg-slate-50 hover:bg-[#F0F7FA] border border-slate-200 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-          title="Recherche rapide & Commandes (Ctrl+K)"
+          onClick={onOpenAudit}
+          title="Audit Qualité & Accessibilité"
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200/70 text-[#011C40] text-[11px] font-bold transition-colors"
         >
-          <Search className="w-3.5 h-3.5 text-[#023859]" />
-          <span className="hidden xl:inline">Actions</span>
-          <kbd className="hidden lg:inline px-1 py-0.5 text-[9px] font-mono bg-white border border-slate-200 rounded text-slate-500">
-            ⌘K
-          </kbd>
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+          <span>{auditScore}%</span>
         </button>
-
-        {onSaveDraft && (
-          <button
-            type="button"
-            onClick={onSaveDraft}
-            className="p-2 text-slate-600 hover:text-[#023859] hover:bg-[#F0F7FA] rounded-lg transition-colors cursor-pointer"
-            title="Enregistrer manuellement"
-          >
-            <Save className="w-4 h-4" />
-          </button>
-        )}
 
         <button
           type="button"
-          onClick={() => setIsHistoryOpen(true)}
-          className="p-2 text-slate-600 hover:text-[#023859] hover:bg-[#F0F7FA] rounded-lg transition-colors cursor-pointer"
-          title="Historique des versions"
+          onClick={onOpenCommandPalette}
+          title="Palette de commandes (Ctrl+K)"
+          className="hidden lg:flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200/70 text-slate-600 text-[11px] font-bold transition-colors"
         >
-          <History className="w-4 h-4" />
+          <Command className="w-3 h-3" />
+          <span>K</span>
         </button>
 
-        {shopSlug && (
+        {(shopSlug || sellerId) && (
           <a
-            href={`/store/${shopSlug}`}
+            href={`/store/${shopSlug || sellerId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="h-8 px-2.5 text-slate-700 hover:text-[#023859] bg-slate-50 hover:bg-[#F0F7FA] border border-slate-200 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-colors"
-            title="Voir ma boutique en direct"
+            title="Voir la boutique en ligne"
+            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-[#011C40] hover:bg-slate-50 transition-colors"
           >
-            <ExternalLink className="w-3.5 h-3.5 text-[#023859]" />
-            <span className="hidden lg:inline">Voir ma boutique</span>
-            {isPublished && (
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            )}
+            <ExternalLink className="w-4 h-4" />
           </a>
         )}
 
         <button
           type="button"
-          onClick={onToggleRightSidebar}
-          className={`p-2 rounded-lg transition-colors cursor-pointer ${
-            showRightSidebar
-              ? "text-[#023859] bg-[#F0F7FA] border border-[#54ACBF]/40"
-              : "text-slate-600 hover:text-[#011C40] hover:bg-slate-100 border border-transparent"
-          }`}
-          title="Afficher/Masquer l'inspecteur"
+          onClick={onPublish}
+          className="flex items-center gap-1.5 bg-[#011C40] hover:bg-[#023859] text-white px-3 py-1.5 rounded-lg text-xs font-black shadow-xs transition-all cursor-pointer"
         >
-          <PanelRight className="w-4 h-4" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setIsPublishModalOpen(true)}
-          className="h-9 px-3.5 rounded-xl bg-[#023859] hover:bg-[#011C40] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer ml-1"
-        >
-          <Send className="w-3.5 h-3.5" />
+          <Rocket className="w-3.5 h-3.5" />
           <span>Publier</span>
         </button>
       </div>
-
-      <StudioHistoryModal
-        isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
-        historyList={historyList}
-        onRollback={(versionNumber) => onRollback?.(versionNumber)}
-      />
-
-      <StudioDirectPublishModal
-        isOpen={isPublishModalOpen}
-        onClose={() => setIsPublishModalOpen(false)}
-        changeSummary={changeSummary}
-        setChangeSummary={setChangeSummary}
-        onConfirm={() => {
-          onPublish(changeSummary);
-          setIsPublishModalOpen(false);
-          setChangeSummary("");
-        }}
-      />
     </header>
   );
 };

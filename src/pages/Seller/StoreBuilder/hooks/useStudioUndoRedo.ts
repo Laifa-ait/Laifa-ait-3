@@ -144,7 +144,6 @@ export function useStudioUndoRedo(
         return;
       }
 
-      // Regroupement adaptatif des frappes rapides (< 500ms sur même type d'action)
       const isRapidSuccession =
         now - lastPushTimeRef.current < 500 && lastActionLabelRef.current === actionLabel;
       lastPushTimeRef.current = now;
@@ -204,26 +203,22 @@ export function useStudioUndoRedo(
     if (clonedNext.theme && onThemeChange) onThemeChange(deepClone(clonedNext.theme));
   }, [future, onSectionsChange, onThemeChange]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isMod = e.ctrlKey || e.metaKey;
-      if (!isMod) return;
-      const target = e.target as HTMLElement | null;
-      const isInputFocused =
-        target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
-      if (isInputFocused) return;
-
-      if (e.key.toLowerCase() === "z" && !e.shiftKey) {
-        e.preventDefault();
-        undo();
-      } else if (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey)) {
-        e.preventDefault();
-        redo();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [undo, redo]);
+  const resetHistory = useCallback(
+    (s: CustomPageSection[], theme?: CustomPageTheme, label = "Restauration") => {
+      const nextSnap: StudioHistorySnapshot = {
+        sections: deepClone(s),
+        theme: theme ? deepClone(theme) : presentRef.current.theme,
+        actionLabel: label,
+        timestamp: Date.now(),
+      };
+      presentRef.current = nextSnap;
+      setPast([]);
+      setFuture([]);
+      setPresent(nextSnap);
+      saveSessionHistory(storageKey, [], nextSnap, []);
+    },
+    [storageKey]
+  );
 
   const setSectionsDirectly = useCallback((s: CustomPageSection[], theme?: CustomPageTheme) => {
     const nextSnap: StudioHistorySnapshot = {
@@ -236,11 +231,31 @@ export function useStudioUndoRedo(
     setPresent(nextSnap);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+        return;
+      }
+      if (e.key.toLowerCase() === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey)) {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo]);
+
   return {
     sections: present.sections,
     theme: present.theme,
     currentActionLabel: present.actionLabel,
     setSectionsDirectly,
+    resetHistory,
     pushState,
     pushThemeState,
     undo,
