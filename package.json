@@ -8,9 +8,9 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build:client": "node ./node_modules/vite/bin/vite.js build",
-    "build:server": "node ./node_modules/esbuild/bin/esbuild server.core.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist-server/server.cjs && node ./node_modules/esbuild/bin/esbuild server.core.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/server.cjs",
-    "build": "node ./node_modules/vite/bin/vite.js build && npm run build:server",
+    "build:client": "vite build",
+    "build:server": "esbuild server.core.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist-server/server.cjs && esbuild server.core.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/server.cjs",
+    "build": "vite build && npm run build:server",
     "start": "node server.ts",
     "test": "ALLOW_TESTS_WITHOUT_EMULATOR=true vitest run",
     "test:concurrency": "vitest run src/tests/firestoreConcurrencyStock.test.ts",

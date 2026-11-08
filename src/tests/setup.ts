@@ -1,4 +1,26 @@
 import fs from "fs";
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+
+// Configure React 19 act() environment globally for all hook and component tests
+(globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
+
+// Initialize a default i18next instance for component tests that call useTranslation() directly
+if (!i18n.isInitialized) {
+  i18n.use(initReactI18next).init({
+    lng: "fr",
+    fallbackLng: "fr",
+    ns: ["translation"],
+    defaultNS: "translation",
+    resources: {
+      fr: { translation: {} },
+      ar: { translation: {} },
+      en: { translation: {} },
+    },
+    interpolation: { escapeValue: false },
+    react: { useSuspense: false },
+  });
+}
 
 function isPortListening(port: number): boolean {
   try {

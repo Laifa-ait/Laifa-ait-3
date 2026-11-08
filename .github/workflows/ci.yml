@@ -69,7 +69,9 @@ jobs:
             src/tests/auto*.test.* \
             src/tests/olma*.test.* \
             src/tests/realEstate*.test.* \
-            src/tests/studio*.test.*
+            src/tests/studio*.test.* \
+            src/tests/serverBootstrapAndViteResilience.test.ts \
+            src/tests/categoryHarmonization.test.ts
 
       - name: Upload Test Coverage Report
         if: ${{ always() }}
