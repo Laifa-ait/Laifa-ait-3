@@ -14,12 +14,6 @@ interface ParsedHeadingToken {
 
 const ARABIC_CHAR_REGEX = /[\u0600-\u06FF]/;
 
-/**
- * Découpe un titre contenant la syntaxe d'accentuation artistique :
- * - *comme ceci* : police d'accentuation contrastée (Serif Italique ou Calligraphie Arabe) + couleur/dégradé
- * - {comme ceci} : soulignement artistique dessiné à la main en SVG
- * - *{comme ceci}* ou {*comme ceci*} : combinaison des deux effets
- */
 export function parseEditorialHeadingTokens(rawText: string): ParsedHeadingToken[] {
   if (!rawText) return [];
   const pattern = /(\*\{[^{}*]+\}\*|\{\*[^{}*]+\*\}|\*[^*]+\*|\{[^{}]+\})/g;
@@ -30,31 +24,15 @@ export function parseEditorialHeadingTokens(rawText: string): ParsedHeadingToken
       (part.startsWith("*{") && part.endsWith("}*")) ||
       (part.startsWith("{*") && part.endsWith("*}"))
     ) {
-      return {
-        text: part.slice(2, -2),
-        isItalicAccent: true,
-        isUnderlined: true,
-      };
+      return { text: part.slice(2, -2), isItalicAccent: true, isUnderlined: true };
     }
     if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
-      return {
-        text: part.slice(1, -1),
-        isItalicAccent: true,
-        isUnderlined: false,
-      };
+      return { text: part.slice(1, -1), isItalicAccent: true, isUnderlined: false };
     }
     if (part.startsWith("{") && part.endsWith("}") && part.length > 2) {
-      return {
-        text: part.slice(1, -1),
-        isItalicAccent: false,
-        isUnderlined: true,
-      };
+      return { text: part.slice(1, -1), isItalicAccent: false, isUnderlined: true };
     }
-    return {
-      text: part,
-      isItalicAccent: false,
-      isUnderlined: false,
-    };
+    return { text: part, isItalicAccent: false, isUnderlined: false };
   });
 }
 
@@ -124,6 +102,17 @@ interface EditorialHeadingProps {
   title?: string;
 }
 
+function resolveHeadingDynamicFontSize(
+  tag: "h1" | "h2" | "h3" | "h4" | "span",
+  titleFontSizePx?: number
+): string | undefined {
+  if (typeof titleFontSizePx !== "number" || titleFontSizePx <= 0) return undefined;
+  const scale = tag === "h1" ? 1.15 : tag === "h2" ? 0.92 : tag === "h3" ? 0.78 : tag === "h4" ? 0.65 : 0.9;
+  const targetPx = Math.round(titleFontSizePx * scale);
+  const minMobilePx = Math.max(16, Math.round(targetPx * 0.68));
+  return `clamp(${minMobilePx}px, 3.2vw, ${targetPx}px)`;
+}
+
 export const EditorialHeading: React.FC<EditorialHeadingProps> = ({
   text,
   as: Tag = "h2",
@@ -163,7 +152,13 @@ export const EditorialHeading: React.FC<EditorialHeadingProps> = ({
   const accentHex =
     accentColorOverride || theme?.accentColor || theme?.primaryColor || "#C59B27";
 
+  const headingFont =
+    theme?.headingFontFamily || theme?.fontFamily || "var(--store-font-heading, inherit)";
+  const dynamicFontSize = resolveHeadingDynamicFontSize(Tag, theme?.titleFontSizePx);
+
   const combinedStyle: React.CSSProperties = {
+    fontFamily: headingFont,
+    ...(dynamicFontSize ? { fontSize: dynamicFontSize } : {}),
     ...style,
     ...(typeof letterSpacingEm === "number" && !isArabicText
       ? { letterSpacing: `${letterSpacingEm}em` }
@@ -187,10 +182,10 @@ export const EditorialHeading: React.FC<EditorialHeadingProps> = ({
         }
 
         const isTokenArabic = ARABIC_CHAR_REGEX.test(tok.text);
-        const fontFamily = tok.isItalicAccent
+        const tokenFont = tok.isItalicAccent
           ? isTokenArabic
             ? "'Amiri', 'Reem Kufi', 'Noto Naskh Arabic', Georgia, serif"
-            : "'Playfair Display', 'Cormorant Garamond', Georgia, serif"
+            : theme?.headingFontFamily || "'Playfair Display', 'Cormorant Garamond', Georgia, serif"
           : undefined;
 
         const gradientClass =
@@ -214,19 +209,13 @@ export const EditorialHeading: React.FC<EditorialHeadingProps> = ({
               tok.isItalicAccent && !isTokenArabic ? "italic font-semibold" : ""
             } ${gradientClass}`}
             style={{
-              fontFamily,
-              color:
-                tok.isItalicAccent && accentStyle === "accent-color"
-                  ? accentHex
-                  : undefined,
+              fontFamily: tokenFont,
+              color: tok.isItalicAccent && accentStyle === "accent-color" ? accentHex : undefined,
             }}
           >
             {tok.text}
             {tok.isUnderlined && (
-              <HandDrawnUnderlineSvg
-                styleVariant={underlineStyle}
-                strokeColor={underlineStroke}
-              />
+              <HandDrawnUnderlineSvg styleVariant={underlineStyle} strokeColor={underlineStroke} />
             )}
           </span>
         );
@@ -239,6 +228,7 @@ interface EditorialDropCapParagraphProps {
   text: string;
   dropCap?: boolean;
   accentColor?: string;
+  theme?: CustomPageTheme;
   className?: string;
   onClick?: (e: React.MouseEvent) => void;
 }
@@ -247,25 +237,27 @@ export const EditorialDropCapParagraph: React.FC<EditorialDropCapParagraphProps>
   text,
   dropCap,
   accentColor = "#C59B27",
+  theme,
   className = "",
   onClick,
 }) => {
   const trimmed = (text || "").trim();
   const isArabic = ARABIC_CHAR_REGEX.test(trimmed);
+  const bodyStyle: React.CSSProperties = {
+    fontFamily: theme?.bodyFontFamily || theme?.fontFamily || "var(--store-font-body, inherit)",
+    fontSize: typeof theme?.bodyFontSizePx === "number" ? `${theme.bodyFontSizePx}px` : undefined,
+  };
 
   if (!dropCap || trimmed.length < 2) {
     return (
-      <p dir={isArabic ? "rtl" : undefined} onClick={onClick} className={className}>
+      <p dir={isArabic ? "rtl" : undefined} onClick={onClick} style={bodyStyle} className={className}>
         {text}
       </p>
     );
   }
 
-  const firstChar = trimmed.charAt(0);
-  const restText = trimmed.slice(1);
-
   return (
-    <p dir={isArabic ? "rtl" : undefined} onClick={onClick} className={className}>
+    <p dir={isArabic ? "rtl" : undefined} onClick={onClick} style={bodyStyle} className={className}>
       <span
         className={`${
           isArabic ? "float-right ml-3" : "float-left mr-3"
@@ -273,15 +265,15 @@ export const EditorialDropCapParagraph: React.FC<EditorialDropCapParagraphProps>
         style={{
           fontFamily: isArabic
             ? "'Amiri', Georgia, serif"
-            : "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
+            : theme?.headingFontFamily || "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
           color: accentColor,
           borderColor: `${accentColor}35`,
           backgroundColor: `${accentColor}10`,
         }}
       >
-        {firstChar}
+        {trimmed.charAt(0)}
       </span>
-      {restText}
+      {trimmed.slice(1)}
     </p>
   );
 };

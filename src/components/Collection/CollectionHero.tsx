@@ -90,14 +90,14 @@ export const CollectionHero: React.FC<CollectionHeroProps> = ({
               {title}
             </h1>
             <p className="text-slate-600 text-xs sm:text-sm font-medium mt-1.5 max-w-2xl leading-relaxed">
-              {t("collection_luxury_desc", "Découvrez les meilleures offres au meilleur prix avec livraison express garantie à domicile sur l'ensemble des 58 Wilayas d'Algérie.")}
+              {t("collection_luxury_desc", "Découvrez les meilleures offres au meilleur prix avec livraison express garantie à domicile sur l'ensemble des 69 Wilayas d'Algérie.")}
             </p>
 
             {/* Quick Trust Highlights with Fun Colors */}
             <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-200/60 text-[11px] font-semibold text-slate-700">
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/70">
                 <Truck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>58 Wilayas Livrées</span>
+                <span>69 Wilayas Livrées</span>
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200/70">
                 <Banknote className="w-3.5 h-3.5 text-amber-600" />

@@ -24,13 +24,7 @@ const TEXT_SHADOW_OPTIONS = [
 ];
 
 export const HeroTypographySubEditor: React.FC<HeroTypographySubEditorProps> = ({
-  activeSubPanel,
-  settings,
-  sections = [],
-  products = [],
-  onSettingsChange,
-  inputClass,
-  labelClass,
+  activeSubPanel, settings, sections = [], products = [], onSettingsChange, inputClass, labelClass,
 }) => {
   if (activeSubPanel === "cta" || activeSubPanel === "ctaPrimary" || activeSubPanel === "ctaSecondary") {
     return (
@@ -139,18 +133,10 @@ export const HeroTypographySubEditor: React.FC<HeroTypographySubEditorProps> = (
           <div className="flex items-center justify-between">
             <span>Titre Principal</span>
             <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => onSettingsChange("title", `${titleVal} *Atelier*`.trim())}
-                className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9.5px] font-bold cursor-pointer hover:bg-amber-200"
-              >
+              <button type="button" onClick={() => onSettingsChange("title", `${titleVal} *Atelier*`.trim())} className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9.5px] font-bold cursor-pointer hover:bg-amber-200">
                 + *Italique*
               </button>
-              <button
-                type="button"
-                onClick={() => onSettingsChange("title", `${titleVal} {Art}`.trim())}
-                className="px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 text-[9.5px] font-bold cursor-pointer hover:bg-sky-200"
-              >
+              <button type="button" onClick={() => onSettingsChange("title", `${titleVal} {Art}`.trim())} className="px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 text-[9.5px] font-bold cursor-pointer hover:bg-sky-200">
                 + &#123;Souligné&#125;
               </button>
             </div>
@@ -167,11 +153,7 @@ export const HeroTypographySubEditor: React.FC<HeroTypographySubEditorProps> = (
         <div className="grid grid-cols-2 gap-2 pt-1">
           <label className={labelClass}>
             <span className="text-[11px]">Taille Desktop</span>
-            <select
-              value={typeof settings.titleSizeDesktop === "string" ? settings.titleSizeDesktop : "lg"}
-              onChange={(e) => onSettingsChange("titleSizeDesktop", e.target.value)}
-              className={`${inputClass} text-xs py-1.5`}
-            >
+            <select value={typeof settings.titleSizeDesktop === "string" ? settings.titleSizeDesktop : "lg"} onChange={(e) => onSettingsChange("titleSizeDesktop", e.target.value)} className={`${inputClass} text-xs py-1.5`}>
               <option value="sm">Compacte (SM)</option>
               <option value="md">Moyenne (MD)</option>
               <option value="lg">Grande (LG)</option>
@@ -181,11 +163,7 @@ export const HeroTypographySubEditor: React.FC<HeroTypographySubEditorProps> = (
 
           <label className={labelClass}>
             <span className="text-[11px]">Taille Mobile</span>
-            <select
-              value={typeof settings.titleSizeMobile === "string" ? settings.titleSizeMobile : "md"}
-              onChange={(e) => onSettingsChange("titleSizeMobile", e.target.value)}
-              className={`${inputClass} text-xs py-1.5`}
-            >
+            <select value={typeof settings.titleSizeMobile === "string" ? settings.titleSizeMobile : "md"} onChange={(e) => onSettingsChange("titleSizeMobile", e.target.value)} className={`${inputClass} text-xs py-1.5`}>
               <option value="sm">Compacte (SM)</option>
               <option value="md">Moyenne (MD)</option>
               <option value="lg">Grande (LG)</option>
@@ -236,7 +214,7 @@ export const HeroTypographySubEditor: React.FC<HeroTypographySubEditorProps> = (
       </div>
       <label className={labelClass}>
         <span>Sous-titre</span>
-        <textarea rows={3} value={typeof settings.subtitle === "string" ? settings.subtitle : ""} onChange={(e) => onSettingsChange("subtitle", e.target.value)} placeholder="Livraison rapide 58 Wilayas..." className={inputClass} />
+        <textarea rows={3} value={typeof settings.subtitle === "string" ? settings.subtitle : ""} onChange={(e) => onSettingsChange("subtitle", e.target.value)} placeholder="Livraison rapide 69 Wilayas..." className={inputClass} />
       </label>
       <div className="flex items-center justify-between pt-2 border-t border-slate-200">
         <span className="text-xs font-medium text-slate-600">Couleur du Sous-titre</span>

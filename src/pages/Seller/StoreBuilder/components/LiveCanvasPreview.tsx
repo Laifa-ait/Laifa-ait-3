@@ -12,6 +12,10 @@ import { StoreSectionRenderer } from "../../../../components/Store/sections/Stor
 import { StoreCollectionPageView } from "../../../../components/Store/StoreCollectionPageView";
 import { StoreCustomHeaderBar } from "../../../../components/Store/StoreCustomHeaderBar";
 import { ArtisticAtmosphereLayer } from "../../../../components/Store/ArtisticAtmosphereLayer";
+import {
+  useStoreFontLoader,
+  buildStoreThemeCssVariables,
+} from "../../../../components/Store/useStoreFontLoader";
 import { Sparkles } from "lucide-react";
 import {
   PreviewControlToolbar,
@@ -98,6 +102,8 @@ export const LiveCanvasPreview: React.FC<LiveCanvasPreviewProps> = ({
   const [liveCollectionConfig, setLiveCollectionConfig] =
     useState<CollectionPageDesignConfig | undefined>(storeConfig?.collectionPageConfig);
 
+  useStoreFontLoader(theme, "studio-canvas");
+
   useEffect(() => {
     if (storeConfig?.collectionPageConfig) setLiveCollectionConfig(storeConfig.collectionPageConfig);
   }, [storeConfig?.collectionPageConfig]);
@@ -129,25 +135,11 @@ export const LiveCanvasPreview: React.FC<LiveCanvasPreviewProps> = ({
     setIsInteractiveMode,
   });
 
-  const canvasBg = isDarkMode ? "#0F172A" : theme.canvasColor || "#FAF6F0";
-  const surfaceBg = theme.surfaceColor || "#FFFFFF";
-  const accent10 = theme.accentColor || theme.primaryColor || "#B45309";
-
-  const canvasStyle: React.CSSProperties & Record<`--${string}`, string> = {
-    isolation: "isolate",
-    fontFamily: theme.fontFamily || "'Plus Jakarta Sans', sans-serif",
-    backgroundColor: canvasBg,
-    color: isDarkMode ? "#F8FAFC" : theme.secondaryColor || "#18181B",
-    "--store-bg-60": canvasBg,
-    "--store-surface-30": surfaceBg,
-    "--store-accent-10": accent10,
-    "--store-primary": theme.primaryColor || "#B45309",
-    "--store-secondary": theme.secondaryColor || "#18181B",
-    "--store-accent": accent10,
-    "--store-canvas": canvasBg,
-    "--store-surface": surfaceBg,
-    "--store-font": theme.fontFamily || "'Plus Jakarta Sans', sans-serif",
+  const canvasStyle = {
+    isolation: "isolate" as const,
+    ...buildStoreThemeCssVariables(theme, isDarkMode),
   };
+  const sectionGapPx = typeof theme.spacingYPx === "number" ? theme.spacingYPx : 28;
 
   return (
     <div className={`flex flex-col min-h-0 min-w-0 flex-1 overflow-hidden ${isFullscreen ? "fixed inset-0 z-50 bg-[#F5F6F8]" : "relative h-full"}`}>
@@ -229,10 +221,11 @@ export const LiveCanvasPreview: React.FC<LiveCanvasPreviewProps> = ({
                 </div>
               ) : (
                 <div
-                  className="space-y-4 p-2 @sm:p-4"
+                  className="flex flex-col p-2 @sm:p-4"
                   style={{
-                    paddingTop: theme.spacingYPx ? `${theme.spacingYPx / 2}px` : undefined,
-                    paddingBottom: theme.spacingYPx ? `${theme.spacingYPx / 2}px` : undefined,
+                    gap: `${sectionGapPx}px`,
+                    paddingTop: `${Math.round(sectionGapPx * 0.5)}px`,
+                    paddingBottom: `${Math.round(sectionGapPx * 0.5)}px`,
                   }}
                 >
                   {sections.map((section, idx) => {
@@ -268,7 +261,7 @@ export const LiveCanvasPreview: React.FC<LiveCanvasPreviewProps> = ({
 
       <InteractiveCartSimulator isInteractiveMode={isInteractiveMode} cartItems={simulatedCart} onClearCart={() => setSimulatedCart([])} />
       <PreviewQrModal isOpen={isQrModalOpen} onClose={() => setIsQrModalOpen(false)} shopSlug={shopSlug} shopName={shopName} />
-      <PreviewAuditModal isOpen={isAuditModalOpen} onClose={() => setIsAuditModalOpen(false)} sections={sections} theme={theme} products={products} shopName={shopName} shopSlug={shopSlug} />
+      <PreviewAuditModal isOpen={isAuditModalOpen} onClose={() => setIsAuditModalOpen(false)} sections={sections} theme={theme} products={products} storeConfig={storeConfig} shopName={shopName} shopSlug={shopSlug} />
     </div>
   );
 };

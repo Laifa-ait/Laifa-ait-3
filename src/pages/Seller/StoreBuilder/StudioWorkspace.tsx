@@ -186,6 +186,12 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
         isInteractiveMode={false}
         onOpenAuditModal={() => window.dispatchEvent(new CustomEvent("studio:open-audit"))}
         onOpenQrModal={() => window.dispatchEvent(new CustomEvent("studio:open-qr"))}
+        onPublish={() => publishStudio()}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onSelectNavMode={handleSelectNavMode}
       />
     </div>
   );

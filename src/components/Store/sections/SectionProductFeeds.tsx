@@ -123,7 +123,7 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
   return (
     <div
       onClick={isEditable ? onSelect : undefined}
-      style={buildSectionContainerStyle(styles, "transparent", "#18181B")}
+      style={buildSectionContainerStyle(styles, "transparent", "var(--store-secondary, #18181B)", theme)}
       className={`relative py-4 @3xl:py-6 transition-all select-none ${resolveBorderRadiusClass(styles.borderRadius)} ${resolveShadowClass(styles.shadow)} ${resolveAnimationClass(styles.animation)}`}
     >
       {isEditable && isSelected && (

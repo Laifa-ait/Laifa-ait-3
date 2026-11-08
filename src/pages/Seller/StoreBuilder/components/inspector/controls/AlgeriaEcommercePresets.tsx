@@ -1,5 +1,5 @@
 import React from "react";
-import { Sparkles, Truck, HelpCircle, RotateCcw, BookOpen } from "lucide-react";
+import { Sparkles, Truck, HelpCircle, RotateCcw, BookOpen, AlertTriangle } from "lucide-react";
 import { DeliveryInfoItem, FaqItem } from "../../../../../../domains/seller/customPage.types";
 
 export interface AlgeriaDeliveryPreset {
@@ -19,37 +19,37 @@ export interface AlgeriaDeliveryPreset {
 export const ALGERIA_DELIVERY_PRESETS: AlgeriaDeliveryPreset[] = [
   {
     id: "standard_58_wilayas",
-    label: "Tarifs Standard 58 Wilayas (Stop-Desk & Domicile)",
-    subtitle: "Grille équilibrée Nord / Hauts-Plateaux / Sud en DZD",
+    label: "Tarifs indicatifs 69 Wilayas (Stop-Desk & Domicile)",
+    subtitle: "Grille tarifaire de départ à personnaliser selon votre transporteur (DZD)",
     patch: {
-      title: "Livraison Rapide 58 Wilayas (Domicile & Stop-Desk)",
-      defaultTimeframe: "24h à 72h selon la Wilaya",
+      title: "Livraison 69 Wilayas (Domicile & Stop-Desk — Tarifs de la boutique)",
+      defaultTimeframe: "Délai indicatif : 24h à 72h selon la Wilaya",
       stopDeskPrice: 400,
       homeDeliveryPrice: 600,
       freeShippingAbove: 8000,
       customTariffs: [
-        { wilayaName: "16 - Alger", estimatedDays: "24h", priceDZD: 400, homeDeliveryAvailable: true },
+        { wilayaName: "16 - Alger", estimatedDays: "24h - 48h", priceDZD: 400, homeDeliveryAvailable: true },
         { wilayaName: "31 - Oran", estimatedDays: "24h - 48h", priceDZD: 500, homeDeliveryAvailable: true },
         { wilayaName: "25 - Constantine", estimatedDays: "24h - 48h", priceDZD: 500, homeDeliveryAvailable: true },
         { wilayaName: "19 - Sétif", estimatedDays: "24h - 48h", priceDZD: 500, homeDeliveryAvailable: true },
-        { wilayaName: "09 - Blida", estimatedDays: "24h", priceDZD: 450, homeDeliveryAvailable: true },
-        { wilayaName: "30 - Ouargla", estimatedDays: "48h - 72h", priceDZD: 800, homeDeliveryAvailable: true },
+        { wilayaName: "09 - Blida", estimatedDays: "24h - 48h", priceDZD: 450, homeDeliveryAvailable: true },
+        { wilayaName: "30 - Ouargla", estimatedDays: "48h - 96h", priceDZD: 800, homeDeliveryAvailable: true },
       ],
     },
   },
   {
     id: "express_nord_grandes_villes",
-    label: "Livraison Express 24h/48h Nord & Grandes Villes",
-    subtitle: "Priorité grandes agglomérations & retrait bureau rapide",
+    label: "Grille Nord & Grandes Villes (Indicatif)",
+    subtitle: "Exemple de tarification pour les grandes agglomérations & retrait bureau",
     patch: {
-      title: "Expédition Express 24h/48h — Grandes Villes & Nord",
-      defaultTimeframe: "Express 24h - 48h",
+      title: "Expédition Nord & Grandes Villes (Modalités de la boutique)",
+      defaultTimeframe: "Délai indicatif : 24h - 48h",
       stopDeskPrice: 350,
       homeDeliveryPrice: 500,
       freeShippingAbove: 6000,
       customTariffs: [
-        { wilayaName: "16 - Alger", estimatedDays: "24h Express", priceDZD: 350, homeDeliveryAvailable: true },
-        { wilayaName: "31 - Oran", estimatedDays: "24h Express", priceDZD: 450, homeDeliveryAvailable: true },
+        { wilayaName: "16 - Alger", estimatedDays: "24h - 48h", priceDZD: 350, homeDeliveryAvailable: true },
+        { wilayaName: "31 - Oran", estimatedDays: "24h - 48h", priceDZD: 450, homeDeliveryAvailable: true },
         { wilayaName: "06 - Béjaïa", estimatedDays: "24h - 48h", priceDZD: 450, homeDeliveryAvailable: true },
         { wilayaName: "15 - Tizi Ouzou", estimatedDays: "24h - 48h", priceDZD: 450, homeDeliveryAvailable: true },
         { wilayaName: "23 - Annaba", estimatedDays: "24h - 48h", priceDZD: 500, homeDeliveryAvailable: true },
@@ -58,18 +58,18 @@ export const ALGERIA_DELIVERY_PRESETS: AlgeriaDeliveryPreset[] = [
   },
   {
     id: "forfait_unique_national",
-    label: "Forfait Unique National",
-    subtitle: "Tarif simplifié unique vers toutes les Wilayas d'Algérie",
+    label: "Forfait National Unifié (69 Wilayas)",
+    subtitle: "Exemple de tarif simplifié vers les 69 Wilayas d'Algérie",
     patch: {
-      title: "Forfait Unique National — Livraison 58 Wilayas",
-      defaultTimeframe: "48h - 96h partout en Algérie",
+      title: "Expédition Nationale — Couverture 69 Wilayas",
+      defaultTimeframe: "Délai indicatif : 48h - 96h selon la Wilaya",
       stopDeskPrice: 400,
       homeDeliveryPrice: 600,
       freeShippingAbove: 7500,
       customTariffs: [
         { wilayaName: "Nord & Centre (Alger, Blida, Tipaza...)", estimatedDays: "24h - 48h", priceDZD: 500, homeDeliveryAvailable: true },
         { wilayaName: "Est & Ouest (Oran, Constantine, Sétif...)", estimatedDays: "24h - 48h", priceDZD: 500, homeDeliveryAvailable: true },
-        { wilayaName: "Sud & Grand Sud (Ghardaïa, Béchar, Adrar...)", estimatedDays: "48h - 96h", priceDZD: 600, homeDeliveryAvailable: true },
+        { wilayaName: "Sud & Nouvelles Wilayas (Ghardaïa, Béchar, Messaad, El Aricha...)", estimatedDays: "48h - 96h", priceDZD: 650, homeDeliveryAvailable: true },
       ],
     },
   },
@@ -79,53 +79,53 @@ export const ALGERIA_FAQ_PRESET_ITEMS: FaqItem[] = [
   {
     question: "Comment fonctionne le paiement à la livraison (Cash on Delivery) ?",
     answer:
-      "Vous réglez votre commande en espèces (DZD) directement auprès du livreur ou au bureau Stop-Desk au moment de la réception de votre colis.",
+      "Le règlement de votre commande s'effectue en espèces (DZD) auprès du transporteur ou au bureau Stop-Desk lors de la remise de votre colis, selon les modalités de notre boutique.",
   },
   {
     question: "Puis-je vérifier mon colis avant de payer le livreur ?",
     answer:
-      "Oui, nous autorisons l'ouverture et la vérification de la conformité de votre article en présence du livreur avant le règlement.",
+      "Selon le transporteur sélectionné et les conditions de vente de notre boutique, merci de vérifier l'état de votre colis lors de la réception et de nous contacter en cas d'anomalie.",
   },
   {
-    question: "Quels sont les délais de livraison selon ma Wilaya ?",
+    question: "Quels sont les délais indicatifs de livraison sur les 69 Wilayas ?",
     answer:
-      "Les expéditions vers Alger et les grandes villes prennent 24h à 48h, et 48h à 72h pour les Wilayas de l'intérieur et du Sud.",
+      "Les délais indicatifs varient généralement de 24h à 48h pour les grandes villes du Nord et de 48h à 96h pour les Wilayas de l'intérieur et du Sud.",
   },
   {
-    question: "Comment effectuer un échange de taille ou un retour ?",
+    question: "Quelle est la procédure de demande d'échange ou de retour ?",
     answer:
-      "Contactez notre service client sous 7 jours après réception. Nous expédions la nouvelle taille et récupérons l'article initial lors de l'échange.",
+      "Toute demande d'échange ou de retour doit être adressée à notre service client dans le délai indiqué par notre politique boutique, avec l'article intact dans son emballage d'origine.",
   },
   {
     question: "Quelle est la différence entre la livraison à Domicile et en Stop-Desk ?",
     answer:
-      "En Stop-Desk, vous récupérez votre colis au bureau de la société de livraison de votre Wilaya à tarif réduit et selon vos horaires.",
+      "En Stop-Desk, vous retirez votre colis directement au guichet de la société de transport de votre Wilaya selon ses horaires d'ouverture.",
   },
 ];
 
 export const ALGERIA_RETURN_POLICY_PRESETS = {
   days7: {
-    title: "Échanges & Retours Garantis sous 7 Jours",
+    title: "Conditions d'Échange & de Retour (Modèle 7 Jours — À adapter)",
     delayDays: 7,
     returnShippingFeeBy: "buyer" as const,
     conditions:
-      "Échange de taille ou retour accepté sous 7 jours suivant la réception dans les 58 Wilayas. L'article doit être neuf, non porté et dans son emballage d'origine avec étiquette. Vérification du colis autorisée à la livraison.",
+      "[À vérifier et adapter par le vendeur] Les demandes d'échange de taille ou de retour sont étudiées sous 7 jours après réception sur les 69 Wilayas, sous réserve que l'article soit neuf, non utilisé et dans son emballage d'origine. Précisez ici vos conditions exactes de prise en charge.",
   },
   days14: {
-    title: "Garantie Satisfait ou Échangé — 14 Jours",
+    title: "Modalités d'Échange & de Retour (Modèle 14 Jours — À personnaliser)",
     delayDays: 14,
     returnShippingFeeBy: "free" as const,
     conditions:
-      "Vous disposez de 14 jours après réception pour demander un échange gratuit ou un avoir. En cas de défaut ou d'erreur de préparation, les frais de retour sont 100% pris en charge par notre boutique.",
+      "[À vérifier et adapter par le vendeur] Vous disposez d'un délai de 14 jours après réception pour soumettre une demande d'échange ou de retour selon les conditions propres à notre boutique. En cas d'erreur de préparation avérée, indiquez ici vos modalités de prise en charge des frais de transport.",
   },
 };
 
 export const ALGERIA_BRAND_STORY_PRESET = {
-  heading: "Un Savoir-Faire Algérien d'Excellence",
+  heading: "Présentation de Notre Boutique",
   bodyText:
-    "Fondée avec passion en Algérie, notre maison sélectionne des matières nobles et réalise un contrôle qualité rigoureux sur chaque pièce avant expédition. Notre engagement : offrir une expérience d'achat fiable sur les 58 Wilayas avec paiement à la réception et service client réactif.",
-  signature: "L'Équipe Fondatrice",
-  yearsOfExperience: 5,
+    "Bienvenue dans notre espace officiel. Nous sélectionnons nos articles avec soin et assurons l'expédition de vos commandes vers les 69 Wilayas d'Algérie, avec un suivi attentif et un service client à votre écoute.",
+  signature: "L'Équipe de la Boutique",
+  yearsOfExperience: 3,
 };
 
 interface AlgeriaEcommercePresetsProps {
@@ -142,8 +142,12 @@ export const AlgeriaEcommercePresets: React.FC<AlgeriaEcommercePresetsProps> = (
       <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#F0F7FA] to-[#F8FBFC] border border-[#54ACBF]/40 space-y-2">
         <span className="text-[11px] font-extrabold text-[#011C40] uppercase tracking-wider flex items-center gap-1.5">
           <Truck className="w-3.5 h-3.5 text-[#023859]" />
-          <span>Modèles E-commerce Algérie (58 Wilayas)</span>
+          <span>Exemples de Grilles Algérie (69 Wilayas)</span>
         </span>
+        <p className="text-[10px] text-amber-800 bg-amber-50/90 border border-amber-200 rounded-lg px-2 py-1 flex items-start gap-1.5">
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+          <span>Modèles indicatifs : vérifiez et adaptez les tarifs et délais selon vos contrats transporteurs.</span>
+        </p>
         <div className="space-y-1.5">
           {ALGERIA_DELIVERY_PRESETS.map((preset) => (
             <button
@@ -166,20 +170,20 @@ export const AlgeriaEcommercePresets: React.FC<AlgeriaEcommercePresetsProps> = (
       <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#F0F7FA] to-[#F8FBFC] border border-[#54ACBF]/40 space-y-2">
         <span className="text-[11px] font-extrabold text-[#011C40] uppercase tracking-wider flex items-center gap-1.5">
           <HelpCircle className="w-3.5 h-3.5 text-[#023859]" />
-          <span>FAQ E-commerce Algérie</span>
+          <span>Modèles FAQ E-commerce (69 Wilayas)</span>
         </span>
         <button
           type="button"
           onClick={() =>
             onApplyPreset({
-              title: "Questions Fréquentes (Livraison 58 Wilayas & Paiement)",
+              title: "Questions Fréquentes (Livraison 69 Wilayas & Paiement)",
               items: ALGERIA_FAQ_PRESET_ITEMS,
             })
           }
           className="w-full h-9 px-3 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Insérer les 5 questions e-commerce Algérie</span>
+          <span>Insérer 5 questions types (à personnaliser)</span>
         </button>
       </div>
     );
@@ -190,22 +194,26 @@ export const AlgeriaEcommercePresets: React.FC<AlgeriaEcommercePresetsProps> = (
       <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#F0F7FA] to-[#F8FBFC] border border-[#54ACBF]/40 space-y-2">
         <span className="text-[11px] font-extrabold text-[#011C40] uppercase tracking-wider flex items-center gap-1.5">
           <RotateCcw className="w-3.5 h-3.5 text-[#023859]" />
-          <span>Modèles Politique de Retours</span>
+          <span>Trames Indicatives de Retours (À adapter)</span>
         </span>
+        <p className="text-[10px] text-amber-800 bg-amber-50/90 border border-amber-200 rounded-lg px-2 py-1 flex items-start gap-1.5">
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+          <span>Ces textes sont des exemples : personnalisez-les selon la politique réelle de votre boutique.</span>
+        </p>
         <div className="grid grid-cols-2 gap-1.5">
           <button
             type="button"
             onClick={() => onApplyPreset({ ...ALGERIA_RETURN_POLICY_PRESETS.days7 })}
             className="h-8 px-2 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[10px] font-bold cursor-pointer transition-colors"
           >
-            Insérer un modèle professionnel (7j)
+            Trame indicative (7j)
           </button>
           <button
             type="button"
             onClick={() => onApplyPreset({ ...ALGERIA_RETURN_POLICY_PRESETS.days14 })}
             className="h-8 px-2 rounded-lg bg-white hover:bg-[#F0F7FA] border border-[#023859]/30 text-[#023859] text-[10px] font-bold cursor-pointer transition-colors"
           >
-            Modèle Garantie 14 jours
+            Trame indicative (14j)
           </button>
         </div>
       </div>
@@ -216,7 +224,7 @@ export const AlgeriaEcommercePresets: React.FC<AlgeriaEcommercePresetsProps> = (
     <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#F0F7FA] to-[#F8FBFC] border border-[#54ACBF]/40 space-y-2">
       <span className="text-[11px] font-extrabold text-[#011C40] uppercase tracking-wider flex items-center gap-1.5">
         <BookOpen className="w-3.5 h-3.5 text-[#023859]" />
-        <span>Modèle Récit de Marque</span>
+        <span>Trame Récit de Marque (69 Wilayas)</span>
       </span>
       <button
         type="button"
@@ -224,7 +232,7 @@ export const AlgeriaEcommercePresets: React.FC<AlgeriaEcommercePresetsProps> = (
         className="w-full h-8 px-3 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
       >
         <Sparkles className="w-3.5 h-3.5" />
-        <span>Insérer un modèle professionnel</span>
+        <span>Insérer une trame de présentation</span>
       </button>
     </div>
   );

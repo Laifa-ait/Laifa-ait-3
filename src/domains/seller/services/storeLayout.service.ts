@@ -202,22 +202,47 @@ export class StoreLayoutService {
     }
   }
 
-  static async saveDraftLayout(sellerId: string, sections: CustomPageSection[]): Promise<StoreLayoutVersion> {
+  static async saveDraftLayout(
+    sellerId: string,
+    sections: CustomPageSection[],
+    options?: { expectedRevision?: number; expectedUpdatedAt?: string; forceOverwrite?: boolean }
+  ): Promise<StoreLayoutVersion> {
     const cleanSections = stripUndefinedDeep(sections);
     await this.verifyProductOwnership(sellerId, cleanSections);
 
     const layoutRef = db.collection("store_layouts").doc(sellerId);
-    const layoutDoc = await layoutRef.get();
-    const currentData = layoutDoc.data() as StoreLayoutDocument | undefined;
-    const draftVersion: StoreLayoutVersion = {
-      versionNumber: currentData?.currentVersion || 1,
-      sections: cleanSections,
-      status: "draft",
-      updatedAt: new Date().toISOString(),
-    };
+    return await db.runTransaction(async (t) => {
+      const layoutDoc = await t.get(layoutRef);
+      const currentData = layoutDoc.data() as StoreLayoutDocument | undefined;
+      const currentDraftRev = currentData?.draft?.draftRevision ?? 0;
 
-    await layoutRef.set({ sellerId, draft: draftVersion, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
-    return draftVersion;
+      if (
+        !options?.forceOverwrite &&
+        typeof options?.expectedRevision === "number" &&
+        currentDraftRev > 0 &&
+        options.expectedRevision !== currentDraftRev
+      ) {
+        throw new Error(
+          `Conflit de version (CONFLICT_NEWER_VERSION) : Le brouillon sur le serveur (rév. #${currentDraftRev}) est plus récent que votre copie locale (rév. #${options.expectedRevision}).`
+        );
+      }
+
+      const nextDraftRev = currentDraftRev + 1;
+      const draftVersion: StoreLayoutVersion = {
+        versionNumber: currentData?.currentVersion || 1,
+        draftRevision: nextDraftRev,
+        sections: cleanSections,
+        status: "draft",
+        updatedAt: new Date().toISOString(),
+      };
+
+      t.set(
+        layoutRef,
+        { sellerId, draft: draftVersion, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      );
+      return draftVersion;
+    });
   }
 
   static async publishLayout(sellerId: string, changeSummary?: string): Promise<StoreLayoutVersion> {

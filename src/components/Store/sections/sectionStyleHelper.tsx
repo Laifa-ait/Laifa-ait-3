@@ -1,10 +1,19 @@
 import React from "react";
 import { CustomPageSectionStyles, CustomPageTheme } from "../../../domains/seller/customPage.types";
 
-export function resolveSectionPaddingY(paddingY?: "sm" | "md" | "lg" | "xl" | number): number {
+export function resolveSectionPaddingY(
+  paddingY?: "sm" | "md" | "lg" | "xl" | number,
+  themeSpacingYPx?: number
+): number {
   if (typeof paddingY === "number") return paddingY;
-  const map: Record<string, number> = { sm: 16, md: 32, lg: 48, xl: 64 };
-  return map[paddingY || "md"] ?? 32;
+  const baseSpacing = typeof themeSpacingYPx === "number" ? themeSpacingYPx : 32;
+  const scaleMap: Record<string, number> = {
+    sm: Math.max(8, Math.round(baseSpacing * 0.55)),
+    md: baseSpacing,
+    lg: Math.round(baseSpacing * 1.45),
+    xl: Math.round(baseSpacing * 1.9),
+  };
+  return scaleMap[paddingY || "md"] ?? baseSpacing;
 }
 
 export function resolveSectionPaddingX(paddingX?: number): number {
@@ -23,7 +32,7 @@ export function resolveBorderRadiusClass(radius?: "none" | "sm" | "md" | "lg" | 
       return "rounded-full";
     case "md":
     default:
-      return "rounded-2xl";
+      return "rounded-[var(--store-border-radius,16px)]";
   }
 }
 
@@ -50,11 +59,11 @@ export function resolveContainerWidthClass(width?: "contained" | "full" | "narro
 export function resolveAnimationClass(animation?: "none" | "fade" | "slide-up" | "zoom"): string {
   switch (animation) {
     case "fade":
-      return "animate-in fade-in duration-500";
+      return "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500";
     case "slide-up":
-      return "animate-in fade-in slide-in-from-bottom-4 duration-500";
+      return "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 motion-safe:duration-500";
     case "zoom":
-      return "animate-in fade-in zoom-in-95 duration-500";
+      return "motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-500";
     default:
       return "";
   }
@@ -63,15 +72,22 @@ export function resolveAnimationClass(animation?: "none" | "fade" | "slide-up" |
 export function buildSectionContainerStyle(
   styles: CustomPageSectionStyles = {},
   defaultBg = "transparent",
-  defaultText = "#17191C"
+  defaultText = "var(--store-secondary, #17191C)",
+  theme?: CustomPageTheme
 ): React.CSSProperties {
+  const padY = resolveSectionPaddingY(styles.paddingY, theme?.spacingYPx);
+  const bodySize = theme?.bodyFontSizePx;
+  const bodyFont = theme?.bodyFontFamily || theme?.fontFamily;
+
   return {
     backgroundColor: styles.backgroundColor || defaultBg,
     color: styles.textColor || defaultText,
-    paddingTop: `${resolveSectionPaddingY(styles.paddingY)}px`,
-    paddingBottom: `${resolveSectionPaddingY(styles.paddingY)}px`,
+    paddingTop: `${padY}px`,
+    paddingBottom: `${padY}px`,
     paddingLeft: `${resolveSectionPaddingX(styles.paddingX)}px`,
     paddingRight: `${resolveSectionPaddingX(styles.paddingX)}px`,
+    fontSize: typeof bodySize === "number" ? `${bodySize}px` : "var(--store-body-size, 15px)",
+    fontFamily: bodyFont || "var(--store-font-body, inherit)",
   };
 }
 

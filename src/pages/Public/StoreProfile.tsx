@@ -10,6 +10,10 @@ import { SellerCouponBanner } from "../../components/Shop/SellerCouponBanner";
 import { StoreSectionRenderer } from "../../components/Store/sections/StoreSectionRenderer";
 import { StoreCollectionPageView } from "../../components/Store/StoreCollectionPageView";
 import { ArtisticAtmosphereLayer } from "../../components/Store/ArtisticAtmosphereLayer";
+import {
+  useStoreFontLoader,
+  buildStoreThemeCssVariables,
+} from "../../components/Store/useStoreFontLoader";
 import { buildFiveActsHomeLayout } from "../Seller/StoreBuilder/constants/fiveActsLayoutPreset";
 import { useStoreProfile } from "./hooks/useStoreProfile";
 import { apiPost } from "../../lib/api";
@@ -64,7 +68,13 @@ const DEFAULT_CASBAH_THEME: CustomPageTheme = {
   accentColor: "#B45309",
   canvasColor: "#FAF6F0",
   surfaceColor: "#FFFFFF",
-  fontFamily: "'Cormorant Garamond', 'Plus Jakarta Sans', system-ui, sans-serif",
+  fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+  headingFontFamily: "'Cormorant Garamond', Georgia, serif",
+  bodyFontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+  borderRadiusPx: 16,
+  spacingYPx: 28,
+  titleFontSizePx: 36,
+  bodyFontSizePx: 15,
   surfaceTexture: "cotton-paper",
   ambientLighting: "golden-hour",
   cardMaterial: "solid-matte",
@@ -79,6 +89,12 @@ export const StoreProfile: React.FC = () => {
 
   const [activeRayonView, setActiveRayonView] = React.useState<CategoryItem | null>(null);
   const [isCollectionViewOpen, setIsCollectionViewOpen] = React.useState<boolean>(false);
+
+  const theme: CustomPageTheme = storeInfo?.theme
+    ? { ...DEFAULT_CASBAH_THEME, ...storeInfo.theme }
+    : DEFAULT_CASBAH_THEME;
+
+  useStoreFontLoader(theme, storeInfo?.shopSlug || storeInfo?.sellerId || "public-store");
 
   const effectiveSections = React.useMemo(() => {
     if (publishedLayout?.sections && publishedLayout.sections.length > 0) {
@@ -122,27 +138,11 @@ export const StoreProfile: React.FC = () => {
     }
   }, [storeInfo?.sellerId]);
 
-  const theme: CustomPageTheme = storeInfo?.theme ? { ...DEFAULT_CASBAH_THEME, ...storeInfo.theme } : DEFAULT_CASBAH_THEME;
+  const storeThemeStyles = buildStoreThemeCssVariables(theme);
   const primary = theme.primaryColor || "#B45309";
   const textColor = theme.secondaryColor || "#18181B";
   const accentColor = theme.accentColor || primary;
-  const canvas = theme.canvasColor || "#FAF6F0";
-  const surface = theme.surfaceColor || "#FFFFFF";
-
-  const storeThemeStyles: React.CSSProperties = {
-    backgroundColor: canvas,
-    color: textColor,
-    fontFamily: theme.fontFamily || "'Plus Jakarta Sans', system-ui, sans-serif",
-    ["--store-bg-60" as string]: canvas,
-    ["--store-surface-30" as string]: surface,
-    ["--store-accent-10" as string]: accentColor,
-    ["--store-primary" as string]: primary,
-    ["--store-secondary" as string]: textColor,
-    ["--store-accent" as string]: accentColor,
-    ["--store-canvas" as string]: canvas,
-    ["--store-surface" as string]: surface,
-    ["--store-border-radius" as string]: theme.borderRadiusPx ? `${theme.borderRadiusPx}px` : "16px",
-  };
+  const sectionGapPx = typeof theme.spacingYPx === "number" ? theme.spacingYPx : 28;
 
   if (loading) return <StoreLoadingState message={d("loading")} />;
   if (!storeInfo) {
@@ -156,7 +156,7 @@ export const StoreProfile: React.FC = () => {
   const canonicalUrl = `https://olmart.dz/store/${storeInfo.shopSlug || storeInfo.sellerId || storeInfo.id}`;
 
   return (
-    <div id="storefront-root" style={storeThemeStyles} className="@container/store @container relative min-h-screen pb-16 font-sans transition-colors overflow-hidden">
+    <div id="storefront-root" style={storeThemeStyles} className="@container/store @container relative min-h-screen pb-16 transition-colors overflow-hidden">
       <ArtisticAtmosphereLayer theme={theme} />
       <Helmet>
         <title>{seoTitle}</title>
@@ -191,9 +191,9 @@ export const StoreProfile: React.FC = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => { setIsCollectionViewOpen(false); setActiveTab(tab.id); }}
-                style={tab.active ? { backgroundColor: textColor, color: "#FFFFFF" } : undefined}
+                style={tab.active ? { backgroundColor: primary, color: "#FFFFFF" } : { color: textColor }}
                 className={`px-4 py-2 rounded-full font-semibold text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 ${
-                  tab.active ? "shadow-sm" : "bg-black/[0.04] text-zinc-700 hover:bg-black/[0.08]"
+                  tab.active ? "shadow-sm" : "bg-black/[0.04] hover:bg-black/[0.08]"
                 }`}
               >
                 <Icon className="w-4 h-4" style={{ color: tab.active ? "#FFFFFF" : accentColor }} />
@@ -221,7 +221,7 @@ export const StoreProfile: React.FC = () => {
             totalCount={totalProductsCount} isRTL={sp.isRTL} d={d} t={sp.t}
           />
         ) : (
-          <div className="space-y-8">
+          <div className="flex flex-col" style={{ gap: `${sectionGapPx}px` }}>
             {effectiveSections.map((section) => (
               <StoreSectionRenderer key={section.id} section={section} theme={theme} products={products} isEditable={false} />
             ))}

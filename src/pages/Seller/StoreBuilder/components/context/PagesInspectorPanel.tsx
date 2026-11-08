@@ -56,7 +56,7 @@ const SYSTEM_PAGES: StoreCustomPageItem[] = [
   },
   {
     id: "page-contact",
-    title: "Livraison 58 Wilayas & Contact",
+    title: "Livraison 69 Wilayas & Contact",
     subtitle: "Grille des tarifs de livraison, retours et coordonnées",
     slug: "#contact",
     isHome: false,

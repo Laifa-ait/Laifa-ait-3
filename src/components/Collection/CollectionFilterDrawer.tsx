@@ -78,7 +78,7 @@ export const CollectionFilterDrawer: React.FC<CollectionFilterDrawerProps> = ({
               <div className="space-y-2">
                 <label className="text-xs font-bold tracking-wider uppercase text-slate-800 flex items-center justify-between">
                   <span>{t("wilaya_delivery_label", "Wilaya de livraison")}</span>
-                  <span className="text-[10px] text-emerald-700 font-extrabold">58 Wilayas</span>
+                  <span className="text-[10px] text-emerald-700 font-extrabold">69 Wilayas</span>
                 </label>
                 <div className="relative">
                   <select
@@ -86,7 +86,7 @@ export const CollectionFilterDrawer: React.FC<CollectionFilterDrawerProps> = ({
                     onChange={(e) => onChangeWilaya(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 focus:outline-none transition-colors appearance-none cursor-pointer"
                   >
-                    <option value="all">{t("all_wilayas_option", "Toutes les 58 Wilayas d'Algérie")}</option>
+                    <option value="all">{t("all_wilayas_option", "Toutes les 69 Wilayas d'Algérie")}</option>
                     {ALGERIA_WILAYAS.map((w) => (
                       <option key={w.code} value={w.name}>
                         {w.code} - {w.name} {w.name_ar ? `(${w.name_ar})` : ""}

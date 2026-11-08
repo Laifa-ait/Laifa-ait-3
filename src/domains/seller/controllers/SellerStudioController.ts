@@ -100,12 +100,24 @@ router.put(
         return res.status(401).json({ error: "Non authentifié" });
       }
 
-      const savedDraft = await StoreLayoutService.saveDraftLayout(sellerId, req.body.sections);
+      const savedDraft = await StoreLayoutService.saveDraftLayout(
+        sellerId,
+        req.body.sections,
+        {
+          expectedRevision: req.body.expectedRevision,
+          expectedUpdatedAt: req.body.expectedUpdatedAt,
+          forceOverwrite: req.body.forceOverwrite,
+        }
+      );
       return res.json({ success: true, data: savedDraft });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Erreur lors de la sauvegarde du brouillon";
       safeLogger.error("[SellerStudioController] PUT /layout/draft error", { error: msg });
-      const statusCode = msg.includes("Violation d'accès") || msg.includes("introuvable") ? 403 : 400;
+      const statusCode = msg.includes("CONFLICT_NEWER_VERSION")
+        ? 409
+        : msg.includes("Violation d'accès") || msg.includes("introuvable")
+        ? 403
+        : 400;
       return res.status(statusCode).json({ error: msg });
     }
   }

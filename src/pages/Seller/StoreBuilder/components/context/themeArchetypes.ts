@@ -117,7 +117,7 @@ export const MASTER_THEME_ARCHETYPES: MasterThemeArchetype[] = [
       subline: "Architecture claire & moderne haute conversion",
       motif: "minimal",
     }),
-    features: ["Palette Azur Raffinée", "Bento Rayons Épuré", "Cartes Produits Modernes", "Livraison 58 Wilayas"],
+    features: ["Palette Azur Raffinée", "Bento Rayons Épuré", "Cartes Produits Modernes", "Livraison 69 Wilayas"],
     theme: {
       sector: "mode",
       primaryColor: "#023859",
@@ -141,7 +141,7 @@ export const MASTER_THEME_ARCHETYPES: MasterThemeArchetype[] = [
         accent2: "#54ACBF",
         kicker: "NOUVELLE COLLECTION",
         headline: "ÉLÉGANCE & MODERNITÉ",
-        subline: "Sélection officielle expédiée dans les 58 Wilayas",
+        subline: "Sélection officielle expédiée dans les 69 Wilayas",
         motif: "minimal",
       });
       return [
@@ -154,7 +154,7 @@ export const MASTER_THEME_ARCHETYPES: MasterThemeArchetype[] = [
           styles: { borderRadius: "md", paddingY: "lg", containerWidth: "contained" },
           settings: {
             title: "COLLECTION CONTEMPORAINE & PIÈCES CHOISIES",
-            subtitle: "Une expérience d'achat claire, soignée et pensée pour mettre en valeur chaque produit avec livraison rapide sur 58 Wilayas.",
+            subtitle: "Une expérience d'achat claire, soignée et pensée pour mettre en valeur chaque produit avec livraison rapide sur 69 Wilayas.",
             badgeText: "SÉLECTION OFFICIELLE",
             imageUrl: customHeroImageUrl || defaultHero,
             ctaText: "Explorer le Catalogue",
@@ -234,7 +234,7 @@ export const MASTER_THEME_ARCHETYPES: MasterThemeArchetype[] = [
           order: 3,
           styles: { borderRadius: "md", paddingY: "md", containerWidth: "contained" },
           settings: {
-            title: "Expédition Rapide 58 Wilayas",
+            title: "Expédition Rapide 69 Wilayas",
             defaultTimeframe: "Livraison à domicile ou bureau stop-desk en 24h à 72h",
             freeShippingAbove: 10000,
             customTariffs: [
@@ -599,7 +599,7 @@ export const MASTER_THEME_ARCHETYPES: MasterThemeArchetype[] = [
             freeShippingAbove: 12000,
             customTariffs: [
               { wilayaName: "Alger", estimatedDays: "24h", priceDZD: 400, homeDeliveryAvailable: true },
-              { wilayaName: "58 Wilayas", estimatedDays: "24h - 72h", priceDZD: 600, homeDeliveryAvailable: true },
+              { wilayaName: "69 Wilayas", estimatedDays: "24h - 72h", priceDZD: 600, homeDeliveryAvailable: true },
             ],
           },
         },
@@ -660,7 +660,7 @@ export const MASTER_THEME_ARCHETYPES: MasterThemeArchetype[] = [
           styles: { borderRadius: "lg", paddingY: "xl", containerWidth: "contained" },
           settings: {
             title: "CRÉATIONS AUTHENTIQUES & ART DE VIVRE",
-            subtitle: "Découvrez des pièces uniques façonnées avec soin et expédiées directement de notre atelier vers les 58 Wilayas.",
+            subtitle: "Découvrez des pièces uniques façonnées avec soin et expédiées directement de notre atelier vers les 69 Wilayas.",
             badgeText: "SAVOIR-FAIRE AUTHENTIQUE",
             imageUrl: customHeroImageUrl || defaultHero,
             ctaText: "Explorer nos Créations",
@@ -716,7 +716,7 @@ export const MASTER_THEME_ARCHETYPES: MasterThemeArchetype[] = [
           order: 3,
           styles: { borderRadius: "lg", paddingY: "md", containerWidth: "contained" },
           settings: {
-            title: "Emballage Renforcé & Livraison 58 Wilayas",
+            title: "Emballage Renforcé & Livraison 69 Wilayas",
             defaultTimeframe: "Livraison protégée en 2 à 4 jours ouvrés",
             freeShippingAbove: 10000,
             customTariffs: [

@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { apiPut } from "../../../../lib/api";
-import { CustomPageSection } from "../../../../domains/seller/customPage.types";
+import {
+  CustomPageSection,
+  StoreLayoutVersion,
+} from "../../../../domains/seller/customPage.types";
 import { toast } from "react-hot-toast";
 
-export type SaveStatus = "idle" | "saving" | "saved" | "error";
+export type SaveStatus = "idle" | "saving" | "saved" | "error" | "conflict";
 
 export function useStudioSaveManager() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
@@ -12,6 +15,7 @@ export function useStudioSaveManager() {
   const revisionRef = useRef(0);
   const lastSavedRevisionRef = useRef(0);
   const lastSavedHashRef = useRef("");
+  const serverDraftRevisionRef = useRef<number | undefined>(undefined);
 
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -26,92 +30,143 @@ export function useStudioSaveManager() {
     retryTimerRef.current = null;
   }, []);
 
-  const saveDraft = useCallback(async (sectionsToSave?: CustomPageSection[], retryCount = 0) => {
-    const targetSections = sectionsToSave || latestSectionsRef.current;
-    if (!targetSections) return;
-
-    if (isSavingRef.current) {
-      // Single write in flight mutex: queue save for when active save finishes
-      return;
-    }
-
-    const currentHash = JSON.stringify(targetSections);
-    if (currentHash === lastSavedHashRef.current && revisionRef.current === lastSavedRevisionRef.current) {
-      setSaveStatus("saved");
-      setHasUnsavedChanges(false);
-      return;
-    }
-
-    isSavingRef.current = true;
-    setSaveStatus("saving");
-
-    const savingRevision = revisionRef.current;
-    const sanitizedSections = targetSections.map((sec, idx) => ({
-      id: sec.id || `sec_${idx}`,
-      type: sec.type,
-      title: typeof sec.title === "string" ? sec.title : undefined,
-      settings: sec.settings && typeof sec.settings === "object" ? sec.settings : {},
-      styles: sec.styles && typeof sec.styles === "object" ? sec.styles : {},
-      isVisible: typeof sec.isVisible === "boolean" ? sec.isVisible : true,
-      order: typeof sec.order === "number" && Number.isFinite(sec.order) ? Math.max(0, Math.round(sec.order)) : idx,
-    }));
-
-    try {
-      await apiPut("/api/v1/seller/studio/layout/draft", { sections: sanitizedSections });
-
-      lastSavedRevisionRef.current = savingRevision;
-      lastSavedHashRef.current = JSON.stringify(targetSections);
-      isSavingRef.current = false;
-
-      if (revisionRef.current === savingRevision) {
-        setSaveStatus("saved");
-        setHasUnsavedChanges(false);
-      } else {
-        // Newer revision was edited during HTTP write: save latest revision immediately
-        void saveDraft(latestSectionsRef.current);
-      }
-    } catch (err: unknown) {
-      isSavingRef.current = false;
-
-      if (revisionRef.current > savingRevision) {
-        // Obsolete revision failed, but a newer revision exists: save newer revision
-        void saveDraft(latestSectionsRef.current);
-        return;
-      }
-
-      if (retryCount < 3) {
-        retryTimerRef.current = setTimeout(() => {
-          void saveDraft(targetSections, retryCount + 1);
-        }, (retryCount + 1) * 1000);
-        return;
-      }
-
-      setSaveStatus("error");
-      const msg = err instanceof Error ? err.message : "Échec de la sauvegarde du brouillon";
-      toast.error(msg);
+  const syncServerDraftRevision = useCallback((revision?: number) => {
+    if (typeof revision === "number" && Number.isFinite(revision)) {
+      serverDraftRevisionRef.current = revision;
     }
   }, []);
 
-  const triggerAutoSave = useCallback((updatedSections: CustomPageSection[]) => {
-    const newHash = JSON.stringify(updatedSections);
-    if (newHash === lastSavedHashRef.current) {
-      setSaveStatus("saved");
-      setHasUnsavedChanges(false);
-      return;
-    }
+  const saveDraft = useCallback(
+    async (
+      sectionsToSave?: CustomPageSection[],
+      retryCount = 0,
+      forceOverwrite = false
+    ) => {
+      const targetSections = sectionsToSave || latestSectionsRef.current;
+      if (!targetSections) return;
 
-    latestSectionsRef.current = updatedSections;
-    revisionRef.current += 1;
-    setHasUnsavedChanges(true);
+      if (isSavingRef.current) {
+        return;
+      }
 
-    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      const currentHash = JSON.stringify(targetSections);
+      if (
+        !forceOverwrite &&
+        currentHash === lastSavedHashRef.current &&
+        revisionRef.current === lastSavedRevisionRef.current
+      ) {
+        setSaveStatus("saved");
+        setHasUnsavedChanges(false);
+        return;
+      }
 
-    autoSaveTimerRef.current = setTimeout(() => {
-      void saveDraft(updatedSections);
-    }, 1500);
-  }, [saveDraft]);
+      isSavingRef.current = true;
+      setSaveStatus("saving");
 
-  // Tab exit guard for unsaved changes
+      const savingRevision = revisionRef.current;
+      const sanitizedSections = targetSections.map((sec, idx) => ({
+        id: sec.id || `sec_${idx}`,
+        type: sec.type,
+        title: typeof sec.title === "string" ? sec.title : undefined,
+        settings: sec.settings && typeof sec.settings === "object" ? sec.settings : {},
+        styles: sec.styles && typeof sec.styles === "object" ? sec.styles : {},
+        isVisible: typeof sec.isVisible === "boolean" ? sec.isVisible : true,
+        order:
+          typeof sec.order === "number" && Number.isFinite(sec.order)
+            ? Math.max(0, Math.round(sec.order))
+            : idx,
+      }));
+
+      const payload: {
+        sections: typeof sanitizedSections;
+        expectedRevision?: number;
+        forceOverwrite?: boolean;
+      } = {
+        sections: sanitizedSections,
+        ...(typeof serverDraftRevisionRef.current === "number"
+          ? { expectedRevision: serverDraftRevisionRef.current }
+          : {}),
+        ...(forceOverwrite ? { forceOverwrite: true } : {}),
+      };
+
+      try {
+        const res = await apiPut<{ success?: boolean; data?: StoreLayoutVersion }>(
+          "/api/v1/seller/studio/layout/draft",
+          payload
+        );
+
+        if (res?.data && typeof res.data.draftRevision === "number") {
+          serverDraftRevisionRef.current = res.data.draftRevision;
+        } else if (typeof serverDraftRevisionRef.current === "number") {
+          serverDraftRevisionRef.current += 1;
+        }
+
+        lastSavedRevisionRef.current = savingRevision;
+        lastSavedHashRef.current = JSON.stringify(targetSections);
+        isSavingRef.current = false;
+
+        if (revisionRef.current === savingRevision) {
+          setSaveStatus("saved");
+          setHasUnsavedChanges(false);
+        } else {
+          void saveDraft(latestSectionsRef.current);
+        }
+      } catch (err: unknown) {
+        isSavingRef.current = false;
+        const msg =
+          err instanceof Error
+            ? err.message
+            : "Échec de la sauvegarde du brouillon";
+
+        if (msg.includes("CONFLICT_NEWER_VERSION") || msg.includes("Conflit de version")) {
+          setSaveStatus("conflict");
+          toast.error(
+            "Conflit multi-appareils : ce brouillon a été modifié sur un autre écran. Rechargez le Studio avant d'écraser."
+          );
+          return;
+        }
+
+        if (revisionRef.current > savingRevision) {
+          void saveDraft(latestSectionsRef.current);
+          return;
+        }
+
+        if (retryCount < 3) {
+          retryTimerRef.current = setTimeout(() => {
+            void saveDraft(targetSections, retryCount + 1, forceOverwrite);
+          }, (retryCount + 1) * 1000);
+          return;
+        }
+
+        setSaveStatus("error");
+        toast.error(msg);
+      }
+    },
+    []
+  );
+
+  const triggerAutoSave = useCallback(
+    (updatedSections: CustomPageSection[]) => {
+      const newHash = JSON.stringify(updatedSections);
+      if (newHash === lastSavedHashRef.current) {
+        setSaveStatus("saved");
+        setHasUnsavedChanges(false);
+        return;
+      }
+
+      latestSectionsRef.current = updatedSections;
+      revisionRef.current += 1;
+      setHasUnsavedChanges(true);
+
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+
+      autoSaveTimerRef.current = setTimeout(() => {
+        void saveDraft(updatedSections);
+      }, 1500);
+    },
+    [saveDraft]
+  );
+
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges || revisionRef.current !== lastSavedRevisionRef.current) {
@@ -129,10 +184,12 @@ export function useStudioSaveManager() {
   return {
     saveStatus,
     setSaveStatus,
-    hasUnsavedChanges: hasUnsavedChanges || revisionRef.current !== lastSavedRevisionRef.current,
+    hasUnsavedChanges:
+      hasUnsavedChanges || revisionRef.current !== lastSavedRevisionRef.current,
     setHasUnsavedChanges,
     saveDraft,
     triggerAutoSave,
+    syncServerDraftRevision,
     currentRevision: revisionRef.current,
     lastSavedRevision: lastSavedRevisionRef.current,
   };

@@ -48,7 +48,6 @@ export function useStudioWorkspaceEvents({
   const pendingSectionAction = useStudioStore((s) => s.pendingSectionAction);
   const clearPendingSectionAction = useStudioStore((s) => s.clearPendingSectionAction);
 
-  // React to sub-element selection in Zustand store -> open inspector sidebar on sections tab
   useEffect(() => {
     if (selectedSectionId && selectedSubElement) {
       setShowRightSidebar(true);
@@ -57,7 +56,6 @@ export function useStudioWorkspaceEvents({
     }
   }, [selectedSectionId, selectedSubElement, setShowRightSidebar, setNavMode, setMobileColumn]);
 
-  // React to pending section actions dispatched via Zustand store
   useEffect(() => {
     if (!pendingSectionAction) return;
     const { sectionId, action } = pendingSectionAction;
@@ -91,15 +89,8 @@ export function useStudioWorkspaceEvents({
     }
     clearPendingSectionAction();
   }, [
-    pendingSectionAction,
-    sections,
-    currentTheme,
-    reorderSections,
-    updateSection,
-    duplicateSection,
-    toggleVisibility,
-    deleteSection,
-    clearPendingSectionAction,
+    pendingSectionAction, sections, currentTheme, reorderSections,
+    updateSection, duplicateSection, toggleVisibility, deleteSection, clearPendingSectionAction,
   ]);
 
   useEffect(() => {
@@ -112,34 +103,40 @@ export function useStudioWorkspaceEvents({
       }
     };
 
-    const cmdHandler = () => {
-      setIsCommandPaletteOpen(true);
-    };
+    const cmdHandler = () => setIsCommandPaletteOpen(true);
 
     const autoFixHandler = (event: Event) => {
       const custom = event as CustomEvent<{
-        fixType: "add-hero" | "add-categories" | "add-products" | "add-trust";
+        fixType: "add-hero" | "add-categories" | "add-products" | "add-trust" | "fix-contrast" | "open-seo";
       }>;
+      const fixType = custom.detail?.fixType;
+      if (fixType === "fix-contrast") {
+        setShowRightSidebar(true);
+        setNavMode("theme");
+        setMobileColumn("inspector");
+        return;
+      }
+      if (fixType === "open-seo") {
+        setShowRightSidebar(true);
+        setNavMode("settings");
+        setMobileColumn("inspector");
+        return;
+      }
       const typeMap: Record<string, CustomPageSectionType> = {
         "add-hero": "hero_banner",
         "add-categories": "featured_categories",
         "add-products": "featured_products",
         "add-trust": "delivery_info",
       };
-      const targetType = typeMap[custom.detail?.fixType || ""];
+      const targetType = typeMap[fixType || ""];
       if (!targetType) return;
       const found = SECTION_CATALOG.find((s) => s.type === targetType);
-      if (found) {
-        addSection(found.type, found.defaultSettings, found.title);
-      }
+      if (found) addSection(found.type, found.defaultSettings, found.title);
     };
 
     const patchSettingsHandler = (event: Event) => {
       if (!updateSection) return;
-      const custom = event as CustomEvent<{
-        sectionId: string;
-        patch: Record<string, unknown>;
-      }>;
+      const custom = event as CustomEvent<{ sectionId: string; patch: Record<string, unknown> }>;
       const { sectionId, patch } = custom.detail || {};
       if (!sectionId || !patch) return;
       const targetSec = sections.find((s) => s.id === sectionId);
@@ -178,14 +175,5 @@ export function useStudioWorkspaceEvents({
       window.removeEventListener("studio:patch-section-settings", patchSettingsHandler);
       window.removeEventListener("studio:open-inspector-tab", openInspectorTabHandler);
     };
-  }, [
-    sections,
-    updateSection,
-    addSection,
-    setShowRightSidebar,
-    setNavMode,
-    setMobileColumn,
-    setIsCommandPaletteOpen,
-  ]);
+  }, [sections, updateSection, addSection, setShowRightSidebar, setNavMode, setMobileColumn, setIsCommandPaletteOpen]);
 }
-

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { useStudioUndoRedo } from "../pages/Seller/StoreBuilder/hooks/useStudioUndoRedo";
-import { CustomPageSection } from "../domains/seller/customPage.types";
+import { CustomPageSection, CustomPageTheme } from "../domains/seller/customPage.types";
 
 function renderHook<T>(hookFn: () => T): { result: { current: T }; rerender: () => void } {
   const result = { current: undefined as unknown as T };
@@ -49,8 +49,19 @@ describe("useStudioUndoRedo Real Production Hook Tests", () => {
     order: 1,
   };
 
+  const baseTheme: CustomPageTheme = {
+    sector: "mode",
+    primaryColor: "#023859",
+    secondaryColor: "#011C40",
+    accentColor: "#26658C",
+    canvasColor: "#F8FBFC",
+    surfaceColor: "#FFFFFF",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
+    window.sessionStorage.clear();
   });
 
   it("should initialize with empty past and future", () => {
@@ -96,6 +107,32 @@ describe("useStudioUndoRedo Real Production Hook Tests", () => {
     expect(onSectionsChange).toHaveBeenLastCalledWith([section1, section2]);
   });
 
+  it("should support Undo and Redo for theme changes via pushThemeState", () => {
+    const onSectionsChange = vi.fn();
+    const onThemeChange = vi.fn();
+    const { result } = renderHook(() =>
+      useStudioUndoRedo([section1], onSectionsChange, {
+        initialTheme: baseTheme,
+        onThemeChange,
+      })
+    );
+
+    const updatedTheme: CustomPageTheme = { ...baseTheme, primaryColor: "#E11D48" };
+    act(() => {
+      result.current.pushThemeState(updatedTheme);
+    });
+
+    expect(result.current.theme?.primaryColor).toBe("#E11D48");
+    expect(result.current.canUndo).toBe(true);
+
+    act(() => {
+      result.current.undo();
+    });
+
+    expect(result.current.theme?.primaryColor).toBe("#023859");
+    expect(onThemeChange).toHaveBeenLastCalledWith(expect.objectContaining({ primaryColor: "#023859" }));
+  });
+
   it("should guarantee deep clone immutability so mutating present does not mutate history", () => {
     const onSectionsChange = vi.fn();
     const { result } = renderHook(() => useStudioUndoRedo([section1], onSectionsChange));
@@ -105,15 +142,12 @@ describe("useStudioUndoRedo Real Production Hook Tests", () => {
       result.current.pushState([updatedSection1]);
     });
 
-    // Attempt to mutate active section object in place
     updatedSection1.title = "Titre Hacké";
 
-    // Perform Undo
     act(() => {
       result.current.undo();
     });
 
-    // History snapshot remains pristine "Bannière Principale", untouched by external mutation!
     expect(result.current.sections[0].title).toBe("Bannière Principale");
   });
 
@@ -127,7 +161,6 @@ describe("useStudioUndoRedo Real Production Hook Tests", () => {
 
     expect(result.current.canUndo).toBe(true);
 
-    // Simulate Ctrl+Z keydown
     act(() => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true }));
     });
@@ -135,7 +168,6 @@ describe("useStudioUndoRedo Real Production Hook Tests", () => {
     expect(result.current.sections).toEqual([section1]);
     expect(result.current.canRedo).toBe(true);
 
-    // Simulate Ctrl+Y keydown
     act(() => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "y", ctrlKey: true, bubbles: true }));
     });
@@ -157,4 +189,3 @@ describe("useStudioUndoRedo Real Production Hook Tests", () => {
     expect(result.current.setSectionsDirectly).toBe(initialSetDirectlyRef);
   });
 });
-

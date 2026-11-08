@@ -62,20 +62,23 @@ describe("useStudioSaveManager Real Production Hook Tests", () => {
     vi.useRealTimers();
   });
 
-  it("should mark as saved when saveDraft resolves successfully", async () => {
-    vi.mocked(apiModule.apiPut).mockResolvedValue({ success: true });
+  it("should mark as saved and send expectedRevision when saveDraft resolves successfully", async () => {
+    vi.mocked(apiModule.apiPut).mockResolvedValue({ success: true, data: { draftRevision: 3 } });
 
     const { result } = renderHook(() => useStudioSaveManager());
 
     expect(result.current.saveStatus).toBe("idle");
     expect(result.current.hasUnsavedChanges).toBe(false);
 
-    // Call saveDraft directly
     await act(async () => {
+      result.current.syncServerDraftRevision(2);
       await result.current.saveDraft([section1]);
     });
 
-    expect(apiModule.apiPut).toHaveBeenCalledTimes(1);
+    expect(apiModule.apiPut).toHaveBeenCalledWith("/api/v1/seller/studio/layout/draft", {
+      sections: [section1],
+      expectedRevision: 2,
+    });
     expect(result.current.saveStatus).toBe("saved");
     expect(result.current.hasUnsavedChanges).toBe(false);
   });
@@ -86,11 +89,10 @@ describe("useStudioSaveManager Real Production Hook Tests", () => {
 
     vi.mocked(apiModule.apiPut)
       .mockImplementationOnce(() => firstPromise as Promise<never>)
-      .mockResolvedValue({ success: true });
+      .mockResolvedValue({ success: true, data: { draftRevision: 2 } });
 
     const { result } = renderHook(() => useStudioSaveManager());
 
-    // Trigger first save
     let p1: Promise<void> | undefined;
     act(() => {
       p1 = result.current.saveDraft([section1]);
@@ -99,21 +101,35 @@ describe("useStudioSaveManager Real Production Hook Tests", () => {
     expect(result.current.saveStatus).toBe("saving");
     expect(apiModule.apiPut).toHaveBeenCalledTimes(1);
 
-    // Try triggering second save while first is in flight
     let p2: Promise<void> | undefined;
     act(() => {
       p2 = result.current.saveDraft([section1, section2]);
     });
 
-    // Resolve first HTTP request
     await act(async () => {
-      resolveFirstApi({ success: true });
+      resolveFirstApi({ success: true, data: { draftRevision: 1 } });
       await p1;
       await p2;
     });
 
     expect(apiModule.apiPut).toHaveBeenCalledTimes(1);
     expect(result.current.saveStatus).toBe("saved");
+  });
+
+  it("should stop retrying immediately on CONFLICT_NEWER_VERSION and set conflict status", async () => {
+    vi.mocked(apiModule.apiPut).mockRejectedValue(
+      new Error("CONFLICT_NEWER_VERSION: Une version plus récente du brouillon a été modifiée sur un autre appareil")
+    );
+
+    const { result } = renderHook(() => useStudioSaveManager());
+
+    await act(async () => {
+      result.current.syncServerDraftRevision(4);
+      await result.current.saveDraft([section1]);
+    });
+
+    expect(apiModule.apiPut).toHaveBeenCalledTimes(1);
+    expect(result.current.saveStatus).toBe("conflict");
   });
 
   it("should retry up to 3 times on network failure", async () => {
@@ -127,19 +143,16 @@ describe("useStudioSaveManager Real Production Hook Tests", () => {
 
     expect(apiModule.apiPut).toHaveBeenCalledTimes(1);
 
-    // Advance retry timer 1 (1000ms)
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
     expect(apiModule.apiPut).toHaveBeenCalledTimes(2);
 
-    // Advance retry timer 2 (2000ms)
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2000);
     });
     expect(apiModule.apiPut).toHaveBeenCalledTimes(3);
 
-    // Advance retry timer 3 (3000ms)
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3000);
     });

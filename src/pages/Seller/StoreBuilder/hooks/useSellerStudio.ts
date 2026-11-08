@@ -5,6 +5,7 @@ import {
   StudioDataResponse,
   StoreConfig,
   CustomPageSection,
+  CustomPageTheme,
   StoreHistoryEntry,
   MediaGalleryItem,
   CustomPageSectionType,
@@ -42,6 +43,7 @@ export function useSellerStudio() {
     hasUnsavedChanges,
     saveDraft,
     triggerAutoSave,
+    syncServerDraftRevision,
   } = useStudioSaveManager();
 
   const { uploadMedia, deleteMedia } = useStudioMediaManager({
@@ -51,15 +53,27 @@ export function useSellerStudio() {
     setStoreConfig,
   });
 
+  const handleRestoreThemeFromHistory = useCallback((restoredTheme: CustomPageTheme) => {
+    setStoreConfig((prev) => (prev ? { ...prev, theme: restoredTheme } : prev));
+    void apiPut<{ success: boolean; data: StoreConfig }>("/api/v1/seller/store/config", {
+      theme: restoredTheme,
+    }).catch(() => {});
+  }, []);
+
   const {
     sections,
     setSectionsDirectly,
     pushState,
+    pushThemeState,
     undo,
     redo,
     canUndo,
     canRedo,
-  } = useStudioUndoRedo(initialSectionsRef.current, triggerAutoSave);
+  } = useStudioUndoRedo(initialSectionsRef.current, triggerAutoSave, {
+    storageKey: currentUser?.uid ? `olmart_studio_undo_${currentUser.uid}` : "olmart_studio_undo_session",
+    initialTheme: storeConfig?.theme,
+    onThemeChange: handleRestoreThemeFromHistory,
+  });
 
   const fetchStudioData = useCallback(async () => {
     if (isFetchingRef.current) return;
@@ -74,8 +88,9 @@ export function useSellerStudio() {
       if (studioRes && studioRes.success && studioRes.data) {
         setStoreConfig(studioRes.data.storeConfig);
         const draftSections = studioRes.data.draftLayout?.sections || [];
+        syncServerDraftRevision(studioRes.data.draftLayout?.draftRevision ?? 1);
         initialSectionsRef.current = draftSections;
-        setSectionsDirectly(draftSections);
+        setSectionsDirectly(draftSections, studioRes.data.storeConfig?.theme);
         setHistoryList(studioRes.data.historyList || []);
         setMediaGallery(studioRes.data.mediaGallery || []);
         setPublishedLayout(studioRes.data.publishedLayout || null);
@@ -93,7 +108,7 @@ export function useSellerStudio() {
       isFetchingRef.current = false;
       setLoading(false);
     }
-  }, [setSectionsDirectly, setSelectedSectionId]);
+  }, [setSectionsDirectly, setSelectedSectionId, syncServerDraftRevision]);
 
   useEffect(() => {
     if (hasInitialFetchedRef.current) return;
@@ -101,10 +116,9 @@ export function useSellerStudio() {
     void fetchStudioData();
   }, [fetchStudioData]);
 
-  // Section actions
   const addSection = (type: CustomPageSectionType, defaultSettings: Record<string, unknown>, defaultTitle?: string) => {
     const newSection: CustomPageSection = {
-      id: `sec_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      id: `sec_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       type,
       title: defaultTitle || `Section ${type}`,
       settings: defaultSettings as unknown as CustomPageSection["settings"],
@@ -152,7 +166,7 @@ export function useSellerStudio() {
     const original = sections[targetIdx];
     const copy: CustomPageSection = {
       ...original,
-      id: `sec_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      id: `sec_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       title: `${original.title || original.type} (Copie)`,
       settings: JSON.parse(JSON.stringify(original.settings || {})),
       styles: JSON.parse(JSON.stringify(original.styles || {})),
@@ -166,20 +180,18 @@ export function useSellerStudio() {
   };
 
   const replaceSections = (newSections: CustomPageSection[]) => {
-    const normalized = newSections.map((sec, idx) => ({
-      ...sec,
-      order: idx,
-    }));
+    const normalized = newSections.map((sec, idx) => ({ ...sec, order: idx }));
     pushState(normalized);
-    if (normalized.length > 0) {
-      setSelectedSectionId(normalized[0].id);
-    }
+    if (normalized.length > 0) setSelectedSectionId(normalized[0].id);
     toast.success("Architecture du thème appliquée avec succès !");
   };
 
   const saveStoreConfig = async (updatedConfigPayload: Partial<StoreConfig>) => {
     try {
       setSaveStatus("saving");
+      if (updatedConfigPayload.theme) {
+        pushThemeState(updatedConfigPayload.theme);
+      }
       const res = await apiPut<{ success: boolean; data: StoreConfig }>("/api/v1/seller/store/config", updatedConfigPayload);
       if (res && res.data) setStoreConfig(res.data);
       setSaveStatus("saved");
@@ -199,16 +211,11 @@ export function useSellerStudio() {
       await apiPost("/api/v1/seller/studio/layout/publish", { changeSummary });
       setSaveStatus("saved");
       const targetSlug = storeConfig?.shopSlug || storeConfig?.sellerId || "";
-      toast.success(
-        targetSlug
-          ? `Boutique publiée en direct sur /store/${targetSlug} !`
-          : "Boutique publiée avec succès !"
-      );
+      toast.success(targetSlug ? `Boutique publiée en direct sur /store/${targetSlug} !` : "Boutique publiée avec succès !");
       await fetchStudioData();
     } catch (err: unknown) {
       setSaveStatus("error");
-      const msg = err instanceof Error ? err.message : "Échec de la publication";
-      toast.error(msg);
+      toast.error(err instanceof Error ? err.message : "Échec de la publication");
     }
   };
 
@@ -221,8 +228,7 @@ export function useSellerStudio() {
       await fetchStudioData();
     } catch (err: unknown) {
       setSaveStatus("error");
-      const msg = err instanceof Error ? err.message : "Échec de la restauration";
-      toast.error(msg);
+      toast.error(err instanceof Error ? err.message : "Échec de la restauration");
     }
   };
 

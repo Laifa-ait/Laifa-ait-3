@@ -392,6 +392,8 @@ export interface CustomPageTheme {
   canvasColor?: string;
   surfaceColor?: string;
   fontFamily: string;
+  headingFontFamily?: string;
+  bodyFontFamily?: string;
   accentBadgeColor?: string;
   borderRadiusPx?: number;
   spacingYPx?: number;
@@ -529,6 +531,7 @@ export type SellerStoreConfig = StoreConfig;
 
 export interface StoreLayoutVersion {
   versionNumber: number;
+  draftRevision?: number;
   sections: CustomPageSection[];
   status: "draft" | "published";
   publishedAt?: string;

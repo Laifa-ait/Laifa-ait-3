@@ -1,6 +1,11 @@
 import React from "react";
-import { Type, AlignLeft, MousePointerClick, Image as ImageIcon, Plus, Copy, Trash2, Sparkles, Grid, HelpCircle } from "lucide-react";
-import { CustomPageSection, PromoSlide, CategoryItem, CuratedCollectionItem, FaqItem } from "../../../../../domains/seller/customPage.types";
+import {
+  Type, AlignLeft, MousePointerClick, Image as ImageIcon, Plus, Copy,
+  Trash2, Sparkles, Grid, HelpCircle, MoveUp, MoveDown,
+} from "lucide-react";
+import {
+  CustomPageSection, PromoSlide, CategoryItem, CuratedCollectionItem, FaqItem,
+} from "../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../domains/product/product.types";
 import { useStudioStore } from "../../store/useStudioStore";
 
@@ -23,11 +28,15 @@ export function hasExpandableSubBlocks(sectionType: string): boolean {
   return ["hero_banner", "promo_carousel", "featured_categories", "curated_collections", "faq_accordion"].includes(sectionType);
 }
 
+function swapItems<T>(list: T[], from: number, to: number): T[] {
+  const next = [...list];
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
+  return next;
+}
+
 export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
-  sec,
-  products = [],
-  onSelectSection,
-  onUpdateSection,
+  sec, products = [], onSelectSection, onUpdateSection,
 }) => {
   const selectedSectionId = useStudioStore((s) => s.selectedSectionId);
   const selectedSubElement = useStudioStore((s) => s.selectedSubElement);
@@ -97,26 +106,10 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
               </span>
               {onUpdateSection && (
                 <span className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    title="Dupliquer"
-                    onClick={() => {
-                      const next = [...slides];
-                      next.splice(idx + 1, 0, { ...slide, id: `slide_${Date.now()}` });
-                      patchSettings({ slides: next });
-                    }}
-                    className="p-1 rounded hover:bg-black/10 cursor-pointer"
-                  >
-                    <Copy className="w-3 h-3" />
-                  </button>
-                  <button
-                    type="button"
-                    title="Supprimer"
-                    onClick={() => patchSettings({ slides: slides.filter((_, i) => i !== idx) })}
-                    className="p-1 rounded hover:bg-red-500/20 cursor-pointer"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
+                  <button type="button" title="Monter" disabled={idx === 0} onClick={() => patchSettings({ slides: swapItems(slides, idx, idx - 1) })} className="p-1 rounded hover:bg-black/10 disabled:opacity-30 cursor-pointer"><MoveUp className="w-3 h-3" /></button>
+                  <button type="button" title="Descendre" disabled={idx === slides.length - 1} onClick={() => patchSettings({ slides: swapItems(slides, idx, idx + 1) })} className="p-1 rounded hover:bg-black/10 disabled:opacity-30 cursor-pointer"><MoveDown className="w-3 h-3" /></button>
+                  <button type="button" title="Dupliquer" onClick={() => { const next = [...slides]; next.splice(idx + 1, 0, { ...slide, id: `slide_${Date.now()}` }); patchSettings({ slides: next }); }} className="p-1 rounded hover:bg-black/10 cursor-pointer"><Copy className="w-3 h-3" /></button>
+                  <button type="button" title="Supprimer" onClick={() => patchSettings({ slides: slides.filter((_, i) => i !== idx) })} className="p-1 rounded hover:bg-red-500/20 cursor-pointer"><Trash2 className="w-3 h-3" /></button>
                 </span>
               )}
             </div>
@@ -155,6 +148,7 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
 
   if (sec.type === "featured_categories" || sec.type === "curated_collections") {
     const isCat = sec.type === "featured_categories";
+    const keyName = isCat ? "categories" : "collections";
     const items = isCat
       ? (Array.isArray(settings.categories) ? (settings.categories as CategoryItem[]) : [])
       : (Array.isArray(settings.collections) ? (settings.collections as CuratedCollectionItem[]) : []);
@@ -175,16 +169,11 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
                 <span className="truncate">{"name" in item ? item.name : item.title || `Catégorie #${idx + 1}`}</span>
               </span>
               {onUpdateSection && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    patchSettings({ [isCat ? "categories" : "collections"]: items.filter((_, i) => i !== idx) });
-                  }}
-                  className="p-1 rounded hover:bg-red-500/20 cursor-pointer shrink-0"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
+                <span className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <button type="button" title="Monter" disabled={idx === 0} onClick={() => patchSettings({ [keyName]: swapItems(items as unknown[], idx, idx - 1) })} className="p-1 rounded hover:bg-black/10 disabled:opacity-30 cursor-pointer"><MoveUp className="w-3 h-3" /></button>
+                  <button type="button" title="Descendre" disabled={idx === items.length - 1} onClick={() => patchSettings({ [keyName]: swapItems(items as unknown[], idx, idx + 1) })} className="p-1 rounded hover:bg-black/10 disabled:opacity-30 cursor-pointer"><MoveDown className="w-3 h-3" /></button>
+                  <button type="button" title="Supprimer" onClick={() => patchSettings({ [keyName]: items.filter((_, i) => i !== idx) })} className="p-1 rounded hover:bg-red-500/20 cursor-pointer"><Trash2 className="w-3 h-3" /></button>
+                </span>
               )}
             </div>
           );
@@ -230,16 +219,11 @@ export const SectionSubBlocksTree: React.FC<SectionSubBlocksTreeProps> = ({
                 <span className="truncate">{faq.question || `Question #${idx + 1}`}</span>
               </span>
               {onUpdateSection && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    patchSettings({ items: items.filter((_, i) => i !== idx) });
-                  }}
-                  className="p-1 rounded hover:bg-red-500/20 cursor-pointer shrink-0"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
+                <span className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <button type="button" title="Monter" disabled={idx === 0} onClick={() => patchSettings({ items: swapItems(items, idx, idx - 1) })} className="p-1 rounded hover:bg-black/10 disabled:opacity-30 cursor-pointer"><MoveUp className="w-3 h-3" /></button>
+                  <button type="button" title="Descendre" disabled={idx === items.length - 1} onClick={() => patchSettings({ items: swapItems(items, idx, idx + 1) })} className="p-1 rounded hover:bg-black/10 disabled:opacity-30 cursor-pointer"><MoveDown className="w-3 h-3" /></button>
+                  <button type="button" title="Supprimer" onClick={() => patchSettings({ items: items.filter((_, i) => i !== idx) })} className="p-1 rounded hover:bg-red-500/20 cursor-pointer"><Trash2 className="w-3 h-3" /></button>
+                </span>
               )}
             </div>
           );

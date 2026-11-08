@@ -163,7 +163,7 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
   return (
     <div
       onClick={isEditable ? onSelect : undefined}
-      style={buildSectionContainerStyle(styles, "transparent", "#17191C")}
+      style={buildSectionContainerStyle(styles, "transparent", "var(--store-secondary, #17191C)", theme)}
       className={`@container transition-all relative select-none ${resolveBorderRadiusClass(styles.borderRadius)} ${resolveShadowClass(styles.shadow)} ${resolveAnimationClass(styles.animation)}${isEditable && !isSelected ? " cursor-pointer" : ""}`}
     >
       {isEditable && isSelected && (

@@ -1,4 +1,5 @@
 import React from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { CustomPageSection, CustomPageTheme } from "../../../domains/seller/customPage.types";
 import { Product } from "../../../domains/product/product.types";
 import { SectionHeroBanner } from "./SectionHeroBanner";
@@ -57,6 +58,7 @@ export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({
   onSelectSection,
   previewViewport = "desktop",
 }) => {
+  const prefersReducedMotion = useReducedMotion();
   const hoveredSectionId = useStudioStore((s) => s.hoveredSectionId);
   const selectedSectionId = useStudioStore((s) => s.selectedSectionId);
   const hoverElement = useStudioStore((s) => s.hoverElement);
@@ -87,26 +89,16 @@ export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({
     section.title || SECTION_BADGE_LABELS[section.type] || section.type.replace(/_/g, " ");
 
   const handleSelect = () => {
-    if (isEditable) {
-      selectSection(section.id);
-    }
-    if (onSelectSection) {
-      onSelectSection(section.id);
-    }
+    if (isEditable) selectSection(section.id);
+    if (onSelectSection) onSelectSection(section.id);
   };
 
-  const handleSectionAction = (
-    action: StudioSectionActionType,
-    e: React.MouseEvent
-  ) => {
+  const handleSectionAction = (action: StudioSectionActionType, e: React.MouseEvent) => {
     e.stopPropagation();
     triggerSectionAction(section.id, action);
   };
 
-  const handleSelectInspectorTab = (
-    inspectorTab: StudioInspectorTab,
-    e: React.MouseEvent
-  ) => {
+  const handleSelectInspectorTab = (inspectorTab: StudioInspectorTab, e: React.MouseEvent) => {
     e.stopPropagation();
     selectSection(section.id, null);
     setActiveInspectorTab(inspectorTab);
@@ -122,18 +114,32 @@ export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({
     (!section.isVisible || isViewportHidden) && isEditable ? "opacity-50 grayscale" : "";
   const shopifyOutlineClass = isEditable
     ? isSelected
-      ? "ring-2 ring-[#023859] rounded-2xl overflow-hidden shadow-md"
+      ? "ring-2 ring-[var(--store-primary,#023859)] rounded-2xl overflow-hidden shadow-md"
       : isHovered
-      ? "ring-2 ring-[#54ACBF]/80 rounded-2xl overflow-hidden"
+      ? "ring-2 ring-[var(--store-accent,#54ACBF)]/80 rounded-2xl overflow-hidden"
       : ""
     : "";
 
+  const animType = section.styles?.animation || "fade";
+  const shouldAnimate = !prefersReducedMotion && animType !== "none";
+  const initialAnim = shouldAnimate
+    ? animType === "slide-up"
+      ? { opacity: 0, y: 18 }
+      : animType === "zoom"
+      ? { opacity: 0, scale: 0.97 }
+      : { opacity: 0 }
+    : false;
+
   return (
-    <div
+    <motion.div
       id={`studio-section-${section.id}`}
       data-studio-section-id={section.id}
       data-section-type={section.type}
       data-anchor-id={anchorId}
+      initial={initialAnim}
+      whileInView={shouldAnimate ? { opacity: 1, y: 0, scale: 1 } : undefined}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: prefersReducedMotion ? 0 : 0.42, ease: "easeOut" }}
       onMouseEnter={isEditable ? () => hoverElement(section.id) : undefined}
       onMouseLeave={isEditable ? () => clearHover() : undefined}
       className={`relative group/sec transition-all ${hiddenOpacityClass} ${shopifyOutlineClass}`}
@@ -243,6 +249,6 @@ export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({
             onSelect={handleSelect}
           />
         )}
-    </div>
+    </motion.div>
   );
 };

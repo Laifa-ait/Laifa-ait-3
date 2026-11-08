@@ -617,6 +617,8 @@ export const storeConfigThemeSchema = z
     canvasColor: hexColor,
     surfaceColor: hexColor,
     fontFamily: optStr(120),
+    headingFontFamily: optStr(120),
+    bodyFontFamily: optStr(120),
     accentBadgeColor: hexColor,
     borderRadiusPx: z.number().min(0).max(60).nullable().optional().transform((v) => v ?? undefined),
     spacingYPx: z.number().min(0).max(160).nullable().optional().transform((v) => v ?? undefined),
@@ -787,6 +789,9 @@ export const storeConfigSchema = z
 
 export const saveDraftLayoutSchema = z.object({
   sections: z.array(customPageSectionSchema).max(40, "Maximum 40 sections autorisées"),
+  expectedRevision: z.number().int().nonnegative().optional(),
+  expectedUpdatedAt: optStr(100),
+  forceOverwrite: z.boolean().optional(),
 });
 
 export const publishLayoutSchema = z.object({

@@ -127,13 +127,13 @@ export const SectionCard: React.FC<SectionCardProps> = ({
           <span className="w-2 shrink-0" />
         )}
 
-        <span title="Glisser pour réorganiser" className="flex h-7 w-4 items-center justify-center text-[#9CA3AF] hover:text-[#011C40] cursor-grab active:cursor-grabbing shrink-0">
+        <span title="Glisser pour réorganiser" className="hidden md:flex h-7 w-4 items-center justify-center text-[#9CA3AF] hover:text-[#011C40] cursor-grab active:cursor-grabbing shrink-0">
           <GripVertical className="h-4 w-4" />
         </span>
 
         <div className="h-8 w-8 overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#F7F8FA] shrink-0 flex items-center justify-center">
           {imageUrl ? (
-            <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+            <img src={imageUrl} alt={sec.title || typeConfig.label} className="h-full w-full object-cover" />
           ) : (
             <div className={`flex h-full w-full items-center justify-center ${typeConfig.color}`}>
               <SectionIcon className="h-4 w-4" />
@@ -154,6 +154,30 @@ export const SectionCard: React.FC<SectionCardProps> = ({
             {idx + 1}. {typeConfig.label}
           </span>
         </div>
+
+        {/* Boutons rapides tactiles dans l'en-tête pour mobile/tablette */}
+        <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            aria-label="Monter la section"
+            title="Monter d'un cran"
+            disabled={idx === 0}
+            onClick={(e) => { e.stopPropagation(); if (idx > 0) onReorder(idx, idx - 1); }}
+            className="h-7 w-7 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-[#F9FAFB] hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#011C40] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <MoveUp className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            aria-label="Descendre la section"
+            title="Descendre d'un cran"
+            disabled={idx === totalSections - 1}
+            onClick={(e) => { e.stopPropagation(); if (idx < totalSections - 1) onReorder(idx, idx + 1); }}
+            className="h-7 w-7 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-[#F9FAFB] hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#011C40] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <MoveDown className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       {canExpand && isExpanded && (
@@ -164,21 +188,25 @@ export const SectionCard: React.FC<SectionCardProps> = ({
         <div className="flex items-center gap-1">
           <button
             type="button"
+            aria-label={`Monter ${sec.title || typeConfig.label}`}
             title="Monter la section"
             disabled={idx === 0}
             onClick={(e) => { e.stopPropagation(); if (idx > 0) onReorder(idx, idx - 1); }}
-            className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#475467] hover:text-[#023859] disabled:opacity-30 disabled:cursor-not-allowed text-[11px] font-medium transition-colors cursor-pointer"
+            className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#475467] hover:text-[#023859] disabled:opacity-30 disabled:cursor-not-allowed text-[10px] font-bold transition-colors cursor-pointer"
           >
-            <MoveUp className="h-3.5 w-3.5" />
+            <MoveUp className="h-3 w-3" />
+            <span>Monter</span>
           </button>
           <button
             type="button"
+            aria-label={`Descendre ${sec.title || typeConfig.label}`}
             title="Descendre la section"
             disabled={idx === totalSections - 1}
             onClick={(e) => { e.stopPropagation(); if (idx < totalSections - 1) onReorder(idx, idx + 1); }}
-            className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#475467] hover:text-[#023859] disabled:opacity-30 disabled:cursor-not-allowed text-[11px] font-medium transition-colors cursor-pointer"
+            className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#475467] hover:text-[#023859] disabled:opacity-30 disabled:cursor-not-allowed text-[10px] font-bold transition-colors cursor-pointer"
           >
-            <MoveDown className="h-3.5 w-3.5" />
+            <MoveDown className="h-3 w-3" />
+            <span>Descendre</span>
           </button>
         </div>
 

@@ -162,7 +162,7 @@ export const ThemeEcommerceWidgetsTab: React.FC<ThemeEcommerceWidgetsTabProps> =
           </div>
           <input
             type="text"
-            placeholder="Ex: Qualité garantie · Livraison rapide 58 Wilayas"
+            placeholder="Ex: Qualité contrôlée · Livraison rapide 69 Wilayas"
             value={((heroSections[0]?.settings as Record<string, unknown>)?.socialProofBadge as string) || ""}
             onChange={(e) => {
               const val = e.target.value;

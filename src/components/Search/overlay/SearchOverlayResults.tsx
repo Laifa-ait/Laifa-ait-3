@@ -65,7 +65,7 @@ export const SearchOverlayResults: React.FC<SearchOverlayResultsProps> = ({
       <div className="py-20 flex flex-col justify-center items-center gap-3">
         <Loader2 className="w-9 h-9 animate-spin text-emerald-600" />
         <span className="text-sm text-slate-500 font-medium">
-          {t("Recherche fluide dans les 58 wilayas...")}
+          {t("Recherche fluide dans les 69 wilayas...")}
         </span>
       </div>
     );

@@ -61,13 +61,12 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
     styles.shadow
   )} ${resolveAnimationClass(styles.animation)} ${
     isEditable && isSelected
-      ? "ring-2 ring-[#F97316] shadow-xl z-10"
+      ? "ring-2 ring-[var(--store-primary,#F97316)] shadow-xl z-10"
       : isEditable
-      ? "hover:ring-2 hover:ring-[#F97316]/50 cursor-pointer"
+      ? "hover:ring-2 hover:ring-[var(--store-primary,#F97316)]/50 cursor-pointer"
       : ""
   }`;
 
-  // 1. CURATED COLLECTIONS
   if (section.type === "curated_collections") {
     const collections = Array.isArray(rawSettings.collections)
       ? (rawSettings.collections as Array<{ id: string; title: string; imageUrl?: string; productIds?: string[] }>)
@@ -76,7 +75,7 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
       <div
         onClick={isEditable ? onSelect : undefined}
         className={wrapperClass}
-        style={buildSectionContainerStyle(styles, "transparent", "#17191C")}
+        style={buildSectionContainerStyle(styles, "transparent", "var(--store-secondary, #17191C)", theme)}
       >
         <div className={widthClass}>
           <div className={`mb-6 ${alignClass}`}>
@@ -113,13 +112,13 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
                       theme={theme}
                       caption={col.title}
                       fallbackRadiusClass={radiusClass}
-                      className="bg-white border border-slate-200 shadow-xs hover:shadow-md overflow-hidden"
+                      className="bg-[var(--store-surface,#FFFFFF)] border border-slate-200 shadow-xs hover:shadow-md overflow-hidden"
                     >
                       <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden">
                         {coverImg ? (
                           <img src={coverImg} alt={col.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[#F97316] bg-orange-50">
+                          <div className="w-full h-full flex items-center justify-center bg-orange-50" style={{ color: accentColor }}>
                             <Layers className="w-8 h-8" />
                           </div>
                         )}
@@ -128,7 +127,7 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
                         </span>
                       </div>
                       <div className="p-4 flex items-center justify-between">
-                        <h3 className="font-bold text-sm text-slate-900">{col.title}</h3>
+                        <h3 className="font-bold text-sm text-[var(--store-secondary,#0F172A)]">{col.title}</h3>
                         <span className="text-xs font-bold" style={{ color: accentColor }}>Explorer →</span>
                       </div>
                     </ArtisticFrameWrapper>
@@ -143,14 +142,13 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
     );
   }
 
-  // 2. BRAND STORY
   if (section.type === "brand_story") {
     const imgPos = (rawSettings.imagePosition as string) || "left";
     return (
       <div
         onClick={isEditable ? onSelect : undefined}
         className={wrapperClass}
-        style={buildSectionContainerStyle(styles, "#F9FAFB", "#17191C")}
+        style={buildSectionContainerStyle(styles, "var(--store-surface, #F9FAFB)", "var(--store-secondary, #17191C)", theme)}
       >
         <div className={`${widthClass} flex flex-col ${imgPos === "right" ? "@md:flex-row-reverse" : "@md:flex-row"} items-center gap-8`}>
           {Boolean(rawSettings.imageUrl) && (
@@ -172,7 +170,10 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
           )}
           <div className={`flex-1 space-y-3 ${alignClass}`}>
             {typeof rawSettings.yearsOfExperience === "number" && rawSettings.yearsOfExperience > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-[#EA580C]">
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
+                style={{ backgroundColor: `${accentColor}18`, color: accentColor }}
+              >
                 <Award className="w-3.5 h-3.5" />
                 <span>{rawSettings.yearsOfExperience} ans de savoir-faire</span>
               </span>
@@ -192,6 +193,7 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
               text={String(rawSettings.bodyText || "")}
               dropCap={Boolean(rawSettings.dropCap)}
               accentColor={accentColor}
+              theme={theme}
               onClick={(e) => handleSubElementClick("subtitle", e)}
               className={`text-sm @md:text-base opacity-90 leading-relaxed whitespace-pre-line rounded px-1 ${
                 isSubActive("subtitle") ? "ring-2 ring-[#2563EB]" : ""
@@ -209,7 +211,6 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
     );
   }
 
-  // 3. SHOWCASE VIDEO
   if (section.type === "showcase_video") {
     const videoUrl = String(rawSettings.videoUrl || "");
     const posterUrl = String(rawSettings.posterUrl || "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80");
@@ -217,7 +218,7 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
       <div
         onClick={isEditable ? onSelect : undefined}
         className={wrapperClass}
-        style={buildSectionContainerStyle(styles, "transparent", "#17191C")}
+        style={buildSectionContainerStyle(styles, "transparent", "var(--store-secondary, #17191C)", theme)}
       >
         <div className={widthClass}>
           {Boolean(rawSettings.title) && (
@@ -241,24 +242,16 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
           >
             <div className="relative aspect-video bg-slate-900 overflow-hidden">
               {videoUrl ? (
-                <video
-                  src={videoUrl}
-                  poster={posterUrl}
-                  controls
-                  autoPlay={Boolean(rawSettings.autoplay)}
-                  loop={Boolean(rawSettings.loop)}
-                  muted={rawSettings.muted !== false}
-                  className="w-full h-full object-cover"
-                />
+                <video src={videoUrl} poster={posterUrl} controls autoPlay={Boolean(rawSettings.autoplay)} loop={Boolean(rawSettings.loop)} muted={rawSettings.muted !== false} className="w-full h-full object-cover" />
               ) : (
                 <div className="relative w-full h-full flex items-center justify-center">
                   <img src={posterUrl} alt="Aperçu vidéo" className="w-full h-full object-cover opacity-60" />
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4 text-center">
-                    <div className="w-14 h-14 rounded-full bg-[#F97316] flex items-center justify-center shadow-xl mb-2">
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-xl mb-2" style={{ backgroundColor: accentColor }}>
                       <Play className="w-6 h-6 fill-current ml-0.5" />
                     </div>
                     <span className="text-xs font-bold bg-black/60 px-3 py-1 rounded-full">
-                      Ajoutez l'adresse MP4/WebM de votre vidéo dans l'onglet Contenu
+                      Ajoutez l&apos;adresse MP4/WebM de votre vidéo dans l&apos;onglet Contenu
                     </span>
                   </div>
                 </div>
