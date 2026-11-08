@@ -112,7 +112,8 @@ describe("useStudioSaveManager Real Production Hook Tests", () => {
       await p2;
     });
 
-    expect(apiModule.apiPut).toHaveBeenCalledTimes(1);
+    // Après la résolution de p1, la version plus récente p2 est traitée (2 appels au total)
+    expect(apiModule.apiPut).toHaveBeenCalledTimes(2);
     expect(result.current.saveStatus).toBe("saved");
   });
 

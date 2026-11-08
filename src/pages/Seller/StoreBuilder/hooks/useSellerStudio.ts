@@ -27,6 +27,7 @@ export function useSellerStudio() {
   const [mediaGallery, setMediaGallery] = useState<MediaGalleryItem[]>([]);
   const [publishedLayout, setPublishedLayout] = useState<StudioDataResponse["publishedLayout"]>(null);
   const [products, setProducts] = useState<Product[]>([]);
+
   const selectedSectionId = useStudioStore((s) => s.selectedSectionId);
   const selectSectionInStore = useStudioStore((s) => s.selectSection);
   const setSelectedSectionId = useCallback((id: string | null) => {
@@ -44,6 +45,7 @@ export function useSellerStudio() {
     saveDraft,
     triggerAutoSave,
     syncServerDraftRevision,
+    confirmedServerRevision,
   } = useStudioSaveManager();
 
   const { uploadMedia, deleteMedia } = useStudioMediaManager({
@@ -69,6 +71,7 @@ export function useSellerStudio() {
     redo,
     canUndo,
     canRedo,
+    currentActionLabel,
   } = useStudioUndoRedo(initialSectionsRef.current, triggerAutoSave, {
     storageKey: currentUser?.uid ? `olmart_studio_undo_${currentUser.uid}` : "olmart_studio_undo_session",
     initialTheme: storeConfig?.theme,
@@ -85,7 +88,7 @@ export function useSellerStudio() {
         apiGet<{ success: boolean; products: Product[] }>("/api/v1/seller/products").catch(() => ({ success: true, products: [] })),
       ]);
 
-      if (studioRes && studioRes.success && studioRes.data) {
+      if (studioRes?.success && studioRes.data) {
         setStoreConfig(studioRes.data.storeConfig);
         const draftSections = studioRes.data.draftLayout?.sections || [];
         syncServerDraftRevision(studioRes.data.draftLayout?.draftRevision ?? 1);
@@ -117,24 +120,27 @@ export function useSellerStudio() {
   }, [fetchStudioData]);
 
   const addSection = (type: CustomPageSectionType, defaultSettings: Record<string, unknown>, defaultTitle?: string) => {
+    const title = defaultTitle || `Section ${type}`;
     const newSection: CustomPageSection = {
       id: `sec_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       type,
-      title: defaultTitle || `Section ${type}`,
+      title,
       settings: defaultSettings as unknown as CustomPageSection["settings"],
       styles: { containerWidth: "contained", paddingY: "md", borderRadius: "none" },
       isVisible: true,
       order: sections.length,
     };
     const updated = [...sections, newSection];
-    pushState(updated);
+    pushState(updated, undefined, `Ajout section: ${title}`);
     setSelectedSectionId(newSection.id);
     toast.success("Nouvelle section ajoutée");
   };
 
   const updateSection = (sectionId: string, updates: Partial<CustomPageSection>) => {
+    const target = sections.find((s) => s.id === sectionId);
+    const label = `Édition: ${target?.title || target?.type || "Section"}`;
     const updated = sections.map((sec) => (sec.id === sectionId ? { ...sec, ...updates } : sec));
-    pushState(updated);
+    pushState(updated, undefined, label);
   };
 
   const reorderSections = (fromIndex: number, toIndex: number) => {
@@ -143,12 +149,13 @@ export function useSellerStudio() {
     const [moved] = updated.splice(fromIndex, 1);
     updated.splice(toIndex, 0, moved);
     const reordered = updated.map((sec, idx) => ({ ...sec, order: idx }));
-    pushState(reordered);
+    pushState(reordered, undefined, "Réorganisation des sections");
   };
 
   const deleteSection = (sectionId: string) => {
+    const target = sections.find((s) => s.id === sectionId);
     const updated = sections.filter((sec) => sec.id !== sectionId);
-    pushState(updated);
+    pushState(updated, undefined, `Suppression: ${target?.title || target?.type || "Section"}`);
     if (selectedSectionId === sectionId) {
       setSelectedSectionId(updated[0]?.id || null);
     }
@@ -157,7 +164,7 @@ export function useSellerStudio() {
 
   const toggleVisibility = (sectionId: string) => {
     const updated = sections.map((sec) => (sec.id === sectionId ? { ...sec, isVisible: !sec.isVisible } : sec));
-    pushState(updated);
+    pushState(updated, undefined, "Visibilité section");
   };
 
   const duplicateSection = (sectionId: string) => {
@@ -174,14 +181,14 @@ export function useSellerStudio() {
     const updated = [...sections];
     updated.splice(targetIdx + 1, 0, copy);
     const reordered = updated.map((sec, idx) => ({ ...sec, order: idx }));
-    pushState(reordered);
+    pushState(reordered, undefined, `Duplication: ${original.title || original.type}`);
     setSelectedSectionId(copy.id);
     toast.success("Section dupliquée");
   };
 
   const replaceSections = (newSections: CustomPageSection[]) => {
     const normalized = newSections.map((sec, idx) => ({ ...sec, order: idx }));
-    pushState(normalized);
+    pushState(normalized, undefined, "Application modèle de sections");
     if (normalized.length > 0) setSelectedSectionId(normalized[0].id);
     toast.success("Architecture du thème appliquée avec succès !");
   };
@@ -190,10 +197,10 @@ export function useSellerStudio() {
     try {
       setSaveStatus("saving");
       if (updatedConfigPayload.theme) {
-        pushThemeState(updatedConfigPayload.theme);
+        pushThemeState(updatedConfigPayload.theme, "Palette & Typographie");
       }
       const res = await apiPut<{ success: boolean; data: StoreConfig }>("/api/v1/seller/store/config", updatedConfigPayload);
-      if (res && res.data) setStoreConfig(res.data);
+      if (res?.data) setStoreConfig(res.data);
       setSaveStatus("saved");
       toast.success("Paramètres de la boutique mis à jour !");
     } catch (err: unknown) {
@@ -207,8 +214,15 @@ export function useSellerStudio() {
   const publishStudio = async (changeSummary?: string) => {
     try {
       setSaveStatus("saving");
+      // 1. Garantir l'enregistrement de la révision la plus récente avant publication
       await saveDraft(sections);
-      await apiPost("/api/v1/seller/studio/layout/publish", { changeSummary });
+
+      // 2. Publier la révision exacte confirmée par le serveur
+      await apiPost("/api/v1/seller/studio/layout/publish", {
+        changeSummary: changeSummary || "Mise en ligne de la vitrine",
+        expectedRevision: confirmedServerRevision,
+      });
+
       setSaveStatus("saved");
       const targetSlug = storeConfig?.shopSlug || storeConfig?.sellerId || "";
       toast.success(targetSlug ? `Boutique publiée en direct sur /store/${targetSlug} !` : "Boutique publiée avec succès !");
@@ -238,6 +252,6 @@ export function useSellerStudio() {
     addSection, updateSection, reorderSections, deleteSection, duplicateSection,
     toggleVisibility, replaceSections, saveStoreConfig, uploadMedia, deleteMedia,
     publishStudio, rollbackVersion, triggerAutoSave, refreshData: fetchStudioData,
-    undo, redo, canUndo, canRedo,
+    undo, redo, canUndo, canRedo, currentActionLabel,
   };
 }

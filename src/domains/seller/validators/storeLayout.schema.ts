@@ -796,6 +796,7 @@ export const saveDraftLayoutSchema = z.object({
 
 export const publishLayoutSchema = z.object({
   changeSummary: optStr(300),
+  expectedRevision: z.number().int().nonnegative().optional(),
 });
 
 export const rollbackLayoutSchema = z.object({

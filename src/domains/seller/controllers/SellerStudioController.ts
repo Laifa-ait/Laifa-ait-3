@@ -136,7 +136,11 @@ router.post(
         return res.status(401).json({ error: "Non authentifié" });
       }
 
-      const publishedLayout = await StoreLayoutService.publishLayout(sellerId, req.body.changeSummary);
+      const publishedLayout = await StoreLayoutService.publishLayout(
+        sellerId,
+        req.body.changeSummary,
+        req.body.expectedRevision
+      );
       return res.json({ success: true, data: publishedLayout });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Erreur lors de la publication";

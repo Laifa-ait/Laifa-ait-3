@@ -245,7 +245,11 @@ export class StoreLayoutService {
     });
   }
 
-  static async publishLayout(sellerId: string, changeSummary?: string): Promise<StoreLayoutVersion> {
+  static async publishLayout(
+    sellerId: string,
+    changeSummary?: string,
+    expectedRevision?: number
+  ): Promise<StoreLayoutVersion> {
     const layoutRef = db.collection("store_layouts").doc(sellerId);
     return await db.runTransaction(async (t) => {
       const doc = await t.get(layoutRef);
@@ -253,6 +257,16 @@ export class StoreLayoutService {
       const data = doc.data() as StoreLayoutDocument;
       if (!data.draft || data.draft.sections.length === 0) {
         throw new Error("Le brouillon est vide. Impossible de publier un agencement sans sections.");
+      }
+
+      if (
+        typeof expectedRevision === "number" &&
+        typeof data.draft.draftRevision === "number" &&
+        data.draft.draftRevision !== expectedRevision
+      ) {
+        throw new Error(
+          `Conflit de révision lors de la publication : Le brouillon serveur (rév. #${data.draft.draftRevision}) ne correspond pas à la révision soumise (rév. #${expectedRevision}). Sauvegardez à nouveau avant de publier.`
+        );
       }
 
       const newVersionNumber = (data.currentVersion || 1) + 1;

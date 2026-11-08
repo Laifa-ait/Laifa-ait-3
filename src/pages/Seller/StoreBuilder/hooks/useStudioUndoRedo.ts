@@ -4,11 +4,13 @@ import {
   CustomPageTheme,
 } from "../../../../domains/seller/customPage.types";
 
-const MAX_HISTORY_STEPS = 30;
+const MAX_HISTORY_STEPS = 40;
 
 export interface StudioHistorySnapshot {
   sections: CustomPageSection[];
   theme?: CustomPageTheme;
+  actionLabel?: string;
+  timestamp: number;
 }
 
 export interface StudioUndoRedoOptions {
@@ -56,10 +58,10 @@ function saveSessionHistory(
   try {
     window.sessionStorage.setItem(
       storageKey,
-      JSON.stringify({ past: past.slice(-15), present, future: future.slice(0, 15) })
+      JSON.stringify({ past: past.slice(-20), present, future: future.slice(0, 20) })
     );
   } catch {
-    // Ignore quota errors
+    // Quota safety
   }
 }
 
@@ -84,6 +86,8 @@ export function useStudioUndoRedo(
     return {
       sections: deepClone(initialSections),
       theme: options?.initialTheme ? deepClone(options.initialTheme) : undefined,
+      actionLabel: "Initialisation",
+      timestamp: Date.now(),
     };
   });
 
@@ -102,12 +106,15 @@ export function useStudioUndoRedo(
   }, [storageKey, past, present, future]);
 
   const lastPushTimeRef = useRef<number>(0);
+  const lastActionLabelRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (initialSections.length > 0 && present.sections.length === 0 && past.length === 0) {
       const nextSnap: StudioHistorySnapshot = {
         sections: deepClone(initialSections),
         theme: options?.initialTheme ? deepClone(options.initialTheme) : presentRef.current.theme,
+        actionLabel: "Chargement de la vitrine",
+        timestamp: Date.now(),
       };
       presentRef.current = nextSnap;
       setPresent(nextSnap);
@@ -118,25 +125,36 @@ export function useStudioUndoRedo(
   const canRedo = future.length > 0;
 
   const pushState = useCallback(
-    (newSections: CustomPageSection[], nextTheme?: CustomPageTheme) => {
+    (newSections: CustomPageSection[], nextTheme?: CustomPageTheme, actionLabel = "Modification") => {
       const currentPresent = presentRef.current;
       const resolvedTheme = nextTheme !== undefined ? nextTheme : currentPresent.theme;
+      const now = Date.now();
+
       const nextSnap: StudioHistorySnapshot = {
         sections: deepClone(newSections),
         theme: resolvedTheme ? deepClone(resolvedTheme) : undefined,
+        actionLabel,
+        timestamp: now,
       };
 
-      if (JSON.stringify(currentPresent) === JSON.stringify(nextSnap)) return;
+      if (
+        JSON.stringify(currentPresent.sections) === JSON.stringify(nextSnap.sections) &&
+        JSON.stringify(currentPresent.theme) === JSON.stringify(nextSnap.theme)
+      ) {
+        return;
+      }
 
-      const now = Date.now();
-      const isFastTyping = now - lastPushTimeRef.current < 400;
+      // Regroupement adaptatif des frappes rapides (< 500ms sur même type d'action)
+      const isRapidSuccession =
+        now - lastPushTimeRef.current < 500 && lastActionLabelRef.current === actionLabel;
       lastPushTimeRef.current = now;
+      lastActionLabelRef.current = actionLabel;
 
       const clonedCurrent = deepClone(currentPresent);
       presentRef.current = nextSnap;
       setPresent(nextSnap);
 
-      if (!isFastTyping) {
+      if (!isRapidSuccession) {
         setPast((currentPast) => [...currentPast, clonedCurrent].slice(-MAX_HISTORY_STEPS));
       }
 
@@ -148,8 +166,8 @@ export function useStudioUndoRedo(
   );
 
   const pushThemeState = useCallback(
-    (newTheme: CustomPageTheme) => {
-      pushState(presentRef.current.sections, newTheme);
+    (newTheme: CustomPageTheme, actionLabel = "Thème & Couleurs") => {
+      pushState(presentRef.current.sections, newTheme, actionLabel);
     },
     [pushState]
   );
@@ -211,6 +229,8 @@ export function useStudioUndoRedo(
     const nextSnap: StudioHistorySnapshot = {
       sections: deepClone(s),
       theme: theme ? deepClone(theme) : presentRef.current.theme,
+      actionLabel: "Synchronisation",
+      timestamp: Date.now(),
     };
     presentRef.current = nextSnap;
     setPresent(nextSnap);
@@ -219,6 +239,7 @@ export function useStudioUndoRedo(
   return {
     sections: present.sections,
     theme: present.theme,
+    currentActionLabel: present.actionLabel,
     setSectionsDirectly,
     pushState,
     pushThemeState,
@@ -227,5 +248,6 @@ export function useStudioUndoRedo(
     canUndo,
     canRedo,
     historyDepth: past.length,
+    futureDepth: future.length,
   };
 }
