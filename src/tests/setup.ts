@@ -72,16 +72,19 @@ process.env.NODE_ENV = "test";
 delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
 delete process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
+// Check for active emulator ports BEFORE determining project ID
+const firestorePortActive = isPortListening(8085);
+process.env.FIREBASE_EMULATOR_ACTIVE = firestorePortActive ? "true" : "false";
+
 // Set isolated test Firebase project ID to prevent any test from targeting production
-const targetTestProject = process.env.FIREBASE_TEST_PROJECT_ID || "olmart-test-harness";
+const emuProject = process.env.FIREBASE_TEST_PROJECT_ID || process.env.GCLOUD_PROJECT || "demo-olmart-test";
+const targetTestProject = firestorePortActive
+  ? emuProject
+  : (process.env.FIREBASE_TEST_PROJECT_ID || "olmart-test-harness");
 process.env.FIREBASE_PROJECT_ID = targetTestProject;
 process.env.GCLOUD_PROJECT = targetTestProject;
 process.env.GOOGLE_CLOUD_PROJECT = targetTestProject;
 process.env.FIREBASE_DATABASE_ID = process.env.FIREBASE_DATABASE_ID || "(default)";
-
-// Check for active emulator ports
-const firestorePortActive = isPortListening(8085);
-process.env.FIREBASE_EMULATOR_ACTIVE = firestorePortActive ? "true" : "false";
 
 const hasEmulatorHost = Boolean(
   process.env.FIRESTORE_EMULATOR_HOST && process.env.FIRESTORE_EMULATOR_HOST.trim().length > 0

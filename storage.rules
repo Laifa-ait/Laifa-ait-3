@@ -45,8 +45,8 @@ service firebase.storage {
     function isTicketParticipant(ticketId) {
       return isLoggedIn() && (
         isAdmin() ||
-        (resource != null && 'metadata' in resource && 'participantUid' in resource.metadata && resource.metadata.participantUid == request.auth.uid) ||
-        (request.resource != null && 'metadata' in request.resource && 'participantUid' in request.resource.metadata && request.resource.metadata.participantUid == request.auth.uid) ||
+        (resource != null && resource.metadata != null && 'participantUid' in resource.metadata && resource.metadata.participantUid == request.auth.uid) ||
+        (request.resource != null && request.resource.metadata != null && 'participantUid' in request.resource.metadata && request.resource.metadata.participantUid == request.auth.uid) ||
         (
           firestore.exists(/databases/(default)/documents/supportTickets/$(ticketId)) &&
           ('userId' in firestore.get(/databases/(default)/documents/supportTickets/$(ticketId)).data) &&

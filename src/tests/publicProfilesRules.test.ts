@@ -189,7 +189,19 @@ describe.skipIf(!hasEmulator)('Firestore Rules Unit Testing (Emulator Environmen
     });
   });
 
-  const collectionsToTest = ['publicProfiles', 'public_profiles'] as const;
+  const collectionsToTest = ['publicProfiles'] as const;
+
+  describe('Retired collection: public_profiles (Default-Deny Enforced)', () => {
+    it('DENIES owner and admin client reads and writes on deprecated public_profiles collection', async () => {
+      const ownerDb = testEnv.authenticatedContext('seller_1').firestore();
+      const adminDb = testEnv.authenticatedContext('admin_user', { admin: true }).firestore();
+      await assertFails(ownerDb.collection('public_profiles').doc('seller_1').get());
+      await assertFails(ownerDb.collection('public_profiles').doc('seller_1').set({ shopName: 'Legacy' }));
+      await assertFails(ownerDb.collection('public_profiles').doc('seller_1').update({ shopName: 'Legacy Update' }));
+      await assertFails(adminDb.collection('public_profiles').doc('seller_1').get());
+      await assertFails(adminDb.collection('public_profiles').doc('seller_1').delete());
+    });
+  });
 
   collectionsToTest.forEach((colName) => {
     describe(`Collection: ${colName}`, () => {
