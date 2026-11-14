@@ -1,23 +1,25 @@
 import React, { useEffect } from "react";
 import { Plus, Trash2, Type } from "lucide-react";
 import { Product } from "../../../../../../domains/product/product.types";
-import { DeliveryInfoItem } from "../../../../../../domains/seller/customPage.types";
+import { DeliveryInfoItem, SellerStoreConfig } from "../../../../../../domains/seller/customPage.types";
 import { StudioImagePicker } from "./StudioImagePicker";
 import { AlgeriaEcommercePresets } from "../controls/AlgeriaEcommercePresets";
 import { useStudioStore } from "../../../store/useStudioStore";
 import { useSectionStepProgress } from "../../../hooks/useSectionStepProgress";
 import { StepWizardBar, StepWizardFooter, StepDefinition } from "../controls/StepWizardControls";
+import { ContactFooterContentEditor } from "./ContactFooterContentEditor";
 
 interface InfoContentEditorProps {
   sectionId?: string;
   sectionType?: string;
   settings: Record<string, unknown>;
   products?: Product[];
+  storeConfig?: SellerStoreConfig | null;
   onSettingsChange: (
     fieldOrPatch: string | Record<string, unknown>,
     value?: unknown
   ) => void;
-  onSaveStep?: () => void;
+  onSaveStep?: () => unknown | Promise<unknown>;
   inputClass: string;
   labelClass: string;
 }
@@ -38,13 +40,13 @@ const STEP_MAP: Record<string, StepDefinition[]> = {
 };
 
 export const InfoContentEditor: React.FC<InfoContentEditorProps> = ({
-  sectionId, sectionType, settings, products = [], onSettingsChange, onSaveStep, inputClass, labelClass,
+  sectionId, sectionType, settings, products = [], storeConfig, onSettingsChange, onSaveStep, inputClass, labelClass,
 }) => {
   const selectedSubElement = useStudioStore((s) => s.selectedSubElement);
   const stepDefs = sectionType ? STEP_MAP[sectionType] : undefined;
   const totalSteps = stepDefs ? stepDefs.length : 1;
   const {
-    activeStep, unlockedStep, completedSteps, isExpert, justSavedStep,
+    activeStep, unlockedStep, completedSteps, isExpert, justSavedStep, isSavingStep, saveStepError,
     selectStep, goToPrevStep, saveAndAdvanceStep,
   } = useSectionStepProgress("info", totalSteps, sectionId);
 
@@ -123,7 +125,7 @@ export const InfoContentEditor: React.FC<InfoContentEditorProps> = ({
             {renderNumber("yearsOfExperience", "Années d'expérience", 0, 120)}
           </div>
         )}
-        <StepWizardFooter activeStep={activeStep} totalSteps={2} justSavedStep={justSavedStep} saveTestId="info-save-step-btn" onPrev={goToPrevStep} onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)} />
+        <StepWizardFooter activeStep={activeStep} totalSteps={2} justSavedStep={justSavedStep} isSavingStep={isSavingStep} saveStepError={saveStepError} saveTestId="info-save-step-btn" onPrev={goToPrevStep} onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)} />
       </div>
     );
   }
@@ -162,7 +164,7 @@ export const InfoContentEditor: React.FC<InfoContentEditorProps> = ({
             ))}
           </div>
         )}
-        <StepWizardFooter activeStep={activeStep} totalSteps={2} justSavedStep={justSavedStep} saveTestId="info-save-step-btn" onPrev={goToPrevStep} onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)} />
+        <StepWizardFooter activeStep={activeStep} totalSteps={2} justSavedStep={justSavedStep} isSavingStep={isSavingStep} saveStepError={saveStepError} saveTestId="info-save-step-btn" onPrev={goToPrevStep} onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)} />
       </div>
     );
   }
@@ -202,7 +204,7 @@ export const InfoContentEditor: React.FC<InfoContentEditorProps> = ({
             ))}
           </div>
         )}
-        <StepWizardFooter activeStep={activeStep} totalSteps={2} justSavedStep={justSavedStep} saveTestId="info-save-step-btn" onPrev={goToPrevStep} onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)} />
+        <StepWizardFooter activeStep={activeStep} totalSteps={2} justSavedStep={justSavedStep} isSavingStep={isSavingStep} saveStepError={saveStepError} saveTestId="info-save-step-btn" onPrev={goToPrevStep} onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)} />
       </div>
     );
   }
@@ -226,22 +228,25 @@ export const InfoContentEditor: React.FC<InfoContentEditorProps> = ({
           <span>Conditions</span>
           <textarea rows={3} value={String(settings.conditions || "")} onChange={(e) => onSettingsChange("conditions", e.target.value)} className="w-full rounded-lg border border-[#E4E7EC] bg-white p-2.5 text-xs focus:border-[#023859] focus:outline-none" />
         </label>
-        <StepWizardFooter activeStep={1} totalSteps={1} justSavedStep={justSavedStep} saveTestId="info-save-step-btn" onPrev={goToPrevStep} onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)} />
+        <StepWizardFooter activeStep={1} totalSteps={1} justSavedStep={justSavedStep} isSavingStep={isSavingStep} saveStepError={saveStepError} saveTestId="info-save-step-btn" onPrev={goToPrevStep} onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)} />
       </div>
     );
   }
 
   if (sectionType === "contact_footer") {
     return (
-      <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200 select-none">
-        {renderText("title", "Titre du bloc contact", "Service Client & Contact")}
-        {renderText("shopPhone", "Téléphone", "0550 00 00 00")}
-        {renderText("shopEmail", "E-mail", "contact@boutique.dz")}
-        {renderText("wilaya", "Wilaya", "Alger")}
-        {renderText("address", "Adresse")}
-        {renderText("workingHours", "Horaires", "Sam - Jeu : 09h00 - 18h00")}
-        <StepWizardFooter activeStep={1} totalSteps={1} justSavedStep={justSavedStep} saveTestId="info-save-step-btn" onPrev={goToPrevStep} onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)} />
-      </div>
+      <ContactFooterContentEditor
+        settings={settings}
+        storeConfig={storeConfig}
+        onSettingsChange={onSettingsChange}
+        justSavedStep={justSavedStep}
+        isSavingStep={isSavingStep}
+        saveStepError={saveStepError}
+        onPrev={goToPrevStep}
+        onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)}
+        inputClass={inputClass}
+        labelClass={labelClass}
+      />
     );
   }
 

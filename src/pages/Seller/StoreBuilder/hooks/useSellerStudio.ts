@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { apiGet, apiPut, apiPost } from "../../../../lib/api";
+import { apiPut, apiPost } from "../../../../lib/api";
 import { useAuth } from "../../../../context/AuthContext";
 import {
   StudioDataResponse, StoreConfig, CustomPageSection, CustomPageTheme,
@@ -10,10 +10,12 @@ import { useStudioUndoRedo } from "./useStudioUndoRedo";
 import { useStudioSaveManager } from "./useStudioSaveManager";
 import { useStudioMediaManager } from "./useStudioMediaManager";
 import { useStudioStore } from "../store/useStudioStore";
-import { buildSectorAwareSectionDefaults, DEFAULT_STUDIO_SECTOR } from "../constants/sectorCoherenceDefaults";
+import { createDuplicatedStudioSection, createNewStudioSection } from "./studioSectionMutations";
+import { CatalogLoadStatus, fetchSellerCatalogSafely, fetchStudioBundle } from "./studioCatalogLoader";
 import { toast } from "react-hot-toast";
 
 export type { SaveStatus } from "./useStudioSaveManager";
+export type { CatalogLoadStatus } from "./studioCatalogLoader";
 
 export function useSellerStudio() {
   const { currentUser } = useAuth();
@@ -23,6 +25,9 @@ export function useSellerStudio() {
   const [mediaGallery, setMediaGallery] = useState<MediaGalleryItem[]>([]);
   const [publishedLayout, setPublishedLayout] = useState<StudioDataResponse["publishedLayout"]>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [catalogStatus, setCatalogStatus] = useState<CatalogLoadStatus>("idle");
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const selectedSectionId = useStudioStore((s) => s.selectedSectionId);
   const selectSectionInStore = useStudioStore((s) => s.selectSection);
@@ -31,6 +36,7 @@ export function useSellerStudio() {
   const initialSectionsRef = useRef<CustomPageSection[]>([]);
   const fetchRequestIdRef = useRef(0);
   const activeUserIdRef = useRef<string | undefined>(currentUser?.uid);
+  const isPublishingRef = useRef(false);
 
   const {
     saveStatus, setSaveStatus, hasUnsavedChanges, saveDraft, triggerAutoSave,
@@ -67,10 +73,9 @@ export function useSellerStudio() {
     const reqId = ++fetchRequestIdRef.current;
     try {
       setLoading(true);
-      const [studioRes, prodRes] = await Promise.all([
-        apiGet<{ success: boolean; data: StudioDataResponse }>("/api/v1/seller/studio"),
-        apiGet<{ success: boolean; products: Product[] }>("/api/v1/seller/products").catch(() => ({ success: true, products: [] })),
-      ]);
+      setCatalogStatus("loading");
+      setCatalogError(null);
+      const { studioRes, catalog } = await fetchStudioBundle();
       if (reqId !== fetchRequestIdRef.current) return;
 
       if (studioRes?.success && studioRes.data) {
@@ -86,14 +91,39 @@ export function useSellerStudio() {
         if (draftSections.length > 0) setSelectedSectionId(draftSections[0].id);
         checkRecoverableBackup(studioRes.data.draftLayout?.updatedAt, draftSections);
       }
-      if (prodRes && Array.isArray(prodRes.products)) setProducts(prodRes.products);
+
+      if (catalog.ok) {
+        setProducts(catalog.products);
+        setCatalogStatus("loaded");
+        setCatalogError(null);
+      } else {
+        setCatalogStatus("error");
+        setCatalogError(catalog.errorMessage);
+      }
     } catch (err: unknown) {
       if (reqId !== fetchRequestIdRef.current) return;
-      toast.error(err instanceof Error ? err.message : "Erreur lors du chargement du Studio");
+      const errMsg = err instanceof Error ? err.message : "Erreur lors du chargement du Studio";
+      setCatalogStatus("error");
+      setCatalogError(errMsg);
+      toast.error(errMsg);
     } finally {
       if (reqId === fetchRequestIdRef.current) setLoading(false);
     }
   }, [checkRecoverableBackup, resetHistory, setSectionsDirectly, setSelectedSectionId, syncServerDraftRevision]);
+
+  const reloadCatalog = useCallback(async () => {
+    setCatalogStatus("loading");
+    setCatalogError(null);
+    const catalog = await fetchSellerCatalogSafely();
+    if (catalog.ok) {
+      setProducts(catalog.products);
+      setCatalogStatus("loaded");
+    } else {
+      setCatalogStatus("error");
+      setCatalogError(catalog.errorMessage);
+      toast.error(catalog.errorMessage || "Impossible de recharger le catalogue");
+    }
+  }, []);
 
   useEffect(() => {
     const uid = currentUser?.uid;
@@ -101,6 +131,8 @@ export function useSellerStudio() {
       activeUserIdRef.current = uid;
       setStoreConfig(null);
       setProducts([]);
+      setCatalogStatus("idle");
+      setCatalogError(null);
       setHistoryList([]);
       setMediaGallery([]);
       setPublishedLayout(null);
@@ -119,16 +151,11 @@ export function useSellerStudio() {
   const dismissRecoveredBackup = useCallback(() => { clearLocalBackup(); }, [clearLocalBackup]);
 
   const addSection = (type: CustomPageSectionType, defaultSettings: Record<string, unknown>, defaultTitle?: string) => {
-    const title = defaultTitle || `Section ${type}`;
-    const activeSector = storeConfig?.theme?.sector || DEFAULT_STUDIO_SECTOR;
-    const coherentSettings = buildSectorAwareSectionDefaults(type, defaultSettings, activeSector, storeConfig?.wilaya || "Alger", products);
-    const newSection: CustomPageSection = {
-      id: `sec_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, type, title,
-      settings: coherentSettings as unknown as CustomPageSection["settings"],
-      styles: { containerWidth: "contained", paddingY: "md", borderRadius: "none" },
-      isVisible: true, order: sections.length,
-    };
-    pushState([...sections, newSection], undefined, `Ajout section: ${title}`);
+    const newSection = createNewStudioSection({
+      type, defaultSettings, defaultTitle, activeSector: storeConfig?.theme?.sector,
+      storeWilaya: storeConfig?.wilaya, products, order: sections.length,
+    });
+    pushState([...sections, newSection], undefined, `Ajout section: ${newSection.title || type}`);
     setSelectedSectionId(newSection.id);
     toast.success("Nouvelle section ajoutée");
   };
@@ -164,13 +191,7 @@ export function useSellerStudio() {
     const targetIdx = sections.findIndex((sec) => sec.id === sectionId);
     if (targetIdx === -1) return;
     const original = sections[targetIdx];
-    const copy: CustomPageSection = {
-      ...original,
-      id: `sec_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      title: `${original.title || original.type} (Copie)`,
-      settings: JSON.parse(JSON.stringify(original.settings || {})),
-      styles: JSON.parse(JSON.stringify(original.styles || {})),
-    };
+    const copy = createDuplicatedStudioSection(original);
     const updated = [...sections];
     updated.splice(targetIdx + 1, 0, copy);
     pushState(updated.map((sec, idx) => ({ ...sec, order: idx })), undefined, `Duplication: ${original.title || original.type}`);
@@ -200,11 +221,14 @@ export function useSellerStudio() {
     }
   };
 
-  const publishStudio = async (changeSummary?: string) => {
+  const publishStudio = async (changeSummary?: string): Promise<boolean> => {
+    if (isPublishingRef.current) return false;
+    isPublishingRef.current = true;
+    setIsPublishing(true);
     try {
       setSaveStatus("saving");
       const confirmedRevision = await saveDraft(sections);
-      if (confirmedRevision === null) return;
+      if (confirmedRevision === null) return false;
       await apiPost("/api/v1/seller/studio/layout/publish", {
         changeSummary: changeSummary || "Mise en ligne de la vitrine",
         expectedRevision: confirmedRevision,
@@ -213,9 +237,14 @@ export function useSellerStudio() {
       const targetSlug = storeConfig?.shopSlug || storeConfig?.sellerId || "";
       toast.success(targetSlug ? `Boutique publiée en direct sur /store/${targetSlug} !` : "Boutique publiée avec succès !");
       await fetchStudioData();
+      return true;
     } catch (err: unknown) {
       setSaveStatus("error");
       toast.error(err instanceof Error ? err.message : "Échec de la publication");
+      return false;
+    } finally {
+      isPublishingRef.current = false;
+      setIsPublishing(false);
     }
   };
 
@@ -232,17 +261,14 @@ export function useSellerStudio() {
     }
   };
 
-  const saveDraftNow = useCallback(async () => {
-    return await saveDraft(sections);
-  }, [saveDraft, sections]);
+  const saveDraftNow = useCallback(async () => await saveDraft(sections), [saveDraft, sections]);
 
   return {
-    loading, saveStatus, storeConfig, sections, products, historyList, mediaGallery,
-    publishedLayout, selectedSectionId, setSelectedSectionId, hasUnsavedChanges,
-    recoverableBackup, applyRecoveredBackup, dismissRecoveredBackup,
-    addSection, updateSection, reorderSections, deleteSection, duplicateSection,
-    toggleVisibility, replaceSections, saveStoreConfig, uploadMedia, deleteMedia,
-    publishStudio, rollbackVersion, saveDraftNow, triggerAutoSave, refreshData: fetchStudioData,
-    undo, redo, canUndo, canRedo, currentActionLabel,
+    loading, saveStatus, isPublishing, storeConfig, sections, products, catalogStatus, catalogError,
+    reloadCatalog, historyList, mediaGallery, publishedLayout, selectedSectionId, setSelectedSectionId,
+    hasUnsavedChanges, recoverableBackup, applyRecoveredBackup, dismissRecoveredBackup, addSection,
+    updateSection, reorderSections, deleteSection, duplicateSection, toggleVisibility, replaceSections,
+    saveStoreConfig, uploadMedia, deleteMedia, publishStudio, rollbackVersion, saveDraftNow,
+    triggerAutoSave, refreshData: fetchStudioData, undo, redo, canUndo, canRedo, currentActionLabel,
   };
 }

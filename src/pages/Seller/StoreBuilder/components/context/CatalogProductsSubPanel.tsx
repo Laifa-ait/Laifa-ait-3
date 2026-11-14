@@ -1,10 +1,14 @@
 import React, { useState } from "react";
-import { Package, Search, Check, Sparkles } from "lucide-react";
+import { AlertCircle, Check, Loader2, Package, RefreshCw, Search, Sparkles } from "lucide-react";
 import { Product } from "../../../../../domains/product/product.types";
 import { CustomPageSection } from "../../../../../domains/seller/customPage.types";
+import { CatalogLoadStatus } from "../../hooks/studioCatalogLoader";
 
 interface CatalogProductsSubPanelProps {
   products: Product[];
+  catalogStatus?: CatalogLoadStatus;
+  catalogError?: string | null;
+  onReloadCatalog?: () => void | Promise<void>;
   productFeedSections: CustomPageSection[];
   activeFeedSection?: CustomPageSection;
   selectedFeedId: string;
@@ -15,6 +19,9 @@ interface CatalogProductsSubPanelProps {
 
 export const CatalogProductsSubPanel: React.FC<CatalogProductsSubPanelProps> = ({
   products,
+  catalogStatus = "loaded",
+  catalogError = null,
+  onReloadCatalog,
   productFeedSections,
   activeFeedSection,
   selectedFeedId,
@@ -65,7 +72,34 @@ export const CatalogProductsSubPanel: React.FC<CatalogProductsSubPanelProps> = (
         />
       </div>
 
-      {products.length === 0 ? (
+      {catalogStatus === "loading" && products.length === 0 ? (
+        <div data-testid="catalog-loading-state" className="p-6 text-center bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+          <Loader2 className="w-5 h-5 text-slate-600 animate-spin mx-auto" />
+          <p className="text-xs font-medium text-slate-700">Chargement du catalogue...</p>
+        </div>
+      ) : catalogStatus === "error" ? (
+        <div
+          role="alert"
+          data-testid="catalog-load-error"
+          className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-center space-y-2.5"
+        >
+          <AlertCircle className="w-5 h-5 text-rose-600 mx-auto" />
+          <p className="text-xs font-semibold text-rose-900">
+            {catalogError || "Erreur de chargement du catalogue"}
+          </p>
+          {onReloadCatalog && (
+            <button
+              type="button"
+              data-testid="catalog-load-retry-btn"
+              onClick={() => void onReloadCatalog()}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-rose-700 hover:bg-rose-800 text-white text-[11.5px] font-medium cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Réessayer</span>
+            </button>
+          )}
+        </div>
+      ) : products.length === 0 ? (
         <div className="p-6 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-1.5">
           <Package className="w-6 h-6 text-slate-400 mx-auto" />
           <p className="text-xs font-medium text-slate-900">Aucun produit en stock</p>

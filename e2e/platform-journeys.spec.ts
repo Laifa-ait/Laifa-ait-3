@@ -178,76 +178,396 @@ test.describe('Parcours E2E Complets Plateforme OLMART (Checkout, Seller Studio,
     await expect(page.locator('body')).toContainText(/ORD-E2E-2026|Merci|confirm/i, { timeout: 15000 });
   });
 
-  test('2. Parcours E2E Vendeur (Seller Studio) — Espace Vente, Catalogue, Stock & Statut Commande', async ({ page }) => {
-    let currentStock = 15;
-    let currentOrderStatus = 'pending';
+  test('2. Parcours E2E Vendeur (Seller Studio) — Parcours Guidé, Édition Bannière, Catalogue Error/Retry, Parité Mobile & Publication Vitrine', async ({ page }) => {
+    const createMockJwt = (uid: string, email: string) => {
+      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+      const payload = Buffer.from(
+        JSON.stringify({
+          iss: 'https://securetoken.google.com/olmart-staging-e2e',
+          aud: 'olmart-staging-e2e',
+          auth_time: Math.floor(Date.now() / 1000) - 60,
+          user_id: uid,
+          sub: uid,
+          iat: Math.floor(Date.now() / 1000) - 60,
+          exp: Math.floor(Date.now() / 1000) + 3600,
+          email,
+          email_verified: true,
+        })
+      ).toString('base64url');
+      return `${header}.${payload}.e2e_signature`;
+    };
 
-    await page.route(/\/api\/v1\/seller\/products/, async (route) => {
-      if (route.request().method() === 'POST') {
+    const sellerUid = 'seller-e2e-1';
+    const sellerEmail = 'seller.e2e@olmart.dz';
+    const sellerSlug = 'atelier-karakou-alger';
+    const mockJwt = createMockJwt(sellerUid, sellerEmail);
+
+    let draftSaveAttempts = 0;
+    let catalogAttempts = 0;
+    let publishAttempts = 0;
+    let draftRevision = 1;
+    let isPublished = false;
+
+    const storeConfigState = {
+      sellerId: sellerUid,
+      shopName: 'Atelier Karakou Alger',
+      shopSlug: sellerSlug,
+      shopDescription: 'Artisanat contemporain algérois.',
+      wilaya: 'Alger',
+      commune: 'Hydra',
+      contacts: { phone: '+213 551 22 33 44', email: 'atelier@karakou.dz' },
+      theme: {
+        sector: 'mode',
+        primaryColor: '#B85B35',
+        secondaryColor: '#1C2A39',
+        accentColor: '#D4AF37',
+        canvasColor: '#FAF6F0',
+        surfaceColor: '#FFFFFF',
+        fontFamily: 'Plus Jakarta Sans',
+      },
+      seo: { metaTitle: 'Atelier Karakou Alger', metaDescription: 'Créations artisanales' },
+      updatedAt: new Date().toISOString(),
+    };
+
+    let draftSections = [
+      {
+        id: 'sec-hero-e2e',
+        type: 'hero_banner',
+        title: 'Bannière Principale',
+        isVisible: true,
+        order: 0,
+        settings: {
+          title: 'Collection Initiale Karakou',
+          subtitle: 'Livraison 69 Wilayas',
+          ctaText: 'Découvrir',
+          ctaLink: '#catalog',
+          imageUrl: E2E_PRODUCT.image,
+          heroLayout: 'editorial-split',
+        },
+        styles: {},
+      },
+      {
+        id: 'sec-featured-e2e',
+        type: 'featured_products',
+        title: 'Produits Vedettes',
+        isVisible: true,
+        order: 1,
+        settings: {
+          title: 'Pièces Phares',
+          productIds: [E2E_PRODUCT.id],
+          layout: 'grid',
+        },
+        styles: {},
+      },
+    ];
+
+    let publishedLayoutState: {
+      versionNumber: number;
+      status: 'published';
+      updatedAt: string;
+      sections: typeof draftSections;
+    } | null = null;
+
+    await page.route(/identitytoolkit\.googleapis\.com\/v1\/accounts:signInWithPassword/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          kind: 'identitytoolkit#VerifyPasswordResponse',
+          localId: sellerUid,
+          email: sellerEmail,
+          displayName: 'Atelier Karakou Alger',
+          idToken: mockJwt,
+          registered: true,
+          refreshToken: 'e2e-refresh-token',
+          expiresIn: '3600',
+        }),
+      })
+    );
+
+    await page.route(/identitytoolkit\.googleapis\.com\/v1\/accounts:lookup/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          kind: 'identitytoolkit#GetAccountInfoResponse',
+          users: [
+            {
+              localId: sellerUid,
+              email: sellerEmail,
+              emailVerified: true,
+              displayName: 'Atelier Karakou Alger',
+              providerUserInfo: [{ providerId: 'password', federatedId: sellerEmail, email: sellerEmail }],
+              validSince: '1700000000',
+              createdAt: '1700000000000',
+              lastLoginAt: '1700000000000',
+            },
+          ],
+        }),
+      })
+    );
+
+    await page.route(/securetoken\.googleapis\.com\/v1\/token/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          access_token: mockJwt,
+          expires_in: '3600',
+          token_type: 'Bearer',
+          refresh_token: 'e2e-refresh-token',
+          id_token: mockJwt,
+          user_id: sellerUid,
+          project_id: 'olmart-staging-e2e',
+        }),
+      })
+    );
+
+    await page.route(/\/api\/v1\/settings\/global/, (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) })
+    );
+
+    await page.route(/\/api\/v1\/auth\/(sync|profile)/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          profile: {
+            uid: sellerUid,
+            email: sellerEmail,
+            displayName: 'Atelier Karakou Alger',
+            role: 'seller',
+            status: 'active',
+            onboardingCompleted: true,
+          },
+        }),
+      })
+    );
+
+    await page.route(/\/api\/v1\/seller\/subscription\/status/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            subscription: { id: 'sub-e2e', planId: 'pro', status: 'active' },
+            pendingRequest: null,
+            daysRemaining: 30,
+          },
+        }),
+      })
+    );
+
+    await page.route(/\/api\/v1\/seller\/subscription\/plans/, (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: [] }) })
+    );
+
+    await page.route(/\/api\/v1\/seller\/studio$/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            storeConfig: storeConfigState,
+            draftLayout: {
+              versionNumber: draftRevision,
+              draftRevision,
+              status: 'draft',
+              updatedAt: new Date().toISOString(),
+              sections: draftSections,
+            },
+            publishedLayout: publishedLayoutState,
+            historyList: [],
+            mediaGallery: [],
+          },
+        }),
+      })
+    );
+
+    await page.route(/\/api\/v1\/seller\/products/, (route) => {
+      catalogAttempts += 1;
+      if (catalogAttempts === 1) {
         return route.fulfill({
-          status: 201,
+          status: 400,
           contentType: 'application/json',
-          body: JSON.stringify({ success: true, id: 'prod-seller-studio-1' }),
-        });
-      }
-      if (route.request().method() === 'PUT') {
-        currentStock = 25;
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ success: true, stock: currentStock }),
+          body: JSON.stringify({ success: false, error: 'Catalogue temporairement indisponible E2E' }),
         });
       }
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ products: [{ ...E2E_PRODUCT, stock: currentStock }] }),
+        body: JSON.stringify({ success: true, products: [E2E_PRODUCT] }),
       });
     });
 
-    await page.route(/\/api\/v1\/orders\/ord-seller-1\/status/, async (route) => {
-      currentOrderStatus = 'shipped';
+    await page.route(/\/api\/v1\/seller\/store\/config/, async (route) => {
+      const patch = route.request().postDataJSON() as Record<string, unknown> | null;
+      if (patch && typeof patch === 'object') {
+        Object.assign(storeConfigState, patch);
+      }
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, status: currentOrderStatus }),
+        body: JSON.stringify({ success: true, data: storeConfigState }),
       });
     });
 
-    // 1. Visit public Seller Studio presentation (/sell)
-    await page.goto('/sell');
+    await page.route(/\/api\/v1\/seller\/studio\/layout\/draft/, async (route) => {
+      draftSaveAttempts += 1;
+      if (draftSaveAttempts === 1) {
+        return route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Non autorisé : simulation échec sauvegarde étape 1' }),
+        });
+      }
+      const body = route.request().postDataJSON() as { sections?: typeof draftSections } | null;
+      if (Array.isArray(body?.sections)) {
+        draftSections = body.sections;
+      }
+      draftRevision += 1;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            versionNumber: draftRevision,
+            draftRevision,
+            status: 'draft',
+            updatedAt: new Date().toISOString(),
+            sections: draftSections,
+          },
+        }),
+      });
+    });
+
+    await page.route(/\/api\/v1\/seller\/studio\/layout\/publish/, async (route) => {
+      publishAttempts += 1;
+      await new Promise((r) => setTimeout(r, 150));
+      if (publishAttempts === 1) {
+        return route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Erreur publication simulée E2E' }),
+        });
+      }
+      isPublished = true;
+      publishedLayoutState = {
+        versionNumber: draftRevision,
+        status: 'published',
+        updatedAt: new Date().toISOString(),
+        sections: draftSections,
+      };
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: publishedLayoutState }),
+      });
+    });
+
+    await page.route(new RegExp(`/api/v1/public/shops/(${sellerSlug}|${sellerUid})/products`), (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, products: [E2E_PRODUCT], count: 1 }),
+      })
+    );
+
+    await page.route(new RegExp(`/api/v1/public/shops/(${sellerSlug}|${sellerUid})(\\?.*)?$`), (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          shop: {
+            ...storeConfigState,
+            id: sellerUid,
+            isPublished,
+            publishedLayout: publishedLayoutState,
+          },
+          products: [E2E_PRODUCT],
+        }),
+      })
+    );
+
+    await page.route(/\/api\/v1\/public\/stores\/.*\/track/, (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) })
+    );
+
+    // 1. Desktop (1280x800): Authenticate as Seller & enter /dashboard/seller/studio
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/auth?redirect=/dashboard/seller/studio');
+    await page.fill('input[type="email"]', sellerEmail);
+    await page.fill('input[type="password"]', 'SellerE2ePass1!');
+    await page.click('button[type="submit"]');
+
+    await page.waitForURL((url) => url.pathname === '/dashboard/seller/studio', { timeout: 15000 });
+    await expect(page.locator('[data-testid="studio-guided-sidebar"]')).toBeVisible({ timeout: 15000 });
+
+    // 2. Guided Step 1: First save fails -> Step 2 must stay locked with inline error; retry succeeds -> Step 2 opens
+    await expect(page.locator('[data-testid="studio-journey-step-2"]')).toBeDisabled();
+    await page.click('[data-testid="studio-save-and-advance-btn"]');
+    await expect(page.locator('[data-testid="studio-step-save-error"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-testid="studio-journey-step-2"]')).toBeDisabled();
+
+    await page.click('[data-testid="studio-save-and-advance-btn"]');
+    await expect(page.locator('[data-testid="studio-journey-step-2"]')).toBeEnabled({ timeout: 10000 });
+
+    // Advance Step 2 (Theme) -> Step 3 (Sections & Hero Banner)
+    await page.click('[data-testid="studio-save-and-advance-btn"]');
+    await expect(page.locator('[data-testid="hero-content-editor"]')).toBeVisible({ timeout: 10000 });
+
+    // 3. Edit Hero Banner Title via Step 4 of HeroContentEditor & verify live canvas updates
+    await page.click('[data-testid="hero-save-step-btn"]');
+    await page.click('[data-testid="hero-save-step-btn"]');
+    await page.click('[data-testid="hero-save-step-btn"]');
+    const heroTitleInput = page.locator('input[placeholder*="1. Le Titre"]').first();
+    await expect(heroTitleInput).toBeVisible({ timeout: 10000 });
+    await heroTitleInput.fill('Nouvelle Collection Atelier Casbah 2026');
+    await expect(page.locator('body')).toContainText('Nouvelle Collection Atelier Casbah 2026', { timeout: 10000 });
+
+    // 4. Advance Step 3 -> Step 4 & verify Catalog error state + Retry recovery
+    await page.click('[data-testid="studio-save-and-advance-btn"]');
+    await page.click('[data-testid="studio-experience-mode-toggle"]');
+    await page.getByRole('button', { name: 'Catalogue' }).first().click();
+    await expect(page.locator('[data-testid="catalog-load-error"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('body')).not.toContainText('Aucun produit en stock');
+    await page.click('[data-testid="catalog-load-retry-btn"]');
+    await expect(page.locator('[data-testid="catalog-inspector-panel"]')).toContainText(E2E_PRODUCT.name, { timeout: 10000 });
+
+    // 5. Switch to Mobile Viewport (390x844): verify Guided Mode parity, Undo/Redo, and Mobile Publish Modal retry -> success
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.click('[data-testid="mobile-menu-open-btn"]');
+    await page.click('[data-testid="mobile-experience-mode-toggle"]');
+    await expect(page.locator('[data-testid="mobile-guided-menu-steps"]')).toBeVisible();
+    await page.locator('[aria-label="Fermer"]').click();
+
+    await expect(page.locator('[data-testid="mobile-guided-journey-bar"]')).toBeVisible();
+    await expect(page.locator('[data-testid="mobile-undo-btn"]')).toBeVisible();
+    await expect(page.locator('[data-testid="mobile-redo-btn"]')).toBeVisible();
+
+    // Open publish modal from mobile header, test pending lock + error retention + retry
+    await page.click('[data-testid="mobile-publish-btn"]');
+    await expect(page.locator('[data-testid="studio-publish-modal"]')).toBeVisible();
+    await page.fill('#publish-note-input', 'Mise en ligne E2E mobile');
+    await page.click('[data-testid="confirm-publish-btn"]');
+    await expect(page.locator('[data-testid="confirm-publish-btn"]')).toContainText(/Publication en cours/i);
+    await expect(page.locator('[data-testid="publish-modal-error"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#publish-note-input')).toHaveValue('Mise en ligne E2E mobile');
+
+    // Retry publish -> succeeds and closes modal
+    await page.click('[data-testid="confirm-publish-btn"]');
+    await expect(page.locator('[data-testid="studio-publish-modal"]')).toBeHidden({ timeout: 10000 });
+
+    // 6. Visit public storefront /store/:slug and verify published Hero title renders visibly
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto(`/store/${sellerSlug}`);
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('body')).toBeVisible();
-
-    // 2. Verify Seller Studio API interactions from browser context (Create product -> Update stock -> Update order status)
-    const studioWorkflow = await page.evaluate(async () => {
-      const createRes = await fetch('/api/v1/seller/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Tapis Berbère Kabyle', price: 18500, category: 'artisanat', stock: 15 }),
-      });
-      const created = await createRes.json();
-
-      const stockRes = await fetch(`/api/v1/seller/products/${created.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stock: 25 }),
-      });
-      const stockUpdated = await stockRes.json();
-
-      const statusRes = await fetch('/api/v1/orders/ord-seller-1/status', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'shipped' }),
-      });
-      const statusUpdated = await statusRes.json();
-
-      return { created, stockUpdated, statusUpdated };
-    });
-
-    expect(studioWorkflow.created.success).toBe(true);
-    expect(studioWorkflow.stockUpdated.stock).toBe(25);
-    expect(studioWorkflow.statusUpdated.status).toBe('shipped');
+    await expect(page.locator('body')).toContainText('Nouvelle Collection Atelier Casbah 2026', { timeout: 15000 });
   });
 
   test('3. Parcours E2E Univers — OLMA Immo (Modale Visite), Olma Auto (39 Marques) & Artisans Bricolage', async ({ page }) => {

@@ -12,9 +12,13 @@ import { CollectionPageCustomizer } from "./CollectionPageCustomizer";
 import { CatalogCategoriesSubPanel } from "./CatalogCategoriesSubPanel";
 import { CatalogProductsSubPanel } from "./CatalogProductsSubPanel";
 import { Star, FolderTree, ExternalLink, Sliders } from "lucide-react";
+import { CatalogLoadStatus } from "../../hooks/studioCatalogLoader";
 
 interface CatalogInspectorPanelProps {
   products: Product[];
+  catalogStatus?: CatalogLoadStatus;
+  catalogError?: string | null;
+  onReloadCatalog?: () => void | Promise<void>;
   sections: CustomPageSection[];
   storeConfig?: SellerStoreConfig | null;
   activeSector?: StoreThemeSector;
@@ -36,6 +40,9 @@ const FEED_TYPES: CustomPageSectionType[] = [
 
 export const CatalogInspectorPanel: React.FC<CatalogInspectorPanelProps> = ({
   products,
+  catalogStatus,
+  catalogError,
+  onReloadCatalog,
   sections,
   storeConfig,
   activeSector = "mode",
@@ -166,6 +173,9 @@ export const CatalogInspectorPanel: React.FC<CatalogInspectorPanelProps> = ({
         ) : (
           <CatalogProductsSubPanel
             products={products}
+            catalogStatus={catalogStatus}
+            catalogError={catalogError}
+            onReloadCatalog={onReloadCatalog}
             productFeedSections={productFeedSections}
             activeFeedSection={activeFeedSection}
             selectedFeedId={selectedFeedId}

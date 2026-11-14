@@ -10,6 +10,7 @@ import { SetupGuideInspectorPanel } from "../context/SetupGuideInspectorPanel";
 import { HeaderNavigationInspectorPanel } from "../context/HeaderNavigationInspectorPanel";
 import { StoreIdentityEditor } from "../identity/StoreIdentityEditor";
 import { StudioNavMode } from "./studio.types";
+import { CatalogLoadStatus } from "../../hooks/studioCatalogLoader";
 import {
   CustomPageSection,
   CustomPageSectionType,
@@ -25,6 +26,9 @@ interface PropertiesInspectorProps {
   selectedSection: CustomPageSection | null;
   sections?: CustomPageSection[];
   products?: Product[];
+  catalogStatus?: CatalogLoadStatus;
+  catalogError?: string | null;
+  onReloadCatalog?: () => void | Promise<void>;
   storeConfig?: SellerStoreConfig | null;
   currentTheme?: CustomPageTheme;
   mediaGallery?: MediaGalleryItem[];
@@ -43,7 +47,7 @@ interface PropertiesInspectorProps {
   onSaveConfig: (updatedConfig: Partial<SellerStoreConfig>) => Promise<void>;
   onApplyFullArchetype?: (sections: CustomPageSection[], theme: CustomPageTheme) => Promise<void> | void;
   onReplaceSections?: (sections: CustomPageSection[]) => void;
-  onSaveDraft?: () => void;
+  onSaveDraft?: () => unknown | Promise<unknown>;
 }
 
 export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
@@ -52,6 +56,9 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
   selectedSection,
   sections = [],
   products = [],
+  catalogStatus,
+  catalogError,
+  onReloadCatalog,
   storeConfig,
   currentTheme,
   mediaGallery = [],
@@ -128,6 +135,9 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
       ) : navMode === "catalog" ? (
         <CatalogInspectorPanel
           products={products}
+          catalogStatus={catalogStatus}
+          catalogError={catalogError}
+          onReloadCatalog={onReloadCatalog}
           sections={sections}
           storeConfig={storeConfig}
           activeSector={currentTheme?.sector}
@@ -153,6 +163,7 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
           section={selectedSection}
           sections={sections}
           products={products}
+          storeConfig={storeConfig}
           currentTheme={currentTheme}
           onUpdateSection={onUpdateSection}
           onSaveStep={onSaveDraft}

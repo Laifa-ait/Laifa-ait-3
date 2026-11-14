@@ -1,16 +1,16 @@
 import React from "react";
 import {
-  ArrowRight, Check, Layers, FileText, Palette, Image as ImageIcon,
-  Settings, Store, ShoppingBag, ClipboardList, PanelTop, Sparkles, Lock, Compass, ListChecks,
+  AlertCircle, ArrowRight, Check, Layers, FileText, Palette, Image as ImageIcon,
+  Settings, Store, ShoppingBag, ClipboardList, PanelTop, Sparkles, Lock, Compass, ListChecks, Loader2,
 } from "lucide-react";
 import { StudioNavMode } from "./studio.types";
-import { useStudioStore } from "../../store/useStudioStore";
 import { STUDIO_JOURNEY_STEPS, EXPERT_NAV_GROUPS } from "./studioSidebarSteps";
+import { useStudioGuidedNavigation } from "../../hooks/useStudioGuidedNavigation";
 
 interface StudioSidebarProps {
   navMode: StudioNavMode;
   onSelectNavMode: (mode: StudioNavMode) => void;
-  onSaveDraft?: () => void;
+  onSaveDraft?: () => unknown | Promise<unknown>;
 }
 
 const EXPERT_ICONS: Record<StudioNavMode, React.ElementType> = {
@@ -32,22 +32,17 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
   onSelectNavMode,
   onSaveDraft,
 }) => {
-  const mode = useStudioStore((s) => s.studioExperienceMode);
-  const setMode = useStudioStore((s) => s.setStudioExperienceMode);
-  const activeStep = useStudioStore((s) => s.activeStudioStep);
-  const unlockedStep = useStudioStore((s) => s.unlockedStudioStep);
-  const completedSteps = useStudioStore((s) => s.completedStudioSteps);
-  const setActiveStudioStep = useStudioStore((s) => s.setActiveStudioStep);
-  const completeAndAdvance = useStudioStore((s) => s.completeAndAdvanceStudioStep);
-
-  const handleSaveCurrentStudioStep = () => {
-    onSaveDraft?.();
-    const nextStep = completeAndAdvance(activeStep);
-    const nextMeta = STUDIO_JOURNEY_STEPS.find((s) => s.step === nextStep);
-    if (nextMeta && activeStep < 4) {
-      onSelectNavMode(nextMeta.defaultNav);
-    }
-  };
+  const {
+    mode,
+    setMode,
+    activeStep,
+    unlockedStep,
+    completedSteps,
+    isSavingStep,
+    saveStepError,
+    selectStep,
+    handleSaveAndAdvance,
+  } = useStudioGuidedNavigation({ onSelectNavMode, onSaveDraft });
 
   if (mode === "expert") {
     return (
@@ -137,11 +132,7 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
                 type="button"
                 disabled={isLocked}
                 data-testid={`studio-journey-step-${st.step}`}
-                onClick={() => {
-                  if (isLocked) return;
-                  setActiveStudioStep(st.step);
-                  onSelectNavMode(st.defaultNav);
-                }}
+                onClick={() => selectStep(st.step)}
                 className={`w-full px-2.5 py-2 flex items-center gap-2.5 text-left transition-colors ${
                   isLocked ? "cursor-not-allowed" : "cursor-pointer hover:bg-slate-50"
                 }`}
@@ -194,13 +185,30 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
                     ))}
                   </div>
 
+                  {saveStepError && (
+                    <div
+                      role="alert"
+                      data-testid="studio-step-save-error"
+                      className="p-2 rounded-md bg-rose-50 border border-rose-200 text-[11px] font-medium text-rose-700 flex items-start gap-1.5"
+                    >
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                      <span>{saveStepError}</span>
+                    </div>
+                  )}
+
                   <button
                     type="button"
+                    disabled={isSavingStep}
                     data-testid="studio-save-and-advance-btn"
-                    onClick={handleSaveCurrentStudioStep}
-                    className="w-full h-8 px-2.5 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-[11.5px] font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+                    onClick={() => void handleSaveAndAdvance()}
+                    className="w-full h-8 px-2.5 rounded-md bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white text-[11.5px] font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
                   >
-                    {activeStep < 4 ? (
+                    {isSavingStep ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                        <span>Enregistrement...</span>
+                      </>
+                    ) : activeStep < 4 ? (
                       <>
                         <span>Enregistrer &amp; Étape {activeStep + 1}</span>
                         <ArrowRight className="w-3.5 h-3.5 shrink-0" />
@@ -221,3 +229,4 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
     </aside>
   );
 };
+

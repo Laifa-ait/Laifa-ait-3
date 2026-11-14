@@ -226,10 +226,15 @@ export function buildSectorAwareSectionDefaults(
     };
   }
   if (type === "contact_footer") {
+    const wilaya = (storeWilaya || "").trim();
     return {
-      ...baseSettings, title: "Service Client & Contact", wilaya: storeWilaya || "Alger",
-      address: `${storeWilaya || "Alger"}, Algérie`, shopPhone: "0550 00 00 00",
-      shopEmail: "contact@boutique.dz", workingHours: "Samedi au Jeudi de 09h00 à 18h00",
+      ...baseSettings,
+      title: (baseSettings.title as string) || "Service Client & Contact",
+      wilaya: (baseSettings.wilaya as string) ?? wilaya,
+      address: (baseSettings.address as string) ?? (wilaya ? `${wilaya}, Algérie` : ""),
+      shopPhone: (baseSettings.shopPhone as string) ?? "",
+      shopEmail: (baseSettings.shopEmail as string) ?? "",
+      workingHours: (baseSettings.workingHours as string) || "Samedi au Jeudi de 09h00 à 18h00",
     };
   }
   return { ...baseSettings };

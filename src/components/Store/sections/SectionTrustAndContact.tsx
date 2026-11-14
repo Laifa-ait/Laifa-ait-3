@@ -270,6 +270,11 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
               <Mail className="w-3.5 h-3.5" style={{ color: accentColor }} /><span>{String(rawSettings.shopEmail)}</span>
             </span>
           )}
+          {isEditable && !rawSettings.shopPhone && !rawSettings.shopEmail && (
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-400/50 bg-amber-500/15 text-amber-200 text-[11px] font-medium">
+              Coordonnées non renseignées — cliquez ici pour ajouter votre téléphone ou e-mail
+            </span>
+          )}
         </div>
       </div>
       <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />

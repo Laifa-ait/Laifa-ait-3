@@ -83,20 +83,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       clearTimeout(bootGuardTimer);
-      setCurrentUser(user);
       if (!user) {
+        setCurrentUser(null);
         setUserProfile(null);
         setLoading(false);
-      } else {
-        setUserProfile((prev) => prev || createBaselineProfile(user));
-        const safetyTimer = setTimeout(() => setLoading(false), 1200);
-        try {
-          const profile = await syncUserProfileWithBackend(user, undefined, "auto_sync");
-          if (profile) setUserProfile(profile);
-        } finally {
-          clearTimeout(safetyTimer);
-          setLoading(false);
-        }
+        return;
+      }
+      setLoading(true);
+      setCurrentUser(user);
+      const safetyTimer = setTimeout(() => {
+        setUserProfile((prev) => (prev && prev.uid === user.uid ? prev : createBaselineProfile(user)));
+        setLoading(false);
+      }, 2500);
+      try {
+        const profile = await syncUserProfileWithBackend(user, undefined, "auto_sync");
+        setUserProfile((prev) => profile || (prev && prev.uid === user.uid ? prev : createBaselineProfile(user)));
+      } finally {
+        clearTimeout(safetyTimer);
+        setLoading(false);
       }
     });
     return () => {

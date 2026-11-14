@@ -7,9 +7,11 @@ export interface UseSectionStepProgressResult {
   completedSteps: number[];
   isExpert: boolean;
   justSavedStep: number | null;
+  isSavingStep: boolean;
+  saveStepError: string | null;
   selectStep: (step: number) => void;
   goToPrevStep: () => void;
-  saveAndAdvanceStep: (onSaveStep?: () => void | Promise<void>) => Promise<void>;
+  saveAndAdvanceStep: (onSaveStep?: () => unknown | Promise<unknown>) => Promise<boolean>;
 }
 
 export function useSectionStepProgress(
@@ -24,6 +26,8 @@ export function useSectionStepProgress(
   const completeAndAdvanceSectionStep = useStudioStore((s) => s.completeAndAdvanceSectionStep);
 
   const [justSavedStep, setJustSavedStep] = useState<number | null>(null);
+  const [isSavingStep, setIsSavingStep] = useState(false);
+  const [saveStepError, setSaveStepError] = useState<string | null>(null);
   const resolvedId = sectionId || storeSelectedId || "standalone";
   const progressKey = useMemo(() => `${resolvedId}:${scope}`, [resolvedId, scope]);
 
@@ -40,6 +44,7 @@ export function useSectionStepProgress(
   const selectStep = useCallback(
     (step: number) => {
       if (!isExpert && step > unlockedStep) return;
+      setSaveStepError(null);
       setSectionActiveStep(progressKey, Math.min(totalSteps, Math.max(1, step)));
     },
     [isExpert, progressKey, setSectionActiveStep, totalSteps, unlockedStep]
@@ -47,19 +52,35 @@ export function useSectionStepProgress(
 
   const goToPrevStep = useCallback(() => {
     if (activeStep > 1) {
+      setSaveStepError(null);
       setSectionActiveStep(progressKey, activeStep - 1);
     }
   }, [activeStep, progressKey, setSectionActiveStep]);
 
   const saveAndAdvanceStep = useCallback(
-    async (onSaveStep?: () => void | Promise<void>) => {
+    async (onSaveStep?: () => unknown | Promise<unknown>): Promise<boolean> => {
+      if (isSavingStep) return false;
       const current = activeStep;
-      await onSaveStep?.();
-      completeAndAdvanceSectionStep(progressKey, current, totalSteps);
-      setJustSavedStep(current);
-      setTimeout(() => setJustSavedStep((prev) => (prev === current ? null : prev)), 2200);
+      setIsSavingStep(true);
+      setSaveStepError(null);
+      try {
+        const res = await onSaveStep?.();
+        if (res === null || res === false) {
+          setSaveStepError("Échec de l'enregistrement. L'étape reste ouverte.");
+          return false;
+        }
+        completeAndAdvanceSectionStep(progressKey, current, totalSteps);
+        setJustSavedStep(current);
+        setTimeout(() => setJustSavedStep((prev) => (prev === current ? null : prev)), 2200);
+        return true;
+      } catch (err: unknown) {
+        setSaveStepError(err instanceof Error ? err.message : "Échec de l'enregistrement.");
+        return false;
+      } finally {
+        setIsSavingStep(false);
+      }
     },
-    [activeStep, completeAndAdvanceSectionStep, progressKey, totalSteps]
+    [activeStep, completeAndAdvanceSectionStep, isSavingStep, progressKey, totalSteps]
   );
 
   return {
@@ -68,6 +89,8 @@ export function useSectionStepProgress(
     completedSteps: entry.completedSteps,
     isExpert,
     justSavedStep,
+    isSavingStep,
+    saveStepError,
     selectStep,
     goToPrevStep,
     saveAndAdvanceStep,

@@ -19,7 +19,7 @@ interface ListContentEditorProps {
     fieldOrPatch: string | Record<string, unknown>,
     value?: unknown
   ) => void;
-  onSaveStep?: () => void;
+  onSaveStep?: () => unknown | Promise<unknown>;
   inputClass: string;
 }
 
@@ -40,6 +40,8 @@ export const ListContentEditor: React.FC<ListContentEditorProps> = ({
     completedSteps,
     isExpert,
     justSavedStep,
+    isSavingStep,
+    saveStepError,
     selectStep,
     goToPrevStep,
     saveAndAdvanceStep,
@@ -145,6 +147,8 @@ export const ListContentEditor: React.FC<ListContentEditorProps> = ({
           activeStep={activeStep}
           totalSteps={2}
           justSavedStep={justSavedStep}
+          isSavingStep={isSavingStep}
+          saveStepError={saveStepError}
           saveTestId="list-save-step-btn"
           onPrev={goToPrevStep}
           onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)}
@@ -206,6 +210,8 @@ export const ListContentEditor: React.FC<ListContentEditorProps> = ({
           activeStep={activeStep}
           totalSteps={2}
           justSavedStep={justSavedStep}
+          isSavingStep={isSavingStep}
+          saveStepError={saveStepError}
           saveTestId="list-save-step-btn"
           onPrev={goToPrevStep}
           onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)}

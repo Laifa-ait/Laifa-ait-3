@@ -1,6 +1,6 @@
 import React from "react";
 import { Sparkles } from "lucide-react";
-import { CustomPageSection } from "../../../../../domains/seller/customPage.types";
+import { CustomPageSection, SellerStoreConfig } from "../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../domains/product/product.types";
 import { HeroContentEditor } from "./content/HeroContentEditor";
 import { ProductSelectionEditor } from "./content/ProductSelectionEditor";
@@ -15,11 +15,12 @@ interface SectionContentTabProps {
   settings: Record<string, unknown>;
   sections?: CustomPageSection[];
   products: Product[];
+  storeConfig?: SellerStoreConfig | null;
   onSettingsChange: (
     fieldOrPatch: string | Record<string, unknown>,
     value?: unknown
   ) => void;
-  onSaveStep?: () => void;
+  onSaveStep?: () => unknown | Promise<unknown>;
 }
 
 const inputClass =
@@ -32,6 +33,7 @@ export const SectionContentTab: React.FC<SectionContentTabProps> = ({
   settings,
   sections = [],
   products,
+  storeConfig,
   onSettingsChange,
   onSaveStep,
 }) => {
@@ -136,6 +138,7 @@ export const SectionContentTab: React.FC<SectionContentTabProps> = ({
           sectionType={sectionType}
           settings={settings}
           products={products}
+          storeConfig={storeConfig}
           onSettingsChange={(f, v) => onSettingsChange(f, v)}
           onSaveStep={onSaveStep}
           inputClass={inputClass}

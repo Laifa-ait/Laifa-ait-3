@@ -167,8 +167,18 @@ export function buildStoreQualityReport(params: {
   if (!hasProducts) missingArchFixes.push({ label: "Ajouter Grille Produits", fixType: "add-products" });
   if (!hasTrust) missingArchFixes.push({ label: "Ajouter Livraison 69 Wilayas", fixType: "add-trust" });
 
+  const footerSection = visibleSections.find((s) => s.type === "contact_footer");
+  const footerSettings = (footerSection?.settings || {}) as Record<string, unknown>;
+  const hasIncompleteFooter = Boolean(
+    footerSection && !String(footerSettings.shopPhone || "").trim() && !String(footerSettings.shopEmail || "").trim()
+  );
+
   const archStatus: AuditCheckStatus =
-    !hasProducts || !hasHero ? "fail" : missingArchFixes.length > 0 || (products.length > 0 && inStockCount === 0) ? "warn" : "pass";
+    !hasProducts || !hasHero
+      ? "fail"
+      : missingArchFixes.length > 0 || (products.length > 0 && inStockCount === 0) || hasIncompleteFooter
+      ? "warn"
+      : "pass";
   if (archStatus === "pass") score += 20;
   else if (archStatus === "warn") score += 12;
   else if (hasHero || hasProducts) score += 6;

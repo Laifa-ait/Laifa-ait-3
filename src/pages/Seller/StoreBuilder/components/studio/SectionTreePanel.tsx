@@ -30,7 +30,7 @@ interface SectionTreePanelProps {
     defaultSettings: Record<string, unknown>,
     defaultTitle?: string
   ) => void;
-  onSaveDraft?: () => void;
+  onSaveDraft?: () => unknown | Promise<unknown>;
 }
 
 export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
@@ -64,17 +64,18 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
   const resolvedSector: StoreThemeSector = activeSector || storeConfig?.theme?.sector || "mode";
 
   const handleAddContactFooter = () => {
-    const wilaya = storeConfig?.wilaya || "Alger";
+    const wilaya = (storeConfig?.wilaya || "").trim();
     const commune = storeConfig?.commune ? `${storeConfig.commune}, ` : "";
+    const address = wilaya ? `${commune}${wilaya}, Algérie` : "";
     onAddSection(
       "contact_footer",
       {
-        shopPhone: storeConfig?.contacts?.phone || storeConfig?.commerceConfig?.whatsappNumber || "+213 550 00 00 00",
-        shopEmail: storeConfig?.contacts?.email || `contact@${storeConfig?.shopSlug || "boutique"}.dz`,
+        shopPhone: storeConfig?.contacts?.phone || storeConfig?.commerceConfig?.whatsappNumber || "",
+        shopEmail: storeConfig?.contacts?.email || "",
         wilaya,
-        address: `${commune}${wilaya}, Algérie`,
+        address,
         workingHours: "Sam - Jeu : 09h00 - 18h00",
-        socialInstagram: storeConfig?.socialLinks?.instagram || `@${storeConfig?.shopSlug || "maboutique"}.dz`,
+        socialInstagram: storeConfig?.socialLinks?.instagram || "",
       },
       "Pied de boutique & Contact"
     );

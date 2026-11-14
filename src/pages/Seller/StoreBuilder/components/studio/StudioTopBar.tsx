@@ -1,20 +1,30 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ArrowLeft, Undo2, Redo2, Monitor, Tablet, Smartphone, Eye, Pencil } from "lucide-react";
 import { StudioViewport } from "../../store/useStudioStore";
 import { SaveStatus } from "../../hooks/useStudioSaveManager";
-import type { StoreHistoryEntry } from "../../../../../domains/seller/customPage.types";
+import type { CustomPageSection, SellerStoreConfig, StoreHistoryEntry } from "../../../../../domains/seller/customPage.types";
+import type { Product } from "../../../../../domains/product/product.types";
+import type { CatalogLoadStatus } from "../../hooks/studioCatalogLoader";
 import { StudioHistoryModal } from "../topbar/StudioHistoryModal";
 import { StudioDirectPublishModal } from "../topbar/StudioDirectPublishModal";
 import { StudioTopBarRightActions } from "./StudioTopBarRightActions";
+import { StudioNavMode } from "./studio.types";
+import { evaluatePublishReadiness } from "../../utils/publishReadinessChecks";
 
 interface StudioTopBarProps {
   shopName?: string;
   shopSlug?: string;
   sellerId?: string;
   isPublished?: boolean;
+  isPublishing?: boolean;
   versionNumber?: number;
   sectionCount?: number;
   productCount?: number;
+  sections?: CustomPageSection[];
+  products?: Product[];
+  catalogStatus?: CatalogLoadStatus;
+  storeConfig?: SellerStoreConfig | null;
+  onSelectNavMode?: (mode: StudioNavMode) => void;
   historyList?: StoreHistoryEntry[];
   saveStatus: SaveStatus;
   canUndo?: boolean;
@@ -28,8 +38,8 @@ interface StudioTopBarProps {
   onPreviewModeChange?: (mode: "edit" | "preview") => void;
   onOpenAudit?: () => void;
   onOpenCommandPalette?: () => void;
-  onSaveDraft?: () => void | Promise<unknown>;
-  onPublish: (changeSummary?: string) => void;
+  onSaveDraft?: () => unknown | Promise<unknown>;
+  onPublish: (changeSummary?: string) => boolean | void | Promise<boolean | void>;
   onRollback?: (versionNumber: number) => void;
   onExitStudio?: () => void;
   onOpenSponsorships?: () => void;
@@ -42,17 +52,50 @@ const VIEWPORT_OPTIONS = [
 ] as const;
 
 export const StudioTopBar: React.FC<StudioTopBarProps> = ({
-  shopName, shopSlug, sellerId, isPublished = false, versionNumber = 1,
-  sectionCount, productCount, historyList = [], saveStatus,
-  canUndo = false, canRedo = false, onUndo, onRedo,
-  viewport, setViewport, onViewportChange,
-  previewMode = "edit", onPreviewModeChange,
+  shopName, shopSlug, sellerId, isPublished = false, isPublishing = false, versionNumber = 1,
+  sectionCount, productCount, sections, products = [], catalogStatus, storeConfig, onSelectNavMode,
+  historyList = [], saveStatus, canUndo = false, canRedo = false, onUndo, onRedo,
+  viewport, setViewport, onViewportChange, previewMode = "edit", onPreviewModeChange,
   onOpenAudit, onOpenCommandPalette, onSaveDraft, onPublish, onRollback,
   onExitStudio, onOpenSponsorships,
 }) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [changeSummary, setChangeSummary] = useState("");
+  const [localPublishing, setLocalPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+
+  const readinessReport = useMemo(() => {
+    if (!sections) return undefined;
+    return evaluatePublishReadiness({ storeConfig, sections, products, catalogStatus });
+  }, [catalogStatus, products, sections, storeConfig]);
+
+  const effectivePublishing = isPublishing || localPublishing;
+
+  const handleConfirmPublish = async () => {
+    if (effectivePublishing) return;
+    setPublishError(null);
+    try {
+      const outcome = onPublish(changeSummary.trim() || undefined);
+      if (outcome !== null && typeof outcome === "object" && "then" in outcome && typeof outcome.then === "function") {
+        setLocalPublishing(true);
+        const resolved = await outcome;
+        if (resolved === false) {
+          setPublishError("La publication a échoué. Vérifiez votre connexion ou corrigez les blocages puis réessayez.");
+          return;
+        }
+      } else if (outcome === false) {
+        setPublishError("La publication a échoué. Veuillez réessayer.");
+        return;
+      }
+      setChangeSummary("");
+      setIsPublishModalOpen(false);
+    } catch (err: unknown) {
+      setPublishError(err instanceof Error ? err.message : "Échec de la publication. Veuillez réessayer.");
+    } finally {
+      setLocalPublishing(false);
+    }
+  };
 
   const handleViewport = (vp: StudioViewport) => {
     setViewport?.(vp);
@@ -184,14 +227,17 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
 
       <StudioDirectPublishModal
         isOpen={isPublishModalOpen}
-        onClose={() => setIsPublishModalOpen(false)}
-        changeSummary={changeSummary}
-        setChangeSummary={setChangeSummary}
-        onConfirm={() => {
-          onPublish(changeSummary.trim() || undefined);
-          setChangeSummary("");
+        onClose={() => {
+          setPublishError(null);
           setIsPublishModalOpen(false);
         }}
+        changeSummary={changeSummary}
+        setChangeSummary={setChangeSummary}
+        isPublishing={effectivePublishing}
+        publishError={publishError}
+        readinessReport={readinessReport}
+        onNavigateToFix={onSelectNavMode}
+        onConfirm={() => void handleConfirmPublish()}
       />
     </>
   );

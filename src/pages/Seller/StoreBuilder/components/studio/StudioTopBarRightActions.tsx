@@ -11,7 +11,7 @@ interface StudioTopBarRightActionsProps {
   shopSlug?: string;
   sellerId?: string;
   isPublished: boolean;
-  onSaveDraft?: () => void | Promise<unknown>;
+  onSaveDraft?: () => unknown | Promise<unknown>;
   onOpenHistory?: () => void;
   onOpenAudit?: () => void;
   onOpenCommandPalette?: () => void;
@@ -51,7 +51,7 @@ export const StudioTopBarRightActions: React.FC<StudioTopBarRightActionsProps> =
       return (
         <button
           type="button"
-          onClick={onSaveDraft}
+          onClick={() => { void onSaveDraft?.(); }}
           title="Sauvegarder les modifications"
           className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-sky-700 hover:text-sky-900 cursor-pointer whitespace-nowrap shrink-0"
         >
@@ -64,7 +64,7 @@ export const StudioTopBarRightActions: React.FC<StudioTopBarRightActionsProps> =
       return (
         <button
           type="button"
-          onClick={onSaveDraft}
+          onClick={() => { void onSaveDraft?.(); }}
           title="Cliquer pour relancer la sauvegarde"
           className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-rose-600 hover:text-rose-800 cursor-pointer whitespace-nowrap shrink-0"
         >

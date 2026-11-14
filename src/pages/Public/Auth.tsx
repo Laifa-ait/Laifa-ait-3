@@ -14,7 +14,7 @@ import { OlmaLogo } from "../../components/Navbar";
 import { apiGet } from "../../lib/api";
 
 export const Auth: React.FC = () => {
-  const { currentUser, signUpWithEmail, signInWithGoogle } = useAuth();
+  const { currentUser, userProfile, loading: authLoading, signUpWithEmail, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectPath = searchParams.get("redirect");
@@ -69,15 +69,15 @@ export const Auth: React.FC = () => {
     }
   }, [isLogin, registrationRules]);
 
-  // Redirection automatique si déjà connecté
+  // Redirection automatique si déjà connecté (après résolution du profil & rôle serveur)
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && !authLoading && userProfile) {
       const isPasswordUser = currentUser.providerData.some(p => p.providerId === "password");
       if (!currentUser.emailVerified && isPasswordUser) {
         navigate('/verify-email', { replace: true });
         return;
       }
-      
+
       if (redirectPath) {
         navigate(redirectPath, { replace: true });
         return;
@@ -85,7 +85,7 @@ export const Auth: React.FC = () => {
 
       navigate('/', { replace: true });
     }
-  }, [currentUser, navigate, redirectPath]);
+  }, [currentUser, authLoading, userProfile, navigate, redirectPath]);
 
   if (currentUser) {
     return (

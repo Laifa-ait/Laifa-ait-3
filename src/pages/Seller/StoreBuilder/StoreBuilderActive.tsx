@@ -32,9 +32,13 @@ export const StoreBuilderActive: React.FC<StoreBuilderActiveProps> = () => {
   const {
     loading,
     saveStatus,
+    isPublishing,
     storeConfig,
     sections,
     products,
+    catalogStatus,
+    catalogError,
+    reloadCatalog,
     historyList,
     mediaGallery,
     publishedLayout,
@@ -79,10 +83,14 @@ export const StoreBuilderActive: React.FC<StoreBuilderActiveProps> = () => {
     <div className="flex flex-col h-full bg-[#F6F7F9] overflow-hidden">
       <StudioWorkspace
         saveStatus={saveStatus}
+        isPublishing={isPublishing}
         storeConfig={storeConfig}
         publishedLayout={publishedLayout}
         sections={sections}
         products={products}
+        catalogStatus={catalogStatus}
+        catalogError={catalogError}
+        onReloadCatalog={reloadCatalog}
         historyList={historyList}
         mediaGallery={mediaGallery}
         onUploadMedia={uploadMedia}
@@ -96,9 +104,9 @@ export const StoreBuilderActive: React.FC<StoreBuilderActiveProps> = () => {
         duplicateSection={duplicateSection}
         toggleVisibility={toggleVisibility}
         saveStoreConfig={saveStoreConfig}
-        onSaveDraft={() => saveDraftNow()}
+        onSaveDraft={saveDraftNow}
         onReplaceSections={replaceSections}
-        publishStudio={(changeSummary) => void publishStudio(changeSummary)}
+        publishStudio={publishStudio}
         onRollback={(versionNumber) => void rollbackVersion(versionNumber)}
         onExitStudio={() => navigate("/dashboard/seller")}
         onOpenSponsorships={() => navigate("/dashboard/seller/sponsorships")}

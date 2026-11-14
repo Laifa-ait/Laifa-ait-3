@@ -19,7 +19,7 @@ interface PromoSlidesListEditorProps {
   products: Product[];
   onSettingsChange: (fieldOrPatch: string | Record<string, unknown>, value?: unknown) => void;
   updateRecordList: <T extends Record<string, unknown>>(field: string, index: number, patch: Partial<T>) => void;
-  onSaveStep?: () => void;
+  onSaveStep?: () => unknown | Promise<unknown>;
   inputClass: string;
 }
 
@@ -38,7 +38,7 @@ export const PromoSlidesListEditor: React.FC<PromoSlidesListEditorProps> = ({
 
   const [activeSlideIdx, setActiveSlideIdx] = useState<number>(0);
   const {
-    activeStep, unlockedStep, completedSteps, isExpert, justSavedStep,
+    activeStep, unlockedStep, completedSteps, isExpert, justSavedStep, isSavingStep, saveStepError,
     selectStep, goToPrevStep, saveAndAdvanceStep,
   } = useSectionStepProgress("promo", 3, sectionId);
 
@@ -204,6 +204,8 @@ export const PromoSlidesListEditor: React.FC<PromoSlidesListEditorProps> = ({
         activeStep={activeStep}
         totalSteps={3}
         justSavedStep={justSavedStep}
+        isSavingStep={isSavingStep}
+        saveStepError={saveStepError}
         saveTestId="promo-save-step-btn"
         onPrev={goToPrevStep}
         onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)}

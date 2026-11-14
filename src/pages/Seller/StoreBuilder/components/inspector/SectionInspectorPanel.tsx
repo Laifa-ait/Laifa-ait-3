@@ -3,7 +3,7 @@ import {
   Sliders, Type, SlidersHorizontal, Layout, Smartphone, Settings, ChevronRight, X,
 } from "lucide-react";
 import {
-  CustomPageSection, CustomPageSectionStyles, CustomPageTheme,
+  CustomPageSection, CustomPageSectionStyles, CustomPageTheme, SellerStoreConfig,
 } from "../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../domains/product/product.types";
 import { SectionContentTab } from "./SectionContentTab";
@@ -23,13 +23,14 @@ interface SectionInspectorPanelProps {
   section: CustomPageSection | null;
   sections?: CustomPageSection[];
   products: Product[];
+  storeConfig?: SellerStoreConfig | null;
   currentTheme?: CustomPageTheme;
   onUpdateSection: (sectionId: string, updates: Partial<CustomPageSection>) => void;
-  onSaveStep?: () => void;
+  onSaveStep?: () => unknown | Promise<unknown>;
 }
 
 export const SectionInspectorPanel: React.FC<SectionInspectorPanelProps> = ({
-  section, sections = [], products, currentTheme, onUpdateSection, onSaveStep,
+  section, sections = [], products, storeConfig, currentTheme, onUpdateSection, onSaveStep,
 }) => {
   const activeTab = useStudioStore((s) => s.activeInspectorTab);
   const setActiveTab = useStudioStore((s) => s.setActiveInspectorTab);
@@ -175,6 +176,7 @@ export const SectionInspectorPanel: React.FC<SectionInspectorPanelProps> = ({
             settings={settings}
             sections={sections}
             products={products}
+            storeConfig={storeConfig}
             onSettingsChange={handleSettingsChange}
             onSaveStep={onSaveStep}
           />

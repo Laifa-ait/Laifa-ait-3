@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ArrowRight, Check, Lock } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Check, Loader2, Lock } from "lucide-react";
 
 export interface StepDefinition {
   id: number;
@@ -92,6 +92,8 @@ interface StepWizardFooterProps {
   activeStep: number;
   totalSteps: number;
   justSavedStep?: number | null;
+  isSavingStep?: boolean;
+  saveStepError?: string | null;
   saveTestId?: string;
   onPrev: () => void;
   onSaveAndNext: () => void;
@@ -101,6 +103,8 @@ export const StepWizardFooter: React.FC<StepWizardFooterProps> = ({
   activeStep,
   totalSteps,
   justSavedStep,
+  isSavingStep = false,
+  saveStepError = null,
   saveTestId = "step-save-and-continue-btn",
   onPrev,
   onSaveAndNext,
@@ -109,7 +113,18 @@ export const StepWizardFooter: React.FC<StepWizardFooterProps> = ({
 
   return (
     <div className="pt-3 mt-3 border-t border-slate-200 space-y-2 select-none">
-      {justSavedStep !== null && justSavedStep !== undefined && (
+      {saveStepError && (
+        <div
+          role="alert"
+          data-testid="step-save-error"
+          className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-[11.5px] font-medium text-rose-700 flex items-start gap-1.5"
+        >
+          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          <span>{saveStepError}</span>
+        </div>
+      )}
+
+      {justSavedStep !== null && justSavedStep !== undefined && !saveStepError && (
         <div
           data-testid="step-saved-confirmation"
           className="text-[11.5px] font-medium text-emerald-700 flex items-center gap-1.5"
@@ -127,9 +142,10 @@ export const StepWizardFooter: React.FC<StepWizardFooterProps> = ({
         {activeStep > 1 && (
           <button
             type="button"
+            disabled={isSavingStep}
             data-testid="step-prev-btn"
             onClick={onPrev}
-            className="h-9 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[12px] font-medium flex items-center gap-1 shrink-0 cursor-pointer transition-colors whitespace-nowrap"
+            className="h-9 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-700 text-[12px] font-medium flex items-center gap-1 shrink-0 cursor-pointer transition-colors whitespace-nowrap"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Précédent</span>
@@ -138,11 +154,17 @@ export const StepWizardFooter: React.FC<StepWizardFooterProps> = ({
 
         <button
           type="button"
+          disabled={isSavingStep}
           data-testid={saveTestId}
           onClick={onSaveAndNext}
-          className="flex-1 h-9 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[12px] font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+          className="flex-1 h-9 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white text-[12px] font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
         >
-          {isFinalStep ? (
+          {isSavingStep ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+              <span>Enregistrement...</span>
+            </>
+          ) : isFinalStep ? (
             <>
               <Check className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">Enregistrer l&apos;étape finale</span>
@@ -158,3 +180,4 @@ export const StepWizardFooter: React.FC<StepWizardFooterProps> = ({
     </div>
   );
 };
+

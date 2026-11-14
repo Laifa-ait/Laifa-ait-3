@@ -29,7 +29,7 @@ export default tseslint.config(
     rules: {
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
@@ -156,8 +156,24 @@ export default tseslint.config(
         "src/pages/Public/OlmaBricolage.tsx",
         "src/components/OlmaImmo/SearchFilters.tsx",
         "src/pages/OlmaImmo/**",
-        "src/components/Store/**",
-        "src/pages/Seller/StoreBuilder/**"
+        "src/components/Store/**"
+    ],
+    rules: {
+      "max-lines": "off"
+    }
+  },
+  // Gouvernance stricte StoreBuilder (< 250 lignes par fichier source .ts/.tsx)
+  {
+    files: ["src/pages/Seller/StoreBuilder/**/*.{ts,tsx}"],
+    rules: {
+      "max-lines": ["error", { "max": 250, "skipBlankLines": true, "skipComments": true }]
+    }
+  },
+  // Exceptions individuelles documentées : catalogues statiques de données/presets visuels (sans logique)
+  {
+    files: [
+      "src/pages/Seller/StoreBuilder/components/context/themeArchetypes.ts",
+      "src/pages/Seller/StoreBuilder/constants/artisticStudioPresets.ts"
     ],
     rules: {
       "max-lines": "off"

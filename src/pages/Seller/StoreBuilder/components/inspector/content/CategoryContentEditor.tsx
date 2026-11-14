@@ -19,7 +19,7 @@ interface CategoryContentEditorProps {
     fieldOrPatch: string | Record<string, unknown>,
     value?: unknown
   ) => void;
-  onSaveStep?: () => void;
+  onSaveStep?: () => unknown | Promise<unknown>;
   inputClass: string;
 }
 
@@ -47,6 +47,8 @@ export const CategoryContentEditor: React.FC<CategoryContentEditorProps> = ({
     completedSteps,
     isExpert,
     justSavedStep,
+    isSavingStep,
+    saveStepError,
     selectStep,
     goToPrevStep,
     saveAndAdvanceStep,
@@ -194,6 +196,8 @@ export const CategoryContentEditor: React.FC<CategoryContentEditorProps> = ({
         activeStep={activeStep}
         totalSteps={4}
         justSavedStep={justSavedStep}
+        isSavingStep={isSavingStep}
+        saveStepError={saveStepError}
         saveTestId="category-save-step-btn"
         onPrev={goToPrevStep}
         onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)}

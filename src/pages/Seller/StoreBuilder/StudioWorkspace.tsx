@@ -2,12 +2,11 @@ import React, { useState } from "react";
 import "./studio-tokens.css";
 import { StudioTopBar } from "./components/studio/StudioTopBar";
 import { StudioColumnsLayout } from "./components/studio/StudioColumnsLayout";
-import { MobileStudioHeader } from "./components/studio/MobileStudioHeader";
-import { MobileStudioNavigation, MobileStudioColumn } from "./components/studio/MobileStudioNavigation";
-import { StudioMobileMenu } from "./components/studio/StudioMobileMenu";
+import { MobileStudioColumn } from "./components/studio/MobileStudioNavigation";
+import { MobileStudioBar } from "./components/studio/MobileStudioBar";
 import { StudioCommandPalette } from "./components/studio/StudioCommandPalette";
 import { StudioNavMode } from "./components/studio/studio.types";
-import { SaveStatus } from "./hooks/useSellerStudio";
+import { SaveStatus, CatalogLoadStatus } from "./hooks/useSellerStudio";
 import { useStudioWorkspaceEvents } from "./hooks/useStudioWorkspaceEvents";
 import { applyMediaToSection } from "./utils/studioMediaHandler";
 import { useStudioStore } from "./store/useStudioStore";
@@ -19,10 +18,14 @@ import { Product } from "../../../domains/product/product.types";
 
 interface StudioWorkspaceProps {
   saveStatus: SaveStatus;
+  isPublishing?: boolean;
   storeConfig?: SellerStoreConfig | null;
   publishedLayout?: StoreLayoutVersion | null;
   sections: CustomPageSection[];
   products?: Product[];
+  catalogStatus?: CatalogLoadStatus;
+  catalogError?: string | null;
+  onReloadCatalog?: () => void | Promise<void>;
   historyList?: StoreHistoryEntry[];
   mediaGallery?: MediaGalleryItem[];
   onUploadMedia?: (file: File) => Promise<MediaGalleryItem>;
@@ -36,8 +39,8 @@ interface StudioWorkspaceProps {
   duplicateSection?: (id: string) => void;
   toggleVisibility: (id: string) => void;
   saveStoreConfig: (updatedConfig: Partial<SellerStoreConfig>) => Promise<void>;
-  onSaveDraft?: () => void | Promise<unknown>;
-  publishStudio: (changeSummary?: string) => void;
+  onSaveDraft?: () => unknown | Promise<unknown>;
+  publishStudio: (changeSummary?: string) => boolean | void | Promise<boolean | void>;
   onRollback?: (versionNumber: number) => void;
   onReplaceSections?: (sections: CustomPageSection[]) => void;
   onExitStudio?: () => void;
@@ -50,7 +53,8 @@ interface StudioWorkspaceProps {
 
 export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
   const {
-    saveStatus, storeConfig, publishedLayout, sections, products = [],
+    saveStatus, isPublishing = false, storeConfig, publishedLayout, sections, products = [],
+    catalogStatus, catalogError, onReloadCatalog,
     historyList = [], mediaGallery = [], onUploadMedia, onDeleteMedia,
     selectedSectionId, setSelectedSectionId, addSection, updateSection,
     reorderSections, deleteSection, duplicateSection, toggleVisibility,
@@ -71,7 +75,6 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
     studioExperienceMode === "guided" ? "identity" : "sections"
   );
   const [mobileColumn, setMobileColumn] = useState<MobileStudioColumn>("canvas");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [liveThemeOverride, setLiveThemeOverride] = useState<CustomPageTheme | null>(null);
   const [liveStorePatch, setLiveStorePatch] = useState<Partial<SellerStoreConfig> | null>(null);
   const [showLeftSidebar, setShowLeftSidebar] = useState<boolean>(true);
@@ -165,15 +168,21 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
           shopSlug={effectiveStoreConfig?.shopSlug}
           sellerId={effectiveStoreConfig?.sellerId}
           isPublished={isPublished}
+          isPublishing={isPublishing}
           versionNumber={publishedLayout?.versionNumber}
           sectionCount={sections.length}
           productCount={products.length}
+          sections={sections}
+          products={products}
+          catalogStatus={catalogStatus}
+          storeConfig={effectiveStoreConfig}
+          onSelectNavMode={handleSelectNavMode}
           historyList={historyList}
           previewMode={isInteractiveMode ? "preview" : "edit"}
           onPreviewModeChange={(mode) => setIsInteractiveMode(mode === "preview")}
           onOpenAudit={() => window.dispatchEvent(new CustomEvent("studio:open-audit"))}
           onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-          onSaveDraft={() => onSaveDraft?.()}
+          onSaveDraft={onSaveDraft}
           onPublish={publishStudio}
           onRollback={onRollback}
           onExitStudio={onExitStudio}
@@ -185,12 +194,27 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
         />
       </div>
 
-      <div className="block md:hidden shrink-0">
-        <MobileStudioHeader shopName={effectiveStoreConfig?.shopName || "Ma Boutique"} isPublished={isPublished} onPublish={() => publishStudio()} onOpenMenu={() => setIsMobileMenuOpen(true)} onExitStudio={onExitStudio} />
-        <MobileStudioNavigation mobileColumn={mobileColumn} setMobileColumn={setMobileColumn} sectionCount={sections.length} />
-      </div>
-
-      <StudioMobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} navMode={navMode} onSelectNavMode={handleSelectNavMode} shopName={effectiveStoreConfig?.shopName} />
+      <MobileStudioBar
+        shopName={effectiveStoreConfig?.shopName || "Ma Boutique"}
+        isPublished={isPublished}
+        isPublishing={isPublishing}
+        saveStatus={saveStatus}
+        canUndo={Boolean(canUndo)}
+        canRedo={Boolean(canRedo)}
+        onUndo={() => undo?.()}
+        onRedo={() => redo?.()}
+        mobileColumn={mobileColumn}
+        setMobileColumn={setMobileColumn}
+        navMode={navMode}
+        onSelectNavMode={handleSelectNavMode}
+        sections={sections}
+        products={products}
+        catalogStatus={catalogStatus}
+        storeConfig={effectiveStoreConfig}
+        onSaveDraft={onSaveDraft}
+        onPublish={publishStudio}
+        onExitStudio={onExitStudio}
+      />
 
       <StudioColumnsLayout
         mobileColumn={mobileColumn} showLeftSidebar={showLeftSidebar} showRightSidebar={showRightSidebar}
@@ -198,7 +222,8 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
         setSelectedSectionId={handleSelectSection} setNavMode={setNavMode} setShowRightSidebar={setShowRightSidebar}
         setMobileColumn={setMobileColumn} reorderSections={reorderSections} toggleVisibility={toggleVisibility}
         deleteSection={deleteSection} duplicateSection={duplicateSection} addSection={addSection}
-        currentTheme={currentTheme} products={products} storeConfig={effectiveStoreConfig}
+        currentTheme={currentTheme} products={products} catalogStatus={catalogStatus} catalogError={catalogError}
+        onReloadCatalog={onReloadCatalog} storeConfig={effectiveStoreConfig}
         viewport={viewport} setViewport={setViewport} setShowLeftSidebar={setShowLeftSidebar}
         selectedSection={selectedSection} mediaGallery={mediaGallery} handleSelectMediaUrl={handleSelectMediaUrl}
         onUploadMedia={onUploadMedia} onDeleteMedia={onDeleteMedia} updateSection={updateSection}
@@ -214,7 +239,7 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
         onToggleInteractiveMode={toggleInteractiveMode} isInteractiveMode={isInteractiveMode}
         onOpenAuditModal={() => window.dispatchEvent(new CustomEvent("studio:open-audit"))}
         onOpenQrModal={() => window.dispatchEvent(new CustomEvent("studio:open-qr"))}
-        onPublish={() => publishStudio()} onUndo={undo} onRedo={redo}
+        onPublish={() => { void publishStudio(); }} onUndo={undo} onRedo={redo}
         canUndo={canUndo} canRedo={canRedo} onSelectNavMode={handleSelectNavMode}
       />
     </div>

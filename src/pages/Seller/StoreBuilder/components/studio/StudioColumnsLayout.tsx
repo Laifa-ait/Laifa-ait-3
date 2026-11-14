@@ -4,6 +4,7 @@ import { StudioPreview } from "./StudioPreview";
 import { PropertiesInspector } from "./PropertiesInspector";
 import { StudioNavMode } from "./studio.types";
 import { MobileStudioColumn } from "./MobileStudioNavigation";
+import { CatalogLoadStatus } from "../../hooks/studioCatalogLoader";
 import {
   CustomPageSection,
   CustomPageSectionType,
@@ -32,6 +33,9 @@ interface StudioColumnsLayoutProps {
   addSection: (type: CustomPageSectionType, settings: Record<string, unknown>, title?: string) => void;
   currentTheme: CustomPageTheme;
   products: Product[];
+  catalogStatus?: CatalogLoadStatus;
+  catalogError?: string | null;
+  onReloadCatalog?: () => void | Promise<void>;
   storeConfig?: SellerStoreConfig | null;
   viewport: "mobile" | "tablet" | "desktop";
   setViewport: (vp: "mobile" | "tablet" | "desktop") => void;
@@ -48,7 +52,7 @@ interface StudioColumnsLayoutProps {
   saveStoreConfig: (config: Partial<SellerStoreConfig>) => Promise<void>;
   handleApplyFullArchetype: (sections: CustomPageSection[], theme: CustomPageTheme) => Promise<void>;
   onReplaceSections?: (sections: CustomPageSection[]) => void;
-  onSaveDraft?: () => void;
+  onSaveDraft?: () => unknown | Promise<unknown>;
 }
 
 export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
@@ -70,6 +74,9 @@ export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
   addSection,
   currentTheme,
   products,
+  catalogStatus,
+  catalogError,
+  onReloadCatalog,
   storeConfig,
   viewport,
   setViewport,
@@ -157,6 +164,9 @@ export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
           selectedSection={selectedSection}
           sections={sections}
           products={products}
+          catalogStatus={catalogStatus}
+          catalogError={catalogError}
+          onReloadCatalog={onReloadCatalog}
           storeConfig={storeConfig}
           currentTheme={currentTheme}
           mediaGallery={mediaGallery}

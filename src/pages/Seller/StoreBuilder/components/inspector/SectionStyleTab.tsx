@@ -26,7 +26,7 @@ interface SectionStyleTabProps {
     fieldOrPatch: string | Record<string, unknown>,
     value?: unknown
   ) => void;
-  onSaveStep?: () => void;
+  onSaveStep?: () => unknown | Promise<unknown>;
 }
 
 const STYLE_STEP_DEFS: StepDefinition[] = [
@@ -52,6 +52,8 @@ export const SectionStyleTab: React.FC<SectionStyleTabProps> = ({
     completedSteps,
     isExpert,
     justSavedStep,
+    isSavingStep,
+    saveStepError,
     selectStep,
     goToPrevStep,
     saveAndAdvanceStep,
@@ -182,6 +184,8 @@ export const SectionStyleTab: React.FC<SectionStyleTabProps> = ({
         activeStep={activeStep}
         totalSteps={4}
         justSavedStep={justSavedStep}
+        isSavingStep={isSavingStep}
+        saveStepError={saveStepError}
         saveTestId="style-save-step-btn"
         onPrev={goToPrevStep}
         onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)}

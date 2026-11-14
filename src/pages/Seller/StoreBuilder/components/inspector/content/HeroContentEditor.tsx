@@ -35,7 +35,7 @@ interface HeroContentEditorProps {
   activeSubElement?: HeroSubElement | null;
   onSelectSubElement?: (sub: HeroSubElement | null) => void;
   onSettingsChange: (fieldOrPatch: string | Record<string, unknown>, value?: unknown) => void;
-  onSaveStep?: () => void;
+  onSaveStep?: () => unknown | Promise<unknown>;
 }
 
 const HERO_STEP_DEFS: StepDefinition[] = [
@@ -55,7 +55,7 @@ export const HeroContentEditor: React.FC<HeroContentEditorProps> = ({
   const [pendingAdaptation, setPendingAdaptation] = useState<HeroDeviceMeasureConfig | null>(null);
 
   const {
-    activeStep, unlockedStep, completedSteps, isExpert, justSavedStep,
+    activeStep, unlockedStep, completedSteps, isExpert, justSavedStep, isSavingStep, saveStepError,
     selectStep, goToPrevStep, saveAndAdvanceStep,
   } = useSectionStepProgress("hero", 4, sectionId);
 
@@ -186,6 +186,8 @@ export const HeroContentEditor: React.FC<HeroContentEditorProps> = ({
         activeStep={activeStep}
         totalSteps={4}
         justSavedStep={justSavedStep}
+        isSavingStep={isSavingStep}
+        saveStepError={saveStepError}
         saveTestId="hero-save-step-btn"
         onPrev={goToPrevStep}
         onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)}

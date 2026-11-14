@@ -18,7 +18,7 @@ interface ProductSelectionEditorProps {
     fieldOrPatch: string | Record<string, unknown>,
     value?: unknown
   ) => void;
-  onSaveStep?: () => void;
+  onSaveStep?: () => unknown | Promise<unknown>;
   inputClass: string;
   labelClass: string;
 }
@@ -47,6 +47,8 @@ export const ProductSelectionEditor: React.FC<ProductSelectionEditorProps> = ({
     completedSteps,
     isExpert,
     justSavedStep,
+    isSavingStep,
+    saveStepError,
     selectStep,
     goToPrevStep,
     saveAndAdvanceStep,
@@ -221,6 +223,8 @@ export const ProductSelectionEditor: React.FC<ProductSelectionEditorProps> = ({
         activeStep={activeStep}
         totalSteps={4}
         justSavedStep={justSavedStep}
+        isSavingStep={isSavingStep}
+        saveStepError={saveStepError}
         saveTestId="product-save-step-btn"
         onPrev={goToPrevStep}
         onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)}
