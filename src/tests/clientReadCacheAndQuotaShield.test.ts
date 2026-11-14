@@ -30,14 +30,14 @@ describe("Enterprise Multi-Tier Read Shield & Quota Protection", () => {
     const fetcher = vi.fn().mockResolvedValue({ products: [{ id: "p1", name: "Caftan" }] });
 
     // Initial load
-    const first = await fetchWithClientCache("home:data:v1", fetcher, 300_000);
+    const first = await fetchWithClientCache<{ products: Array<{ id: string; name: string }> }>("home:data:v1", fetcher, 300_000);
     expect(first.products).toHaveLength(1);
     expect(fetcher).toHaveBeenCalledTimes(1);
 
     // Simulate 5 consecutive F5 page refreshes (clearing L1 RAM cache while keeping L2 sessionStorage)
     for (let i = 0; i < 5; i++) {
       clearClientMemoryCacheOnly();
-      const refreshed = await fetchWithClientCache("home:data:v1", fetcher, 300_000);
+      const refreshed = await fetchWithClientCache<{ products: Array<{ id: string; name: string }> }>("home:data:v1", fetcher, 300_000);
       expect(refreshed).toEqual(first);
     }
 

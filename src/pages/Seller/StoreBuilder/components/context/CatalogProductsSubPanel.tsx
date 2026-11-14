@@ -28,7 +28,7 @@ export const CatalogProductsSubPanel: React.FC<CatalogProductsSubPanelProps> = (
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return (
-      (p.title || p.name || "").toLowerCase().includes(q) ||
+      (p.name || "").toLowerCase().includes(q) ||
       (p.category || "").toLowerCase().includes(q)
     );
   });
@@ -88,7 +88,7 @@ export const CatalogProductsSubPanel: React.FC<CatalogProductsSubPanelProps> = (
                   {thumb ? (
                     <img
                       src={thumb}
-                      alt={p.title || p.name}
+                      alt={p.name}
                       className="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0"
                     />
                   ) : (
@@ -98,7 +98,7 @@ export const CatalogProductsSubPanel: React.FC<CatalogProductsSubPanelProps> = (
                   )}
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-slate-900 truncate">
-                      {p.title || p.name}
+                      {p.name}
                     </p>
                     <p className="text-[11px] font-medium text-slate-500 tabular-nums">
                       {Number(p.price || 0).toLocaleString("fr-DZ")} DA

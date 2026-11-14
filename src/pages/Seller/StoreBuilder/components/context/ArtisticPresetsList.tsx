@@ -18,7 +18,7 @@ export const ArtisticPresetsList: React.FC<ArtisticPresetsListProps> = ({
     {ARTISTIC_STUDIO_PRESETS.map((preset) => {
       const pt = preset.theme;
       const isMatched =
-        theme.canvasColor?.toLowerCase() === pt.canvasColor.toLowerCase() &&
+        theme.canvasColor?.toLowerCase() === (pt.canvasColor || "").toLowerCase() &&
         theme.primaryColor?.toLowerCase() === pt.primaryColor.toLowerCase() &&
         theme.sector === pt.sector;
 
@@ -64,7 +64,7 @@ export const ArtisticPresetsList: React.FC<ArtisticPresetsListProps> = ({
               style={{
                 backgroundColor: pt.surfaceColor,
                 borderColor: pt.borderColor || "#E5E7EB",
-                borderRadius: `${Math.min(10, pt.borderRadiusPx)}px`,
+                borderRadius: `${Math.min(10, pt.borderRadiusPx ?? 8)}px`,
               }}
             >
               <span className="text-[10px] font-bold tabular-nums" style={{ color: pt.priceColor || pt.primaryColor }}>
@@ -75,7 +75,7 @@ export const ArtisticPresetsList: React.FC<ArtisticPresetsListProps> = ({
                 style={{
                   backgroundColor: pt.buttonColor || pt.primaryColor,
                   color: pt.buttonTextColor || "#FFFFFF",
-                  borderRadius: `${Math.min(6, pt.borderRadiusPx)}px`,
+                  borderRadius: `${Math.min(6, pt.borderRadiusPx ?? 6)}px`,
                 }}
               >
                 {isMatched ? "Actif" : "Choisir"}

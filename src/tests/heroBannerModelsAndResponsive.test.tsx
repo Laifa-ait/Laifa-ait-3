@@ -29,14 +29,14 @@ const SAMPLE_PRODUCTS: Product[] = [
     image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800",
     images: ["https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800"],
     category: "Haute Couture", description: "Fait main à Alger", stock: 5, rating: 5,
-    sellerId: "seller_01", sellerName: "Maison Casbah", status: "active",
+    sellerId: "seller_01", sellerName: "Maison Casbah", wilaya: "Alger", status: "active",
   },
   {
     id: "prod_hero_2", name: "Parure Khit Errouh Artisanal", price: 12000,
     image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800",
     images: ["https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800"],
     category: "Bijoux", description: "Argent doré", stock: 8, rating: 4.9,
-    sellerId: "seller_01", sellerName: "Maison Casbah", status: "active",
+    sellerId: "seller_01", sellerName: "Maison Casbah", wilaya: "Alger", status: "active",
   },
 ];
 

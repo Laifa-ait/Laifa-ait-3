@@ -41,6 +41,7 @@ const SAMPLE_PRODUCT: Product = {
   rating: 4.8,
   sellerId: "seller_01",
   sellerName: "Atelier Alger",
+  wilaya: "Alger",
   status: "active",
   translations: {
     ar: { name: "كرسي مهندس مخملي", description: "تصميم معاصر" },
@@ -51,7 +52,7 @@ const SAMPLE_PRODUCT: Product = {
 const SAMPLE_SPONSORED: PublicSponsoredProductDTO = {
   campaignId: "camp_1",
   placement: "home",
-  product: SAMPLE_PRODUCT,
+  product: SAMPLE_PRODUCT as unknown as PublicSponsoredProductDTO["product"],
 };
 
 const SAMPLE_MOBILE_CATEGORIES = [
@@ -98,9 +99,9 @@ describe("Audit Page d'Accueil & Layout — Zéro Code Dur, Traductions Trilingu
       expect(enKeys).toEqual(frKeys);
 
       for (const key of frKeys) {
-        expect(dict.fr[key].trim().length).toBeGreaterThan(0);
-        expect(dict.ar[key].trim().length).toBeGreaterThan(0);
-        expect(dict.en[key].trim().length).toBeGreaterThan(0);
+        expect((dict.fr as Record<string, string>)[key].trim().length).toBeGreaterThan(0);
+        expect((dict.ar as Record<string, string>)[key].trim().length).toBeGreaterThan(0);
+        expect((dict.en as Record<string, string>)[key].trim().length).toBeGreaterThan(0);
       }
     }
   });
@@ -131,9 +132,8 @@ describe("Audit Page d'Accueil & Layout — Zéro Code Dur, Traductions Trilingu
             <SponsoredProductCard item={SAMPLE_SPONSORED} />
             <FooterBottomBar supportEmail="contact@olmart.dz" />
             <MobileUserCard
-              user={null}
-              isAdmin={false}
-              isSeller={false}
+              currentUser={null}
+              userProfile={null}
               onClose={() => {}}
               onNavigate={() => {}}
             />
@@ -190,9 +190,8 @@ describe("Audit Page d'Accueil & Layout — Zéro Code Dur, Traductions Trilingu
             <SponsoredProductCard item={SAMPLE_SPONSORED} />
             <FooterBottomBar supportEmail="contact@olmart.dz" />
             <MobileUserCard
-              user={null}
-              isAdmin={false}
-              isSeller={false}
+              currentUser={null}
+              userProfile={null}
               onClose={() => {}}
               onNavigate={() => {}}
             />

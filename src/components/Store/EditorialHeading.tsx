@@ -185,19 +185,21 @@ interface EditorialDropCapParagraphProps {
   accentColor?: string;
   theme?: CustomPageTheme;
   className?: string;
+  style?: React.CSSProperties;
   onClick?: (e: React.MouseEvent) => void;
   isEditable?: boolean;
   editConfig?: InlineEditConfig;
 }
 
 export const EditorialDropCapParagraph: React.FC<EditorialDropCapParagraphProps> = ({
-  text, dropCap, accentColor = "#C59B27", theme, className = "", onClick, isEditable = false, editConfig,
+  text, dropCap, accentColor = "#C59B27", theme, className = "", style, onClick, isEditable = false, editConfig,
 }) => {
   const trimmed = (text || "").trim();
   const isArabic = ARABIC_CHAR_REGEX.test(trimmed);
   const bodyStyle: React.CSSProperties = {
     fontFamily: theme?.bodyFontFamily || theme?.fontFamily || "var(--store-font-body, inherit)",
     fontSize: typeof theme?.bodyFontSizePx === "number" ? `${theme.bodyFontSizePx}px` : undefined,
+    ...style,
   };
 
   if (isEditable && editConfig) {

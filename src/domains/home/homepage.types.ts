@@ -44,6 +44,7 @@ export interface HomepageSection {
     | "sellers"
     | "collections";
   orderIndex: number;
+  sort_order?: number;
   isActive: boolean;
   is_active?: boolean;
   startDate?: AppTimestamp;
@@ -52,6 +53,7 @@ export interface HomepageSection {
   targetRegions?: string[];
   title?: string;
   subtitle?: string;
+  translations?: Record<string, { title?: string; subtitle?: string }>;
   icon?: string;
   layout?: "compact" | "standard" | "large" | "minimal" | "small";
   backgroundColor?: string;

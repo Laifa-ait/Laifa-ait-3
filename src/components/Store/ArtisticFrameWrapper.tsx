@@ -160,6 +160,7 @@ interface ArtisticFrameWrapperProps {
   accentColor?: string;
   fallbackRadiusClass?: string;
   className?: string;
+  style?: React.CSSProperties;
   children: React.ReactNode;
 }
 
@@ -170,6 +171,7 @@ export const ArtisticFrameWrapper: React.FC<ArtisticFrameWrapperProps> = ({
   accentColor,
   fallbackRadiusClass = "rounded-2xl",
   className = "",
+  style,
   children,
 }) => {
   const effectiveShape = resolveEffectiveFrameShape(theme, shape);
@@ -184,7 +186,7 @@ export const ArtisticFrameWrapper: React.FC<ArtisticFrameWrapperProps> = ({
   return (
     <div
       className={`relative group/frame ${visuals.outerClassName} ${className}`}
-      style={visuals.outerStyle}
+      style={{ ...visuals.outerStyle, ...style }}
       data-artistic-frame={effectiveShape}
     >
       <div

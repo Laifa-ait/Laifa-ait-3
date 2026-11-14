@@ -78,7 +78,7 @@ describe("Bouclier Cyber-Sécurité Studio & Vitrine (Anti-Hacker Defense Suite)
         accentColor: "#D97706",
         fontFamily: "Inter",
       },
-      seo: {},
+      seo: { metaTitle: "Atelier Oran", metaDescription: "Haute Couture" },
       storeStatus: {
         mode: "password",
         vacationMessage: "Ouverture VIP ce soir à 20h",
@@ -95,8 +95,8 @@ describe("Bouclier Cyber-Sécurité Studio & Vitrine (Anti-Hacker Defense Suite)
     const publicView = redactStoreConfigForPublic(fullStoreConfig);
     expect(publicView.storeStatus?.mode).toBe("password");
     expect(publicView.storeStatus?.isPasswordProtected).toBe(true);
-    expect((publicView.storeStatus as Record<string, unknown>).passwordProtectionCode).toBeUndefined();
-    expect((publicView.storeStatus as Record<string, unknown>).storefrontPassword).toBeUndefined();
+    expect((publicView.storeStatus as unknown as Record<string, unknown>).passwordProtectionCode).toBeUndefined();
+    expect((publicView.storeStatus as unknown as Record<string, unknown>).storefrontPassword).toBeUndefined();
     expect(publicView.customPages?.length).toBe(1);
     expect(publicView.customPages?.[0].slug).toBe("publique");
 

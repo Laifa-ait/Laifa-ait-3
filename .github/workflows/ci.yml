@@ -203,7 +203,7 @@ jobs:
   cloud-run-health-check:
     name: "Post-Deployment Cloud Run Health & Live E2E Verification"
     needs: [lint-typecheck-test-build, docker-build-verification, firestore-concurrency-emulator, e2e-tests]
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !cancelled() }}
+    if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     environment: staging-e2e
     env:

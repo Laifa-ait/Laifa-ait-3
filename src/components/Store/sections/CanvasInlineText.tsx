@@ -13,11 +13,13 @@ interface CanvasInlineTextProps {
   as?: "span" | "p" | "div" | "h1" | "h2" | "h3" | "h4";
   multiline?: boolean;
   isEditable?: boolean;
+  isSelected?: boolean;
   editConfig?: InlineEditConfig;
   className?: string;
   style?: React.CSSProperties;
   dir?: "rtl" | "ltr";
   onClick?: (e: React.MouseEvent) => void;
+  onChange?: (val: string) => void;
 }
 
 export function emitSectionSettingPatch(
@@ -49,6 +51,7 @@ export const CanvasInlineText: React.FC<CanvasInlineTextProps> = ({
   style,
   dir,
   onClick,
+  onChange,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [draftValue, setDraftValue] = useState(value);
@@ -72,8 +75,11 @@ export const CanvasInlineText: React.FC<CanvasInlineTextProps> = ({
     const trimmed = draftValue.trim();
     const finalVal = trimmed.length > 0 ? draftValue : value;
     setDraftValue(finalVal);
-    if (editConfig && finalVal !== value) {
-      emitSectionSettingPatch(editConfig, finalVal);
+    if (finalVal !== value) {
+      onChange?.(finalVal);
+      if (editConfig) {
+        emitSectionSettingPatch(editConfig, finalVal);
+      }
     }
   };
 
@@ -82,7 +88,7 @@ export const CanvasInlineText: React.FC<CanvasInlineTextProps> = ({
     setDraftValue(value);
   };
 
-  if (isEditable && editConfig && isEditing) {
+  if ((isEditable || Boolean(onChange)) && (editConfig || Boolean(onChange)) && isEditing) {
     const sharedProps = {
       value: draftValue,
       dir,
@@ -96,7 +102,10 @@ export const CanvasInlineText: React.FC<CanvasInlineTextProps> = ({
       onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const next = e.target.value;
         setDraftValue(next);
-        emitSectionSettingPatch(editConfig, next);
+        onChange?.(next);
+        if (editConfig) {
+          emitSectionSettingPatch(editConfig, next);
+        }
       },
       onBlur: commitChange,
       onKeyDown: (e: React.KeyboardEvent) => {

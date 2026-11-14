@@ -103,8 +103,8 @@ export const SectionHeroBanner: React.FC<SectionHeroBannerProps> = ({
   };
 
   const sectionOpacity =
-    typeof (section.settings as Record<string, unknown>)?.sectionOpacity === "number"
-      ? Number((section.settings as Record<string, unknown>).sectionOpacity)
+    typeof (section.settings as unknown as Record<string, unknown>)?.sectionOpacity === "number"
+      ? Number((section.settings as unknown as Record<string, unknown>).sectionOpacity)
       : 100;
 
   const profile = resolveHeroDeviceProfile(settings, previewViewport);

@@ -56,7 +56,7 @@ export const CategoryCanvasQuickBar: React.FC<CategoryCanvasQuickBarProps> = ({
   textPosition,
   onTriggerSubTab,
 }) => {
-  const setPreviewViewport = useStudioStore((s) => s.setPreviewViewport);
+  const setPreviewViewport = useStudioStore((s) => s.setViewport);
   const caps = getCategoryLayoutCapabilities(activeLayout, textPosition, showTitle);
   const dispatchPatch = (patch: Record<string, unknown>) => {
     window.dispatchEvent(new CustomEvent("studio:patch-section-settings", { detail: { sectionId, patch } }));

@@ -5,6 +5,7 @@ export type CategoryDeviceViewport = "desktop" | "tablet" | "mobile";
 export interface CategoryItem {
   id: string;
   name: string;
+  title?: string;
   subtitle?: string;
   imageUrl?: string;
   imagePosition?: CategoryImagePosition;

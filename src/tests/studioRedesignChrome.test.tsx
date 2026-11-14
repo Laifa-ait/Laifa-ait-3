@@ -40,7 +40,15 @@ describe("Studio Redesign Chrome, Section Filter & Catalog Page Wiring", () => {
     const onOpenAudit = vi.fn();
     const onOpenCommandPalette = vi.fn();
     const historyList: StoreHistoryEntry[] = [
-      { versionNumber: 4, publishedAt: "2026-11-12T10:00:00.000Z", changeSummary: "Refonte bannière d'automne", sectionsCount: 5 },
+      {
+        versionId: "v4",
+        versionNumber: 4,
+        sellerId: "seller_1",
+        snapshot: { versionNumber: 4, sections: [], status: "published", updatedAt: "2026-11-12T10:00:00.000Z" },
+        publishedAt: "2026-11-12T10:00:00.000Z",
+        changeSummary: "Refonte bannière d'automne",
+        sectionsCount: 5,
+      },
     ];
 
     const { container, unmount } = mount(
@@ -136,6 +144,8 @@ describe("Studio Redesign Chrome, Section Filter & Catalog Page Wiring", () => {
       sellerId: "seller_1",
       shopName: "Atelier Casbah",
       shopSlug: "atelier-casbah",
+      theme: { sector: "mode", primaryColor: "#111827", secondaryColor: "#374151", accentColor: "#D97706", fontFamily: "Inter" },
+      seo: { metaTitle: "Atelier Casbah", metaDescription: "Haute couture" },
       collectionPageConfig: { headerStyle: "hero-image", columnsDesktop: 3, showCategoryPills: true, showSearch: true, showSortDropdown: true },
     };
 

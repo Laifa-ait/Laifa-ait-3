@@ -94,9 +94,9 @@ export interface CustomPageSectionStyles {
   borderRadiusBlPx?: number;
   divider?: "none" | "wave" | "slant" | "curve";
   animation?: "none" | "fade" | "slide-up" | "zoom";
-  shadow?: "none" | "sm" | "md" | "lg" | "xl" | "floating" | "glow" | "brutal";
-  cardShadow?: "none" | "sm" | "md" | "lg" | "xl" | "floating" | "glow" | "brutal";
-  imageFilterPreset?: "none" | "warm-editorial" | "vivid-contrast" | "bw-art" | "soft-matte" | "golden-film";
+  shadow?: HeroShadowToken;
+  cardShadow?: HeroShadowToken;
+  imageFilterPreset?: HeroImageFilterPreset;
   imageBrightness?: number;
   imageContrast?: number;
   imageSaturation?: number;
@@ -111,6 +111,9 @@ export interface CustomPageSectionStyles {
   headingAccentStyle?: EditorialHeadingAccentStyle;
   headingUnderlineStyle?: EditorialUnderlineStyle;
 }
+
+export type HeroShadowToken = "none" | "sm" | "md" | "lg" | "xl" | "floating" | "glow" | "brutal";
+export type HeroImageFilterPreset = "none" | "warm-editorial" | "vivid-contrast" | "bw-art" | "soft-matte" | "golden-film";
 
 export type HeroSubElement =
   | "background"
@@ -414,6 +417,7 @@ export interface PromoCarouselSettings {
 export interface CategoryItem {
   id: string;
   name: string;
+  title?: string;
   subtitle?: string;
   imageUrl?: string;
   slug: string;
@@ -460,6 +464,7 @@ export interface CuratedCollectionItem {
 
 export interface CuratedCollectionsSettings {
   title?: string;
+  subtitle?: string;
   collections: CuratedCollectionItem[];
 }
 
@@ -811,10 +816,11 @@ export interface StoreConfig {
     phone?: string;
     email?: string;
   };
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export type SellerStoreConfig = StoreConfig;
+export type StoreHeaderConfig = StoreHeaderNavConfig;
 
 export interface StoreLayoutVersion {
   versionNumber: number;
@@ -841,6 +847,7 @@ export interface StoreHistoryEntry {
   snapshot: StoreLayoutVersion;
   publishedAt: string;
   changeSummary?: string;
+  sectionsCount?: number;
 }
 
 export type MediaFolderCategory = "images" | "logos" | "banners" | "collections";

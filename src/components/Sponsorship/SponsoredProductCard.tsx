@@ -50,7 +50,11 @@ export const SponsoredProductCard: React.FC<SponsoredProductCardProps> = ({
       ? Math.round(((product.price - product.promoPrice) / product.price) * 100)
       : 0;
 
-  const translatedName = getTranslatedField(product, "name", lang);
+  const cleanLang = lang.split("-")[0] as "fr" | "ar" | "en";
+  const translatedName =
+    product.translations?.[cleanLang]?.name ||
+    getTranslatedField(product as unknown as Parameters<typeof getTranslatedField>[0], "name", lang) ||
+    product.name;
   const translatedCategory = getCategoryTranslation(product.category || "", t);
 
   return (

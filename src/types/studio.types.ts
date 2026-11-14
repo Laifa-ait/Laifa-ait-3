@@ -23,7 +23,10 @@ export type ArtisticFrameShape =
   | "casbah-arch"
   | "medallion-oval"
   | "polaroid-atelier"
-  | "chamfered-tech";
+  | "chamfered-tech"
+  | "pill"
+  | "cut-corners"
+  | "diamond";
 
 export type EditorialHeadingAccentStyle =
   | "accent-color"
