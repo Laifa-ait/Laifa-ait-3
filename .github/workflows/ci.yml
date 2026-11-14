@@ -51,20 +51,6 @@ jobs:
       - name: TypeScript Typecheck
         run: npm run typecheck
 
-      - name: Run Full Security, Domains & Unit Test Suite (162 Files - Zero Bypass)
-        run: |
-          ALLOW_TESTS_WITHOUT_EMULATOR=true npx vitest run --maxWorkers=2 --fileParallelism=true src/tests/[A-i]*.test.*
-          ALLOW_TESTS_WITHOUT_EMULATOR=true npx vitest run --maxWorkers=2 --fileParallelism=true src/tests/[j-r]*.test.*
-          ALLOW_TESTS_WITHOUT_EMULATOR=true npx vitest run --maxWorkers=2 --fileParallelism=true src/tests/[s-z]*.test.*
-
-      - name: Upload Test Coverage Report
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage/
-          if-no-files-found: ignore
-
       - name: Validate Image Assets
         run: npm run validate:assets
 
@@ -77,6 +63,20 @@ jobs:
         with:
           name: build-artifacts
           path: dist/
+          if-no-files-found: ignore
+
+      - name: Run Full Security, Domains & Unit Test Suite (162 Files - Zero Bypass)
+        run: |
+          ALLOW_TESTS_WITHOUT_EMULATOR=true npx vitest run --maxWorkers=2 --fileParallelism=true src/tests/[A-i]*.test.*
+          ALLOW_TESTS_WITHOUT_EMULATOR=true npx vitest run --maxWorkers=2 --fileParallelism=true src/tests/[j-r]*.test.*
+          ALLOW_TESTS_WITHOUT_EMULATOR=true npx vitest run --maxWorkers=2 --fileParallelism=true src/tests/[s-z]*.test.*
+
+      - name: Upload Test Coverage Report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
           if-no-files-found: ignore
 
   docker-build-verification:
@@ -99,7 +99,7 @@ jobs:
           tags: olmart-web:test-build
 
   firestore-concurrency-emulator:
-    name: "Firestore ACID Stock Concurrency (Emulator)"
+    name: "Firebase Emulators (Auth, Firestore ACID & Storage Rules)"
     needs: [lint-typecheck-test-build]
     runs-on: ubuntu-latest
 
@@ -122,8 +122,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Real Firestore Concurrency Test in Emulator
-        run: npm run test:emulator:concurrency
+      - name: Run All 9 Emulator Security, Rules & ACID Integration Suites
+        run: |
+          npx firebase emulators:exec --only auth,firestore,storage \
+            "FIREBASE_EMULATOR_ACTIVE=true npx vitest run src/tests/firestoreConcurrencyStock.test.ts src/tests/authHelperVerification.test.ts src/tests/disputeAttachmentSecurity.test.ts src/tests/publicProfilesRules.test.ts src/tests/restockIntegration.test.ts src/tests/storageRulesEmulator.test.ts src/tests/twoFactorIntegration.test.ts src/tests/workspaceKycBola.test.ts src/tests/workspaceSheetsBola.test.ts"
 
   e2e-tests:
     name: "Playwright E2E & Critical Journey Verification"
