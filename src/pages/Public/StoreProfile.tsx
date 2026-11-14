@@ -20,7 +20,7 @@ import { buildFiveActsHomeLayout } from "../Seller/StoreBuilder/constants/fiveAc
 import { useStoreProfile } from "./hooks/useStoreProfile";
 import { DEFAULT_CASBAH_THEME, PublicStoreInfo } from "./hooks/storeProfileVipHelper";
 import { apiPost } from "../../lib/api";
-import type { CategoryItem, CustomPageTheme, StoreCustomPageItem } from "../../domains/seller/customPage.types";
+import type { CategoryItem, CustomPageTheme, StoreConfig, StoreCustomPageItem } from "../../domains/seller/customPage.types";
 
 export type { PublicStoreInfo };
 
