@@ -147,6 +147,7 @@ describe("Studio Redesign Chrome, Section Filter & Catalog Page Wiring", () => {
       theme: { sector: "mode", primaryColor: "#111827", secondaryColor: "#374151", accentColor: "#D97706", fontFamily: "Inter" },
       seo: { metaTitle: "Atelier Casbah", metaDescription: "Haute couture" },
       collectionPageConfig: { headerStyle: "hero-image", columnsDesktop: 3, showCategoryPills: true, showSearch: true, showSortDropdown: true },
+      updatedAt: "2026-11-12T10:00:00.000Z",
     };
 
     const { container, unmount } = mount(

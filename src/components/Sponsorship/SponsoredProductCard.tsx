@@ -51,8 +51,9 @@ export const SponsoredProductCard: React.FC<SponsoredProductCardProps> = ({
       : 0;
 
   const cleanLang = lang.split("-")[0] as "fr" | "ar" | "en";
+  const productTranslations = (product as unknown as { translations?: Record<string, { name?: string }> }).translations;
   const translatedName =
-    product.translations?.[cleanLang]?.name ||
+    productTranslations?.[cleanLang]?.name ||
     getTranslatedField(product as unknown as Parameters<typeof getTranslatedField>[0], "name", lang) ||
     product.name;
   const translatedCategory = getCategoryTranslation(product.category || "", t);

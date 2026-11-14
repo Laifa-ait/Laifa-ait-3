@@ -51,7 +51,7 @@ describe("Studio Vendeur Progressif : 1 Étape à la Fois & Déblocage après En
       },
       {
         id: "sec_cat_1", type: "featured_categories", title: "Catégories", isVisible: true, order: 1,
-        settings: { title: "Rayons", categories: [{ id: "c1", title: "Mode", imageUrl: "" }] }, styles: {},
+        settings: { title: "Rayons", categories: [{ id: "c1", name: "Mode", slug: "mode", title: "Mode", imageUrl: "" }] }, styles: {},
       },
     ];
 

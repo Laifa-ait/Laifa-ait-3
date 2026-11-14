@@ -816,7 +816,7 @@ export interface StoreConfig {
     phone?: string;
     email?: string;
   };
-  updatedAt?: string;
+  updatedAt: string;
 }
 
 export type SellerStoreConfig = StoreConfig;

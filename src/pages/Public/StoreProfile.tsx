@@ -174,7 +174,7 @@ export const StoreProfile: React.FC = () => {
       <div className="relative z-10">
         <StoreBoutiqueNavbar storeInfo={storeInfo} isOwner={sp.isOwner} isDraftPreview={isDraftPreview} />
         <StoreCustomHeaderBar
-          storeConfig={storeInfo}
+          storeConfig={storeInfo as unknown as StoreConfig}
           theme={theme}
           shopName={storeInfo.shopName}
           isEditable={false}
