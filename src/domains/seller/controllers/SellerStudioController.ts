@@ -9,6 +9,7 @@ import {
   rollbackLayoutSchema,
 } from "../validators/storeLayout.schema";
 import { safeLogger } from "../../../utils/logger";
+import { isSafeStudioUrl, sanitizeStudioPayloadDeep } from "../../../security/studioCyberSecurity";
 
 const router = Router();
 
@@ -65,17 +66,26 @@ router.patch(
         return res.status(401).json({ error: "Non authentifié" });
       }
 
-      const { shopName, shopDescription, wilaya, commune, logoUrl, bannerUrl, legalStatus, avgPreparationTime, returnPolicy } = req.body;
+      const cleanBody = sanitizeStudioPayloadDeep(req.body || {}) as Record<string, unknown>;
+      const { shopName, shopDescription, wilaya, commune, logoUrl, bannerUrl, legalStatus, avgPreparationTime, returnPolicy } = cleanBody;
+
+      if (typeof logoUrl === "string" && logoUrl.trim() && !isSafeStudioUrl(logoUrl)) {
+        return res.status(400).json({ error: "L'URL du logo n'est pas sécurisée." });
+      }
+      if (typeof bannerUrl === "string" && bannerUrl.trim() && !isSafeStudioUrl(bannerUrl)) {
+        return res.status(400).json({ error: "L'URL de la bannière n'est pas sécurisée." });
+      }
+
       const updatedConfig = await StoreLayoutService.updateStoreConfig(sellerId, {
-        ...(shopName ? { shopName } : {}),
-        ...(shopDescription !== undefined ? { shopDescription } : {}),
-        ...(wilaya !== undefined ? { wilaya } : {}),
-        ...(commune !== undefined ? { commune } : {}),
-        ...(logoUrl !== undefined ? { logoUrl } : {}),
-        ...(bannerUrl !== undefined ? { bannerUrl } : {}),
-        ...(legalStatus !== undefined ? { legalStatus } : {}),
-        ...(avgPreparationTime !== undefined ? { avgPreparationTime } : {}),
-        ...(returnPolicy !== undefined ? { returnPolicy } : {}),
+        ...(typeof shopName === "string" && shopName.trim() ? { shopName: shopName.trim().slice(0, 120) } : {}),
+        ...(typeof shopDescription === "string" ? { shopDescription: shopDescription.slice(0, 1000) } : {}),
+        ...(typeof wilaya === "string" ? { wilaya: wilaya.slice(0, 80) } : {}),
+        ...(typeof commune === "string" ? { commune: commune.slice(0, 80) } : {}),
+        ...(typeof logoUrl === "string" ? { logoUrl } : {}),
+        ...(typeof bannerUrl === "string" ? { bannerUrl } : {}),
+        ...(typeof legalStatus === "string" ? { legalStatus: legalStatus.slice(0, 100) } : {}),
+        ...(typeof avgPreparationTime === "string" ? { avgPreparationTime: avgPreparationTime.slice(0, 80) } : {}),
+        ...(typeof returnPolicy === "string" ? { returnPolicy: returnPolicy.slice(0, 3000) } : {}),
       });
 
       return res.json({ success: true, data: updatedConfig });

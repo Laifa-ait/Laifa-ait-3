@@ -55,17 +55,53 @@ export type BannerContentPosition =
 export interface CustomPageSectionStyles {
   backgroundColor?: string;
   textColor?: string;
+  headingColor?: string;
+  subtitleColor?: string;
+  kickerColor?: string;
+  cardBgColor?: string;
+  cardTextColor?: string;
+  cardBorderColor?: string;
+  priceColor?: string;
+  badgeBgColor?: string;
+  badgeTextColor?: string;
+  iconColor?: string;
+  overlayColor?: string;
+  dividerColor?: string;
   colorScheme?: StudioColorSchemeId;
+  useCornerColors?: boolean;
+  cornerColorTl?: string;
+  cornerColorTr?: string;
+  cornerColorBr?: string;
+  cornerColorBl?: string;
+  sectionBorderColor?: string;
   buttonBgColor?: string;
   buttonTextColor?: string;
-  buttonStyle?: "solid" | "outline" | "inverse";
+  buttonBorderColor?: string;
+  buttonBorderWidthPx?: number;
+  buttonBorderRadiusPx?: number;
+  buttonSize?: "sm" | "md" | "lg";
+  buttonShadow?: "none" | "sm" | "md" | "lg" | "xl" | "floating" | "glow" | "brutal";
+  buttonShowArrow?: boolean;
+  buttonStyle?: "solid" | "outline" | "inverse" | "pill" | "sharp";
   paddingY?: "sm" | "md" | "lg" | "xl" | number;
   paddingX?: number;
   containerWidth?: "contained" | "full" | "narrow";
   borderRadius?: "none" | "sm" | "md" | "lg";
+  usePerCornerRadius?: boolean;
+  borderRadiusTlPx?: number;
+  borderRadiusTrPx?: number;
+  borderRadiusBrPx?: number;
+  borderRadiusBlPx?: number;
   divider?: "none" | "wave" | "slant" | "curve";
   animation?: "none" | "fade" | "slide-up" | "zoom";
-  shadow?: "none" | "sm" | "floating" | "brutal";
+  shadow?: "none" | "sm" | "md" | "lg" | "xl" | "floating" | "glow" | "brutal";
+  cardShadow?: "none" | "sm" | "md" | "lg" | "xl" | "floating" | "glow" | "brutal";
+  imageFilterPreset?: "none" | "warm-editorial" | "vivid-contrast" | "bw-art" | "soft-matte" | "golden-film";
+  imageBrightness?: number;
+  imageContrast?: number;
+  imageSaturation?: number;
+  imageSepia?: number;
+  imageBlurPx?: number;
   surfaceTexture?: ArtisticSurfaceTexture;
   ambientLighting?: ArtisticAmbientLighting;
   cardMaterial?: ArtisticCardMaterial;
@@ -85,19 +121,90 @@ export type HeroSubElement =
   | "ctaPrimary"
   | "ctaSecondary";
 
+export type HeroLayoutModelId =
+  | "cinema-full"
+  | "editorial-split"
+  | "arch-palace"
+  | "atelier-collage"
+  | "bento-hero"
+  | "full-bleed"
+  | "split"
+  | "arch"
+  | "gallery"
+  | "diptych"
+  | "glass-dock"
+  | "product-spotlight"
+  | "magazine-ssense"
+  | "flash-offer"
+  | "lookbook-hotspots";
+
+export type HeroTextPosition9 =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "center-left"
+  | "center"
+  | "center-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
+
+export type HeroArchShapeId =
+  | "roman-arch"
+  | "capsule"
+  | "asymmetric-leaf"
+  | "floating-frame";
+
+export type HeroColorPaletteId =
+  | "pure-white"
+  | "cream-earth"
+  | "luxury-black"
+  | "midnight-silver"
+  | "sage-linen"
+  | "custom";
+
+export interface HeroDeviceMeasureConfig {
+  styleId?: HeroLayoutModelId;
+  heightPx?: number;
+  innerPaddingPx?: number;
+  borderRadiusPx?: number;
+  textPosition9?: HeroTextPosition9;
+  textAlign?: "left" | "center" | "right";
+  titleSize?: "sm" | "md" | "lg" | "xl";
+  textBoxMaxWidth?: 360 | 480 | 620;
+  textVerticalGap?: 8 | 16 | 24;
+  focalX?: number;
+  focalY?: number;
+  zoom?: number;
+}
+
+export interface HeroHotspotItem {
+  id: string;
+  x: number;
+  y: number;
+  label: string;
+  price?: string;
+  badge?: string;
+  link?: string;
+  productId?: string;
+}
+
 export interface HeroBannerSettings {
   title: string;
   subtitle?: string;
   badgeText?: string;
   imageUrl: string;
+  tabletImageUrl?: string;
   mobileImageUrl?: string;
   backgroundImage?: string;
   backgroundImageMobile?: string;
+  backgroundVideoUrl?: string;
   ctaText?: string;
   ctaLink?: string;
   textAlignment?: "left" | "center" | "right";
   verticalAlignment?: "top" | "center" | "bottom";
   contentPosition?: BannerContentPosition;
+  textPosition9?: HeroTextPosition9;
   overlayOpacity?: number;
   // Per-device image focal point positioning ("50% 50%", "50% 0%", etc.)
   imagePositionDesktop?: string;
@@ -107,11 +214,56 @@ export interface HeroBannerSettings {
   backgroundPositionTablet?: string;
   backgroundPositionMobile?: string;
   imageFit?: "cover" | "contain";
+  imageZoomDesktop?: number;
+  imageZoomTablet?: number;
+  imageZoomMobile?: number;
   imageAspectRatio?: "4/5" | "1/1" | "3/4" | "16/9";
+  imageAspectRatioTablet?: "inherit" | "4/5" | "1/1" | "3/4" | "16/9";
+  imageAspectRatioMobile?: "inherit" | "4/5" | "1/1" | "3/4" | "16/9";
   imageSide?: "right" | "left";
+  splitRatio?: "60-40" | "50-50" | "40-60" | "70-30" | "30-70";
+  splitProportion?: "50-50" | "60-40" | "70-30";
+  archShape?: HeroArchShapeId;
+  diptychGapPx?: number;
+  containerMode?: "full" | "contained";
+  innerPaddingPx?: number;
+  borderRadiusPx?: number;
+  usePerCornerRadius?: boolean;
+  borderRadiusTlPx?: number;
+  borderRadiusTrPx?: number;
+  borderRadiusBrPx?: number;
+  borderRadiusBlPx?: number;
+  paletteId?: HeroColorPaletteId;
+  bannerBgColor?: string;
+  bannerBgGradient?: string;
+  bannerBorderColor?: string;
+  useCornerColors?: boolean;
+  cornerColorTl?: string;
+  cornerColorTr?: string;
+  cornerColorBr?: string;
+  cornerColorBl?: string;
+  bannerShadow?: "none" | "sm" | "md" | "lg" | "xl" | "floating" | "glow" | "brutal";
+  textBoxMaxWidth?: 360 | 480 | 620;
+  textVerticalGap?: 8 | 16 | 24;
+  showCompositionGuides?: boolean;
+  ctaButtonSize?: "sm" | "md" | "lg";
+  ctaTargetType?: "category" | "catalog" | "product";
+  ctaTargetCategory?: string;
+  ctaTargetProductId?: string;
+  heroDesktopConfig?: HeroDeviceMeasureConfig;
+  heroTabletConfig?: HeroDeviceMeasureConfig;
+  heroMobileConfig?: HeroDeviceMeasureConfig;
+  mobileStackOrder?: "image-first" | "text-first";
   imageShadow?: "none" | "sm" | "md" | "lg" | "xl" | "glow" | "brutal";
   imageMargin?: number;
+  imageFilterPreset?: "none" | "warm-editorial" | "vivid-contrast" | "bw-art" | "soft-matte" | "golden-film";
+  imageBrightness?: number;
+  imageContrast?: number;
+  imageSaturation?: number;
+  imageSepia?: number;
+  imageBlurPx?: number;
   bannerHeightDesktop?: "sm" | "md" | "lg" | "xl";
+  bannerHeightTablet?: "inherit" | "sm" | "md" | "lg";
   bannerHeightMobile?: "sm" | "md" | "lg";
   // Individual sub-component styling
   badgeBgColor?: string;
@@ -119,17 +271,22 @@ export interface HeroBannerSettings {
   badgeStyle?: "solid" | "soft" | "outline";
   titleColor?: string;
   titleSizeDesktop?: "sm" | "md" | "lg" | "xl";
+  titleSizeTablet?: "inherit" | "sm" | "md" | "lg" | "xl";
   titleSizeMobile?: "sm" | "md" | "lg" | "xl";
   textShadow?: "none" | "sm" | "md" | "lg";
   subtitleColor?: string;
   ctaBgColor?: string;
   ctaTextColor?: string;
+  ctaBorderColor?: string;
+  ctaBorderWidthPx?: number;
+  ctaBorderRadiusPx?: number;
+  ctaShowArrow?: boolean;
   ctaStyle?: "solid" | "outline" | "pill" | "glass" | "sharp";
   ctaShadow?: "none" | "sm" | "md" | "lg" | "glow" | "brutal";
   showBadge?: boolean;
   showSubtitle?: boolean;
   showCta?: boolean;
-  // E-Commerce 2.2 Studio Features
+  // Legacy & Extended Compatibility Fields
   socialProofBadge?: string;
   showSocialProofBadge?: boolean;
   secondaryCtaText?: string;
@@ -139,7 +296,83 @@ export interface HeroBannerSettings {
   secondaryCtaBgColor?: string;
   secondaryCtaTextColor?: string;
   showSecondaryCta?: boolean;
-  heroLayout?: "editorial-split" | "cinema-full" | "atelier-collage";
+  heroLayout?: HeroLayoutModelId;
+  heroLayoutTablet?: "inherit" | HeroLayoutModelId;
+  heroLayoutMobile?: "inherit" | HeroLayoutModelId;
+  heroVariant?:
+    | "minimalist"
+    | "fullscreen-image"
+    | "split-left-image"
+    | "centered-text"
+    | "promo-commercial"
+    | "fashion-elegant"
+    | "tech-precision";
+  imageAlt?: string;
+  bentoTopCardBadge?: string;
+  bentoTopCardTitle?: string;
+  bentoTopCardSubtitle?: string;
+  bentoTopCardImage?: string;
+  bentoTopCardLink?: string;
+  bentoBottomCardBadge?: string;
+  bentoBottomCardTitle?: string;
+  bentoBottomCardMetric?: string;
+  bentoBottomCardSubtext?: string;
+  bentoBottomCardImage?: string;
+  bentoBottomCardLink?: string;
+  spotlightProductId?: string;
+  spotlightProductTitle?: string;
+  spotlightProductPrice?: string;
+  spotlightProductOldPrice?: string;
+  spotlightProductBadge?: string;
+  spotlightProductImage?: string;
+  spotlightFeatures?: string[];
+  showSpotlightFeatures?: boolean;
+  spotlightCardPosition?: "right" | "left" | "bottom-floating";
+  secondaryImageUrl?: string;
+  tertiaryImageUrl?: string;
+  collageCaption?: string;
+  collageCaption2?: string;
+  collageCaption3?: string;
+  collageSerialCode?: string;
+  collageStyle?: "polaroid" | "floating";
+  magazineIssueText?: string;
+  magazineTags?: string[];
+  showMagazineTags?: boolean;
+  showTicker?: boolean;
+  tickerText?: string;
+  flashDiscountBadge?: string;
+  flashPriceLabel?: string;
+  flashPriceText?: string;
+  flashOldPriceText?: string;
+  flashUrgencyText?: string;
+  showFlashUrgency?: boolean;
+  hotspots?: HeroHotspotItem[];
+  archBorderStyle?: "gold-double" | "cream-fine" | "minimal";
+  archPills?: string[];
+  showArchPills?: boolean;
+  dockPosition?: "bottom-bar" | "center-card" | "bottom-left";
+  dockGlassStyle?: "frosted-light" | "frosted-dark" | "tinted-accent";
+  dockMetricText?: string;
+  showDockMetric?: boolean;
+  cinemaLetterbox?: boolean;
+  showCodTrustStrip?: boolean;
+  codTrustItems?: string[];
+  imageStudioBg?: string;
+  hideAllText?: boolean;
+  titleFontFamily?: "sans" | "serif" | "display";
+  titleFontWeight?: "normal" | "semibold" | "bold" | "black";
+  showPriceTag?: boolean;
+  bannerLayoutMode?: "compact-bottom" | "stacked-below" | "image-only";
+  collagePrice1?: string;
+  collagePrice2?: string;
+  collagePrice3?: string;
+  collageLink1?: string;
+  collageLink2?: string;
+  collageLink3?: string;
+  heroSwapImages?: string[];
+  enableImageSwap?: boolean;
+  swapIntervalSec?: number;
+  fullTopWidth?: boolean;
 }
 
 export type PromoCarouselStyleVariant =
@@ -380,9 +613,19 @@ export interface CustomPageSection<T extends CustomPageSectionType = CustomPageS
   styles: CustomPageSectionStyles;
   isVisible: boolean;
   order: number;
+  schemaVersion?: number;
 }
 
-export type StoreThemeSector = "mode" | "beaute" | "artisanat" | "tech" | "maison";
+export type StoreThemeSector =
+  | "mode"
+  | "beaute"
+  | "artisanat"
+  | "tech"
+  | "maison"
+  | "alimentation"
+  | "sport"
+  | "accessoires"
+  | "enfants";
 
 export interface CustomPageTheme {
   sector: StoreThemeSector;
@@ -391,10 +634,17 @@ export interface CustomPageTheme {
   accentColor?: string;
   canvasColor?: string;
   surfaceColor?: string;
+  textColor?: string;
+  mutedTextColor?: string;
+  borderColor?: string;
+  buttonColor?: string;
+  buttonTextColor?: string;
+  priceColor?: string;
   fontFamily: string;
   headingFontFamily?: string;
   bodyFontFamily?: string;
   accentBadgeColor?: string;
+  badgeTextColor?: string;
   borderRadiusPx?: number;
   spacingYPx?: number;
   titleFontSizePx?: number;
@@ -430,16 +680,43 @@ export interface CollectionPageDesignConfig {
   ctaLabel?: string;
 }
 
+export type StorePageType =
+  | "home"
+  | "catalogue"
+  | "collections"
+  | "about"
+  | "contact"
+  | "faq"
+  | "delivery"
+  | "returns"
+  | "custom";
+
+export type StorePageTemplateId =
+  | "default"
+  | "collection"
+  | "editorial"
+  | "faq"
+  | "contact"
+  | "policy";
+
 export interface StoreCustomPageItem {
   id: string;
   title: string;
   slug: string;
+  pageType?: StorePageType;
+  templateId?: StorePageTemplateId;
   subtitle?: string;
   bannerUrl?: string;
   productIds?: string[];
   isHome?: boolean;
   isPublished?: boolean;
   sectionIds?: string[];
+  seoTitle?: string;
+  seoDescription?: string;
+  canonicalUrl?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
   updatedAt: string;
 }
 
@@ -455,7 +732,17 @@ export interface StoreAnnouncementBarConfig {
 export interface StoreNavMenuLink {
   id: string;
   label: string;
-  target: "home" | "collection" | "about" | "url";
+  target:
+    | "home"
+    | "collection"
+    | "about"
+    | "contact"
+    | "faq"
+    | "delivery"
+    | "returns"
+    | "page"
+    | "url";
+  pageSlug?: string;
   url?: string;
 }
 
@@ -556,11 +843,17 @@ export interface StoreHistoryEntry {
   changeSummary?: string;
 }
 
+export type MediaFolderCategory = "images" | "logos" | "banners" | "collections";
+
 export interface MediaGalleryItem {
   id: string;
   url: string;
   type: "image" | "video";
   name?: string;
+  folder?: MediaFolderCategory;
+  width?: number;
+  height?: number;
+  mimeType?: string;
   sizeBytes?: number;
   uploadedAt: string;
 }

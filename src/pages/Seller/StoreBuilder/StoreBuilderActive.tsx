@@ -1,13 +1,13 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useSellerStudio } from "./hooks/useSellerStudio";
 import { StudioWorkspace } from "./StudioWorkspace";
-import { StudioSubscriptionBanner } from "./components/StudioSubscriptionBanner";
 import {
   SubscriptionPlan,
   SubscriptionRequest,
   SellerSubscription,
 } from "../../../domains/seller/subscription.types";
-import { RefreshCw } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 interface StoreBuilderActiveProps {
   subscription?: SellerSubscription | null;
@@ -28,6 +28,7 @@ interface StoreBuilderActiveProps {
 }
 
 export const StoreBuilderActive: React.FC<StoreBuilderActiveProps> = () => {
+  const navigate = useNavigate();
   const {
     loading,
     saveStatus,
@@ -51,7 +52,7 @@ export const StoreBuilderActive: React.FC<StoreBuilderActiveProps> = () => {
     deleteMedia,
     publishStudio,
     rollbackVersion,
-    triggerAutoSave,
+    saveDraftNow,
     undo,
     redo,
     canUndo,
@@ -60,31 +61,22 @@ export const StoreBuilderActive: React.FC<StoreBuilderActiveProps> = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[500px] h-full bg-[#F7F8FA]">
-        <div className="text-center space-y-3 p-8 bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] shadow-xs">
-          <RefreshCw className="w-8 h-8 text-[#023859] animate-spin mx-auto" />
-          <p className="text-[14px] font-semibold text-[#011C40]">
-            Initialisation du Studio Olmart...
+      <div className="flex items-center justify-center min-h-[500px] h-full bg-[#F6F7F9]">
+        <div className="text-center space-y-2.5 p-7 bg-white rounded-xl border border-slate-200 max-w-xs w-full">
+          <Loader2 className="w-6 h-6 text-slate-900 animate-spin mx-auto" />
+          <p className="text-[13px] font-semibold text-slate-900">
+            Chargement de l&apos;éditeur boutique
           </p>
-          <p className="text-[13px] text-[#667085]">
-            Chargement de votre vitrine, de votre catalogue et de vos sections
+          <p className="text-[12px] text-slate-500">
+            Synchronisation de vos sections et du catalogue
           </p>
         </div>
       </div>
     );
   }
 
-  const isPublished = Boolean(publishedLayout && publishedLayout.sections?.length > 0);
-
   return (
-    <div className="flex flex-col h-full bg-[#F7F8FA] overflow-hidden">
-      <StudioSubscriptionBanner
-        isPublished={isPublished}
-        versionNumber={publishedLayout?.versionNumber}
-        sectionCount={sections.length}
-        productCount={products.length}
-      />
-
+    <div className="flex flex-col h-full bg-[#F6F7F9] overflow-hidden">
       <StudioWorkspace
         saveStatus={saveStatus}
         storeConfig={storeConfig}
@@ -104,10 +96,12 @@ export const StoreBuilderActive: React.FC<StoreBuilderActiveProps> = () => {
         duplicateSection={duplicateSection}
         toggleVisibility={toggleVisibility}
         saveStoreConfig={saveStoreConfig}
-        onSaveDraft={() => triggerAutoSave(sections)}
+        onSaveDraft={() => saveDraftNow()}
         onReplaceSections={replaceSections}
         publishStudio={(changeSummary) => void publishStudio(changeSummary)}
         onRollback={(versionNumber) => void rollbackVersion(versionNumber)}
+        onExitStudio={() => navigate("/dashboard/seller")}
+        onOpenSponsorships={() => navigate("/dashboard/seller/sponsorships")}
         undo={undo}
         redo={redo}
         canUndo={canUndo}

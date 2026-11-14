@@ -42,172 +42,78 @@ export const HeroButtonsSubEditor: React.FC<HeroButtonsSubEditorProps> = ({
   inputClass,
   labelClass,
 }) => {
-  if (activeSubPanel === "ctaSecondary") {
-    const secStyle = (settings.secondaryCtaStyle as string) || "outline";
-    const secShadow = (settings.secondaryCtaShadow as string) || "none";
-    const secBg =
-      typeof settings.secondaryCtaBgColor === "string" && settings.secondaryCtaBgColor
-        ? settings.secondaryCtaBgColor
-        : "#18181B";
-    const secText =
-      typeof settings.secondaryCtaTextColor === "string" && settings.secondaryCtaTextColor
-        ? settings.secondaryCtaTextColor
-        : "#FFFFFF";
-    const secLabelText =
-      typeof settings.secondaryCtaText === "string" ? settings.secondaryCtaText : "";
+  const isSecondary = activeSubPanel === "ctaSecondary";
+  const styleKey = isSecondary ? "secondaryCtaStyle" : "ctaStyle";
+  const shadowKey = isSecondary ? "secondaryCtaShadow" : "ctaShadow";
+  const bgKey = isSecondary ? "secondaryCtaBgColor" : "ctaBgColor";
+  const textKey = isSecondary ? "secondaryCtaTextColor" : "ctaTextColor";
+  const labelKey = isSecondary ? "secondaryCtaText" : "ctaText";
+  const linkKey = isSecondary ? "secondaryCtaLink" : "ctaLink";
+  const showKey = isSecondary ? "showSecondaryCta" : "showCta";
 
-    return (
-      <div className="space-y-3 bg-[#F9FAFB] p-3 rounded-xl border border-[#E4E7EC]">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-[#011C40]">Afficher le bouton secondaire</span>
-          <input
-            type="checkbox"
-            checked={settings.showSecondaryCta !== false && Boolean(secLabelText)}
-            onChange={(e) => {
-              const checked = e.target.checked;
-              onSettingsChange({
-                showSecondaryCta: checked,
-                ...(checked && !secLabelText ? { secondaryCtaText: "Voir le Lookbook" } : {}),
-              });
-            }}
-            className="rounded accent-amber-600 cursor-pointer"
-          />
-        </div>
-
-        <label className={labelClass}>
-          <span>Texte du Bouton Secondaire</span>
-          <input
-            type="text"
-            value={secLabelText}
-            onChange={(e) =>
-              onSettingsChange({
-                secondaryCtaText: e.target.value,
-                showSecondaryCta: Boolean(e.target.value.trim()),
-              })
-            }
-            placeholder="Ex: Voir le Lookbook"
-            className={inputClass}
-          />
-        </label>
-
-        <SmartLinkPicker
-          label="Destination du Bouton Secondaire"
-          value={typeof settings.secondaryCtaLink === "string" ? settings.secondaryCtaLink : "#catalog"}
-          onChange={(link) => onSettingsChange("secondaryCtaLink", link)}
-          sections={sections}
-          products={products}
-        />
-
-        <div className="space-y-1.5 pt-2 border-t border-slate-200">
-          <span className="text-[11px] font-bold text-slate-700">Forme & Style du Bouton 2</span>
-          <div className="grid grid-cols-2 gap-1.5">
-            {BUTTON_STYLES.map((st) => (
-              <button
-                key={st.id}
-                type="button"
-                onClick={() => onSettingsChange("secondaryCtaStyle", st.id)}
-                className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
-                  secStyle === st.id
-                    ? "bg-[#023859] text-white border-[#023859]"
-                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                }`}
-              >
-                {st.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-1.5 pt-2 border-t border-slate-200">
-          <span className="text-[11px] font-bold text-slate-700">Ombre & Profondeur du Bouton 2</span>
-          <div className="grid grid-cols-3 gap-1.5">
-            {BUTTON_SHADOWS.map((sh) => (
-              <button
-                key={sh.id}
-                type="button"
-                onClick={() => onSettingsChange("secondaryCtaShadow", sh.id)}
-                className={`py-1.5 px-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
-                  secShadow === sh.id
-                    ? "bg-amber-500 text-white border-amber-600"
-                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                }`}
-              >
-                {sh.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-2 pt-2 border-t border-slate-200">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-600">Couleur principale du Bouton 2</span>
-            <div className="flex items-center gap-2">
-              {(Boolean(settings.secondaryCtaBgColor) || Boolean(settings.secondaryCtaTextColor)) && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    onSettingsChange({ secondaryCtaBgColor: "", secondaryCtaTextColor: "" })
-                  }
-                  className="text-[10px] text-slate-500 underline cursor-pointer"
-                >
-                  Thème
-                </button>
-              )}
-              <input
-                type="color"
-                value={secBg}
-                onChange={(e) => onSettingsChange("secondaryCtaBgColor", e.target.value)}
-                className="w-8 h-8 rounded cursor-pointer border border-slate-200"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-600">Couleur du texte du Bouton 2</span>
-            <input
-              type="color"
-              value={secText}
-              onChange={(e) => onSettingsChange("secondaryCtaTextColor", e.target.value)}
-              className="w-8 h-8 rounded cursor-pointer border border-slate-200"
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const ctaStyle = (settings.ctaStyle as string) || "pill";
-  const ctaShadow = (settings.ctaShadow as string) || "md";
-  const ctaBg = typeof settings.ctaBgColor === "string" && settings.ctaBgColor ? settings.ctaBgColor : "#B45309";
-  const ctaText = typeof settings.ctaTextColor === "string" && settings.ctaTextColor ? settings.ctaTextColor : "#FFFFFF";
+  const btnStyle = (settings[styleKey] as string) || (isSecondary ? "outline" : "pill");
+  const btnShadow = (settings[shadowKey] as string) || (isSecondary ? "none" : "md");
+  const btnBg =
+    typeof settings[bgKey] === "string" && settings[bgKey]
+      ? (settings[bgKey] as string)
+      : isSecondary
+      ? "#18181B"
+      : "#B45309";
+  const btnText =
+    typeof settings[textKey] === "string" && settings[textKey]
+      ? (settings[textKey] as string)
+      : "#FFFFFF";
+  const labelText = typeof settings[labelKey] === "string" ? (settings[labelKey] as string) : "";
+  const isShown = isSecondary
+    ? settings.showSecondaryCta !== false && Boolean(labelText)
+    : settings.showCta !== false;
 
   return (
     <div className="space-y-3 bg-[#F9FAFB] p-3 rounded-xl border border-[#E4E7EC]">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-[#011C40]">Afficher le bouton principal</span>
+        <span className="text-xs font-bold text-[#011C40]">
+          {isSecondary ? "Afficher le bouton secondaire" : "Afficher le bouton principal"}
+        </span>
         <input
           type="checkbox"
-          checked={settings.showCta !== false}
-          onChange={(e) => onSettingsChange("showCta", e.target.checked)}
+          checked={isShown}
+          onChange={(e) => {
+            const checked = e.target.checked;
+            if (isSecondary) {
+              onSettingsChange({
+                showSecondaryCta: checked,
+                ...(checked && !labelText ? { secondaryCtaText: "Voir le Lookbook" } : {}),
+              });
+            } else {
+              onSettingsChange(showKey, checked);
+            }
+          }}
           className="rounded accent-amber-600 cursor-pointer"
         />
       </div>
 
       <label className={labelClass}>
-        <span>Texte du Bouton Principal</span>
+        <span>{isSecondary ? "Texte du Bouton Secondaire" : "Texte du Bouton Principal"}</span>
         <input
           type="text"
-          value={typeof settings.ctaText === "string" ? settings.ctaText : ""}
-          onChange={(e) => onSettingsChange("ctaText", e.target.value)}
-          placeholder="Explorer nos créations"
+          value={labelText}
+          onChange={(e) =>
+            isSecondary
+              ? onSettingsChange({
+                  secondaryCtaText: e.target.value,
+                  showSecondaryCta: Boolean(e.target.value.trim()),
+                })
+              : onSettingsChange(labelKey, e.target.value)
+          }
+          placeholder={isSecondary ? "Ex: Voir le Lookbook" : "Explorer nos créations"}
           className={inputClass}
         />
       </label>
 
       <SmartLinkPicker
-        label="Destination du Bouton Principal"
-        value={typeof settings.ctaLink === "string" ? settings.ctaLink : "#catalog"}
-        onChange={(link) => onSettingsChange("ctaLink", link)}
+        label={isSecondary ? "Destination du Bouton Secondaire" : "Destination du Bouton Principal"}
+        value={typeof settings[linkKey] === "string" ? (settings[linkKey] as string) : "#catalog"}
+        onChange={(link) => onSettingsChange(linkKey, link)}
         sections={sections}
         products={products}
       />
@@ -219,9 +125,9 @@ export const HeroButtonsSubEditor: React.FC<HeroButtonsSubEditorProps> = ({
             <button
               key={st.id}
               type="button"
-              onClick={() => onSettingsChange("ctaStyle", st.id)}
+              onClick={() => onSettingsChange(styleKey, st.id)}
               className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
-                ctaStyle === st.id
+                btnStyle === st.id
                   ? "bg-[#023859] text-white border-[#023859]"
                   : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
               }`}
@@ -239,9 +145,9 @@ export const HeroButtonsSubEditor: React.FC<HeroButtonsSubEditorProps> = ({
             <button
               key={sh.id}
               type="button"
-              onClick={() => onSettingsChange("ctaShadow", sh.id)}
+              onClick={() => onSettingsChange(shadowKey, sh.id)}
               className={`py-1.5 px-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
-                ctaShadow === sh.id
+                btnShadow === sh.id
                   ? "bg-amber-500 text-white border-amber-600"
                   : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
               }`}
@@ -254,12 +160,12 @@ export const HeroButtonsSubEditor: React.FC<HeroButtonsSubEditorProps> = ({
 
       <div className="space-y-2 pt-2 border-t border-slate-200">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-slate-600">Couleur de fond du Bouton</span>
+          <span className="text-xs font-medium text-slate-600">Couleur principale du Bouton</span>
           <div className="flex items-center gap-2">
-            {(Boolean(settings.ctaBgColor) || Boolean(settings.ctaTextColor)) && (
+            {(Boolean(settings[bgKey]) || Boolean(settings[textKey])) && (
               <button
                 type="button"
-                onClick={() => onSettingsChange({ ctaBgColor: "", ctaTextColor: "" })}
+                onClick={() => onSettingsChange({ [bgKey]: "", [textKey]: "" })}
                 className="text-[10px] text-slate-500 underline cursor-pointer"
               >
                 Thème
@@ -267,8 +173,8 @@ export const HeroButtonsSubEditor: React.FC<HeroButtonsSubEditorProps> = ({
             )}
             <input
               type="color"
-              value={ctaBg}
-              onChange={(e) => onSettingsChange("ctaBgColor", e.target.value)}
+              value={btnBg}
+              onChange={(e) => onSettingsChange(bgKey, e.target.value)}
               className="w-8 h-8 rounded cursor-pointer border border-slate-200"
             />
           </div>
@@ -278,8 +184,8 @@ export const HeroButtonsSubEditor: React.FC<HeroButtonsSubEditorProps> = ({
           <span className="text-xs font-medium text-slate-600">Couleur du texte du Bouton</span>
           <input
             type="color"
-            value={ctaText}
-            onChange={(e) => onSettingsChange("ctaTextColor", e.target.value)}
+            value={btnText}
+            onChange={(e) => onSettingsChange(textKey, e.target.value)}
             className="w-8 h-8 rounded cursor-pointer border border-slate-200"
           />
         </div>

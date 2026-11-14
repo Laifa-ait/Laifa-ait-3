@@ -7,6 +7,7 @@ import {
   PublicSponsoredProductSummary,
 } from "../../../types/sponsoredCampaign";
 import { Product } from "../../product/product.types";
+import { withFirestoreDeadline } from "../../../utils/firestoreTimeout";
 
 const deduplicationCache = new Map<string, number>();
 
@@ -44,14 +45,20 @@ export class PublicCampaignService {
     // Bound candidate campaigns before product reads to prevent unbounded memory usage
     const candidateLimit = Math.max(limit * 5, 25);
 
-    const snap = await db
-      .collection("sponsored_campaigns")
-      .where("placement", "==", placement)
-      .where("moderationStatus", "==", "approved")
-      .limit(candidateLimit)
-      .get();
+    const snap = await withFirestoreDeadline(
+      () =>
+        db
+          .collection("sponsored_campaigns")
+          .where("placement", "==", placement)
+          .where("moderationStatus", "==", "approved")
+          .limit(candidateLimit)
+          .get(),
+      null,
+      1500,
+      "sponsored_campaigns"
+    );
 
-    if (snap.empty) {
+    if (!snap || snap.empty) {
       return [];
     }
 

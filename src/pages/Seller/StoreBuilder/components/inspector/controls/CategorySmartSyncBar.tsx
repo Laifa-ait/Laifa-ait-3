@@ -153,12 +153,12 @@ export const CategorySmartSyncBar: React.FC<CategorySmartSyncBarProps> = ({
   };
 
   return (
-    <div className="p-3 rounded-xl bg-gradient-to-br from-orange-50 via-amber-50/60 to-white border border-orange-200/90 space-y-2.5 select-none">
+    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2.5 select-none">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <span className="text-[11px] font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-[#F97316] shrink-0" />
-            <span>Auto-Sync & Diagnostic Rayons</span>
+          <span className="text-[11px] font-semibold text-slate-900 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-slate-700 shrink-0" />
+            <span>Auto-Sync &amp; Diagnostic Rayons</span>
           </span>
           <p className="text-[11px] text-slate-600 mt-0.5 leading-snug">
             {distinctProductCategories.length > 0
@@ -169,24 +169,21 @@ export const CategorySmartSyncBar: React.FC<CategorySmartSyncBarProps> = ({
 
         {categories.length > 0 && (
           <span
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-              emptyCategoriesCount > 0
-                ? "bg-amber-100 text-amber-800 border border-amber-300"
-                : "bg-emerald-100 text-emerald-800 border border-emerald-300"
+            className={`inline-flex items-center gap-1 text-[11px] font-medium shrink-0 ${
+              emptyCategoriesCount > 0 ? "text-amber-700" : "text-emerald-700"
             }`}
           >
             {emptyCategoriesCount > 0 ? (
               <>
-                <AlertTriangle className="w-3 h-3 text-amber-600" />
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
                 <span>
-                  {emptyCategoriesCount} rayon{emptyCategoriesCount > 1 ? "s" : ""} vide
-                  {emptyCategoriesCount > 1 ? "s" : ""}
+                  {emptyCategoriesCount} vide{emptyCategoriesCount > 1 ? "s" : ""}
                 </span>
               </>
             ) : (
               <>
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                <span>Rayons actifs</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Actifs</span>
               </>
             )}
           </span>
@@ -197,7 +194,7 @@ export const CategorySmartSyncBar: React.FC<CategorySmartSyncBarProps> = ({
         type="button"
         onClick={handleSyncClick}
         disabled={distinctProductCategories.length === 0}
-        className="w-full h-9 px-3 rounded-lg bg-[#111827] hover:bg-[#F97316] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-2xs transition-colors disabled:opacity-40 cursor-pointer"
+        className="w-full h-9 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-40 cursor-pointer"
       >
         <RefreshCw className="w-3.5 h-3.5" />
         <span>Synchroniser depuis mes produits ({distinctProductCategories.length})</span>

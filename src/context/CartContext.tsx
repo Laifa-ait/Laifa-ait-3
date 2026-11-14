@@ -10,6 +10,8 @@ import { safeLogger } from "../utils/logger";
 import { queryKeys } from "../lib/queryKeys";
 import { productsApi } from "../services/api/products.api";
 
+import { fetchWithClientCache, invalidateClientReadCache } from "../utils/clientReadCache";
+
 interface CartContextType {
   cart: CartItem[];
   wishlist: string[];
@@ -29,11 +31,13 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const getWishlistKey = (uid?: string | null) => (uid ? `olma_wishlist_${uid}` : "olma_wishlist_guest");
 const getCartKey = (uid?: string | null) => (uid ? `olma_cart_${uid}` : "olma_cart_guest");
+const CART_CACHE_TTL_MS = 5 * 60 * 1000;
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const auth = useAuth();
   const queryClient = useQueryClient();
   const prevUserRef = useRef<FirebaseUser | null>(null);
+  const skipNextCloudWriteRef = useRef<boolean>(false);
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -87,6 +91,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const handleAuthChange = async () => {
       let finalCart: CartItem[];
       let finalWishlist: string[];
+      let didMergeGuestItems = false;
 
       const safeParse = <T,>(data: string | null, fallback: T): T => {
         try {
@@ -97,22 +102,26 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
 
       const guestCartJson = localStorage.getItem("olma_cart_guest");
-      const guestCart = safeParse(guestCartJson, []);
+      const guestCart = safeParse<CartItem[]>(guestCartJson, []);
       const guestWishlistJson = localStorage.getItem("olma_wishlist_guest");
-      const guestWishlist = safeParse(guestWishlistJson, []);
+      const guestWishlist = safeParse<string[]>(guestWishlistJson, []);
 
       try {
         if (auth.currentUser) {
-          // User is logged in
-          const userCartKey = getCartKey(auth.currentUser.uid);
-          const userWishlistKey = getWishlistKey(auth.currentUser.uid);
+          const uid = auth.currentUser.uid;
+          const userCartKey = getCartKey(uid);
+          const userWishlistKey = getWishlistKey(uid);
 
-          // Fetch user data from Cloud via secure REST endpoints
+          // Fetch user data from Cloud via sessionStorage-shielded REST endpoints
           let cloudCart: CartItem[] = [];
           let cloudWishlist: string[] = [];
 
           try {
-            const cartRes = await apiGet<{ items?: CartItem[] }>("/api/v1/auth/cart");
+            const cartRes = await fetchWithClientCache<{ items?: CartItem[] }>(
+              `auth:cart:${uid}`,
+              () => apiGet<{ items?: CartItem[] }>("/api/v1/auth/cart"),
+              CART_CACHE_TTL_MS
+            );
             if (cartRes && Array.isArray(cartRes.items)) {
               cloudCart = cartRes.items;
             }
@@ -121,7 +130,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
 
           try {
-            const wishRes = await apiGet<{ items?: string[] }>("/api/v1/auth/wishlist");
+            const wishRes = await fetchWithClientCache<{ items?: string[] }>(
+              `auth:wishlist:${uid}`,
+              () => apiGet<{ items?: string[] }>("/api/v1/auth/wishlist"),
+              CART_CACHE_TTL_MS
+            );
             if (wishRes && Array.isArray(wishRes.items)) {
               cloudWishlist = wishRes.items;
             }
@@ -141,6 +154,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
           // MERGE Guest Cart into User Cart if transition just happened
           if (!prevUserRef.current && guestCart.length > 0) {
+            didMergeGuestItems = true;
             guestCart.forEach((gItem: CartItem) => {
               const existingMerge = cloudCart.find(
                 (c: CartItem) => c.id === gItem.id && c.selectedVariant === gItem.selectedVariant
@@ -156,6 +170,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
           // Merge wishlist
           if (!prevUserRef.current && guestWishlist.length > 0) {
+            didMergeGuestItems = true;
             guestWishlist.forEach((wId: string) => {
               if (!cloudWishlist.includes(wId)) cloudWishlist.push(wId);
             });
@@ -182,6 +197,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         finalWishlist = guestWishlist;
       }
 
+      // Skip immediate cloud write-back if we only hydrated existing data without merging guest items
+      skipNextCloudWriteRef.current = !didMergeGuestItems;
       setCart(finalCart);
       setWishlist(finalWishlist);
       setIsInitialized(true);
@@ -195,13 +212,21 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     if (!isInitialized) return;
 
-    const userCartKey = getCartKey(auth.currentUser?.uid);
-    const userWishlistKey = getWishlistKey(auth.currentUser?.uid);
+    const uid = auth.currentUser?.uid;
+    const userCartKey = getCartKey(uid);
+    const userWishlistKey = getWishlistKey(uid);
 
     localStorage.setItem(userCartKey, JSON.stringify(cart));
     localStorage.setItem(userWishlistKey, JSON.stringify(wishlist));
 
-    if (auth.currentUser) {
+    if (skipNextCloudWriteRef.current) {
+      skipNextCloudWriteRef.current = false;
+      return;
+    }
+
+    if (auth.currentUser && uid) {
+      invalidateClientReadCache(`auth:cart:${uid}`);
+      invalidateClientReadCache(`auth:wishlist:${uid}`);
       // Debounce cloud sync to coalesce rapid successive cart/wishlist modifications
       const syncTimeout = setTimeout(() => {
         const cartPointers = cart.map((item) => ({

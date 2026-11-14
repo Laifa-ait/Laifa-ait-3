@@ -1,17 +1,7 @@
 import React, { useState } from "react";
+import { Plus, Layers, Phone, ChevronRight, Search } from "lucide-react";
 import {
-  Plus,
-  Sparkles,
-  Store,
-  Megaphone,
-  Layers,
-  Phone,
-  FileText,
-  ChevronRight,
-} from "lucide-react";
-import {
-  CustomPageSection,
-  CustomPageSectionType,
+  CustomPageSection, CustomPageSectionType, SellerStoreConfig, StoreThemeSector,
 } from "../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../domains/product/product.types";
 import { AddSectionModal } from "../AddSectionModal";
@@ -19,11 +9,14 @@ import { SectionCard } from "./SectionCard";
 import { DeleteSectionModal } from "./DeleteSectionModal";
 import { StudioSidebar } from "./StudioSidebar";
 import { StudioNavMode } from "./studio.types";
+import { useStudioStore } from "../../store/useStudioStore";
 
 interface SectionTreePanelProps {
   sections: CustomPageSection[];
   selectedSectionId: string | null;
   products?: Product[];
+  activeSector?: StoreThemeSector;
+  storeConfig?: SellerStoreConfig | null;
   navMode?: StudioNavMode | "identity";
   onSelectNavMode?: (mode: StudioNavMode | "identity") => void;
   onSelectSection: (id: string) => void;
@@ -37,118 +30,171 @@ interface SectionTreePanelProps {
     defaultSettings: Record<string, unknown>,
     defaultTitle?: string
   ) => void;
+  onSaveDraft?: () => void;
 }
 
 export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
-  sections,
-  selectedSectionId,
-  products = [],
-  navMode = "sections",
-  onSelectNavMode,
-  onSelectSection,
-  onUpdateSection,
-  onReorder,
-  onToggleVisibility,
-  onDeleteSection,
-  onDuplicateSection,
-  onAddSection,
+  sections, selectedSectionId, products = [], activeSector, storeConfig,
+  navMode = "sections", onSelectNavMode, onSelectSection, onUpdateSection,
+  onReorder, onToggleVisibility, onDeleteSection, onDuplicateSection, onAddSection, onSaveDraft,
 }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [deletingSection, setDeletingSection] = useState<CustomPageSection | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const studioExperienceMode = useStudioStore((s) => s.studioExperienceMode);
+  const activeStudioStep = useStudioStore((s) => s.activeStudioStep);
 
-  const footerSections = sections
-    .map((sec, idx) => ({ sec, idx }))
-    .filter(({ sec }) => sec.type === "contact_footer" || sec.type === "return_policy");
+  const showSectionsTree =
+    studioExperienceMode === "expert" || activeStudioStep === 3 || navMode === "sections";
 
   const bodySections = sections
     .map((sec, idx) => ({ sec, idx }))
     .filter(({ sec }) => sec.type !== "contact_footer" && sec.type !== "return_policy");
 
-  const hasContactFooter = sections.some((s) => s.type === "contact_footer");
+  const filteredBodySections = searchQuery.trim()
+    ? bodySections.filter(({ sec }) =>
+        (sec.title || sec.type).toLowerCase().includes(searchQuery.trim().toLowerCase())
+      )
+    : bodySections;
+
+  const footerSections = sections
+    .map((sec, idx) => ({ sec, idx }))
+    .filter(({ sec }) => sec.type === "contact_footer" || sec.type === "return_policy");
+
+  const resolvedSector: StoreThemeSector = activeSector || storeConfig?.theme?.sector || "mode";
+
+  const handleAddContactFooter = () => {
+    const wilaya = storeConfig?.wilaya || "Alger";
+    const commune = storeConfig?.commune ? `${storeConfig.commune}, ` : "";
+    onAddSection(
+      "contact_footer",
+      {
+        shopPhone: storeConfig?.contacts?.phone || storeConfig?.commerceConfig?.whatsappNumber || "+213 550 00 00 00",
+        shopEmail: storeConfig?.contacts?.email || `contact@${storeConfig?.shopSlug || "boutique"}.dz`,
+        wilaya,
+        address: `${commune}${wilaya}, Algérie`,
+        workingHours: "Sam - Jeu : 09h00 - 18h00",
+        socialInstagram: storeConfig?.socialLinks?.instagram || `@${storeConfig?.shopSlug || "maboutique"}.dz`,
+      },
+      "Pied de boutique & Contact"
+    );
+  };
 
   return (
-    <div className="w-full h-full bg-[#FFFFFF] border-r border-[#E5E7EB] flex flex-col shrink-0 overflow-hidden min-h-0 select-none">
+    <div className="w-full h-full bg-white border-r border-slate-200 flex flex-col shrink-0 overflow-hidden min-h-0 select-none">
       {onSelectNavMode && (
-        <div className="hidden sm:block border-b border-[#E5E7EB]">
-          <StudioSidebar navMode={navMode} onSelectNavMode={onSelectNavMode} />
+        <div className="hidden sm:block border-b border-slate-200">
+          <StudioSidebar
+            navMode={navMode}
+            onSelectNavMode={onSelectNavMode}
+            onSaveDraft={onSaveDraft}
+          />
         </div>
       )}
 
-      {/* Scrollable 3-Zone Shopify OS 2.0 Architecture Tree */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-4 min-h-0">
-        {/* ZONE 1 : EN-TÊTE DE BOUTIQUE */}
-        <section className="space-y-1.5">
-          <div className="flex items-center gap-1.5 px-1 text-[10px] font-extrabold uppercase tracking-wider text-[#667085]">
-            <Store className="w-3.5 h-3.5 text-[#023859]" />
-            <span>1. En-tête de Boutique</span>
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+        {!showSectionsTree ? (
+          <div className="px-1 py-2 space-y-1 text-left">
+            <span className="text-[11.5px] font-medium text-slate-900 block">
+              Configuration de l&apos;étape {activeStudioStep}
+            </span>
+            <p className="text-[11.5px] text-slate-500 leading-relaxed">
+              Complétez les réglages dans l&apos;inspecteur à droite, puis enregistrez pour passer à l&apos;étape{" "}
+              {Math.min(4, activeStudioStep + 1)}.
+            </p>
           </div>
-          <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-1.5 space-y-1">
-            <button
-              type="button"
-              onClick={() => onSelectNavMode?.("identity")}
-              className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left text-xs font-semibold transition-all cursor-pointer ${
-                navMode === "identity"
-                  ? "bg-[#023859] text-white border border-[#023859] font-bold"
-                  : "bg-white text-[#011C40] hover:bg-[#F0F7FA] border border-transparent"
-              }`}
-            >
-              <span className="flex items-center gap-2 truncate">
-                <Store className={`w-3.5 h-3.5 shrink-0 ${navMode === "identity" ? "text-white" : "text-[#023859]"}`} />
-                <span className="truncate">Header, Logo & Identité</span>
-              </span>
-              <ChevronRight className={`w-3.5 h-3.5 shrink-0 ${navMode === "identity" ? "text-white" : "text-[#98A2B3]"}`} />
-            </button>
+        ) : (
+          <>
+            {onSelectNavMode && (
+              <div className="pb-2 border-b border-slate-200 space-y-1">
+                <span className="block text-[10.5px] font-medium text-slate-400 px-1">
+                  En-tête de boutique
+                </span>
+                <button
+                  type="button"
+                  data-testid="tree-header-quick-btn"
+                  onClick={() => onSelectNavMode("header")}
+                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md border text-[11.5px] font-medium transition-colors cursor-pointer ${
+                    navMode === "header"
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="truncate">Barre d&apos;annonce &amp; Menu</span>
+                  <ChevronRight className="w-3.5 h-3.5 opacity-60 shrink-0" />
+                </button>
+              </div>
+            )}
 
-            <button
-              type="button"
-              onClick={() => onSelectNavMode?.("settings")}
-              className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left text-xs font-semibold transition-all cursor-pointer ${
-                navMode === "settings"
-                  ? "bg-[#023859] text-white border border-[#023859] font-bold"
-                  : "bg-white text-[#011C40] hover:bg-[#F0F7FA] border border-transparent"
-              }`}
-            >
-              <span className="flex items-center gap-2 truncate">
-                <Megaphone className={`w-3.5 h-3.5 shrink-0 ${navMode === "settings" ? "text-white" : "text-[#26658C]"}`} />
-                <span className="truncate">Barre d&apos;annonce & Réglages</span>
-              </span>
-              <ChevronRight className={`w-3.5 h-3.5 shrink-0 ${navMode === "settings" ? "text-white" : "text-[#98A2B3]"}`} />
-            </button>
-          </div>
-        </section>
-
-        {/* ZONE 2 : CORPS DE LA VITRINE */}
-        <section className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-[#667085]">
-              <Layers className="w-3.5 h-3.5 text-[#023859]" />
-              <span>2. Corps de la Vitrine ({bodySections.length})</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#F0F7FA] hover:bg-[#023859] text-[11px] font-bold text-[#023859] hover:text-white transition-colors cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Ajouter</span>
-            </button>
-          </div>
-
-          {bodySections.length === 0 ? (
-            <div className="p-4 text-center bg-[#F8FBFC] rounded-xl border border-dashed border-[#54ACBF]/50 space-y-2">
-              <Sparkles className="w-5 h-5 text-[#023859] mx-auto" />
-              <p className="text-xs font-bold text-[#011C40]">Corps de vitrine vide</p>
+            <div className="flex items-center justify-between px-0.5">
+              <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-slate-700 tabular-nums">
+                <Layers className="w-3.5 h-3.5 text-slate-500" />
+                <span>Vitrine ({bodySections.length})</span>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(true)}
-                className="w-full h-8 bg-[#023859] hover:bg-[#011C40] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-slate-200 bg-white hover:bg-slate-900 text-[11.5px] font-medium text-slate-700 hover:text-white transition-colors cursor-pointer whitespace-nowrap shrink-0"
               >
-                + Ajouter une section
+                <Plus className="w-3.5 h-3.5" />
+                <span>Ajouter</span>
               </button>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {bodySections.map(({ sec, idx }) => (
+
+            {bodySections.length > 5 && (
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Filtrer les sections..."
+                  className="w-full h-8 pl-8 pr-2.5 rounded-md border border-slate-200 bg-slate-50 text-[11.5px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:outline-none"
+                />
+              </div>
+            )}
+
+            {filteredBodySections.length === 0 ? (
+              <div className="p-4 text-center rounded-lg border border-dashed border-slate-200 space-y-2">
+                <p className="text-[12px] font-medium text-slate-600">
+                  {bodySections.length === 0 ? "Aucune section sur l'accueil" : "Aucun résultat"}
+                </p>
+                {bodySections.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="w-full h-8 bg-slate-900 hover:bg-slate-800 text-white text-[12px] font-medium rounded-md transition-colors cursor-pointer"
+                  >
+                    + Ajouter une section
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {filteredBodySections.map(({ sec, idx }) => (
+                  <SectionCard
+                    key={sec.id}
+                    sec={sec}
+                    idx={idx}
+                    totalSections={sections.length}
+                    isSelected={sec.id === selectedSectionId}
+                    products={products}
+                    onSelectSection={onSelectSection}
+                    onUpdateSection={onUpdateSection}
+                    onReorder={onReorder}
+                    onToggleVisibility={onToggleVisibility}
+                    onRequestDelete={(targetSec) => setDeletingSection(targetSec)}
+                    onDuplicateSection={onDuplicateSection}
+                  />
+                ))}
+              </div>
+            )}
+
+            <div className="pt-2.5 border-t border-slate-200 space-y-1">
+              <span className="block text-[10.5px] font-medium text-slate-400 px-1">
+                Pied de page
+              </span>
+              {footerSections.map(({ sec, idx }) => (
                 <SectionCard
                   key={sec.id}
                   sec={sec}
@@ -164,79 +210,22 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
                   onDuplicateSection={onDuplicateSection}
                 />
               ))}
+              {footerSections.length === 0 && (
+                <button
+                  type="button"
+                  onClick={handleAddContactFooter}
+                  className="w-full flex items-center justify-between px-2.5 py-2 rounded-md border border-dashed border-slate-200 hover:bg-slate-50 text-[11.5px] font-medium text-slate-700 cursor-pointer"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-slate-500" />
+                    <span>+ Activer le pied de page</span>
+                  </span>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                </button>
+              )}
             </div>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setIsAddModalOpen(true)}
-            className="w-full h-9 rounded-xl border-2 border-dashed border-[#54ACBF]/60 bg-[#F0F7FA]/60 hover:bg-[#023859] hover:border-[#023859] text-[#023859] hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Ajouter une section</span>
-          </button>
-        </section>
-
-        {/* ZONE 3 : PIED DE BOUTIQUE */}
-        <section className="space-y-2 pt-2 border-t border-[#E5E7EB]">
-          <div className="flex items-center gap-1.5 px-1 text-[10px] font-extrabold uppercase tracking-wider text-[#667085]">
-            <Phone className="w-3.5 h-3.5 text-[#023859]" />
-            <span>3. Pied de Boutique & Politiques</span>
-          </div>
-
-          {footerSections.map(({ sec, idx }) => (
-            <SectionCard
-              key={sec.id}
-              sec={sec}
-              idx={idx}
-              totalSections={sections.length}
-              isSelected={sec.id === selectedSectionId}
-              products={products}
-              onSelectSection={onSelectSection}
-              onUpdateSection={onUpdateSection}
-              onReorder={onReorder}
-              onToggleVisibility={onToggleVisibility}
-              onRequestDelete={(targetSec) => setDeletingSection(targetSec)}
-              onDuplicateSection={onDuplicateSection}
-            />
-          ))}
-
-          {!hasContactFooter && (
-            <button
-              type="button"
-              onClick={() =>
-                onAddSection(
-                  "contact_footer",
-                  {
-                    shopPhone: "",
-                    shopEmail: "",
-                    address: "Alger, Algérie",
-                    workingHours: "Sam - Jeu : 09h00 - 18h00",
-                  },
-                  "Pied de boutique & Contact"
-                )
-              }
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-dashed border-[#54ACBF]/50 bg-[#F8FBFC] hover:bg-[#F0F7FA] text-xs font-semibold text-[#011C40] cursor-pointer transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-[#023859]" />
-                <span>+ Activer le Pied de Boutique (Contact)</span>
-              </span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => onSelectNavMode?.("pages")}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] hover:bg-[#F0F7FA] text-xs font-semibold text-[#011C40] cursor-pointer transition-colors"
-          >
-            <span className="flex items-center gap-2 truncate">
-              <FileText className="w-3.5 h-3.5 text-[#023859] shrink-0" />
-              <span className="truncate">Pages & Politiques de retour</span>
-            </span>
-            <ChevronRight className="w-3.5 h-3.5 text-[#98A2B3] shrink-0" />
-          </button>
-        </section>
+          </>
+        )}
       </div>
 
       <DeleteSectionModal
@@ -247,6 +236,7 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
 
       <AddSectionModal
         isOpen={isAddModalOpen}
+        activeSector={resolvedSector}
         onClose={() => setIsAddModalOpen(false)}
         onAddSection={onAddSection}
       />

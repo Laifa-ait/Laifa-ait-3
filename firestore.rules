@@ -986,6 +986,29 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isSignedIn() && resource.data.sellerId == request.auth.uid);
     }
 
+    // Protection Zero-Trust des configurations Studio Vendeur (contient storeStatus / passwordProtectionCode)
+    // Lecture directe autorisée uniquement au propriétaire ou Admin ; exposition publique filtrée via /api/v1/public/stores/*
+    // Écriture exclusivement via le backend Express Admin SDK (validation Zod + anti-XSS + transactions ACID)
+    match /store_configs/{sellerId} {
+      allow read: if isOwner(sellerId) || isAdmin();
+      allow write: if false;
+    }
+
+    match /store_layouts/{sellerId} {
+      allow read: if isOwner(sellerId) || isAdmin();
+      allow write: if false;
+
+      match /history/{versionId} {
+        allow read: if isOwner(sellerId) || isAdmin();
+        allow write: if false;
+      }
+    }
+
+    match /store_slugs/{slug} {
+      allow read: if true;
+      allow write: if false;
+    }
+
   }
 }
 

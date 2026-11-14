@@ -49,6 +49,8 @@ describe("Studio Step 2 — Visual Controllers & Hierarchical Tree", () => {
     expect(hasExpandableSubBlocks("featured_categories")).toBe(true);
     expect(hasExpandableSubBlocks("curated_collections")).toBe(true);
     expect(hasExpandableSubBlocks("faq_accordion")).toBe(true);
-    expect(hasExpandableSubBlocks("delivery_info")).toBe(false);
+    expect(hasExpandableSubBlocks("delivery_info")).toBe(true);
+    expect(hasExpandableSubBlocks("newsletter_box")).toBe(false);
+    expect(hasExpandableSubBlocks("unknown_type")).toBe(false);
   });
 });

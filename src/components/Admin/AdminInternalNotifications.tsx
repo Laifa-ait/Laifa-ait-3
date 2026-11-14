@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 
 import { AppTimestamp, normalizeTimestamp } from "../../utils/date";
+import { fetchWithClientCache, invalidateClientReadCache } from "../../utils/clientReadCache";
 
 interface InternalNotification {
   id: string;
@@ -17,6 +18,9 @@ interface InternalNotification {
   read: boolean;
   createdAt?: AppTimestamp;
 }
+
+const ADMIN_NOTIFS_CACHE_KEY = "admin:internal_notifications:v1";
+const ADMIN_NOTIFS_TTL_MS = 3 * 60 * 1000; // 3 minutes anti-F5 shield
 
 export const AdminInternalNotifications: React.FC = () => {
   const { t } = useTranslation();
@@ -32,26 +36,32 @@ export const AdminInternalNotifications: React.FC = () => {
     if (!userProfile || (userProfile.role !== "admin" && userProfile.role !== "superadmin")) {
       return;
     }
-    
+
     let isCancelled = false;
-    
-    const fetchNotifs = async () => {
-        try {
-            const data = await apiGet<{ notifications: InternalNotification[] }>("/api/v1/admin/notifications");
-            if (!isCancelled && data && data.notifications) {
-                setNotifications(data.notifications);
-            }
-        } catch (err) {
-            console.error("AdminNotifs fetch Error:", err);
+
+    const fetchNotifs = async (forceRefresh = false) => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      if (forceRefresh) invalidateClientReadCache(ADMIN_NOTIFS_CACHE_KEY);
+      try {
+        const data = await fetchWithClientCache<{ notifications: InternalNotification[] }>(
+          ADMIN_NOTIFS_CACHE_KEY,
+          () => apiGet<{ notifications: InternalNotification[] }>("/api/v1/admin/notifications"),
+          ADMIN_NOTIFS_TTL_MS
+        );
+        if (!isCancelled && data && data.notifications) {
+          setNotifications(data.notifications);
         }
+      } catch (err) {
+        console.error("AdminNotifs fetch Error:", err);
+      }
     };
-    
-    fetchNotifs();
-    const interval = setInterval(fetchNotifs, 30000);
-    
+
+    fetchNotifs(false);
+    const interval = setInterval(() => fetchNotifs(true), 5 * 60 * 1000);
+
     return () => {
-        isCancelled = true;
-        clearInterval(interval);
+      isCancelled = true;
+      clearInterval(interval);
     };
   }, [userProfile]);
 

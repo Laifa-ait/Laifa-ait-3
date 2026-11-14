@@ -6,6 +6,7 @@ import {
   UserDataConsentPreferences,
   UserDocumentDTO,
 } from "../types/documents";
+import { fetchWithClientCache, invalidateClientReadCache } from "../utils/clientReadCache";
 
 async function getAuthHeader(): Promise<HeadersInit> {
   const token = await auth.currentUser?.getIdToken();
@@ -63,16 +64,24 @@ export async function deleteUserDocument(documentId: string): Promise<void> {
 }
 
 export async function fetchUserConsent(): Promise<UserDataConsentPreferences | null> {
-  const headers = await getAuthHeader();
-  const res = await fetch("/api/v1/user-documents/consent", { headers });
-  if (!res.ok) return null;
-  const result = await res.json();
-  return result.data || null;
+  const uid = auth.currentUser?.uid || "anon";
+  return fetchWithClientCache<UserDataConsentPreferences | null>(
+    `auth:consent:${uid}`,
+    async () => {
+      const headers = await getAuthHeader();
+      const res = await fetch("/api/v1/user-documents/consent", { headers });
+      if (!res.ok) return null;
+      const result = await res.json();
+      return result.data || null;
+    },
+    10 * 60 * 1000
+  );
 }
 
 export async function saveUserConsent(
   preferences: UserDataConsentPreferences
 ): Promise<UserDataConsentPreferences> {
+  invalidateClientReadCache("auth:consent:");
   const headers = await getAuthHeader();
   const res = await fetch("/api/v1/user-documents/consent", {
     method: "POST",

@@ -2,12 +2,9 @@ import React, { useRef } from "react";
 import { CustomPageSection, CustomPageTheme } from "../../../domains/seller/customPage.types";
 import {
   CategoryItem,
-  CategoryLayoutType,
-  CategoryAspectRatio,
   CategoryCardRadius,
   CategoryHoverEffect,
   CategoryTextPosition,
-  CategoryCardSize,
   CategoryImagePosition,
   CategoryImageFit,
 } from "../../../pages/Seller/StoreBuilder/constants/categoryPresetTypes";
@@ -19,18 +16,18 @@ import {
   resolveAnimationClass,
   SectionDividerRenderer,
 } from "./sectionStyleHelper";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CategoryMesh3DRow } from "./category/CategoryMesh3DRow";
 import { CategoryShopifyBento } from "./category/CategoryShopifyBento";
 import { CategoryShopifyStories } from "./category/CategoryShopifyStories";
 import { CategoryShopifyPills } from "./category/CategoryShopifyPills";
 import { CategoryShopifyCards } from "./category/CategoryShopifyCards";
 import { CategoryEditorialModels } from "./category/CategoryEditorialModels";
-import { CategoryCanvasQuickBar } from "./category/CategoryCanvasQuickBar";
 import {
   resolveCategoryGridCols,
   resolveCategoryGapClass,
   resolveOuterAndMediaRadius,
+  useCategoryContainerDevice,
+  resolveCategoryDeviceProfile,
 } from "./category/categoryResponsiveHelper";
 import { useStudioStore } from "../../../pages/Seller/StoreBuilder/store/useStudioStore";
 import { EditorialHeading } from "../EditorialHeading";
@@ -60,6 +57,7 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
   onSelect,
   previewViewport = "desktop",
 }) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
   const rawSettings = (section.settings || {}) as unknown as Record<string, unknown>;
   const styles = section.styles || {};
@@ -69,14 +67,18 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
   const selectedSectionId = useStudioStore((s) => s.selectedSectionId);
   const selectedSubElement = useStudioStore((s) => s.selectedSubElement);
 
+  const activeDevice = useCategoryContainerDevice(containerRef, previewViewport, Boolean(isEditable));
+  const deviceProfile = resolveCategoryDeviceProfile(rawSettings, activeDevice);
+
   const categories = Array.isArray(rawSettings.categories) ? (rawSettings.categories as CategoryItem[]) : [];
   const indexedVisible = categories.map((cat, origIdx) => ({ cat, origIdx })).filter((entry) => !entry.cat.hidden);
   const visibleCategories = indexedVisible.map((entry) => entry.cat);
 
   const title = typeof rawSettings.title === "string" ? rawSettings.title : section.title;
   const subtitle = typeof rawSettings.subtitle === "string" ? rawSettings.subtitle : "";
-  const layout = (rawSettings.layout as CategoryLayoutType) || "grid";
-  const aspectRatio = (rawSettings.aspectRatio as CategoryAspectRatio) || "4/5";
+  const layout = deviceProfile.layout;
+  const cardSize = deviceProfile.cardSize;
+  const aspectRatio = deviceProfile.aspectRatio;
   const cardRadius = (rawSettings.borderRadius as CategoryCardRadius) || "md";
   const hoverEffect = (rawSettings.hoverEffect as CategoryHoverEffect) || "lift";
   const textPosition =
@@ -89,13 +91,13 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
   const showItemCount = Boolean(rawSettings.showItemCount);
   const textAlign = (rawSettings.textAlignment as string) || "left";
   const columnsDesktop = Number(rawSettings.columnsDesktop ?? 4);
-  const columnsMobile = Number(rawSettings.columnsMobile ?? 2);
+  const columnsTablet = typeof rawSettings.columnsTablet === "number" ? rawSettings.columnsTablet : columnsDesktop <= 2 ? 2 : 3;
+  const columnsMobile = Number(rawSettings.columnsMobile ?? (layout === "pills" || layout === "mesh-3d" ? 1 : 2));
   const gapSize = (rawSettings.gapSize as string) || "normal";
   const bubbleSize = (rawSettings.bubbleSize as string) || "md";
   const bubbleRing = (rawSettings.bubbleRing as string) || "gradient";
   const pillShowImage = rawSettings.pillShowImage !== false;
   const cardSkin = (rawSettings.cardSkin as string) || "editorial";
-  const cardSize = (rawSettings.cardSize as CategoryCardSize) || "balanced";
   const imagePosition = (rawSettings.imagePosition as CategoryImagePosition) || "center";
   const imageFit = (rawSettings.imageFit as CategoryImageFit) || "cover";
 
@@ -119,7 +121,15 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
     return cat.subtitle || "";
   };
 
-  const containerGridColsClass = resolveCategoryGridCols(columnsDesktop, columnsMobile, cardSize, previewViewport);
+  const containerGridColsClass = resolveCategoryGridCols(
+    columnsDesktop,
+    columnsMobile,
+    cardSize,
+    activeDevice,
+    columnsTablet,
+    layout,
+    visibleCategories.length
+  );
   const gapClass = resolveCategoryGapClass(gapSize, cardSize);
   const { outerRadiusClass } = resolveOuterAndMediaRadius(cardRadius);
   const aspectRatioClass = ASPECT_CLASS_MAP[aspectRatio] || "aspect-[4/5]";
@@ -141,12 +151,13 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
     cardSize,
     cardSkin,
     columnsDesktop,
+    columnsTablet,
     columnsMobile,
     imagePosition,
     imageFit,
-    primaryColor: theme.primaryColor,
-    textColor: styles.textColor,
-    previewViewport,
+    primaryColor: styles.badgeBgColor || styles.iconColor || theme.primaryColor,
+    textColor: styles.cardTextColor || styles.textColor,
+    previewViewport: activeDevice,
     isEditable,
     selectedSectionId,
     selectedSubElement,
@@ -160,28 +171,19 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
     onOpenPage: openCategoryPage,
   };
 
+  const resolvedHeadingColor = styles.headingColor || (rawSettings.titleColor as string) || styles.textColor || theme.secondaryColor || "#111827";
+  const resolvedSubtitleColor = styles.subtitleColor || (rawSettings.subtitleColor as string) || styles.textColor || theme.mutedTextColor;
+
   return (
     <div
+      ref={containerRef}
       onClick={isEditable ? onSelect : undefined}
       style={buildSectionContainerStyle(styles, "transparent", "var(--store-secondary, #17191C)", theme)}
       className={`@container transition-all relative select-none ${resolveBorderRadiusClass(styles.borderRadius)} ${resolveShadowClass(styles.shadow)} ${resolveAnimationClass(styles.animation)}${isEditable && !isSelected ? " cursor-pointer" : ""}`}
     >
-      {isEditable && isSelected && (
-        <CategoryCanvasQuickBar
-          sectionId={section.id}
-          categories={categories}
-          activeLayout={layout}
-          cardSize={cardSize}
-          columnsMobile={columnsMobile}
-          showTitle={showTitle}
-          textPosition={textPosition}
-          onTriggerSubTab={triggerSubTab}
-        />
-      )}
-
       <div className={resolveContainerWidthClass(styles.containerWidth)}>
         {(title || subtitle) && (
-          <div className={`mb-4 @[560px]:mb-5 flex items-center justify-between gap-3 ${textAlign === "center" ? "text-center" : textAlign === "right" ? "text-right" : "text-left"}`}>
+          <div className={`mb-4 @[768px]:mb-5 flex items-center justify-between gap-3 ${textAlign === "center" ? "text-center" : textAlign === "right" ? "text-right" : "text-left"}`}>
             <div className="flex-1 min-w-0">
               {title && (
                 <EditorialHeading
@@ -189,25 +191,16 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
                   text={title}
                   theme={theme}
                   sectionStyles={styles}
+                  accentColorOverride={styles.kickerColor || styles.iconColor || theme.accentColor}
                   isEditable={isEditable}
                   editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
                   onClick={(e) => isEditable && triggerSubTab("style", e)}
-                  className={`text-base @[560px]:text-xl @[900px]:text-2xl font-extrabold tracking-tight rounded px-1 ${isEditable ? "cursor-pointer hover:ring-1 hover:ring-[#26658C]" : ""}`}
-                  style={{ color: styles.textColor || "#111827" }}
+                  className={`text-base @[768px]:text-xl @[1024px]:text-2xl font-extrabold tracking-tight rounded px-1 ${isEditable ? "cursor-pointer hover:ring-1 hover:ring-[#26658C]" : ""}`}
+                  style={{ color: resolvedHeadingColor }}
                 />
               )}
-              {subtitle && <p className="text-[11px] @[560px]:text-xs @[900px]:text-sm opacity-75 mt-0.5">{subtitle}</p>}
+              {subtitle && <p className="text-[11px] @[768px]:text-xs @[1024px]:text-sm opacity-80 mt-0.5" style={{ color: resolvedSubtitleColor }}>{subtitle}</p>}
             </div>
-            {layout === "carousel" && visibleCategories.length > 2 && (
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button type="button" onClick={(e) => { e.stopPropagation(); carouselRef.current?.scrollBy({ left: -240, behavior: "smooth" }); }} className="w-8 h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 flex items-center justify-center shadow-2xs cursor-pointer">
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button type="button" onClick={(e) => { e.stopPropagation(); carouselRef.current?.scrollBy({ left: 240, behavior: "smooth" }); }} className="w-8 h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 flex items-center justify-center shadow-2xs cursor-pointer">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
           </div>
         )}
 
@@ -236,7 +229,7 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
         )}
       </div>
 
-      <SectionDividerRenderer divider={styles.divider} theme={theme} />
+      <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
     </div>
   );
 };

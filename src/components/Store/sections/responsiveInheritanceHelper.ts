@@ -177,15 +177,15 @@ export function resolveResponsiveSectionValues(
   };
 }
 
-const SAFE_CSS_TOKEN_REGEX = /^[a-zA-Z0-9_-]+$/;
-const FORBIDDEN_CSS_PATTERNS = /javascript:|expression\(|url\(|<|>|;|{|}/i;
+const SAFE_CSS_TOKEN_REGEX = /^[a-zA-Z0-9_-]{1,48}$/;
+const FORBIDDEN_CSS_PATTERNS = /javascript:|vbscript:|expression\(|url\(|@import|<|>|;|{|}|\\|\/|\(|\)|:/i;
 
 export function sanitizeControlledCssClasses(raw: string): string {
   if (!raw || typeof raw !== "string") return "";
-  const cleaned = FORBIDDEN_CSS_PATTERNS.test(raw) ? raw.replace(FORBIDDEN_CSS_PATTERNS, "") : raw;
-  return cleaned
+  return raw
     .split(/\s+/)
-    .filter((tok) => SAFE_CSS_TOKEN_REGEX.test(tok))
+    .map((tok) => tok.trim())
+    .filter((tok) => Boolean(tok) && !FORBIDDEN_CSS_PATTERNS.test(tok) && SAFE_CSS_TOKEN_REGEX.test(tok))
     .slice(0, 12)
     .join(" ");
 }

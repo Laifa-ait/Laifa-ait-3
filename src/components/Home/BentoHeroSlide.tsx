@@ -16,7 +16,7 @@ const SHADOW_MAP: Record<string, string> = {
   none: "",
   soft: "shadow-md",
   medium: "shadow-xl",
-  strong: "shadow-[0_20px_50px_rgba(0,0,0,0.7)]",
+  strong: "shadow-[0_20px_50px_rgba(26,24,54,0.7)]",
   glow: "shadow-[0_0_40px_rgba(233,152,86,0.5)] ring-2 ring-[#E99856]/40",
 };
 
@@ -30,15 +30,14 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
   const { t } = useTranslation();
 
   const getTranslatedValue = (b: Banner, key: "title" | "subtitle" | "button_text"): string => {
-    const langBlock = b.translations?.[lang as "fr" | "ar" | "en"];
-    if (langBlock?.[key]) {
-      return langBlock[key] || "";
-    }
-    const flatKey = `${key}_${lang}` as keyof Banner;
+    const cleanLang = (lang || "fr").split("-")[0] as "fr" | "ar" | "en";
+    const langBlock = b.translations?.[cleanLang];
+    if (langBlock?.[key]) return langBlock[key] || "";
+
+    const flatKey = `${key}_${cleanLang}` as keyof Banner;
     const flatVal = b[flatKey];
-    if (typeof flatVal === "string" && flatVal) {
-      return flatVal;
-    }
+    if (typeof flatVal === "string" && flatVal) return flatVal;
+
     const rawVal =
       (key === "title"
         ? b.title || b.name
@@ -111,14 +110,12 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
           <img
             loading="eager"
             src={imgError ? fallbackBannerUrl : desktopImageUrl || fallbackBannerUrl}
-            alt={title || "Bannière Olmart"}
+            alt={title || t("home.hero.banner_alt")}
             style={{ objectFit: imageFit, objectPosition: imagePosition }}
             className="w-full h-full"
             referrerPolicy="no-referrer"
             onError={(e) => {
-              if (!imgError) {
-                setImgError(true);
-              }
+              if (!imgError) setImgError(true);
               if (e.currentTarget.src !== fallbackBannerUrl) {
                 e.currentTarget.src = fallbackBannerUrl;
               }
@@ -137,16 +134,16 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
         )}
 
         {banner.discount_label && (
-          <div className="absolute top-4 end-4 z-20 px-3 py-1 rounded-full bg-rose-600 text-white text-xs sm:text-sm font-black uppercase tracking-wider shadow-lg flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{banner.discount_label}</span>
+          <div className="absolute top-4 end-4 z-20 px-3 py-1 rounded-full bg-[#A54055] text-white text-xs sm:text-sm font-black uppercase tracking-wider shadow-lg flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5 text-[#E99856]" />
+            <span>{t(banner.discount_label, banner.discount_label)}</span>
           </div>
         )}
 
         {banner.show_countdown && (
-          <div className="absolute top-4 start-4 z-20 px-3 py-1.5 rounded-xl bg-black/75 backdrop-blur-md border border-white/20 text-white text-[11px] font-mono font-bold flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>{t("Offre limitée")}</span>
+          <div className="absolute top-4 start-4 z-20 px-3 py-1.5 rounded-xl bg-[#1A1836]/85 backdrop-blur-md border border-[#E0B4B2]/25 text-white text-[11px] font-mono font-bold flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-[#E99856] animate-pulse" />
+            <span>{t("home.flash.badge")}</span>
           </div>
         )}
 
@@ -159,9 +156,9 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
                 style={{ color: banner.badge_color || "#E99856" }}
                 className="inline-flex items-center gap-2 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest mb-1.5 sm:mb-2 drop-shadow-xs"
               >
-                <span>Olmart Prestige</span>
+                <span>{t("home.hero.prestige_tag")}</span>
                 <span aria-hidden="true" className="opacity-70">·</span>
-                <span>{banner.badge}</span>
+                <span>{t(banner.badge, banner.badge)}</span>
               </div>
             )}
 
@@ -204,7 +201,7 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
                     : "hover:brightness-105"
                 }`}
               >
-                <span>{buttonText || t("Découvrir la sélection", "Découvrir la sélection")}</span>
+                <span>{buttonText || t("home.hero.default_cta")}</span>
                 <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 stroke-[2.5]" />
               </button>
 
@@ -221,7 +218,7 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
                   }}
                   className="px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-white/15 hover:bg-white/25 backdrop-blur-md text-white border border-white/30 transition-all cursor-pointer"
                 >
-                  {banner.secondary_button_text}
+                  {t(banner.secondary_button_text, banner.secondary_button_text)}
                 </button>
               )}
             </div>

@@ -15,21 +15,21 @@ const RefundPolicy = lazyWithRetry(() => import("../pages/Public/RefundPolicy").
 const Support = lazyWithRetry(() => import("../pages/Public/Support").then((m) => m.Support), "Support");
 const MobileCategories = lazyWithRetry(() => import("../components/MobileCategories"), "MobileCategories");
 
-const StoreProfile = React.lazy(() => import("../pages/Public/StoreProfile").then((m) => ({ default: m.StoreProfile })));
-const ProductFilterPage = React.lazy(() => import("../pages/Public/ProductFilterPage").then((m) => ({ default: m.ProductFilterPage })));
-const CampaignCollection = React.lazy(() => import("../pages/Public/CampaignCollection").then((m) => ({ default: m.CampaignCollection })));
-const CampaignPage = React.lazy(() => import("../pages/Public/CampaignPage").then((m) => ({ default: m.CampaignPage })));
-const TagCollectionPage = React.lazy(() => import("../pages/Public/TagCollectionPage").then((m) => ({ default: m.TagCollectionPage })));
-const PremiumCollection = React.lazy(() => import("../pages/Public/PremiumCollection").then((m) => ({ default: m.PremiumCollection })));
-const DynamicCollectionPage = React.lazy(() => import("../pages/Public/DynamicCollectionPage").then((m) => ({ default: m.DynamicCollectionPage })));
-const FeaturedProducts = React.lazy(() => import("../pages/Public/FeaturedProducts").then((m) => ({ default: m.FeaturedProducts })));
-const ShippingCalculatorPage = React.lazy(() => import("../pages/Public/ShippingCalculatorPage").then((m) => ({ default: m.ShippingCalculatorPage })));
-const ShopsDirectory = React.lazy(() => import("../pages/Public/ShopsDirectory").then((m) => ({ default: m.ShopsDirectory })));
-const ComparatorPage = React.lazy(() => import("../pages/Public/ComparatorPage").then((m) => ({ default: m.ComparatorPage })));
-const VerifyEmail = React.lazy(() => import("../pages/Public/VerifyEmail").then((m) => ({ default: m.VerifyEmail })));
-const Onboarding = React.lazy(() => import("../pages/Public/Onboarding").then((m) => ({ default: m.Onboarding })));
-const SellerOnboarding = React.lazy(() => import("../pages/Public/SellerOnboarding").then((m) => ({ default: m.SellerOnboarding })));
-const ForgotPassword = React.lazy(() => import("../pages/Public/ForgotPassword").then((m) => ({ default: m.ForgotPassword })));
+const StoreProfile = lazyWithRetry(() => import("../pages/Public/StoreProfile"), "StoreProfile");
+const ProductFilterPage = lazyWithRetry(() => import("../pages/Public/ProductFilterPage"), "ProductFilterPage");
+const CampaignCollection = lazyWithRetry(() => import("../pages/Public/CampaignCollection"), "CampaignCollection");
+const CampaignPage = lazyWithRetry(() => import("../pages/Public/CampaignPage"), "CampaignPage");
+const TagCollectionPage = lazyWithRetry(() => import("../pages/Public/TagCollectionPage"), "TagCollectionPage");
+const PremiumCollection = lazyWithRetry(() => import("../pages/Public/PremiumCollection"), "PremiumCollection");
+const DynamicCollectionPage = lazyWithRetry(() => import("../pages/Public/DynamicCollectionPage"), "DynamicCollectionPage");
+const FeaturedProducts = lazyWithRetry(() => import("../pages/Public/FeaturedProducts"), "FeaturedProducts");
+const ShippingCalculatorPage = lazyWithRetry(() => import("../pages/Public/ShippingCalculatorPage"), "ShippingCalculatorPage");
+const ShopsDirectory = lazyWithRetry(() => import("../pages/Public/ShopsDirectory"), "ShopsDirectory");
+const ComparatorPage = lazyWithRetry(() => import("../pages/Public/ComparatorPage"), "ComparatorPage");
+const VerifyEmail = lazyWithRetry(() => import("../pages/Public/VerifyEmail"), "VerifyEmail");
+const Onboarding = lazyWithRetry(() => import("../pages/Public/Onboarding"), "Onboarding");
+const SellerOnboarding = lazyWithRetry(() => import("../pages/Public/SellerOnboarding"), "SellerOnboarding");
+const ForgotPassword = lazyWithRetry(() => import("../pages/Public/ForgotPassword"), "ForgotPassword");
 
 export const renderPublicRoutes = () => (
   <>

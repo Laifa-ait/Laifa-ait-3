@@ -39,9 +39,11 @@ interface PropertiesInspectorProps {
   ) => void;
   onSaveTheme: (theme: CustomPageTheme) => Promise<void>;
   onThemeChangeLive: (theme: CustomPageTheme) => void;
+  onLiveStorePatch?: (patch: Partial<SellerStoreConfig>) => void;
   onSaveConfig: (updatedConfig: Partial<SellerStoreConfig>) => Promise<void>;
   onApplyFullArchetype?: (sections: CustomPageSection[], theme: CustomPageTheme) => Promise<void> | void;
   onReplaceSections?: (sections: CustomPageSection[]) => void;
+  onSaveDraft?: () => void;
 }
 
 export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
@@ -60,12 +62,14 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
   onAddSection,
   onSaveTheme,
   onThemeChangeLive,
+  onLiveStorePatch,
   onSaveConfig,
   onApplyFullArchetype,
   onReplaceSections,
+  onSaveDraft,
 }) => {
   return (
-    <aside className="w-full md:w-[330px] md:min-w-[330px] md:max-w-[330px] bg-[#FFFFFF] border-l border-[#E5E7EB] flex flex-col h-full shrink-0 overflow-y-auto min-w-0 min-h-0">
+    <aside className="w-full bg-white border-l border-slate-200 flex flex-col h-full shrink-0 overflow-y-auto min-w-0 min-h-0">
       {navMode === "launchpad" ? (
         <SetupGuideInspectorPanel
           storeConfig={storeConfig}
@@ -81,6 +85,7 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
       ) : navMode === "header" ? (
         <HeaderNavigationInspectorPanel
           storeConfig={storeConfig}
+          onLiveChange={onLiveStorePatch}
           onSaveConfig={onSaveConfig}
         />
       ) : navMode === "pages" ? (
@@ -106,18 +111,26 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
       ) : navMode === "media" ? (
         <MediaInspectorPanel
           mediaGallery={mediaGallery}
+          sections={sections}
+          storeConfig={storeConfig}
           onSelectMediaUrl={onSelectMediaUrl}
           onUploadMedia={onUploadMedia}
           onDeleteMedia={onDeleteMedia}
+          onSaveConfig={onSaveConfig}
         />
       ) : navMode === "identity" ? (
-        <div className="p-2">
-          <StoreIdentityEditor storeConfig={storeConfig} onSave={onSaveConfig} />
-        </div>
+        <StoreIdentityEditor
+          storeConfig={storeConfig}
+          onLiveChange={onLiveStorePatch}
+          onThemeChangeLive={onThemeChangeLive}
+          onSave={onSaveConfig}
+        />
       ) : navMode === "catalog" ? (
         <CatalogInspectorPanel
           products={products}
           sections={sections}
+          storeConfig={storeConfig}
+          activeSector={currentTheme?.sector}
           onUpdateSection={onUpdateSection}
           onAddSection={
             onAddSection ||
@@ -125,12 +138,14 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
               /* fallback no-op */
             })
           }
+          onSaveConfig={onSaveConfig}
         />
       ) : navMode === "orders" ? (
         <OrdersInspectorPanel />
       ) : navMode === "settings" ? (
         <StoreSettingsInspectorPanel
           storeConfig={storeConfig ?? null}
+          onLiveChange={onLiveStorePatch}
           onSaveConfig={onSaveConfig}
         />
       ) : (
@@ -140,6 +155,7 @@ export const PropertiesInspector: React.FC<PropertiesInspectorProps> = ({
           products={products}
           currentTheme={currentTheme}
           onUpdateSection={onUpdateSection}
+          onSaveStep={onSaveDraft}
         />
       )}
     </aside>

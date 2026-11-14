@@ -5,7 +5,7 @@ import { PRODUCT_STATUSES, isPubliclyVisible } from "../product.status";
 import NodeCache from "node-cache";
 import { safeLogger } from "../../../utils/logger";
 import { getCategoryQueryAliases } from "../../../utils/categoryCanonical";
-import { withFirestoreDeadline } from "../../../utils/firestoreTimeout";
+import { withFirestoreDeadline, isFirestoreQuotaError, isFirestoreAdminCircuitOpen } from "../../../utils/firestoreTimeout";
 
 const cache = new NodeCache({ stdTTL: 300, maxKeys: 1000, useClones: true });
 
@@ -21,14 +21,18 @@ productCatalogRouter.get("/api/v1/public/home-endless-grid", async (req, res) =>
   const queryOffset = req.query.offset ? Math.max(parseInt(String(req.query.offset), 10), 0) : 0;
   const lastDocId = req.query.lastDocId ? String(req.query.lastDocId).trim() : null;
 
-  // Cache first page (offset 0, default limit, no lastDocId) for 60 seconds to relieve database load
-  const isDefaultFirstPage = queryOffset === 0 && !lastDocId && queryLimit === 12;
-  const cacheKey = "home_endless_grid_page_1";
-  if (isDefaultFirstPage) {
+  // Cache first page (offset 0, no lastDocId) for 300 seconds (5 minutes) regardless of limit (12 or 24)
+  const isFirstPage = queryOffset === 0 && !lastDocId;
+  const cacheKey = `home_endless_grid_page_1_l${queryLimit}`;
+  if (isFirstPage) {
     const cached = cache.get<{ products: Product[]; nextCursor: string | null }>(cacheKey);
     if (cached) {
       return res.json(cached);
     }
+  }
+
+  if (isFirestoreAdminCircuitOpen()) {
+    return res.json({ products: [], nextCursor: null, degraded: true });
   }
 
   try {
@@ -49,14 +53,36 @@ productCatalogRouter.get("/api/v1/public/home-endless-grid", async (req, res) =>
       }
 
       finalQ = finalQ.limit(queryLimit);
-      const snap = await withFirestoreDeadline(() => finalQ.get(), null, 1500, "endless_grid");
-      if (!snap) throw new Error("Firestore deadline");
+      let indexFailure = false;
+      const snap = await withFirestoreDeadline(
+        async () => {
+          try {
+            return await finalQ.get();
+          } catch (innerErr: unknown) {
+            const msg = innerErr instanceof Error ? innerErr.message : String(innerErr);
+            if (msg.includes("FAILED_PRECONDITION") || msg.includes("requires an index")) {
+              indexFailure = true;
+            }
+            throw innerErr;
+          }
+        },
+        null,
+        1500,
+        "endless_grid"
+      );
+
+      if (!snap) {
+        if (!indexFailure || isFirestoreAdminCircuitOpen()) {
+          return res.json({ products: [], nextCursor: null, degraded: true });
+        }
+        throw new Error("Composite index required");
+      }
+
       products = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
       if (snap.docs.length === queryLimit && snap.docs.length > 0) {
         nextCursor = snap.docs[snap.docs.length - 1].id;
       }
     } catch {
-      safeLogger.warn("Composite index query failed for home-endless-grid. Using bounded limit fallback.");
       const fetchCap = Math.min(queryOffset + queryLimit, 50);
       const snap = await withFirestoreDeadline(() => db.collection("products").limit(fetchCap).get(), null, 1500, "endless_fallback");
       products = (snap?.docs || []).map((doc) => ({ id: doc.id, ...doc.data() } as Product));
@@ -74,11 +100,14 @@ productCatalogRouter.get("/api/v1/public/home-endless-grid", async (req, res) =>
     }
 
     const payload = { products, nextCursor };
-    if (isDefaultFirstPage && products.length > 0) {
-      cache.set(cacheKey, payload, 60);
+    if (isFirstPage && products.length > 0) {
+      cache.set(cacheKey, payload, 300);
     }
     return res.json(payload);
   } catch (error: unknown) {
+    if (isFirestoreQuotaError(error)) {
+      return res.json({ products: [], nextCursor: null, degraded: true });
+    }
     safeLogger.error("Error in home-endless-grid", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
   }

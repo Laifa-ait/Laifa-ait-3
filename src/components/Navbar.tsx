@@ -43,7 +43,8 @@ export const Navbar: React.FC = () => {
   const { cart } = useCart();
   const { setSearchQuery, setActiveCategory, setIsSaleFilterActive, setActiveTag } = useShop();
   const { setIsCartOpen, setIsMobileMenuOpen } = useUI();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language === "ar" || i18n.language?.startsWith("ar");
   const navigate = useNavigate();
   const location = useLocation();
   const isCategoriesPage = location.pathname === "/categories";
@@ -110,7 +111,7 @@ export const Navbar: React.FC = () => {
                 }
               }}
               className="w-9 h-9 rounded-full bg-[#FAF7F6] hover:bg-[#F4EDED] text-[#1A1836] flex items-center justify-center shrink-0 cursor-pointer border border-[#E0B4B2]/50 shadow-2xs transition-all active:scale-95"
-              aria-label="Retour"
+              aria-label={t("nav.back", "Retour")}
             >
               <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
             </button>
@@ -133,13 +134,13 @@ export const Navbar: React.FC = () => {
                 type="button"
                 onClick={handleLogoClick}
                 className="flex items-center gap-2.5 shrink-0 select-none cursor-pointer group bg-transparent border-none p-0 whitespace-nowrap"
-                aria-label="Accueil Olmart"
+                aria-label={t("nav.home_aria", "Accueil Olmart")}
               >
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#42164B] via-[#622347] to-[#A54055] flex items-center justify-center shrink-0 border border-[#E0B4B2]/35 shadow-xs group-hover:scale-105 transition-transform duration-200">
                   <Store className="w-4.5 h-4.5 text-[#E99856]" />
                 </div>
                 <span className="text-2xl sm:text-3xl font-display font-bold tracking-wider text-[#1A1836]">
-                  OLMART
+                  {t("nav.brand_name", isArabic ? "أولمارت" : "OLMART")}
                 </span>
               </button>
             </div>
@@ -149,7 +150,7 @@ export const Navbar: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsCartOpen(true)}
-                aria-label={t("Mon Panier") || "Mon Panier"}
+                aria-label={t("nav.my_cart", "Mon Panier")}
                 className="flex items-center justify-center text-[#1A1836] hover:text-[#622347] hover:bg-[#FAF7F6] transition-all duration-200 cursor-pointer relative bg-transparent border-none w-10 h-10 rounded-full active:scale-95"
               >
                 <ShoppingBag className="w-5 h-5 stroke-[1.8]" />
@@ -163,7 +164,7 @@ export const Navbar: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(true)}
-                aria-label={t("Menu") || "Menu"}
+                aria-label={t("nav.menu", "Menu")}
                 className="flex items-center justify-center text-[#1A1836] hover:text-[#622347] hover:bg-[#FAF7F6] transition-all duration-200 cursor-pointer bg-transparent border-none w-10 h-10 rounded-full active:scale-95"
               >
                 <Menu className="w-5 h-5 stroke-[1.8]" />

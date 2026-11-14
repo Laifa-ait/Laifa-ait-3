@@ -6,7 +6,7 @@ import { useCart } from "../../context/CartContext";
 import { useComparatorStore } from "../../store/useComparatorStore";
 import { Product } from "../../domains/product/product.types";
 import { formatPrice } from "../../utils/format";
-import { getTranslatedField } from "../../utils/translations";
+import { getCategoryTranslation, getTranslatedField } from "../../utils/translations";
 import { getOptimizedImageUrl, getFallbackSubImage } from "../../utils/imageUtils";
 
 const getEnergyColor = (cls?: string) => {
@@ -102,9 +102,11 @@ export const ProductCard = React.memo(
       return "bg-white border border-[#EFE6E6] hover:border-[#E0B4B2] shadow-[0_2px_8px_rgba(26,24,54,0.04)] hover:shadow-[0_12px_28px_rgba(26,24,54,0.09)] hover:-translate-y-0.5";
     };
 
-    const fallbackImg = getFallbackSubImage(
-      `${getTranslatedField(product, "name", lang)} ${product.category || ""}`
-    );
+    const translatedName = getTranslatedField(product, "name", lang);
+    const translatedCategory = product.category
+      ? getCategoryTranslation(product.category, t)
+      : product.sellerName || "Olmart";
+    const fallbackImg = getFallbackSubImage(`${translatedName} ${product.category || ""}`);
 
     return (
       <div
@@ -115,7 +117,7 @@ export const ProductCard = React.memo(
         <div className="relative aspect-[3/4] sm:aspect-[4/5] w-full overflow-hidden bg-[#FAF7F6]">
           <img
             src={getOptimizedImageUrl(product.image, 600) || fallbackImg}
-            alt={getTranslatedField(product, "name", lang)}
+            alt={translatedName}
             loading="lazy"
             decoding="async"
             referrerPolicy="no-referrer"
@@ -140,7 +142,7 @@ export const ProductCard = React.memo(
             )}
             {product.isSponsored && !hasDiscount && (
               <span className="bg-[#1A1836]/85 backdrop-blur-sm text-[#E0B4B2] font-sans font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-md">
-                {t("Sponsorisé")}
+                {t("home.sponsored.badge")}
               </span>
             )}
             {product.energyClass && (
@@ -157,7 +159,7 @@ export const ProductCard = React.memo(
           <div className="absolute top-2.5 end-2.5 z-20 flex flex-col gap-1.5 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <button
               type="button"
-              aria-label={wishlist.includes(product.id) ? "Retirer des favoris" : "Ajouter aux favoris"}
+              aria-label={wishlist.includes(product.id) ? t("product.remove_from_wishlist") : t("product.add_to_wishlist")}
               onClick={(e) => {
                 e.stopPropagation();
                 toggleWishlist(product.id);
@@ -172,7 +174,7 @@ export const ProductCard = React.memo(
             </button>
             <button
               type="button"
-              aria-label={isCompared ? "Retirer du comparateur" : "Ajouter au comparateur"}
+              aria-label={isCompared ? t("product.remove_from_compare") : t("product.add_to_compare")}
               onClick={(e) => {
                 e.stopPropagation();
                 if (isCompared) removeFromCompare(product.id);
@@ -190,29 +192,29 @@ export const ProductCard = React.memo(
         </div>
 
         {/* Card Body: Metadata, Title, and Tabular Price */}
-        <div className="p-3 sm:p-3.5 flex flex-col flex-1 justify-between gap-2 bg-white">
+        <div className={`p-3 sm:p-3.5 flex flex-col flex-1 justify-between gap-2 ${isDark ? "bg-[#1A1836]" : "bg-white"}`}>
           <div className="space-y-1">
             <div className="flex items-center justify-between gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E5A6F] truncate">
-                {product.category || product.sellerName || "Olmart"}
+              <span className={`text-[10px] font-bold uppercase tracking-wider truncate ${isDark ? "text-[#E0B4B2]" : "text-[#6E5A6F]"}`}>
+                {translatedCategory}
               </span>
               {Number(product.rating || 0) > 0 && (
-                <div className="flex items-center gap-0.5 text-[#1A1836] text-[10px] font-mono tabular-nums font-bold shrink-0">
+                <div className={`flex items-center gap-0.5 text-[10px] font-mono tabular-nums font-bold shrink-0 ${isDark ? "text-white" : "text-[#1A1836]"}`}>
                   <Star className="w-3 h-3 fill-[#E99856] text-[#E99856]" />
                   <span>{Number(product.rating).toFixed(1)}</span>
                 </div>
               )}
             </div>
 
-            <h3 className="font-sans font-semibold text-[#1A1836] group-hover:text-[#622347] text-xs sm:text-sm leading-snug line-clamp-2 transition-colors">
-              {getTranslatedField(product, "name", lang)}
+            <h3 className={`font-sans font-semibold text-xs sm:text-sm leading-snug line-clamp-2 transition-colors ${isDark ? "text-white group-hover:text-[#E99856]" : "text-[#1A1836] group-hover:text-[#622347]"}`}>
+              {translatedName}
             </h3>
           </div>
 
           {/* Bottom Row: Price */}
-          <div className="pt-2 border-t border-[#FAF7F6] flex items-baseline justify-between gap-2 mt-auto">
+          <div className={`pt-2 border-t flex items-baseline justify-between gap-2 mt-auto ${isDark ? "border-[#42164B]" : "border-[#FAF7F6]"}`}>
             <div className="flex flex-wrap items-baseline gap-1.5 min-w-0">
-              <span className="font-sans font-extrabold text-sm sm:text-base tracking-tight tabular-nums text-[#1A1836]">
+              <span className={`font-sans font-extrabold text-sm sm:text-base tracking-tight tabular-nums ${isDark ? "text-white" : "text-[#1A1836]"}`}>
                 {formatPrice(currentPrice)}
               </span>
               {hasDiscount && (

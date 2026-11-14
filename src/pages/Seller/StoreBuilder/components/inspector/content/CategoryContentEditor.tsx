@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Sliders, Grid, Sparkles } from "lucide-react";
 import { CustomPageSection } from "../../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../../domains/product/product.types";
 import { CategoryCanvaStyleControls } from "../category/CategoryCanvaStyleControls";
@@ -8,8 +7,11 @@ import { CategoryPresetSelector } from "../category/CategoryPresetSelector";
 import { CategoryPreset, CategoryItem } from "../../../constants/categoryPresets";
 import { CategorySmartSyncBar } from "../controls/CategorySmartSyncBar";
 import { useStudioStore } from "../../../store/useStudioStore";
+import { useSectionStepProgress } from "../../../hooks/useSectionStepProgress";
+import { StepWizardBar, StepWizardFooter, StepDefinition } from "../controls/StepWizardControls";
 
 interface CategoryContentEditorProps {
+  sectionId?: string;
   settings: Record<string, unknown>;
   sections?: CustomPageSection[];
   products: Product[];
@@ -17,40 +19,57 @@ interface CategoryContentEditorProps {
     fieldOrPatch: string | Record<string, unknown>,
     value?: unknown
   ) => void;
+  onSaveStep?: () => void;
   inputClass: string;
 }
 
+const CATEGORY_STEP_DEFS: StepDefinition[] = [
+  { id: 1, shortLabel: "1. Rayons", title: "Titre & Rayons", subtitle: "Nommez et organisez vos catégories." },
+  { id: 2, shortLabel: "2. Modèle", title: "Modèle & Taille", subtitle: "Choisissez 1 style d'affichage et sa taille." },
+  { id: 3, shortLabel: "3. Cadrage", title: "Photo & Titre Carte", subtitle: "Cadrage image et emplacement du titre." },
+  { id: 4, shortLabel: "4. Finition", title: "Animation & Packs", subtitle: "Effet au survol, badges et packs prêts." },
+];
+
 export const CategoryContentEditor: React.FC<CategoryContentEditorProps> = ({
+  sectionId,
   settings,
   sections = [],
   products,
   onSettingsChange,
+  onSaveStep,
   inputClass,
 }) => {
   const selectedSubElement = useStudioStore((s) => s.selectedSubElement);
-  const [subTab, setSubTab] = useState<"style" | "items" | "presets">("items");
   const [focusedIndex, setFocusedIndex] = useState<number | null>(0);
+  const {
+    activeStep,
+    unlockedStep,
+    completedSteps,
+    isExpert,
+    justSavedStep,
+    selectStep,
+    goToPrevStep,
+    saveAndAdvanceStep,
+  } = useSectionStepProgress("category", 4, sectionId);
 
   useEffect(() => {
     if (!selectedSubElement) return;
     if (selectedSubElement === "category-style") {
-      setSubTab("style");
+      selectStep(2);
     } else if (selectedSubElement === "category-presets") {
-      setSubTab("presets");
+      selectStep(4);
     } else if (
       selectedSubElement.startsWith("category-items") ||
       selectedSubElement.startsWith("cat-")
     ) {
-      setSubTab("items");
+      selectStep(1);
       const rawIdx = selectedSubElement.includes(":")
         ? selectedSubElement.split(":")[1]
         : selectedSubElement.replace("cat-", "");
       const parsedIdx = parseInt(rawIdx, 10);
-      if (!Number.isNaN(parsedIdx)) {
-        setFocusedIndex(parsedIdx);
-      }
+      if (!Number.isNaN(parsedIdx)) setFocusedIndex(parsedIdx);
     }
-  }, [selectedSubElement]);
+  }, [selectedSubElement, selectStep]);
 
   const categories = Array.isArray(settings.categories)
     ? (settings.categories as CategoryItem[])
@@ -84,118 +103,101 @@ export const CategoryContentEditor: React.FC<CategoryContentEditorProps> = ({
 
   const handleImportFromProducts = (imported: Array<Record<string, unknown>>) => {
     onSettingsChange("categories", imported);
-    setSubTab("items");
+    selectStep(1);
     setFocusedIndex(0);
   };
 
   return (
-    <div className="space-y-4 select-none">
-      {/* Smart Sync & Diagnostics Bar */}
-      <CategorySmartSyncBar
-        categories={categories}
-        products={products}
-        onSyncCategories={(synced) => {
-          onSettingsChange("categories", synced);
-          setSubTab("items");
-          setFocusedIndex(0);
-        }}
+    <div className="space-y-3.5 select-none" data-testid="category-content-editor">
+      <StepWizardBar
+        steps={CATEGORY_STEP_DEFS}
+        activeStep={activeStep}
+        unlockedStep={unlockedStep}
+        completedSteps={completedSteps}
+        isExpert={isExpert}
+        testIdPrefix="category-step"
+        onSelectStep={selectStep}
       />
 
-      {/* Global Section Heading Settings */}
-      <div className="space-y-2.5 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-        <div className="space-y-1">
-          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-            Titre de la Section
-          </label>
-          <input
-            value={String(settings.title || "")}
-            onChange={(e) => onSettingsChange("title", e.target.value)}
-            placeholder="Ex: Parcourir nos Rayons"
-            className={inputClass}
+      {activeStep === 1 && (
+        <div className="space-y-3" data-testid="category-step-panel-1">
+          <CategorySmartSyncBar
+            categories={categories}
+            products={products}
+            onSyncCategories={(synced) => {
+              onSettingsChange("categories", synced);
+              setFocusedIndex(0);
+            }}
+          />
+
+          <div className="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+            <label className="block space-y-1">
+              <span className="text-[11px] font-bold text-slate-700">Titre de la section</span>
+              <input
+                value={String(settings.title || "")}
+                onChange={(e) => onSettingsChange("title", e.target.value)}
+                placeholder="Ex: Parcourir nos Rayons"
+                className={inputClass}
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-[11px] font-bold text-slate-700">Sous-titre (optionnel)</span>
+              <input
+                value={String(settings.subtitle || "")}
+                onChange={(e) => onSettingsChange("subtitle", e.target.value)}
+                placeholder="Ex: Nos univers sélectionnés"
+                className={inputClass}
+              />
+            </label>
+          </div>
+
+          <CategoryItemListManager
+            categories={categories}
+            sections={sections}
+            products={products}
+            focusedIndex={focusedIndex}
+            onUpdateCategories={(newCats) => onSettingsChange("categories", newCats)}
+            inputClass={inputClass}
           />
         </div>
-        <div className="space-y-1">
-          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-            Sous-titre d'accroche (Optionnel)
-          </label>
-          <input
-            value={String(settings.subtitle || "")}
-            onChange={(e) => onSettingsChange("subtitle", e.target.value)}
-            placeholder="Ex: Les univers les plus demandés cette semaine"
-            className={inputClass}
-          />
-        </div>
-      </div>
-
-      {/* Sub-tabs: 1. Mes Rayons (Default), 2. Style & Grille, 3. Modèles */}
-      <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl text-xs font-semibold">
-        <button
-          type="button"
-          onClick={() => setSubTab("items")}
-          className={`py-1.5 px-1 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
-            subTab === "items"
-              ? "bg-[#023859] text-white shadow-xs font-bold"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
-        >
-          <Grid className="w-3.5 h-3.5" />
-          <span>Mes Rayons ({categories.length})</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setSubTab("style")}
-          className={`py-1.5 px-1 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
-            subTab === "style"
-              ? "bg-[#023859] text-white shadow-xs font-bold"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
-        >
-          <Sliders className="w-3.5 h-3.5" />
-          <span>Style & Grille</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setSubTab("presets")}
-          className={`py-1.5 px-1 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
-            subTab === "presets"
-              ? "bg-[#023859] text-white shadow-xs font-bold"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Modèles</span>
-        </button>
-      </div>
-
-      {/* Sub-tab Panes */}
-      {subTab === "items" && (
-        <CategoryItemListManager
-          categories={categories}
-          sections={sections}
-          products={products}
-          focusedIndex={focusedIndex}
-          onUpdateCategories={(newCats) => onSettingsChange("categories", newCats)}
-          inputClass={inputClass}
-        />
       )}
 
-      {subTab === "style" && (
+      {(activeStep === 2 || activeStep === 3) && (
         <CategoryCanvaStyleControls
+          step={activeStep as 2 | 3}
           settings={settings}
           onSettingsChange={(f, v) => onSettingsChange(f, v)}
         />
       )}
 
-      {subTab === "presets" && (
-        <CategoryPresetSelector
-          currentLayout={String(settings.layout || "")}
-          activePresetId={typeof settings.activePresetId === "string" ? settings.activePresetId : undefined}
-          products={products}
-          hasExistingCategories={categories.length > 0}
-          onApplyPreset={handleApplyPreset}
-          onImportFromProducts={handleImportFromProducts}
-        />
+      {activeStep === 4 && (
+        <div className="space-y-4" data-testid="category-step-panel-4">
+          <CategoryCanvaStyleControls
+            step={4}
+            settings={settings}
+            onSettingsChange={(f, v) => onSettingsChange(f, v)}
+          />
+          <div className="pt-2 border-t border-slate-200">
+            <CategoryPresetSelector
+              currentLayout={String(settings.layout || "")}
+              activePresetId={typeof settings.activePresetId === "string" ? settings.activePresetId : undefined}
+              products={products}
+              hasExistingCategories={categories.length > 0}
+              onApplyPreset={handleApplyPreset}
+              onImportFromProducts={handleImportFromProducts}
+            />
+          </div>
+        </div>
       )}
+
+      <StepWizardFooter
+        activeStep={activeStep}
+        totalSteps={4}
+        justSavedStep={justSavedStep}
+        saveTestId="category-save-step-btn"
+        onPrev={goToPrevStep}
+        onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)}
+      />
     </div>
   );
 };

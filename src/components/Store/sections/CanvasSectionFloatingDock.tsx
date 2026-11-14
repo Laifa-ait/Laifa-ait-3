@@ -52,11 +52,11 @@ export const CanvasSectionFloatingDock: React.FC<CanvasSectionFloatingDockProps>
     <div
       onClick={(e) => e.stopPropagation()}
       data-testid="canvas-section-floating-dock"
-      className="w-full flex items-center justify-between gap-2 bg-white/95 backdrop-blur-md text-[#011C40] px-3 py-1.5 border-b border-slate-200/90 shadow-xs select-none rounded-t-xl"
+      className="w-full flex items-center justify-between gap-2 bg-white/95 backdrop-blur-md text-slate-900 px-3 py-1.5 border-b border-slate-200/90 shadow-xs select-none rounded-t-xl overflow-x-auto no-scrollbar"
     >
       <div className="flex items-center gap-2 min-w-0">
-        <span className={`w-2 h-2 rounded-full shrink-0 ${isLocked ? "bg-amber-500" : "bg-[#023859]"}`} />
-        <span className="text-[11px] font-extrabold tracking-tight text-[#011C40] truncate">
+        <span className={`w-2 h-2 rounded-full shrink-0 ${isLocked ? "bg-amber-500" : "bg-slate-900"}`} />
+        <span className="text-[11px] font-extrabold tracking-tight text-slate-900 truncate">
           {sectionLabel}
         </span>
         {isLocked && (
@@ -72,7 +72,7 @@ export const CanvasSectionFloatingDock: React.FC<CanvasSectionFloatingDockProps>
             <button
               type="button"
               onClick={(e) => onSelectInspectorTab("content", e)}
-              className="h-7 px-2.5 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+              className="h-7 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
               title="Modifier le contenu de cette section"
             >
               <SlidersHorizontal className="w-3 h-3" />
@@ -81,7 +81,7 @@ export const CanvasSectionFloatingDock: React.FC<CanvasSectionFloatingDockProps>
             <button
               type="button"
               onClick={(e) => onSelectInspectorTab("style", e)}
-              className="h-7 px-2 rounded-lg bg-[#F0F7FA] hover:bg-[#023859] text-[#023859] hover:text-white border border-[#54ACBF]/40 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+              className="h-7 px-2 rounded-lg bg-slate-100 hover:bg-slate-900 text-slate-700 hover:text-white border border-slate-200 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
               title="Ouvrir l'onglet Couleurs & Style"
             >
               <Palette className="w-3 h-3" />

@@ -210,5 +210,31 @@ describe("Seller Studio Backend & Zod Validation (Phase 2A)", () => {
       expect(initialLayout.versionNumber).toBe(1);
       expect(initialLayout.status).toBe("draft");
     });
+
+    it("accepts Studio hero_banner shadows, textShadow, borderRadius 2xl, and xl responsive heights in saveDraftLayoutSchema", () => {
+      const studioHero = {
+        id: "sec_hero_studio_fx",
+        type: "hero_banner",
+        title: "Bannière Principale",
+        settings: {
+          title: "Atelier Oran",
+          imageUrl: "",
+          textShadow: "soft",
+          bannerShadow: "floating",
+          imageShadow: "glow",
+          ctaShadow: "brutal",
+          secondaryCtaShadow: "strong",
+          bannerHeightTablet: "xl",
+          bannerHeightMobile: "xl",
+        },
+        styles: {
+          borderRadius: "2xl",
+          shadow: "floating",
+        },
+        isVisible: true,
+        order: 0,
+      };
+      expect(saveDraftLayoutSchema.safeParse({ sections: [studioHero] }).success).toBe(true);
+    });
   });
 });

@@ -11,9 +11,11 @@ import { renderEcosystemRoutes } from "./routes/EcosystemRoutes";
 import { renderBuyerRoutes } from "./routes/BuyerRoutes";
 import { renderSellerRoutes } from "./routes/SellerRoutes";
 import { renderAdminRoutes } from "./routes/AdminRoutes";
+import { lazyWithRetry } from "./utils/lazyWithRetry";
 
-const NotFound = React.lazy(() =>
-  import("./pages/Public/NotFound").then((m) => ({ default: m.NotFound }))
+const NotFound = lazyWithRetry(
+  () => import("./pages/Public/NotFound"),
+  "NotFound"
 );
 
 export const AppRouter: React.FC = () => {

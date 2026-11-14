@@ -61,7 +61,7 @@ export const NavbarDesktopActions: React.FC<NavbarDesktopActionsProps> = ({
           }}
           aria-expanded={isLangDropdownOpen}
           aria-haspopup="true"
-          aria-label="Changer de langue"
+          aria-label={t("nav.change_language", "Changer de langue")}
           className="flex items-center gap-1.5 text-xs font-bold text-[#1A1836] hover:text-[#622347] hover:bg-[#FAF7F6] border border-[#EFE6E6] hover:border-[#E0B4B2] transition-all duration-200 h-10 px-3.5 bg-white rounded-full cursor-pointer whitespace-nowrap shrink-0 shadow-2xs"
         >
           <Globe className="w-4 h-4 text-[#622347]" />
@@ -107,7 +107,7 @@ export const NavbarDesktopActions: React.FC<NavbarDesktopActionsProps> = ({
       <button
         type="button"
         onClick={() => setIsWishlistOpen(true)}
-        aria-label={t("Mes Favoris") || "Mes Favoris"}
+        aria-label={t("nav.my_wishlist", "Mes Favoris")}
         className="hidden lg:flex items-center justify-center text-[#1A1836] hover:text-[#A54055] hover:bg-[#FAF7F6] border border-[#EFE6E6] hover:border-[#E0B4B2] transition-all duration-200 cursor-pointer relative bg-white w-10 h-10 rounded-full shadow-2xs"
       >
         <Heart className="w-5 h-5 stroke-[1.7] text-[#42164B]" />
@@ -122,7 +122,7 @@ export const NavbarDesktopActions: React.FC<NavbarDesktopActionsProps> = ({
       <button
         type="button"
         onClick={() => setIsCartOpen(true)}
-        aria-label={t("Mon Panier") || "Mon Panier"}
+        aria-label={t("nav.my_cart", "Mon Panier")}
         className="flex items-center justify-center text-[#1A1836] hover:text-[#622347] hover:bg-[#FAF7F6] border border-[#EFE6E6] hover:border-[#E0B4B2] transition-all duration-200 cursor-pointer relative bg-white w-10 h-10 rounded-full active:scale-95 shadow-2xs"
       >
         <ShoppingBag className="w-5 h-5 stroke-[1.8] text-[#1A1836]" />
@@ -145,7 +145,7 @@ export const NavbarDesktopActions: React.FC<NavbarDesktopActionsProps> = ({
             }
           }}
           aria-haspopup="true"
-          aria-label="Compte utilisateur"
+          aria-label={t("nav.user_account", "Compte utilisateur")}
           className={`flex items-center justify-center transition-all duration-200 cursor-pointer w-10 h-10 rounded-full border shadow-2xs ${
             currentUser
               ? "p-0.5 border-[#E0B4B2] hover:ring-2 hover:ring-[#622347]/25 hover:border-[#622347] bg-white"
@@ -159,7 +159,7 @@ export const NavbarDesktopActions: React.FC<NavbarDesktopActionsProps> = ({
               email={currentUser.email}
               providerData={currentUser.providerData}
               size="sm"
-              alt={userProfile?.displayName || "Profil"}
+              alt={userProfile?.displayName || t("nav.profile_alt", "Profil")}
             />
           ) : (
             <UserIcon className="w-5 h-5 stroke-[1.7] text-[#42164B]" />
@@ -172,7 +172,7 @@ export const NavbarDesktopActions: React.FC<NavbarDesktopActionsProps> = ({
         type="button"
         onClick={() => setIsMobileMenuOpen(true)}
         className="hidden lg:flex items-center justify-center text-[#1A1836] hover:text-[#622347] hover:bg-[#FAF7F6] border border-[#EFE6E6] hover:border-[#E0B4B2] transition-all duration-200 cursor-pointer bg-white w-10 h-10 rounded-full shrink-0 shadow-2xs"
-        title={t("menu") || "Menu"}
+        title={t("nav.menu", "Menu")}
       >
         <Menu className="w-5 h-5 stroke-[1.7] text-[#1A1836]" />
       </button>

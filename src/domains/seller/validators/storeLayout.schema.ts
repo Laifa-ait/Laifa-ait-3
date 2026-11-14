@@ -1,29 +1,14 @@
 import { z } from "zod";
+import { isSafeStudioUrl, sanitizeStudioText } from "../../../security/studioCyberSecurity";
 
 const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 const SAFE_SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-// Safe URL validator ensuring no javascript: or data:text/html is permitted, while allowing empty, relative, or http/https URLs
+// Safe URL validator ensuring no javascript:, data:text/html, or poisoned data:image/svg+xml is permitted
 const safeMediaUrl = z
   .string()
   .max(500000)
-  .refine((val) => {
-    const trimmed = val.trim();
-    if (!trimmed) return true;
-    const lower = trimmed.toLowerCase();
-    if (lower.includes("javascript:") || lower.includes("data:text/html") || lower.includes("vbscript:")) {
-      return false;
-    }
-    if (trimmed.startsWith("/") || trimmed.startsWith("data:image/")) {
-      return true;
-    }
-    try {
-      const parsed = new URL(trimmed);
-      return parsed.protocol === "https:" || parsed.protocol === "http:";
-    } catch {
-      return false;
-    }
-  }, "L'URL du média doit être un lien sécurisé HTTPS ou un chemin valide");
+  .refine((val) => isSafeStudioUrl(val), "L'URL du média doit être un lien sécurisé HTTPS ou un chemin valide sans script");
 
 const optionalSafeMediaUrl = z
   .union([safeMediaUrl, z.literal(""), z.null()])
@@ -43,7 +28,7 @@ const optStr = (max = 500) =>
   z
     .union([z.string().max(max), z.null()])
     .optional()
-    .transform((val) => (val === null ? undefined : val));
+    .transform((val) => (val === null || val === undefined ? undefined : sanitizeStudioText(val)));
 
 const surfaceTextureEnum = z
   .enum(["none", "film-grain", "cotton-paper", "zellige-watermark", "silk-mesh", "architectural-grid"])
@@ -71,6 +56,13 @@ const frameShapeEnum = z
     "medallion-oval",
     "polaroid-atelier",
     "chamfered-tech",
+    "none",
+    "rounded",
+    "pill",
+    "arch",
+    "cut-corners",
+    "blob",
+    "diamond",
   ])
   .nullable()
   .optional()
@@ -88,6 +80,19 @@ const headingUnderlineStyleEnum = z
   .optional()
   .transform((v) => v ?? undefined);
 
+const studioShadowEnum = z.enum([
+  "none",
+  "sm",
+  "md",
+  "lg",
+  "xl",
+  "floating",
+  "glow",
+  "brutal",
+  "soft",
+  "strong",
+]);
+
 export const sectionStylesSchema = z
   .object({
     backgroundColor: hexColor,
@@ -95,10 +100,10 @@ export const sectionStylesSchema = z
     paddingY: z.union([z.enum(["sm", "md", "lg", "xl"]), z.number().min(0).max(240), z.null()]).optional().transform((v) => (v === null ? undefined : v)),
     paddingX: z.union([z.number().min(0).max(200), z.null()]).optional().transform((v) => (v === null ? undefined : v)),
     containerWidth: z.union([z.enum(["contained", "full", "narrow"]), z.null()]).optional().transform((v) => (v === null ? undefined : v)),
-    borderRadius: z.union([z.enum(["none", "sm", "md", "lg"]), z.null()]).optional().transform((v) => (v === null ? undefined : v)),
+    borderRadius: z.union([z.enum(["none", "sm", "md", "lg", "xl", "2xl", "full"]), z.number().min(0).max(120), z.null()]).optional().transform((v) => (v === null ? undefined : v)),
     divider: z.union([z.enum(["none", "wave", "slant", "curve"]), z.null()]).optional().transform((v) => (v === null ? undefined : v)),
     animation: z.union([z.enum(["none", "fade", "slide-up", "zoom"]), z.null()]).optional().transform((v) => (v === null ? undefined : v)),
-    shadow: z.union([z.enum(["none", "sm", "floating", "brutal"]), z.null()]).optional().transform((v) => (v === null ? undefined : v)),
+    shadow: z.union([studioShadowEnum, z.null()]).optional().transform((v) => (v === null ? undefined : v)),
     surfaceTexture: surfaceTextureEnum,
     ambientLighting: ambientLightingEnum,
     cardMaterial: cardMaterialEnum,
@@ -165,6 +170,37 @@ const bannerContentPositionEnum = z
   .optional()
   .transform((v) => v ?? undefined);
 
+const heroLayoutModelEnum = z.enum([
+  "editorial-split",
+  "cinema-full",
+  "bento-hero",
+  "arch-palace",
+  "glass-dock",
+  "product-spotlight",
+  "atelier-collage",
+  "magazine-ssense",
+  "flash-offer",
+  "lookbook-hotspots",
+  "full-bleed",
+  "split",
+  "arch",
+  "gallery",
+  "diptych",
+]);
+
+const heroHotspotSchema = z
+  .object({
+    id: z.string().min(1).max(60),
+    x: z.number().min(0).max(100),
+    y: z.number().min(0).max(100),
+    label: z.string().max(120),
+    price: optStr(60),
+    badge: optStr(60),
+    link: optStr(3000),
+    productId: optStr(120),
+  })
+  .passthrough();
+
 // 1. Hero Banner
 const heroBannerSchema = z.object({
   id: z.string().min(1),
@@ -176,10 +212,12 @@ const heroBannerSchema = z.object({
       title: z.string().max(200).nullable().optional().transform((v) => v ?? "Bienvenue dans notre boutique"),
       subtitle: optStr(400),
       badgeText: optStr(80),
-      imageUrl: optionalSafeMediaUrl.transform((v) => v || "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80"),
+      imageUrl: optionalSafeMediaUrl.transform((v) => v ?? ""),
+      tabletImageUrl: optionalSafeMediaUrl,
       mobileImageUrl: optionalSafeMediaUrl,
       backgroundImage: optionalSafeMediaUrl,
       backgroundImageMobile: optionalSafeMediaUrl,
+      backgroundVideoUrl: optionalSafeMediaUrl,
       ctaText: optStr(80),
       ctaLink: optStr(3000),
       textAlignment: z.enum(["left", "center", "right"]).nullable().optional().transform((v) => v || "center"),
@@ -194,23 +232,30 @@ const heroBannerSchema = z.object({
       backgroundPositionMobile: optStr(60),
       imageFit: z.enum(["cover", "contain"]).nullable().optional().transform((v) => v ?? undefined),
       imageAspectRatio: z.enum(["4/5", "1/1", "3/4", "16/9"]).nullable().optional().transform((v) => v ?? undefined),
+      imageAspectRatioTablet: z.enum(["inherit", "4/5", "1/1", "3/4", "16/9"]).nullable().optional().transform((v) => v ?? undefined),
+      imageAspectRatioMobile: z.enum(["inherit", "4/5", "1/1", "3/4", "16/9"]).nullable().optional().transform((v) => v ?? undefined),
       imageSide: z.enum(["right", "left"]).nullable().optional().transform((v) => v ?? undefined),
-      imageShadow: z.enum(["none", "sm", "md", "lg", "xl", "glow", "brutal"]).nullable().optional().transform((v) => v ?? undefined),
+      splitRatio: z.enum(["60-40", "50-50", "40-60", "70-30", "30-70"]).nullable().optional().transform((v) => v ?? undefined),
+      mobileStackOrder: z.enum(["image-first", "text-first"]).nullable().optional().transform((v) => v ?? undefined),
+      imageShadow: studioShadowEnum.nullable().optional().transform((v) => v ?? undefined),
+      bannerShadow: studioShadowEnum.nullable().optional().transform((v) => v ?? undefined),
       imageMargin: z.number().min(0).max(80).nullable().optional().transform((v) => (v === null ? undefined : v)),
       bannerHeightDesktop: z.enum(["sm", "md", "lg", "xl"]).nullable().optional().transform((v) => v ?? undefined),
-      bannerHeightMobile: z.enum(["sm", "md", "lg"]).nullable().optional().transform((v) => v ?? undefined),
+      bannerHeightTablet: z.enum(["inherit", "sm", "md", "lg", "xl"]).nullable().optional().transform((v) => v ?? undefined),
+      bannerHeightMobile: z.enum(["sm", "md", "lg", "xl"]).nullable().optional().transform((v) => v ?? undefined),
       badgeBgColor: hexColor,
       badgeTextColor: hexColor,
       badgeStyle: z.enum(["solid", "soft", "outline"]).nullable().optional().transform((v) => v ?? undefined),
       titleColor: hexColor,
       titleSizeDesktop: z.enum(["sm", "md", "lg", "xl"]).nullable().optional().transform((v) => v ?? undefined),
+      titleSizeTablet: z.enum(["inherit", "sm", "md", "lg", "xl"]).nullable().optional().transform((v) => v ?? undefined),
       titleSizeMobile: z.enum(["sm", "md", "lg", "xl"]).nullable().optional().transform((v) => v ?? undefined),
-      textShadow: z.enum(["none", "sm", "md", "lg"]).nullable().optional().transform((v) => v ?? undefined),
+      textShadow: z.enum(["none", "sm", "md", "lg", "soft", "strong"]).nullable().optional().transform((v) => v ?? undefined),
       subtitleColor: hexColor,
       ctaBgColor: hexColor,
       ctaTextColor: hexColor,
       ctaStyle: z.enum(["solid", "outline", "pill", "glass", "sharp"]).nullable().optional().transform((v) => v ?? undefined),
-      ctaShadow: z.enum(["none", "sm", "md", "lg", "glow", "brutal"]).nullable().optional().transform((v) => v ?? undefined),
+      ctaShadow: studioShadowEnum.nullable().optional().transform((v) => v ?? undefined),
       showBadge: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
       showSubtitle: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
       showCta: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
@@ -219,11 +264,20 @@ const heroBannerSchema = z.object({
       secondaryCtaText: optStr(80),
       secondaryCtaLink: optStr(3000),
       secondaryCtaStyle: z.enum(["solid", "outline", "pill", "glass", "sharp"]).nullable().optional().transform((v) => v ?? undefined),
-      secondaryCtaShadow: z.enum(["none", "sm", "md", "lg", "glow", "brutal"]).nullable().optional().transform((v) => v ?? undefined),
+      secondaryCtaShadow: studioShadowEnum.nullable().optional().transform((v) => v ?? undefined),
       secondaryCtaBgColor: hexColor,
       secondaryCtaTextColor: hexColor,
       showSecondaryCta: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
-      heroLayout: z.enum(["editorial-split", "cinema-full", "atelier-collage"]).nullable().optional().transform((v) => v ?? undefined),
+      heroLayout: heroLayoutModelEnum.nullable().optional().transform((v) => v ?? undefined),
+      heroLayoutTablet: z.union([z.literal("inherit"), heroLayoutModelEnum]).nullable().optional().transform((v) => v ?? undefined),
+      heroLayoutMobile: z.union([z.literal("inherit"), heroLayoutModelEnum]).nullable().optional().transform((v) => v ?? undefined),
+      secondaryImageUrl: optionalSafeMediaUrl,
+      tertiaryImageUrl: optionalSafeMediaUrl,
+      bentoTopCardImage: optionalSafeMediaUrl,
+      bentoBottomCardImage: optionalSafeMediaUrl,
+      spotlightProductImage: optionalSafeMediaUrl,
+      spotlightProductId: optStr(120),
+      hotspots: z.array(heroHotspotSchema).max(8).optional(),
     })
     .passthrough(),
   styles: sectionStylesSchema,
@@ -346,7 +400,50 @@ const featuredCategoriesSchema = z.object({
         .nullable()
         .optional()
         .transform((v) => v || "grid"),
+      layoutTablet: z
+        .enum([
+          "inherit",
+          "grid",
+          "bento",
+          "bubbles",
+          "overlay",
+          "carousel",
+          "pills",
+          "mesh-3d",
+          "accordion",
+          "arch",
+          "polaroid",
+          "magazine",
+          "glass-dock",
+        ])
+        .nullable()
+        .optional()
+        .transform((v) => v ?? undefined),
+      layoutMobile: z
+        .enum([
+          "inherit",
+          "grid",
+          "bento",
+          "bubbles",
+          "overlay",
+          "carousel",
+          "pills",
+          "mesh-3d",
+          "accordion",
+          "arch",
+          "polaroid",
+          "magazine",
+          "glass-dock",
+        ])
+        .nullable()
+        .optional()
+        .transform((v) => v ?? undefined),
+      cardSize: z.enum(["compact", "balanced", "large"]).nullable().optional().transform((v) => v ?? undefined),
+      cardSizeTablet: z.enum(["inherit", "compact", "balanced", "large"]).nullable().optional().transform((v) => v ?? undefined),
+      cardSizeMobile: z.enum(["inherit", "compact", "balanced", "large"]).nullable().optional().transform((v) => v ?? undefined),
       aspectRatio: z.enum(["1/1", "4/5", "16/9", "circle", "4/3"]).nullable().optional().transform((v) => v ?? undefined),
+      aspectRatioTablet: z.enum(["inherit", "1/1", "4/5", "16/9", "circle", "4/3"]).nullable().optional().transform((v) => v ?? undefined),
+      aspectRatioMobile: z.enum(["inherit", "1/1", "4/5", "16/9", "circle", "4/3"]).nullable().optional().transform((v) => v ?? undefined),
       borderRadius: z.enum(["none", "sm", "md", "lg", "full"]).nullable().optional().transform((v) => v ?? undefined),
       hoverEffect: z.enum(["zoom", "lift", "glow", "shine", "grayscale-reveal", "none"]).nullable().optional().transform((v) => v ?? undefined),
       textPosition: z.enum(["below", "overlay-bottom", "overlay-center", "card-inside", "none"]).nullable().optional().transform((v) => v ?? undefined),
@@ -357,8 +454,9 @@ const featuredCategoriesSchema = z.object({
       showItemCount: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
       showIcon: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
       gapSize: z.enum(["compact", "normal", "spacious"]).nullable().optional().transform((v) => v ?? undefined),
-      columnsDesktop: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.number().int().min(1).max(6)]).nullable().optional().transform((v) => v ?? undefined),
-      columnsMobile: z.union([z.literal(1), z.literal(2)]).nullable().optional().transform((v) => v ?? undefined),
+      columnsDesktop: z.number().int().min(1).max(6).nullable().optional().transform((v) => v ?? undefined),
+      columnsTablet: z.number().int().min(1).max(4).nullable().optional().transform((v) => v ?? undefined),
+      columnsMobile: z.number().int().min(1).max(3).nullable().optional().transform((v) => v ?? undefined),
     })
     .passthrough(),
   styles: sectionStylesSchema,
@@ -610,7 +708,11 @@ export const customPageSectionSchema = z.discriminatedUnion("type", [
 
 export const storeConfigThemeSchema = z
   .object({
-    sector: z.enum(["mode", "beaute", "artisanat", "tech", "maison"]).nullable().optional().transform((v) => v ?? undefined),
+    sector: z
+      .enum(["mode", "beaute", "artisanat", "tech", "maison", "alimentation", "sport", "accessoires", "enfants"])
+      .nullable()
+      .optional()
+      .transform((v) => v ?? undefined),
     primaryColor: hexColor,
     secondaryColor: hexColor,
     accentColor: hexColor,
@@ -730,9 +832,20 @@ export const storeConfigSchema = z
           .array(
             z.object({
               id: z.string().min(1).max(80),
-              label: z.string().min(1).max(60),
-              target: z.enum(["home", "collection", "about", "url"]),
-              url: optStr(300),
+              label: z.string().min(1).max(60).transform((v) => sanitizeStudioText(v)),
+              target: z.enum([
+                "home",
+                "collection",
+                "about",
+                "contact",
+                "faq",
+                "delivery",
+                "returns",
+                "page",
+                "url",
+              ]),
+              url: optionalSafeMediaUrl,
+              pageSlug: optStr(140),
             })
           )
           .max(10)
@@ -757,6 +870,7 @@ export const storeConfigSchema = z
         mode: z.enum(["open", "vacation", "password"]).default("open"),
         vacationMessage: optStr(500),
         storefrontPassword: optStr(100),
+        passwordProtectionCode: optStr(100),
       })
       .passthrough()
       .optional(),

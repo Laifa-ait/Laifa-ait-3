@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Share2, ShoppingBag, Check } from "lucide-react";
+import { ArrowLeft, Share2, ShoppingBag, Check, Sparkles } from "lucide-react";
 import { useOptionalCart } from "../../context/CartContext";
 import { useOptionalUI } from "../../context/UIContext";
 import { toast } from "react-hot-toast";
@@ -8,9 +8,15 @@ import { PublicStoreInfo } from "../../pages/Public/StoreProfile";
 
 interface StoreBoutiqueNavbarProps {
   storeInfo: PublicStoreInfo;
+  isOwner?: boolean;
+  isDraftPreview?: boolean;
 }
 
-export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({ storeInfo }) => {
+export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({
+  storeInfo,
+  isOwner = false,
+  isDraftPreview = false,
+}) => {
   const navigate = useNavigate();
   const cartContext = useOptionalCart();
   const uiContext = useOptionalUI();
@@ -23,6 +29,10 @@ export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({ storeI
     : 0;
 
   const handleBack = () => {
+    if (isDraftPreview) {
+      navigate("/dashboard/seller/studio");
+      return;
+    }
     if (window.history.length > 2) {
       navigate(-1);
     } else {
@@ -31,13 +41,13 @@ export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({ storeI
   };
 
   const handleShare = async () => {
-    const url = window.location.href;
+    const cleanUrl = `${window.location.origin}${window.location.pathname}`;
     if (navigator.share) {
       try {
         await navigator.share({
           title: shopName,
           text: `Découvrez la boutique ${shopName} sur Olmart`,
-          url,
+          url: cleanUrl,
         });
         return;
       } catch {
@@ -46,7 +56,7 @@ export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({ storeI
     }
 
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(cleanUrl);
       setCopied(true);
       toast.success("Lien de la boutique copié !");
       setTimeout(() => setCopied(false), 2500);
@@ -64,20 +74,32 @@ export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({ storeI
       }}
       className="sticky top-0 z-40 w-full backdrop-blur-md border-b border-black/10"
     >
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
-        <button
-          type="button"
-          onClick={handleBack}
-          style={{
-            backgroundColor: "var(--store-canvas, #FAF6F0)",
-            color: "var(--store-secondary, #18181B)",
-          }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/10 hover:opacity-85 transition-opacity text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer"
-          aria-label="Retour au catalogue"
-        >
-          <ArrowLeft className="w-4 h-4" style={{ color: "var(--store-primary, #B45309)" }} />
-          <span>Retour</span>
-        </button>
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleBack}
+            style={{
+              backgroundColor: "var(--store-canvas, #FAF6F0)",
+              color: "var(--store-secondary, #18181B)",
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/10 hover:opacity-85 transition-opacity text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer"
+            aria-label={isDraftPreview ? "Retour au Studio" : "Retour au catalogue"}
+          >
+            <ArrowLeft className="w-4 h-4" style={{ color: "var(--store-primary, #B45309)" }} />
+            <span>{isDraftPreview ? "Retour au Studio" : "Retour"}</span>
+          </button>
+
+          {isDraftPreview && (
+            <span
+              data-testid="storefront-draft-preview-badge"
+              className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-bold"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              Aperçu Brouillon Studio
+            </span>
+          )}
+        </div>
 
         <span
           style={{
@@ -90,6 +112,19 @@ export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({ storeI
         </span>
 
         <div className="flex items-center gap-2 shrink-0">
+          {(isOwner || isDraftPreview) && (
+            <button
+              type="button"
+              data-testid="open-seller-studio-btn"
+              onClick={() => navigate("/dashboard/seller/studio")}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors shadow-2xs cursor-pointer whitespace-nowrap shrink-0"
+              title="Personnaliser cette boutique dans le Studio Vendeur"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Studio Vendeur</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={handleShare}

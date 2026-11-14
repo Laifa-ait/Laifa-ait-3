@@ -2,15 +2,18 @@ import React, { useState, useEffect } from "react";
 import { Product } from "../../domains/product/product.types";
 import { ProductCard } from "../Product/ProductCard";
 import { useTranslation } from "react-i18next";
-import { collection, query, where, limit, getDocs } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import { fetchWithClientCache, getCachedClientData } from "../../utils/clientReadCache";
+
+const ENDLESS_PAGE1_CACHE_KEY = "home:endless:page1:v1";
+const ENDLESS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes anti-F5 shield
 
 export const HomeEndlessGrid: React.FC = () => {
   const { t } = useTranslation();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedPage1 = getCachedClientData<Product[]>(ENDLESS_PAGE1_CACHE_KEY);
+  const [products, setProducts] = useState<Product[]>(cachedPage1 || []);
+  const [loading, setLoading] = useState(!cachedPage1);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState((cachedPage1?.length || 0) >= 24);
 
   const INITIAL_FETCH_LIMIT = 24;
   const LOAD_MORE_LIMIT = 12;
@@ -19,44 +22,35 @@ export const HomeEndlessGrid: React.FC = () => {
     let cancelled = false;
     const fetchInitial = async () => {
       try {
-        let docs: Product[] = [];
-        try {
-          const res = await fetch(`/api/v1/public/home-endless-grid?limit=${INITIAL_FETCH_LIMIT}`);
-          if (res.ok) {
-            const data = await res.json();
-            docs = data.products || [];
-          }
-        } catch {
-          // Fetch failed, proceed to fallback
-        }
-
-        if (docs.length === 0 && db && typeof db === "object") {
-          try {
-            const q = query(
-              collection(db, "products"),
-              where("status", "==", "active"),
-              limit(INITIAL_FETCH_LIMIT)
-            );
-            const snap = await getDocs(q);
-            if (!snap.empty) {
-              docs = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Product[];
+        const docs = await fetchWithClientCache<Product[]>(
+          ENDLESS_PAGE1_CACHE_KEY,
+          async () => {
+            try {
+              const res = await fetch(`/api/v1/public/home-endless-grid?limit=${INITIAL_FETCH_LIMIT}`);
+              if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data.products) && data.products.length > 0) {
+                  return data.products as Product[];
+                }
+              }
+            } catch {
+              // Proceed to cached home-data fallback
             }
-          } catch {
-            // Client Firestore fallback failed, proceed to next
-          }
-        }
 
-        if (docs.length === 0) {
-          try {
-            const homeDataRes = await fetch(`/api/v1/public/home-data`);
-            if (homeDataRes.ok) {
-              const homeData = await homeDataRes.json();
-              docs = homeData.featuredProducts || [];
+            try {
+              const homeData = getCachedClientData<{ featuredProducts?: Product[] }>("home:data:v1");
+              if (homeData?.featuredProducts && homeData.featuredProducts.length > 0) {
+                return homeData.featuredProducts;
+              }
+            } catch {
+              // Ignore
             }
-          } catch {
-            // Final fallback failed
-          }
-        }
+
+            return [];
+          },
+          ENDLESS_CACHE_TTL_MS,
+          (items) => Array.isArray(items) && items.length > 0
+        );
 
         if (!cancelled) {
           const validDocs = docs.filter((d) => d && (d.stock === undefined || d.stock > 0));
@@ -111,10 +105,10 @@ export const HomeEndlessGrid: React.FC = () => {
   if (loading) {
     return (
       <section className="w-full max-w-[90rem] mx-auto px-4 sm:px-6 md:px-8 mb-12 sm:mb-16">
-        <div className="h-6 w-48 bg-zinc-200 animate-pulse rounded-md mb-6" />
+        <div className="h-6 w-48 bg-[#EFE6E6] animate-pulse rounded-md mb-6" />
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
           {[...Array(12)].map((_, i) => (
-            <div key={i} className="aspect-[3/4] rounded-2xl bg-zinc-100 animate-pulse" />
+            <div key={i} className="aspect-[3/4] rounded-2xl bg-[#F4EDED] animate-pulse" />
           ))}
         </div>
       </section>
@@ -128,10 +122,10 @@ export const HomeEndlessGrid: React.FC = () => {
       <div className="flex items-center justify-between mb-5 sm:mb-6">
         <div className="space-y-1">
           <h2 className="font-display text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-[#1A1836]">
-            {t("home.endless_grid.title", "Publications récentes")}
+            {t("home.endless_grid.title")}
           </h2>
           <p className="text-xs sm:text-sm text-[#6E5A6F] font-medium">
-            {t("home.endless_grid.subtitle", "Nouveautés vérifiées auprès de nos marchands partenaires")}
+            {t("home.endless_grid.subtitle")}
           </p>
         </div>
       </div>
@@ -157,7 +151,7 @@ export const HomeEndlessGrid: React.FC = () => {
                 <div className="w-2 h-2 bg-[#E0B4B2] rounded-full animate-bounce" />
               </div>
             ) : (
-              <span>{t("home.endless_grid.load_more", "Afficher plus d'articles")}</span>
+              <span>{t("home.endless_grid.load_more")}</span>
             )}
           </button>
         </div>

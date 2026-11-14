@@ -6,7 +6,7 @@ import { useUI } from "../context/UIContext";
 import { useNavigate } from "react-router-dom";
 
 export const useMobileMenu = () => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { currentUser, logout, userProfile } = useAuth();
   const { isMobileMenuOpen, setIsMobileMenuOpen, setIsWishlistOpen } = useUI();
@@ -46,19 +46,20 @@ export const useMobileMenu = () => {
 
   const fetchAboutText = useCallback(async () => {
     setIsAboutOpen(true);
-    if (aboutText) return;
+    const defaultAbout = t(
+      "mobile_menu.about_default_text",
+      "Bienvenue sur Olmart Marketplace Algérie, la plateforme de référence reliant acheteurs et vendeurs certifiés sur les 69 Wilayas."
+    );
     setIsLoadingAbout(true);
     try {
       const data = await apiGet<{ aboutText?: string }>("/api/v1/settings/global");
-      setAboutText(
-        data && data.aboutText ? data.aboutText : "Bienvenue sur Olma Marketplace."
-      );
+      setAboutText(data && data.aboutText ? data.aboutText : defaultAbout);
     } catch {
-      setAboutText("Bienvenue sur Olma Marketplace.");
+      setAboutText(defaultAbout);
     } finally {
       setIsLoadingAbout(false);
     }
-  }, [aboutText]);
+  }, [t]);
 
   return {
     currentUser,

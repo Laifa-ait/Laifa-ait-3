@@ -7,9 +7,14 @@ import { TrendingSearchesService } from "./src/services/TrendingSearchesService"
 import { ProductSearchService } from "./src/services/ProductSearchService";
 import { safeLogger } from "./src/utils/logger";
 
-// Port 3000 primary + optional dual-listener on process.env.PORT (e.g. 8080 for Cloud Run ingress)
 const PORT = 3000;
 const bootStartTime = Date.now();
+const WEAK_CSRF_SECRETS = new Set([
+  "changeit", "password", "secret", "1234567890",
+  "olmart_dev_csrf_secret_key_2026",
+  "olmart_prod_csrf_secret_key_fallback_32bytes_min_2026",
+  "olmart_live_production_secure_csrf_secret_32bytes_v1",
+]);
 
 export { app };
 export const httpServer = http.createServer(app);
@@ -25,21 +30,14 @@ export const shutdown = (signal: string): void => {
     safeLogger.info(`[Olmart Gateway] 🛑 Received ${signal}. Shutting down gracefully...`);
   }
   rollbackSubsystems();
-
-  if (secondaryHttpServer && secondaryHttpServer.listening) {
-    try {
-      secondaryHttpServer.closeAllConnections?.();
-      secondaryHttpServer.close();
-    } catch { /* ignore */ }
+  if (secondaryHttpServer?.listening) {
+    try { secondaryHttpServer.closeAllConnections?.(); secondaryHttpServer.close(); } catch { /* ignore */ }
   }
-
   if (httpServer.listening) {
     httpServer.closeAllConnections?.();
     httpServer.close(async () => {
       await drainAndStopSubsystems();
-      if (process.env.NODE_ENV !== "production") {
-        safeLogger.info("[Olmart Gateway] 💤 Closed remaining active connections.");
-      }
+      if (process.env.NODE_ENV !== "production") safeLogger.info("[Olmart Gateway] 💤 Closed remaining active connections.");
       if (process.env.NODE_ENV !== "test") process.exit(0);
     });
     if (process.env.NODE_ENV !== "test") {
@@ -59,102 +57,111 @@ export async function stopServerForTesting(): Promise<void> {
     try { await startServerPromise; } catch { /* ignore */ }
   }
   rollbackSubsystems();
-
-  if (secondaryHttpServer && secondaryHttpServer.listening) {
+  if (secondaryHttpServer?.listening) {
     secondaryHttpServer.closeAllConnections?.();
     await new Promise<void>((resolve) => secondaryHttpServer!.close(() => resolve()));
     secondaryHttpServer = null;
   }
-
-  if (httpServer && httpServer.listening) {
+  if (httpServer?.listening) {
     httpServer.closeAllConnections?.();
     await new Promise<void>((resolve) => httpServer.close(() => resolve()));
   }
-
   startServerPromise = null;
   isShuttingDown = false;
 }
 
-export function startServer(portOverride?: number): Promise<http.Server> {
-  if (startServerPromise) {
-    return startServerPromise;
+function listenOnPort(server: http.Server, port: number): Promise<http.Server> {
+  return new Promise<http.Server>((resolve, reject) => {
+    const onError = (err: Error) => { server.off("error", onError); reject(err); };
+    server.once("error", onError);
+    server.listen(port, "0.0.0.0", () => { server.off("error", onError); resolve(server); });
+  });
+}
+
+function scheduleWarmups(): void {
+  if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
+    const t = setTimeout(() => {
+      TrendingSearchesService.warmupTrendingSearches().catch(() => {});
+      ProductSearchService.warmupSearchEngine().catch(() => {});
+    }, 4000);
+    t.unref?.();
+  } else {
+    TrendingSearchesService.warmupTrendingSearches().catch(() => {});
+    ProductSearchService.warmupSearchEngine().catch(() => {});
   }
+}
+
+export function startServer(portOverride?: number): Promise<http.Server> {
+  if (startServerPromise) return startServerPromise;
 
   const bindPort = typeof portOverride === "number" ? portOverride : PORT;
   const parsedEnvPort = process.env.PORT ? parseInt(process.env.PORT, 10) : undefined;
+  const hasValidEnvPort = typeof parsedEnvPort === "number" && Number.isInteger(parsedEnvPort) && parsedEnvPort > 0;
   const isCloudRun = Boolean(process.env.K_SERVICE || process.env.CLOUD_RUN_JOB);
-  const envPort = parsedEnvPort && parsedEnvPort !== bindPort && !isNaN(parsedEnvPort)
-    ? parsedEnvPort
-    : isCloudRun && bindPort === 3000
-      ? 8080
-      : undefined;
-  const needsSecondary = typeof portOverride !== "number" && Boolean(envPort && envPort !== bindPort);
+  const envPort =
+    typeof portOverride === "number"
+      ? undefined
+      : hasValidEnvPort && parsedEnvPort !== bindPort
+        ? parsedEnvPort
+        : isCloudRun && !hasValidEnvPort && bindPort === 3000 ? 8080 : undefined;
 
   startServerPromise = (async () => {
     try {
       await initializeSubsystems(app);
-
       safeLogger.info(`[Olmart Gateway] 🚀 Booting Express HTTP Server on 0.0.0.0:${bindPort}...`);
 
-      const primaryPromise = new Promise<http.Server>((resolve, reject) => {
-        const onError = (err: Error) => {
-          httpServer.off("error", onError);
-          safeLogger.error("[Olmart Gateway] ❌ HTTP Listen error during startup on primary port", { err: err.message, port: bindPort });
-          reject(err);
-        };
+      const primaryPromise = listenOnPort(httpServer, bindPort);
+      const secondaryPromise = envPort
+        ? (secondaryHttpServer?.listening
+            ? Promise.resolve(secondaryHttpServer)
+            : listenOnPort((secondaryHttpServer = http.createServer(app)), envPort))
+        : null;
 
-        httpServer.once("error", onError);
+      const [primaryRes, secondaryRes] = await Promise.allSettled([
+        primaryPromise,
+        secondaryPromise ?? Promise.resolve(null),
+      ]);
 
-        httpServer.listen(bindPort, "0.0.0.0", () => {
-          httpServer.off("error", onError);
-          const startupDuration = ((Date.now() - bootStartTime) / 1000).toFixed(2);
-          safeLogger.info(`[Olmart Gateway] 🚀 Startup ready - Port: ${bindPort}, Environment: ${process.env.NODE_ENV || "development"}, Duration: ${startupDuration}s`);
-          resolve(httpServer);
-        });
-      });
+      const primaryOk = primaryRes.status === "fulfilled";
+      const secondaryOk = Boolean(envPort && secondaryRes.status === "fulfilled" && secondaryRes.value);
 
-      const secondaryPromise = needsSecondary && envPort
-        ? new Promise<void>((resolve) => {
-            try {
-              if (secondaryHttpServer?.listening) {
-                return resolve();
-              }
-              secondaryHttpServer = http.createServer(app);
-              secondaryHttpServer.once("error", (secErr: NodeJS.ErrnoException) => {
-                if (secErr.code === "EADDRINUSE") {
-                  safeLogger.info(`[Olmart Gateway] Port ${envPort} already bound (local proxy active). Main traffic on port ${bindPort}.`);
-                } else {
-                  safeLogger.warn(`[Olmart Gateway] Secondary listener notice on port ${envPort}`, { err: secErr.message });
-                }
-                resolve();
-              });
-              secondaryHttpServer.listen(envPort, "0.0.0.0", () => {
-                safeLogger.info(`[Olmart Gateway] Dual-listener active on 0.0.0.0:${envPort} (Cloud Run ingress ready)`);
-                resolve();
-              });
-            } catch (err: unknown) {
-              safeLogger.warn("[Olmart Gateway] Secondary listener initialization notice", {
-                err: err instanceof Error ? err.message : String(err),
-              });
-              resolve();
-            }
-          })
-        : Promise.resolve();
-
-      await Promise.all([primaryPromise, secondaryPromise]);
-
-      // Defer background search/trend cache warm-ups by 4s so initial page load has 100% CPU & I/O priority
-      if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
-        const warmupTimer = setTimeout(() => {
-          TrendingSearchesService.warmupTrendingSearches().catch(() => {});
-          ProductSearchService.warmupSearchEngine().catch(() => {});
-        }, 4000);
-        warmupTimer.unref?.();
-      } else {
-        TrendingSearchesService.warmupTrendingSearches().catch(() => {});
-        ProductSearchService.warmupSearchEngine().catch(() => {});
+      if (primaryOk) {
+        const startupDuration = ((Date.now() - bootStartTime) / 1000).toFixed(2);
+        safeLogger.info(
+          `[Olmart Gateway] 🚀 Startup ready - Port: ${bindPort}, Environment: ${process.env.NODE_ENV || "development"}, Duration: ${startupDuration}s`
+        );
+      }
+      if (envPort && secondaryOk) {
+        safeLogger.info(`[Olmart Gateway] Dual-listener active on 0.0.0.0:${envPort} (Cloud Run ingress ready)`);
+      } else if (envPort && secondaryRes.status === "rejected") {
+        const secErr = secondaryRes.reason as NodeJS.ErrnoException;
+        secondaryHttpServer = null;
+        if (secErr?.code === "EADDRINUSE" && primaryOk) {
+          safeLogger.info(`[Olmart Gateway] Port ${envPort} already bound (local proxy active). Main traffic on port ${bindPort}.`);
+        } else {
+          safeLogger.warn(`[Olmart Gateway] Secondary listener notice on port ${envPort}`, {
+            err: secErr instanceof Error ? secErr.message : String(secErr),
+          });
+        }
       }
 
+      if (!primaryOk) {
+        const priErr = primaryRes.reason;
+        if (secondaryOk && secondaryHttpServer && (isCloudRun || hasValidEnvPort)) {
+          safeLogger.warn(`[Olmart Gateway] ⚠️ Port ${bindPort} unavailable, serving traffic cleanly via Cloud Run PORT ${envPort}.`, {
+            err: priErr instanceof Error ? priErr.message : String(priErr),
+          });
+          scheduleWarmups();
+          return secondaryHttpServer;
+        }
+        safeLogger.error("[Olmart Gateway] ❌ HTTP Listen error during startup on primary port", {
+          err: priErr instanceof Error ? priErr.message : String(priErr),
+          port: bindPort,
+        });
+        throw priErr;
+      }
+
+      scheduleWarmups();
       return httpServer;
     } catch (bootErr: unknown) {
       startServerPromise = null;
@@ -162,9 +169,7 @@ export function startServer(portOverride?: number): Promise<http.Server> {
         try {
           secondaryHttpServer.closeAllConnections?.();
           secondaryHttpServer.close();
-        } catch {
-          // ignore
-        }
+        } catch { /* ignore */ }
         secondaryHttpServer = null;
       }
       rollbackSubsystems();
@@ -175,12 +180,8 @@ export function startServer(portOverride?: number): Promise<http.Server> {
   return startServerPromise;
 }
 
-process.on("SIGTERM", () => {
-  if (process.env.NODE_ENV !== "test") shutdown("SIGTERM");
-});
-process.on("SIGINT", () => {
-  if (process.env.NODE_ENV !== "test") shutdown("SIGINT");
-});
+process.on("SIGTERM", () => { if (process.env.NODE_ENV !== "test") shutdown("SIGTERM"); });
+process.on("SIGINT", () => { if (process.env.NODE_ENV !== "test") shutdown("SIGINT"); });
 
 process.on("unhandledRejection", (reason: unknown) => {
   const errorMsg = reason instanceof Error ? reason.stack || reason.message : String(reason);
@@ -188,7 +189,7 @@ process.on("unhandledRejection", (reason: unknown) => {
   safeLogger.error("[Olmart Gateway] ❌ Unhandled Promise Rejection at process level", { err: errorMsg, code: errorCode });
   if (process.env.NODE_ENV === "test") return;
   const criticalCodes = ["EADDRINUSE", "EACCES", "ERR_SERVER_ALREADY_LISTEN"];
-  if (criticalCodes.includes(errorCode) || (typeof errorMsg === "string" && errorMsg.includes("FATAL_DB_CORRUPTION"))) {
+  if (criticalCodes.includes(errorCode) || errorMsg.includes("FATAL_DB_CORRUPTION")) {
     safeLogger.error("[Olmart Gateway] 🚨 Critical unhandled rejection encountered. Initiating emergency shutdown...", { code: errorCode });
     shutdown("CRITICAL_UNHANDLED_REJECTION");
   }
@@ -207,7 +208,8 @@ process.on("uncaughtException", (error: Error) => {
 
 if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
   const attemptBoot = async (retries = 12, delayMs = 1000): Promise<void> => {
-    if (!process.env.CSRF_SECRET || process.env.CSRF_SECRET.trim().length < 32) {
+    const rawSecret = (process.env.CSRF_SECRET || "").trim();
+    if (rawSecret.length < 32 || WEAK_CSRF_SECRETS.has(rawSecret.toLowerCase())) {
       const seed = process.env.K_SERVICE || process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || "olmart-production-service";
       process.env.CSRF_SECRET = crypto.createHmac("sha256", "olmart-cloud-run-csrf-identity-v1").update(seed).digest("hex");
     }
@@ -230,3 +232,4 @@ if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
   };
   attemptBoot();
 }
+

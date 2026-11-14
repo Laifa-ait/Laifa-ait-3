@@ -1,34 +1,42 @@
-import React, { useState } from "react";
-import { Check, Plus, Trash2, RefreshCw, Megaphone, PanelTop, Navigation } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   SellerStoreConfig,
   StoreAnnouncementBarConfig,
   StoreHeaderNavConfig,
   StoreNavMenuLink,
 } from "../../../../../domains/seller/customPage.types";
+import { Plus, Trash2, Check, RefreshCw } from "lucide-react";
+import { HeaderAnnouncementAndLayoutForm } from "./HeaderAnnouncementAndLayoutForm";
 
 interface HeaderNavigationInspectorPanelProps {
   storeConfig?: SellerStoreConfig | null;
+  onLiveChange?: (patch: Partial<SellerStoreConfig>) => void;
   onSaveConfig: (updated: Partial<SellerStoreConfig>) => Promise<void>;
 }
 
-const DEFAULT_NAV_LINKS: StoreNavMenuLink[] = [
-  { id: "nav-home", label: "Accueil", target: "home" },
-  { id: "nav-catalog", label: "Catalogue", target: "collection" },
-  { id: "nav-promos", label: "Nouveautés", target: "collection" },
+const SYSTEM_LINK_TARGETS: Array<{ value: StoreNavMenuLink["target"]; label: string }> = [
+  { value: "home", label: "Page d'Accueil" },
+  { value: "collection", label: "Catalogue & Collections" },
+  { value: "about", label: "À propos / Notre Histoire" },
+  { value: "delivery", label: "Livraison 69 Wilayas" },
+  { value: "returns", label: "Politique de Retours" },
+  { value: "faq", label: "Questions Fréquentes (FAQ)" },
+  { value: "contact", label: "Contact & Coordonnées" },
 ];
 
 export const HeaderNavigationInspectorPanel: React.FC<HeaderNavigationInspectorPanelProps> = ({
   storeConfig,
+  onLiveChange,
   onSaveConfig,
 }) => {
+  const customPages = storeConfig?.customPages || [];
+  const onLiveChangeRef = useRef(onLiveChange);
+  onLiveChangeRef.current = onLiveChange;
+
   const [announcement, setAnnouncement] = useState<StoreAnnouncementBarConfig>({
     enabled: storeConfig?.announcementBar?.enabled ?? true,
-    text:
-      storeConfig?.announcementBar?.text ||
-      "Livraison rapide 69 Wilayas • Paiement à la livraison (COD) disponible",
-    link: storeConfig?.announcementBar?.link || "",
-    bgColor: storeConfig?.announcementBar?.bgColor || "#011C40",
+    text: storeConfig?.announcementBar?.text || "Livraison rapide 69 Wilayas • Paiement à la livraison (COD)",
+    bgColor: storeConfig?.announcementBar?.bgColor || "#0F172A",
     textColor: storeConfig?.announcementBar?.textColor || "#FFFFFF",
   });
 
@@ -40,175 +48,107 @@ export const HeaderNavigationInspectorPanel: React.FC<HeaderNavigationInspectorP
     navLinks:
       storeConfig?.headerConfig?.navLinks && storeConfig.headerConfig.navLinks.length > 0
         ? storeConfig.headerConfig.navLinks
-        : DEFAULT_NAV_LINKS,
+        : [
+            { id: "nav-home", label: "Accueil", target: "home" },
+            { id: "nav-cat", label: "Catalogue", target: "collection" },
+          ],
   });
 
   const [newLabel, setNewLabel] = useState("");
-  const [newTarget, setNewTarget] = useState<"home" | "collection">("collection");
+  const [selectedTargetOption, setSelectedTargetOption] = useState<string>("collection");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    onLiveChangeRef.current?.({
+      announcementBar: announcement,
+      headerConfig: headerCfg,
+    });
+  }, [announcement, headerCfg]);
+
+  const handleTargetSelectChange = (val: string) => {
+    setSelectedTargetOption(val);
+    if (!newLabel.trim()) {
+      if (val.startsWith("page:")) {
+        const cp = customPages.find((p) => p.slug === val.replace("page:", ""));
+        if (cp) setNewLabel(cp.title);
+      } else {
+        const sys = SYSTEM_LINK_TARGETS.find((t) => t.value === val);
+        if (sys) setNewLabel(sys.label.split(" ")[0]);
+      }
+    }
+  };
 
   const handleAddLink = () => {
     const clean = newLabel.trim();
-    if (!clean || headerCfg.navLinks.length >= 8) return;
-    setHeaderCfg((prev) => ({
-      ...prev,
-      navLinks: [...prev.navLinks, { id: `nav-${Date.now()}`, label: clean, target: newTarget }],
-    }));
+    if (!clean) return;
+    const isCustomPage = selectedTargetOption.startsWith("page:");
+    const newItem: StoreNavMenuLink = isCustomPage
+      ? { id: `nav-${Date.now()}`, label: clean, target: "page", pageSlug: selectedTargetOption.replace("page:", "") }
+      : { id: `nav-${Date.now()}`, label: clean, target: selectedTargetOption as StoreNavMenuLink["target"] };
+    setHeaderCfg((prev) => ({ ...prev, navLinks: [...prev.navLinks, newItem] }));
     setNewLabel("");
   };
 
   const handleRemoveLink = (id: string) => {
-    setHeaderCfg((prev) => ({
-      ...prev,
-      navLinks: prev.navLinks.filter((l) => l.id !== id),
-    }));
+    setHeaderCfg((prev) => ({ ...prev, navLinks: prev.navLinks.filter((l) => l.id !== id) }));
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setSaved(false);
+    setSavedSuccess(false);
     try {
       await onSaveConfig({ announcementBar: announcement, headerConfig: headerCfg });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 2500);
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#FFFFFF] select-none">
-      <div className="p-4 border-b border-[#E4E7EC] flex items-center justify-between">
+    <div className="flex flex-col h-full bg-white select-none" data-testid="header-nav-inspector-panel">
+      <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between shrink-0">
         <div>
-          <h2 className="text-[14px] font-bold text-[#17191C]">En-tête & Navigation OS 2.0</h2>
-          <p className="text-[12px] text-[#667085]">Barre d'annonce, disposition et menus</p>
+          <h2 className="text-[13px] font-semibold text-slate-900">En-tête &amp; Navigation</h2>
+          <p className="text-[11px] text-slate-500">Barre d&apos;annonce, disposition et liens du menu</p>
         </div>
-        {saved && (
-          <span className="flex items-center gap-1 text-[12px] text-[#15803D] bg-[#F0FDF4] px-2 py-0.5 rounded-lg border border-[#15803D]/20 font-semibold">
+        {savedSuccess && (
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700">
             <Check className="w-3.5 h-3.5" /> Enregistré
           </span>
         )}
       </div>
 
-      <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-4 space-y-4 text-[13px]">
-        <div className="space-y-2.5 p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 text-[12px]">
+        <HeaderAnnouncementAndLayoutForm
+          announcement={announcement}
+          setAnnouncement={setAnnouncement}
+          headerCfg={headerCfg}
+          setHeaderCfg={setHeaderCfg}
+        />
+
+        <section className="pt-3 border-t border-slate-200 space-y-2.5">
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 font-bold text-[#0F172A]">
-              <Megaphone className="w-4 h-4 text-[#023859]" />
-              Barre d'annonce supérieure
-            </span>
-            <input
-              type="checkbox"
-              checked={announcement.enabled}
-              onChange={(e) => setAnnouncement((p) => ({ ...p, enabled: e.target.checked }))}
-              className="w-4 h-4 accent-[#023859] cursor-pointer"
-            />
+            <span className="font-semibold text-slate-900">Menu principal</span>
+            <span className="text-[11px] text-slate-400 tabular-nums">{headerCfg.navLinks.length} liens</span>
           </div>
 
-          <input
-            type="text"
-            value={announcement.text}
-            onChange={(e) => setAnnouncement((p) => ({ ...p, text: e.target.value }))}
-            className="w-full h-9 px-2.5 bg-white border border-[#CBD5E1] rounded-lg text-[12.5px]"
-            placeholder="Livraison offerte dès 8 000 DA..."
-          />
-
-          <div className="grid grid-cols-2 gap-2.5">
-            <div>
-              <label className="text-[11px] font-semibold text-[#475569] block mb-1">Fond</label>
-              <input
-                type="color"
-                value={announcement.bgColor}
-                onChange={(e) => setAnnouncement((p) => ({ ...p, bgColor: e.target.value }))}
-                className="w-full h-8 rounded cursor-pointer border border-[#CBD5E1]"
-              />
-            </div>
-            <div>
-              <label className="text-[11px] font-semibold text-[#475569] block mb-1">Texte</label>
-              <input
-                type="color"
-                value={announcement.textColor}
-                onChange={(e) => setAnnouncement((p) => ({ ...p, textColor: e.target.value }))}
-                className="w-full h-8 rounded cursor-pointer border border-[#CBD5E1]"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-2.5 p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-          <span className="flex items-center gap-1.5 font-bold text-[#0F172A]">
-            <PanelTop className="w-4 h-4 text-[#023859]" />
-            Disposition de l'En-tête
-          </span>
-
-          <div className="grid grid-cols-3 gap-1.5">
-            {(
-              [
-                { id: "left", label: "Classique" },
-                { id: "center", label: "Logo Centré" },
-                { id: "minimal", label: "Minimaliste" },
-              ] as const
-            ).map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => setHeaderCfg((p) => ({ ...p, layout: opt.id }))}
-                className={`h-8 rounded-lg text-[11.5px] font-bold border cursor-pointer transition-all ${
-                  headerCfg.layout === opt.id
-                    ? "bg-[#023859] text-white border-[#023859]"
-                    : "bg-white text-[#334155] border-[#CBD5E1] hover:bg-[#F1F5F9]"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-
-          <label className="flex items-center justify-between text-[12px] font-medium text-[#334155] cursor-pointer pt-1">
-            <span>Barre de recherche boutique</span>
-            <input
-              type="checkbox"
-              checked={headerCfg.showSearch}
-              onChange={(e) => setHeaderCfg((p) => ({ ...p, showSearch: e.target.checked }))}
-              className="w-4 h-4 accent-[#023859]"
-            />
-          </label>
-
-          <label className="flex items-center justify-between text-[12px] font-medium text-[#334155] cursor-pointer">
-            <span>Badges de confiance sous le header</span>
-            <input
-              type="checkbox"
-              checked={headerCfg.showTrustBar}
-              onChange={(e) => setHeaderCfg((p) => ({ ...p, showTrustBar: e.target.checked }))}
-              className="w-4 h-4 accent-[#023859]"
-            />
-          </label>
-        </div>
-
-        <div className="space-y-2 p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-          <span className="flex items-center gap-1.5 font-bold text-[#0F172A]">
-            <Navigation className="w-4 h-4 text-[#023859]" />
-            Menu principal ({headerCfg.navLinks.length}/8)
-          </span>
-
-          <div className="space-y-1.5">
+          <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg bg-white overflow-hidden">
             {headerCfg.navLinks.map((link) => (
-              <div
-                key={link.id}
-                className="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-[#E2E8F0] text-[12px]"
-              >
-                <div className="truncate">
-                  <span className="font-bold text-[#0F172A]">{link.label}</span>
-                  <span className="ml-2 text-[10.5px] text-[#64748B] uppercase">
-                    ({link.target === "home" ? "Accueil" : "Catalogue"})
+              <div key={link.id} className="flex items-center justify-between px-3 py-2 hover:bg-slate-50/70">
+                <div className="min-w-0">
+                  <span className="font-medium text-slate-900 text-[12px] block truncate">{link.label}</span>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {link.target === "page" ? `/p/${link.pageSlug}` : link.target}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleRemoveLink(link.id)}
-                  className="text-[#EF4444] hover:bg-[#FEF2F2] p-1 rounded cursor-pointer"
+                  className="p-1 text-slate-400 hover:text-rose-600 cursor-pointer"
+                  aria-label="Supprimer le lien"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -216,46 +156,61 @@ export const HeaderNavigationInspectorPanel: React.FC<HeaderNavigationInspectorP
             ))}
           </div>
 
-          <div className="flex items-center gap-1.5 pt-1">
-            <input
-              type="text"
-              value={newLabel}
-              onChange={(e) => setNewLabel(e.target.value)}
-              placeholder="Ex: Promotions"
-              className="flex-1 h-8 px-2.5 bg-white border border-[#CBD5E1] rounded-lg text-[12px]"
-            />
+          <div className="space-y-1.5 pt-1">
             <select
-              value={newTarget}
-              onChange={(e) => setNewTarget(e.target.value as "home" | "collection")}
-              className="h-8 px-2 bg-white border border-[#CBD5E1] rounded-lg text-[11.5px]"
+              value={selectedTargetOption}
+              onChange={(e) => handleTargetSelectChange(e.target.value)}
+              data-testid="header-nav-target-select"
+              className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-[11.5px] text-slate-800 focus:border-slate-900 focus:outline-none"
             >
-              <option value="home">Accueil</option>
-              <option value="collection">Catalogue</option>
+              <optgroup label="Pages Système">
+                {SYSTEM_LINK_TARGETS.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </optgroup>
+              {customPages.length > 0 && (
+                <optgroup label="Pages Personnalisées">
+                  {customPages.map((cp) => (
+                    <option key={cp.id} value={`page:${cp.slug}`}>
+                      {cp.title} (/p/{cp.slug})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
-            <button
-              type="button"
-              onClick={handleAddLink}
-              className="h-8 px-2.5 bg-[#023859] text-white rounded-lg text-[12px] font-bold flex items-center cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex gap-1.5">
+              <input
+                type="text"
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+                placeholder="Libellé du lien (ex: Nouveautés)"
+                className="flex-1 h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-[12px] text-slate-900 focus:border-slate-900 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={handleAddLink}
+                data-testid="header-nav-add-link-btn"
+                className="px-3 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[11.5px] font-medium flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" /> Ajouter
+              </button>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="w-full h-10 bg-[#023859] hover:bg-[#011C40] text-white rounded-xl text-[13px] font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-        >
-          {saving ? (
-            <>
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span>Enregistrement...</span>
-            </>
-          ) : (
-            <span>Appliquer l'en-tête & les menus</span>
-          )}
-        </button>
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[12.5px] font-medium flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-colors"
+          >
+            {saving ? (
+              <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Enregistrement…</>
+            ) : (
+              "Enregistrer l'en-tête"
+            )}
+          </button>
+        </div>
       </form>
     </div>
   );

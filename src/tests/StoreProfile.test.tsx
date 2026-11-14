@@ -6,11 +6,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 vi.mock("../lib/firebase", () => ({ app: {}, auth: { currentUser: null, onAuthStateChanged: vi.fn() }, db: {}, storage: {} }));
 vi.mock("firebase/firestore", () => ({ collection: vi.fn(), query: vi.fn(), where: vi.fn(), getDocs: vi.fn(), doc: vi.fn(), setDoc: vi.fn(), updateDoc: vi.fn(), getDoc: vi.fn() }));
 vi.mock("../lib/api", () => ({
-  apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn(), apiDelete: vi.fn(),
+  apiGet: vi.fn(), apiPost: vi.fn().mockResolvedValue({ success: true }), apiPut: vi.fn(), apiDelete: vi.fn(),
+}));
+vi.mock("react-helmet-async", () => ({
+  Helmet: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  HelmetProvider: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 
 let mockParams: Record<string, string | undefined> = { sellerId: "seller_123" };
-vi.mock("react-router-dom", () => ({ useParams: () => mockParams, useNavigate: () => vi.fn() }));
+const mockNavigate = vi.fn();
+vi.mock("react-router-dom", () => ({ useParams: () => mockParams, useNavigate: () => mockNavigate }));
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k, i18n: { language: "fr" } }) }));
 vi.mock("../context/AuthContext", () => ({ useAuth: () => ({ currentUser: null }) }));
 vi.mock("react-hot-toast", () => ({ toast: { loading: vi.fn(), success: vi.fn(), error: vi.fn() } }));
@@ -23,6 +28,17 @@ vi.mock("../components/Store/StoreAboutView", () => ({ StoreAboutView: () => <di
 vi.mock("../components/ui/Spinner", () => ({ Spinner: () => <div id="spinner">Loading...</div> }));
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+if (typeof globalThis.IntersectionObserver === "undefined") {
+  globalThis.IntersectionObserver = class IntersectionObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() { return []; }
+    root = null;
+    rootMargin = "";
+    thresholds = [];
+  } as unknown as typeof IntersectionObserver;
+}
 
 import { StoreProfile } from "../pages/Public/StoreProfile";
 import * as apiModule from "../lib/api";
@@ -168,5 +184,25 @@ describe("StoreProfile & useStoreProfile Targeted Suite", () => {
     expect(container?.querySelector("#spinner")).toBeNull();
     expect(container?.textContent).toContain("Boutique Constantine");
     expect(container?.textContent).toContain("Boutique Vide");
+  });
+
+  it("8. Forwards ?preview=draft to /api/v1/public/shops/:sellerId and renders Studio CustomHeaderBar", async () => {
+    window.history.pushState({}, "", "/store/seller_123?preview=draft");
+    const mockShop = {
+      id: "seller_123",
+      sellerId: "seller_123",
+      shopName: "Maison Kabylie",
+      wilaya: "Béjaïa",
+      announcementBar: { enabled: true, text: "PROMO STUDIO EN DIRECT", bgColor: "#111827", textColor: "#FFFFFF" },
+    };
+    vi.mocked(apiModule.apiGet).mockResolvedValueOnce({ success: true, shop: mockShop });
+    vi.mocked(firestoreModule.getDocs).mockResolvedValueOnce({ docs: [] } as unknown as firestoreModule.QuerySnapshot);
+
+    await act(async () => { root?.render(<StoreProfile />); });
+
+    expect(apiModule.apiGet).toHaveBeenCalledWith("/api/v1/public/shops/seller_123?preview=draft");
+    expect(container?.querySelector('[data-testid="store-custom-header-bar"]')).not.toBeNull();
+    expect(container?.textContent).toContain("PROMO STUDIO EN DIRECT");
+    window.history.pushState({}, "", "/");
   });
 });

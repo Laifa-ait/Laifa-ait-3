@@ -1,18 +1,20 @@
 import React from "react";
-import { Sparkles, Gem, RotateCcw, Box, Layers } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import {
   CustomPageSectionStyles,
   CustomPageTheme,
 } from "../../../../../domains/seller/customPage.types";
 import { ColorSchemePicker } from "./controls/ColorSchemePicker";
-import {
-  CARD_MATERIAL_OPTIONS,
-  SURFACE_TEXTURE_OPTIONS,
-} from "../../constants/artisticAtmosphereOptions";
-import { FrameShapeSelectorGrid } from "../context/FrameShapeSelectorGrid";
+import { SectionElementColorMatrix } from "./controls/SectionElementColorMatrix";
+import { SectionMaterialSubPanel } from "./controls/SectionMaterialSubPanel";
 import { EditorialTypographyControlBox } from "./controls/EditorialTypographyControlBox";
+import { SectionVisualEffectsSubPanel } from "./controls/SectionVisualEffectsSubPanel";
+import { StepWizardBar, StepWizardFooter, StepDefinition } from "./controls/StepWizardControls";
+import { useSectionStepProgress } from "../../hooks/useSectionStepProgress";
 
 interface SectionStyleTabProps {
+  sectionId?: string;
+  sectionType?: string;
   styles: CustomPageSectionStyles;
   settings?: Record<string, unknown>;
   theme?: CustomPageTheme;
@@ -24,217 +26,176 @@ interface SectionStyleTabProps {
     fieldOrPatch: string | Record<string, unknown>,
     value?: unknown
   ) => void;
+  onSaveStep?: () => void;
 }
 
+const STYLE_STEP_DEFS: StepDefinition[] = [
+  { id: 1, shortLabel: "1. Couleurs", title: "Couleurs de la section", subtitle: "Palette globale, couleurs par élément et opacité." },
+  { id: 2, shortLabel: "2. Coins", title: "Coins & Ombres", subtitle: "Arrondis par coin et profondeur des ombres." },
+  { id: 3, shortLabel: "3. Matières", title: "Filtres & Matières", subtitle: "Rendu photo, textures et silhouettes." },
+  { id: 4, shortLabel: "4. Bouton", title: "Bouton & Typographie", subtitle: "Style des boutons d'action et espacements." },
+];
+
 export const SectionStyleTab: React.FC<SectionStyleTabProps> = ({
+  sectionId,
+  sectionType,
   styles,
   settings = {},
   theme,
   onStylesChange,
   onSettingsChange,
+  onSaveStep,
 }) => {
-  const activeTexture = styles.surfaceTexture || theme?.surfaceTexture || "none";
-  const activeMaterial = styles.cardMaterial || theme?.cardMaterial || "solid-matte";
-  const activeFrameShape = styles.frameShape || theme?.frameShape || "soft-modern";
-  const currentRadius = styles.borderRadius || "md";
-  const currentShadow = styles.shadow || "none";
+  const {
+    activeStep,
+    unlockedStep,
+    completedSteps,
+    isExpert,
+    justSavedStep,
+    selectStep,
+    goToPrevStep,
+    saveAndAdvanceStep,
+  } = useSectionStepProgress("style", 4, sectionId);
+
   const sectionOpacity = typeof settings.sectionOpacity === "number" ? settings.sectionOpacity : 100;
 
   const handleResetSectionStyles = () => {
     onStylesChange({
-      backgroundColor: undefined,
-      textColor: undefined,
-      colorScheme: undefined,
-      borderRadius: undefined,
-      shadow: undefined,
-      surfaceTexture: undefined,
-      cardMaterial: undefined,
-      frameShape: undefined,
-      letterSpacing: undefined,
-      lineHeight: undefined,
+      backgroundColor: undefined, textColor: undefined, headingColor: undefined,
+      subtitleColor: undefined, kickerColor: undefined, cardBgColor: undefined,
+      cardTextColor: undefined, cardBorderColor: undefined, priceColor: undefined,
+      badgeBgColor: undefined, badgeTextColor: undefined, iconColor: undefined,
+      overlayColor: undefined, dividerColor: undefined, sectionBorderColor: undefined,
+      colorScheme: undefined, borderRadius: undefined, usePerCornerRadius: false,
+      useCornerColors: false, shadow: undefined, cardShadow: undefined,
+      imageFilterPreset: undefined, imageBrightness: undefined, imageContrast: undefined,
+      imageSaturation: undefined, buttonStyle: undefined, buttonShadow: undefined,
+      buttonBgColor: undefined, buttonTextColor: undefined, buttonBorderColor: undefined,
+      surfaceTexture: undefined, cardMaterial: undefined, frameShape: undefined,
+      letterSpacing: undefined, lineHeight: undefined,
     });
     if (onSettingsChange) {
-      onSettingsChange({ sectionOpacity: 100, backgroundGradient: undefined });
+      onSettingsChange({
+        sectionOpacity: 100,
+        backgroundGradient: undefined,
+        ...(sectionType === "hero_banner"
+          ? {
+              bannerBgColor: undefined, bannerBgGradient: undefined, bannerBorderColor: undefined,
+              titleColor: undefined, subtitleColor: undefined, badgeBgColor: undefined,
+              badgeTextColor: undefined, ctaBgColor: undefined, ctaTextColor: undefined,
+              ctaBorderColor: undefined, useCornerColors: false, bannerShadow: "none",
+              usePerCornerRadius: false,
+            }
+          : {}),
+      });
     }
   };
 
   return (
-    <div className="space-y-4 select-none" data-testid="section-style-tab">
-      {/* Standardized WCAG Color Schemes Picker + Couleurs Texte/Fond */}
-      <ColorSchemePicker
+    <div className="space-y-3.5 select-none" data-testid="section-style-tab">
+      <div data-testid="section-style-stepper">
+        <StepWizardBar
+          steps={STYLE_STEP_DEFS}
+          activeStep={activeStep}
+          unlockedStep={unlockedStep}
+          completedSteps={completedSteps}
+          isExpert={isExpert}
+          testIdPrefix="style-step"
+          onSelectStep={selectStep}
+        />
+      </div>
+
+      {activeStep === 1 && (
+        <div className="space-y-3" data-testid="style-step-panel-1">
+          <ColorSchemePicker
+            styles={styles}
+            theme={theme}
+            onStylesChange={(fieldOrPatch, val) => {
+              onStylesChange(fieldOrPatch, val);
+              if (sectionType === "hero_banner" && onSettingsChange && typeof fieldOrPatch === "string") {
+                if (fieldOrPatch === "backgroundColor" && typeof val === "string") {
+                  onSettingsChange("bannerBgColor", val);
+                } else if (fieldOrPatch === "textColor" && typeof val === "string") {
+                  onSettingsChange("titleColor", val);
+                }
+              }
+            }}
+          />
+          <SectionElementColorMatrix
+            sectionType={sectionType}
+            styles={styles}
+            theme={theme}
+            onStylesChange={onStylesChange}
+            onSettingsChange={onSettingsChange}
+          />
+          {onSettingsChange && (
+            <div className="space-y-1.5 pt-3 border-t border-slate-200">
+              <div className="flex justify-between items-center text-xs tabular-nums">
+                <span className="font-medium text-slate-800">Opacité de la section</span>
+                <span className="font-mono text-slate-900 font-semibold">{sectionOpacity}%</span>
+              </div>
+              <input
+                type="range"
+                min={50}
+                max={100}
+                step={5}
+                value={sectionOpacity}
+                onChange={(e) => onSettingsChange("sectionOpacity", Number(e.target.value))}
+                className="w-full accent-slate-900 cursor-pointer"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      <SectionVisualEffectsSubPanel
+        sectionType={sectionType}
+        activeStep={activeStep as 1 | 2 | 3 | 4}
         styles={styles}
-        theme={theme}
         onStylesChange={onStylesChange}
+        onSettingsChange={onSettingsChange}
       />
 
-      {/* Rayon des coins & Ombre de la section */}
-      <div className="space-y-2.5 pt-2 border-t border-[#E4E7EC]">
-        <label className="text-[12px] font-semibold text-[#011C40] flex items-center gap-1.5">
-          <Box className="w-3.5 h-3.5 text-[#023859]" />
-          <span>Rayon des coins (Bordures)</span>
-        </label>
-        <div className="grid grid-cols-4 gap-1.5">
-          {(
-            [
-              { id: "none", label: "Carré" },
-              { id: "sm", label: "Léger" },
-              { id: "md", label: "Standard" },
-              { id: "lg", label: "Arrondi" },
-            ] as const
-          ).map((r) => (
-            <button
-              key={r.id}
-              type="button"
-              onClick={() => onStylesChange("borderRadius", r.id)}
-              className={`h-8 rounded-lg border text-[11px] font-semibold cursor-pointer transition-colors ${
-                currentRadius === r.id
-                  ? "border-[#023859] bg-[#F0F7FA] text-[#023859] font-bold"
-                  : "border-[#E4E7EC] bg-white text-[#667085] hover:bg-[#F7F8FA]"
-              }`}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
-
-        <label className="text-[12px] font-semibold text-[#011C40] flex items-center gap-1.5 pt-1">
-          <Layers className="w-3.5 h-3.5 text-[#023859]" />
-          <span>Ombre & Élévation</span>
-        </label>
-        <div className="grid grid-cols-4 gap-1.5">
-          {(
-            [
-              { id: "none", label: "Aucune" },
-              { id: "sm", label: "Douce" },
-              { id: "floating", label: "Flottante" },
-              { id: "brutal", label: "Brutale" },
-            ] as const
-          ).map((sh) => (
-            <button
-              key={sh.id}
-              type="button"
-              onClick={() => onStylesChange("shadow", sh.id)}
-              className={`h-8 rounded-lg border text-[11px] font-semibold cursor-pointer transition-colors ${
-                currentShadow === sh.id
-                  ? "border-[#023859] bg-[#F0F7FA] text-[#023859] font-bold"
-                  : "border-[#E4E7EC] bg-white text-[#667085] hover:bg-[#F7F8FA]"
-              }`}
-            >
-              {sh.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Contrôles Typographiques Avancés (letterSpacing, lineHeight, accents) */}
-      <div className="pt-2 border-t border-[#E4E7EC]">
-        <EditorialTypographyControlBox
-          letterSpacing={styles.letterSpacing ?? theme?.letterSpacing ?? 0}
-          lineHeight={styles.lineHeight ?? theme?.lineHeight ?? 1.15}
-          headingAccentStyle={
-            styles.headingAccentStyle || theme?.headingAccentStyle || "metallic-gold"
-          }
-          headingUnderlineStyle={
-            styles.headingUnderlineStyle || theme?.headingUnderlineStyle || "brush-stroke"
-          }
-          accentColor={theme?.accentColor || theme?.primaryColor}
-          onChange={(patch) => onStylesChange(patch)}
+      {activeStep === 3 && (
+        <SectionMaterialSubPanel
+          sectionType={sectionType}
+          styles={styles}
+          theme={theme}
+          onStylesChange={onStylesChange}
         />
-      </div>
+      )}
 
-      {/* Silhouette des Images & Cartes */}
-      <div className="pt-2 border-t border-[#E4E7EC]">
-        <FrameShapeSelectorGrid
-          activeShape={activeFrameShape}
-          onSelectShape={(shape) => onStylesChange("frameShape", shape)}
-          compact
-          labelFr="Silhouette des Images & Cartes"
-        />
-      </div>
-
-      {/* Texture de Surface & Matière des Cartes */}
-      <div className="space-y-1.5 pt-2 border-t border-[#E4E7EC]">
-        <label className="text-[12px] font-semibold text-[#011C40] flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-[#023859]" />
-          <span>Texture de Surface (Section)</span>
-        </label>
-        <div className="grid grid-cols-2 gap-1.5">
-          {SURFACE_TEXTURE_OPTIONS.map((t) => {
-            const isAct = activeTexture === t.id;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => onStylesChange("surfaceTexture", t.id)}
-                className={`p-2 rounded-lg border text-left text-[10.5px] font-semibold cursor-pointer transition-all ${
-                  isAct
-                    ? "border-[#023859] bg-[#F0F7FA] text-[#011C40] font-bold"
-                    : "border-[#E4E7EC] bg-white text-[#475467] hover:bg-[#F7F8FA]"
-                }`}
-              >
-                <span className="block truncate">{t.labelFr}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="space-y-1.5 pt-2 border-t border-[#E4E7EC]">
-        <label className="text-[12px] font-semibold text-[#011C40] flex items-center gap-1.5">
-          <Gem className="w-3.5 h-3.5 text-[#023859]" />
-          <span>Matière & Réfraction des Cartes</span>
-        </label>
-        <div className="grid grid-cols-3 gap-1.5">
-          {CARD_MATERIAL_OPTIONS.map((m) => {
-            const isAct = activeMaterial === m.id;
-            return (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => onStylesChange("cardMaterial", m.id)}
-                className={`py-2 px-1.5 rounded-lg border text-center text-[10px] font-semibold cursor-pointer transition-all ${
-                  isAct
-                    ? "border-[#023859] bg-[#F0F7FA] text-[#011C40] font-bold"
-                    : "border-[#E4E7EC] bg-white text-[#475467] hover:bg-[#F7F8FA]"
-                }`}
-              >
-                <span className="block truncate">{m.labelFr}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Opacité & Réinitialisation du style de la section */}
-      {onSettingsChange && (
-        <div className="space-y-1.5 pt-2 border-t border-[#E4E7EC]">
-          <div className="flex justify-between items-center text-xs">
-            <span className="font-semibold text-[#011C40]">Opacité de la section</span>
-            <span className="font-mono text-[#023859] font-bold">{sectionOpacity}%</span>
-          </div>
-          <input
-            type="range"
-            min={50}
-            max={100}
-            step={5}
-            value={sectionOpacity}
-            onChange={(e) => onSettingsChange("sectionOpacity", Number(e.target.value))}
-            className="w-full accent-[#023859] cursor-pointer"
+      {activeStep === 4 && (
+        <div className="pt-1" data-testid="style-step-panel-4">
+          <EditorialTypographyControlBox
+            letterSpacing={styles.letterSpacing ?? theme?.letterSpacing ?? 0}
+            lineHeight={styles.lineHeight ?? theme?.lineHeight ?? 1.15}
+            headingAccentStyle={styles.headingAccentStyle || theme?.headingAccentStyle || "metallic-gold"}
+            headingUnderlineStyle={styles.headingUnderlineStyle || theme?.headingUnderlineStyle || "brush-stroke"}
+            accentColor={styles.kickerColor || theme?.accentColor || theme?.primaryColor}
+            onChange={(patch) => onStylesChange(patch)}
           />
         </div>
       )}
 
-      <div className="pt-2 border-t border-[#E4E7EC]">
-        <button
-          type="button"
-          data-testid="reset-section-styles-btn"
-          onClick={handleResetSectionStyles}
-          className="w-full h-8 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-[11px] font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Réinitialiser le style (Hériter du Thème Global)</span>
-        </button>
-      </div>
+      <StepWizardFooter
+        activeStep={activeStep}
+        totalSteps={4}
+        justSavedStep={justSavedStep}
+        saveTestId="style-save-step-btn"
+        onPrev={goToPrevStep}
+        onSaveAndNext={() => void saveAndAdvanceStep(onSaveStep)}
+      />
+
+      <button
+        type="button"
+        data-testid="reset-section-styles-btn"
+        onClick={handleResetSectionStyles}
+        className="w-full h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-[11px] font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+      >
+        <RotateCcw className="w-3.5 h-3.5" />
+        <span>Hériter du Thème Global</span>
+      </button>
     </div>
   );
 };

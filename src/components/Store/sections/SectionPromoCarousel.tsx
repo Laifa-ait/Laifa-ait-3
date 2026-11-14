@@ -100,10 +100,19 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
     }
   };
 
+  const sectionOpacity =
+    typeof (section.settings as unknown as Record<string, unknown>)?.sectionOpacity === "number"
+      ? Number((section.settings as unknown as Record<string, unknown>).sectionOpacity)
+      : 100;
+  const baseContainerStyle = buildSectionContainerStyle(styles, "transparent", "#FFFFFF");
+
   return (
     <div
       onClick={isEditable ? onSelect : undefined}
-      style={buildSectionContainerStyle(styles, "transparent", "#FFFFFF")}
+      style={{
+        ...baseContainerStyle,
+        ...(sectionOpacity < 100 ? { opacity: sectionOpacity / 100 } : {}),
+      }}
       className={`relative overflow-hidden transition-all select-none ${resolveBorderRadiusClass(
         styles.borderRadius
       )} ${resolveShadowClass(styles.shadow)} ${resolveAnimationClass(styles.animation)} ${
@@ -121,6 +130,7 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
         </div>
       ) : (
         <div
+          style={baseContainerStyle.borderRadius ? { borderRadius: baseContainerStyle.borderRadius } : undefined}
           className={`relative w-full overflow-hidden ${resolveBorderRadiusClass(
             styles.borderRadius
           )}`}

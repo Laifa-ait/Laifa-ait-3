@@ -29,24 +29,16 @@ interface HomeHeroBanner extends Partial<Banner> {
   mobileImageUrl?: string;
 }
 
+function normalizeWilayaName(raw: string): string {
+  return raw.toLowerCase().replace(/^[0-9]+\s*[-–]?\s*/, "").trim();
+}
+
 export const Home: React.FC = () => {
   const { t } = useTranslation();
-  const { activeWilaya } = useShop();
+  const { activeWilaya, categoryHierarchy } = useShop();
   const { currentUser } = useAuth();
-
-  const {
-    getCategorieFavorite,
-    categoriesVisiteesCount,
-  } = useUserHabits();
-
-  const {
-    dbBanners,
-    isBannersLoading,
-    customCategories,
-    homepageSections,
-  } = useHomeData();
-
-  const { categoryHierarchy } = useShop();
+  const { getCategorieFavorite, categoriesVisiteesCount } = useUserHabits();
+  const { dbBanners, isBannersLoading, customCategories, homepageSections } = useHomeData();
 
   const { sortedCategoryCards } = useHomeCategoryConfig(
     customCategories,
@@ -56,75 +48,75 @@ export const Home: React.FC = () => {
   );
 
   // Dynamic Target Filtering for Hero Banners
-  const filterByTargeting = useCallback((item: Banner) => {
-    if (item.isActive === false || item.is_active === false) return false;
+  const filterByTargeting = useCallback(
+    (item: Banner) => {
+      if (item.isActive === false || item.is_active === false) return false;
 
-    const startDate = item.startDate || item.start_date;
-    if (startDate && new Date() < new Date(startDate as string | number)) return false;
-    const endDate = item.endDate || item.end_date;
-    if (endDate && new Date() > new Date(endDate as string | number)) return false;
+      const startDate = item.startDate || item.start_date;
+      if (startDate && new Date() < new Date(startDate as string | number)) return false;
+      const endDate = item.endDate || item.end_date;
+      if (endDate && new Date() > new Date(endDate as string | number)) return false;
 
-    const audienceValue = item.targetUserType || item.target_user_type;
-    if (audienceValue && audienceValue !== "all") {
-      if (audienceValue === "logged_in" && !currentUser) return false;
-      if (audienceValue === "new" && currentUser) return false;
-    }
+      const audienceValue = item.targetUserType || item.target_user_type;
+      if (audienceValue && audienceValue !== "all") {
+        if (audienceValue === "logged_in" && !currentUser) return false;
+        if (audienceValue === "new" && currentUser) return false;
+      }
 
-    const regions = item.targetRegions || item.target_regions;
-    if (regions && regions.length > 0 && activeWilaya && activeWilaya !== "Tous") {
-      const cleanActive = activeWilaya.toLowerCase().trim();
-      const matches = regions.some((reg: string) => {
-        const cleanReg = reg.toLowerCase().trim();
-        return cleanReg === cleanActive || cleanActive.includes(cleanReg) || cleanReg.includes(cleanActive);
-      });
-      if (!matches) return false;
-    }
+      const regions = item.targetRegions || item.target_regions;
+      if (regions && regions.length > 0 && activeWilaya && activeWilaya !== "Tous") {
+        const cleanActive = normalizeWilayaName(activeWilaya);
+        const matches = regions.some((reg: string) => {
+          const cleanReg = normalizeWilayaName(reg);
+          return cleanReg === cleanActive || cleanActive.includes(cleanReg) || cleanReg.includes(cleanActive);
+        });
+        if (!matches) return false;
+      }
 
-    return true;
-  }, [currentUser, activeWilaya]);
+      return true;
+    },
+    [currentUser, activeWilaya]
+  );
 
   // Real Dynamic Target Filtering for Homepage Sections (Wilayas, Audience, Scheduling)
-  const filterSectionByTargeting = useCallback((section: HomepageSection) => {
-    if (section.isActive === false) return false;
+  const filterSectionByTargeting = useCallback(
+    (section: HomepageSection) => {
+      if (section.isActive === false || section.is_active === false) return false;
 
-    const startDate = section.startDate;
-    if (startDate && new Date() < new Date(startDate as string | number)) return false;
-    const endDate = section.endDate;
-    if (endDate && new Date() > new Date(endDate as string | number)) return false;
+      const startDate = section.startDate;
+      if (startDate && new Date() < new Date(startDate as string | number)) return false;
+      const endDate = section.endDate;
+      if (endDate && new Date() > new Date(endDate as string | number)) return false;
 
-    const audience = section.targetAudience;
-    if (audience && audience !== "all") {
-      if (audience === "logged_in" && !currentUser) return false;
-      if (audience === "new" && currentUser) return false;
-      if (audience === "vip") {
-        const isVip = Boolean(currentUser && (currentUser as { isVip?: boolean }).isVip);
-        if (!isVip) return false;
+      const audience = section.targetAudience;
+      if (audience && audience !== "all") {
+        if (audience === "logged_in" && !currentUser) return false;
+        if (audience === "new" && currentUser) return false;
+        if (audience === "vip") {
+          const isVip = Boolean(currentUser && (currentUser as { isVip?: boolean }).isVip);
+          if (!isVip) return false;
+        }
       }
-    }
 
-    const regions = section.targetRegions;
-    if (regions && regions.length > 0 && activeWilaya && activeWilaya !== "Tous") {
-      const cleanActive = activeWilaya.toLowerCase().replace(/^[0-9]+\s*[-–]?\s*/, "").trim();
-      const matches = regions.some((reg: string) => {
-        const cleanReg = reg.toLowerCase().replace(/^[0-9]+\s*[-–]?\s*/, "").trim();
-        return cleanReg === cleanActive || cleanActive.includes(cleanReg) || cleanReg.includes(cleanActive);
-      });
-      if (!matches) return false;
-    }
+      const regions = section.targetRegions;
+      if (regions && regions.length > 0 && activeWilaya && activeWilaya !== "Tous") {
+        const cleanActive = normalizeWilayaName(activeWilaya);
+        const matches = regions.some((reg: string) => {
+          const cleanReg = normalizeWilayaName(reg);
+          return cleanReg === cleanActive || cleanActive.includes(cleanReg) || cleanReg.includes(cleanActive);
+        });
+        if (!matches) return false;
+      }
 
-    return true;
-  }, [currentUser, activeWilaya]);
+      return true;
+    },
+    [currentUser, activeWilaya]
+  );
 
   const targetedHeroBanners = useMemo<HomeHeroBanner[]>(() => {
     const isHeroZone = (b: Banner) => {
       const zone = (b.zone || b.position || "").toLowerCase().trim();
-      return (
-        !zone ||
-        zone === "carousel_main" ||
-        zone === "hero" ||
-        zone.includes("carrousel") ||
-        zone.includes("carousel")
-      );
+      return !zone || zone === "carousel_main" || zone === "hero" || zone.includes("carrousel") || zone.includes("carousel");
     };
 
     const filtered = dbBanners
@@ -149,9 +141,9 @@ export const Home: React.FC = () => {
         id: "default-1",
         desktop_image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=1200",
         imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=1200",
-        title: t("hero_title_1", "Sélection Mode & Décoration"),
-        subtitle: t("hero_sub_1", "Les meilleures marques et artisans algériens livrés chez vous"),
-        button_text: t("hero_btn_1", "Découvrir la sélection"),
+        title: t("home.hero.default_title"),
+        subtitle: t("home.hero.default_subtitle"),
+        button_text: t("home.hero.default_cta"),
         isActive: true,
       },
     ];
@@ -165,13 +157,9 @@ export const Home: React.FC = () => {
         <meta name="keywords" content={t("seo_home_keywords")} />
         <meta
           property="og:image"
-          content={
-            targetedHeroBanners[0]?.desktop_image ||
-            targetedHeroBanners[0]?.imageUrl ||
-            "/images/placeholders/product.svg"
-          }
+          content={targetedHeroBanners[0]?.desktop_image || targetedHeroBanners[0]?.imageUrl || "/images/placeholders/product.svg"}
         />
-        <meta property="og:url" content={window.location.href} />
+        <meta property="og:url" content={typeof window !== "undefined" ? window.location.href : ""} />
       </Helmet>
       <h1 className="sr-only">{t("home.sr_title")}</h1>
 
@@ -188,11 +176,8 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* The application switcher owns cross-platform navigation; keep this page focused on shopping. */}
-      <NeoCategoryGrid
-        categories={sortedCategoryCards}
-        favoriteCategory={getCategorieFavorite()}
-      />
+      {/*Grille des Rayons & Départements */}
+      <NeoCategoryGrid categories={sortedCategoryCards} favoriteCategory={getCategorieFavorite()} />
 
       {/* Emplacements Sponsorisés Home (masqué si vide, zéro mock fallback) */}
       <SponsoredSection />
@@ -200,12 +185,12 @@ export const Home: React.FC = () => {
       {/* Sections administrables dynamiques */}
       {[...(homepageSections || [])]
         .filter((section) => section && filterSectionByTargeting(section))
-        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+        .sort((a, b) => (a.orderIndex ?? a.sort_order ?? 0) - (b.orderIndex ?? b.sort_order ?? 0))
         .map((section) => (
           <DynamicSection key={section.id} section={section} />
         ))}
 
-      {/* d) La grille infinie de produits */}
+      {/* Grille infinie de produits */}
       <HomeEndlessGrid />
     </div>
   );

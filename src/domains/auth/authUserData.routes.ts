@@ -1,12 +1,16 @@
 import { Response, Router } from "express";
+import NodeCache from "node-cache";
 import { authenticateToken, require2FA, AuthenticatedRequest, getUserProfileFromCache, setUserProfileInCache, clearUserProfileCache } from "../../middlewares/auth";
 import { SAFE_RESOURCE_ID_REGEX } from "../../middlewares/validation";
 import { admin, db } from "../../config/firebase-admin";
 import { CouponService } from "../marketing/coupon.service";
 import { safeLogger } from "../../utils/logger";
 import { profileUpdateSchema } from "../user/user.schema";
+import { isFirestoreQuotaError } from "../../utils/firestoreTimeout";
 
 const authUserDataRouter = Router();
+const userDataCache = new NodeCache({ stdTTL: 180, checkperiod: 60 });
+const isServerCacheEnabled = () => process.env.NODE_ENV !== "test" && !process.env.VITEST;
 
 function stripSensitiveProfileFields(data: Record<string, unknown>): Record<string, unknown> {
   const cleaned = { ...data };
@@ -21,15 +25,17 @@ authUserDataRouter.get("/profile", authenticateToken, async (req: AuthenticatedR
   const uid = req.user?.uid || "";
   try {
     const cached = getUserProfileFromCache(uid);
-    if (cached) {
-      return res.json(stripSensitiveProfileFields({ uid, ...cached }));
-    }
+    if (cached) return res.json(stripSensitiveProfileFields({ uid, ...cached }));
     const userDoc = await db.collection("users").doc(uid).get();
     if (!userDoc.exists) return res.status(404).json({ error: "User not found in Firestore" });
     const rawData = (userDoc.data() || {}) as Record<string, unknown>;
     setUserProfileInCache(uid, { uid: userDoc.id, ...rawData });
     return res.json(stripSensitiveProfileFields({ uid: userDoc.id, ...rawData }));
   } catch (error: unknown) {
+    if (isFirestoreQuotaError(error)) {
+      safeLogger.warn("[AuthUserData] ⚠️ Quota Firestore atteint sur GET /profile — retour profil token.");
+      return res.json({ uid, email: req.user?.email || "", role: req.user?.role || "buyer", degraded: true });
+    }
     safeLogger.error("Error fetching profile", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: "Erreur interne lors de la récupération du profil" });
   }
@@ -53,10 +59,21 @@ authUserDataRouter.post("/profile", authenticateToken, require2FA, async (req: A
 
 authUserDataRouter.get("/cart", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const uid = req.user?.uid || "";
+  const cacheKey = `cart:${uid}`;
   try {
+    if (isServerCacheEnabled()) {
+      const cached = userDataCache.get<{ items: unknown[] }>(cacheKey);
+      if (cached) return res.json(cached);
+    }
     const cartDoc = await db.collection("users").doc(uid).collection("cart").doc("active").get();
-    return res.json({ items: cartDoc.exists ? cartDoc.data()?.items || [] : [] });
+    const payload = { items: cartDoc.exists ? cartDoc.data()?.items || [] : [] };
+    if (isServerCacheEnabled()) userDataCache.set(cacheKey, payload);
+    return res.json(payload);
   } catch (error: unknown) {
+    if (isFirestoreQuotaError(error)) {
+      safeLogger.warn("[AuthUserData] ⚠️ Quota Firestore atteint sur GET /cart — retour panier vide.");
+      return res.json({ items: [], degraded: true });
+    }
     safeLogger.error("Get cart error", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: "Erreur interne lors de la récupération du panier" });
   }
@@ -69,12 +86,15 @@ authUserDataRouter.post("/cart", authenticateToken, async (req: AuthenticatedReq
     return res.status(400).json({ error: "Format du panier invalide ou nombre d'articles dépassé (max 100)" });
   }
   try {
-    await db.collection("users").doc(uid).collection("cart").doc("active").set(
-      { items: Array.isArray(items) ? items : [], updatedAt: Date.now() },
-      { merge: true }
-    );
+    const safeItems = Array.isArray(items) ? items : [];
+    await db.collection("users").doc(uid).collection("cart").doc("active").set({ items: safeItems, updatedAt: Date.now() }, { merge: true });
+    if (isServerCacheEnabled()) userDataCache.set(`cart:${uid}`, { items: safeItems });
     return res.json({ success: true });
   } catch (error: unknown) {
+    if (isFirestoreQuotaError(error)) {
+      safeLogger.warn("[AuthUserData] ⚠️ Quota Firestore atteint sur POST /cart.");
+      return res.json({ success: true, degraded: true });
+    }
     safeLogger.error("Save cart error", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: "Erreur interne lors de la sauvegarde du panier" });
   }
@@ -82,10 +102,21 @@ authUserDataRouter.post("/cart", authenticateToken, async (req: AuthenticatedReq
 
 authUserDataRouter.get("/wishlist", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const uid = req.user?.uid || "";
+  const cacheKey = `wishlist:${uid}`;
   try {
+    if (isServerCacheEnabled()) {
+      const cached = userDataCache.get<{ items: unknown[] }>(cacheKey);
+      if (cached) return res.json(cached);
+    }
     const wishDoc = await db.collection("users").doc(uid).collection("wishlist").doc("active").get();
-    return res.json({ items: wishDoc.exists ? wishDoc.data()?.items || [] : [] });
+    const payload = { items: wishDoc.exists ? wishDoc.data()?.items || [] : [] };
+    if (isServerCacheEnabled()) userDataCache.set(cacheKey, payload);
+    return res.json(payload);
   } catch (error: unknown) {
+    if (isFirestoreQuotaError(error)) {
+      safeLogger.warn("[AuthUserData] ⚠️ Quota Firestore atteint sur GET /wishlist — retour liste vide.");
+      return res.json({ items: [], degraded: true });
+    }
     safeLogger.error("Get wishlist error", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: "Erreur interne lors de la récupération des favoris" });
   }
@@ -98,12 +129,15 @@ authUserDataRouter.post("/wishlist", authenticateToken, async (req: Authenticate
     return res.status(400).json({ error: "Format des favoris invalide ou limite dépassée (max 200)" });
   }
   try {
-    await db.collection("users").doc(uid).collection("wishlist").doc("active").set(
-      { items: Array.isArray(items) ? items : [], updatedAt: Date.now() },
-      { merge: true }
-    );
+    const safeItems = Array.isArray(items) ? items : [];
+    await db.collection("users").doc(uid).collection("wishlist").doc("active").set({ items: safeItems, updatedAt: Date.now() }, { merge: true });
+    if (isServerCacheEnabled()) userDataCache.set(`wishlist:${uid}`, { items: safeItems });
     return res.json({ success: true });
   } catch (error: unknown) {
+    if (isFirestoreQuotaError(error)) {
+      safeLogger.warn("[AuthUserData] ⚠️ Quota Firestore atteint sur POST /wishlist.");
+      return res.json({ success: true, degraded: true });
+    }
     safeLogger.error("Save wishlist error", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: "Erreur interne lors de la sauvegarde des favoris" });
   }
@@ -111,18 +145,29 @@ authUserDataRouter.post("/wishlist", authenticateToken, async (req: Authenticate
 
 authUserDataRouter.get("/notifications", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const uid = req.user?.uid || "";
+  const cacheKey = `notifications:${uid}`;
   try {
+    if (isServerCacheEnabled()) {
+      const cached = userDataCache.get<Record<string, unknown>>(cacheKey);
+      if (cached) return res.json(cached);
+    }
     const [ordersSnap, directSnap, couponsSnap] = await Promise.all([
       db.collection("orders").where("userId", "==", uid).orderBy("updatedAt", "desc").limit(10).get(),
       db.collection("user_notifications").where("recipientId", "==", uid).orderBy("createdAt", "desc").limit(20).get(),
       db.collection("coupons").where("isActive", "==", true).orderBy("createdAt", "desc").limit(5).get(),
     ]);
-    return res.json({
+    const payload = {
       orders: ordersSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
       direct: directSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
       coupons: couponsSnap.docs.map((doc) => CouponService.formatPublicCouponDTO(doc.data(), doc.id)),
-    });
+    };
+    if (isServerCacheEnabled()) userDataCache.set(cacheKey, payload);
+    return res.json(payload);
   } catch (error: unknown) {
+    if (isFirestoreQuotaError(error)) {
+      safeLogger.warn("[AuthUserData] ⚠️ Quota Firestore atteint sur GET /notifications — retour vide.");
+      return res.json({ orders: [], direct: [], coupons: [], degraded: true });
+    }
     safeLogger.error("Fetch notifications backend error", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: "Erreur interne lors de la récupération des notifications" });
   }
@@ -135,7 +180,6 @@ authUserDataRouter.post("/notifications/:id/read", authenticateToken, async (req
   if (!id || !SAFE_RESOURCE_ID_REGEX.test(id.trim())) {
     return res.status(400).json({ error: "Identifiant de notification invalide" });
   }
-
   try {
     const notifRef = db.collection("user_notifications").doc(id.trim());
     const notifSnap = await notifRef.get();
@@ -143,6 +187,7 @@ authUserDataRouter.post("/notifications/:id/read", authenticateToken, async (req
       return res.status(404).json({ error: "Notification introuvable" });
     }
     await notifRef.update({ read: true });
+    userDataCache.del(`notifications:${uid}`);
     return res.json({ success: true });
   } catch (error: unknown) {
     safeLogger.error("Mark notification read error", { err: error instanceof Error ? error.message : String(error) });
@@ -157,6 +202,7 @@ authUserDataRouter.post("/notifications/read-all", authenticateToken, async (req
     const batch = db.batch();
     unreadSnap.docs.forEach((doc) => batch.update(doc.ref, { read: true }));
     await batch.commit();
+    userDataCache.del(`notifications:${uid}`);
     return res.json({ success: true });
   } catch (error: unknown) {
     safeLogger.error("Mark all notifications read error", { err: error instanceof Error ? error.message : String(error) });
@@ -165,11 +211,17 @@ authUserDataRouter.post("/notifications/read-all", authenticateToken, async (req
 });
 
 authUserDataRouter.get("/user-habits", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  const uid = req.user?.uid || "";
+  const cacheKey = `habits:${uid}`;
   try {
-    const uid = req.user?.uid || "";
+    if (isServerCacheEnabled()) {
+      const cached = userDataCache.get<Record<string, unknown>>(cacheKey);
+      if (cached) return res.json(cached);
+    }
     const docSnap = await db.collection("user_habits").doc(uid).get();
-    if (docSnap.exists) return res.json(docSnap.data() || {});
-    return res.json({ historique_recherches: [], categories_visitees: {} });
+    const payload = docSnap.exists ? (docSnap.data() || {}) : { historique_recherches: [], categories_visitees: {} };
+    if (isServerCacheEnabled()) userDataCache.set(cacheKey, payload);
+    return res.json(payload);
   } catch (error: unknown) {
     safeLogger.error("Get user-habits error", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: "Erreur interne" });
@@ -192,6 +244,7 @@ authUserDataRouter.post("/user-habits", authenticateToken, async (req: Authentic
       safeHabits.categories_visitees = safeCats;
     }
     await db.collection("user_habits").doc(uid).set(safeHabits, { merge: true });
+    userDataCache.del(`habits:${uid}`);
     return res.json({ success: true });
   } catch (error: unknown) {
     safeLogger.error("Post user-habits error", { err: error instanceof Error ? error.message : String(error) });

@@ -108,7 +108,7 @@ export const SectionStaticSubBlocks: React.FC<SectionStaticSubBlocksProps> = ({
 
   return (
     <div
-      className="mt-2 pl-4 pr-1 py-1 border-l-2 border-[#54ACBF]/50 space-y-1"
+      className="mt-1.5 ml-3 pl-2.5 border-l border-slate-200 space-y-0.5"
       onClick={(e) => e.stopPropagation()}
       data-testid={`subblocks-tree-${sec.type}`}
     >
@@ -125,13 +125,13 @@ export const SectionStaticSubBlocks: React.FC<SectionStaticSubBlocksProps> = ({
             onMouseEnter={() => onHoverSubBlock(item.key)}
             onMouseLeave={() => onHoverSubBlock(null)}
             onClick={(e) => onFocusSubBlock(item.key, e)}
-            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-[11px] cursor-pointer transition-colors ${
+            className={`w-full flex items-center gap-2 px-2 py-1 rounded-md text-left text-[11.5px] cursor-pointer transition-colors ${
               isAct
-                ? "bg-[#023859] text-white font-bold shadow-2xs"
-                : "text-[#475467] hover:bg-[#F0F7FA] font-medium"
+                ? "bg-slate-900 text-white font-medium"
+                : "text-slate-600 hover:bg-slate-100 font-normal"
             }`}
           >
-            <Icon className="w-3.5 h-3.5 shrink-0" />
+            <Icon className="w-3 h-3 shrink-0 opacity-75" />
             <span className="truncate">{item.label}</span>
           </button>
         );

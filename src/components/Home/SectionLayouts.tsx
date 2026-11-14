@@ -24,7 +24,8 @@ export const CarouselLayout: React.FC<SectionLayoutProps> = ({
   styleVariant = "clean",
   limit = 8,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.dir() === "rtl" || i18n.language?.startsWith("ar");
   const containerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
@@ -33,8 +34,9 @@ export const CarouselLayout: React.FC<SectionLayoutProps> = ({
     if (containerRef.current) {
       const { scrollLeft, clientWidth } = containerRef.current;
       const scrollAmount = clientWidth * 0.75;
+      const actualDir = isRTL ? (direction === "left" ? "right" : "left") : direction;
       containerRef.current.scrollTo({
-        left: direction === "left" ? scrollLeft - scrollAmount : scrollLeft + scrollAmount,
+        left: actualDir === "left" ? scrollLeft - scrollAmount : scrollLeft + scrollAmount,
         behavior: "smooth",
       });
     }
@@ -43,8 +45,9 @@ export const CarouselLayout: React.FC<SectionLayoutProps> = ({
   const handleScroll = useCallback(() => {
     if (containerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = containerRef.current;
-      setShowLeftArrow(scrollLeft > 10);
-      setShowRightArrow(scrollLeft + clientWidth < scrollWidth - 10);
+      const absScroll = Math.abs(scrollLeft);
+      setShowLeftArrow(absScroll > 10);
+      setShowRightArrow(absScroll + clientWidth < scrollWidth - 10);
     }
   }, []);
 
@@ -63,7 +66,7 @@ export const CarouselLayout: React.FC<SectionLayoutProps> = ({
         {[...Array(limit)].map((_, i) => (
           <div
             key={i}
-            className="w-[calc(50%-0.5rem)] sm:w-[calc(33.333%-0.666rem)] md:w-[calc(25%-0.75rem)] lg:w-[calc(20%-0.8rem)] shrink-0 aspect-[3/4] bg-white/20 rounded-2xl animate-pulse"
+            className="w-[calc(50%-0.5rem)] sm:w-[calc(33.333%-0.666rem)] md:w-[calc(25%-0.75rem)] lg:w-[calc(20%-0.8rem)] shrink-0 aspect-[3/4] bg-[#EFE6E6]/70 rounded-2xl animate-pulse"
           />
         ))}
       </div>
@@ -76,10 +79,10 @@ export const CarouselLayout: React.FC<SectionLayoutProps> = ({
         <button
           type="button"
           onClick={() => scroll("left")}
-          className="absolute -left-3 sm:-left-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-white text-slate-800 border border-slate-200 flex items-center justify-center hover:bg-slate-50 hover:border-slate-300 hover:scale-105 active:scale-95 transition-all shadow-md md:flex hidden cursor-pointer"
-          aria-label={t("Précédent")}
+          className="absolute -start-3 sm:-start-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-white text-[#1A1836] border border-[#EFE6E6] flex items-center justify-center hover:bg-[#FAF7F6] hover:border-[#E0B4B2] hover:scale-105 active:scale-95 transition-all shadow-md md:flex hidden cursor-pointer"
+          aria-label={t("common.previous")}
         >
-          <ChevronLeft className="w-5 h-5 text-slate-700" />
+          <ChevronLeft className={`w-5 h-5 text-[#1A1836] ${isRTL ? "rotate-180" : ""}`} />
         </button>
       )}
 
@@ -101,9 +104,9 @@ export const CarouselLayout: React.FC<SectionLayoutProps> = ({
             <button
               type="button"
               onClick={loadMore}
-              className="px-5 py-3 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 hover:text-emerald-700 text-xs font-bold transition-all cursor-pointer whitespace-nowrap border border-slate-200 shadow-xs"
+              className="px-5 py-3 rounded-2xl bg-white hover:bg-[#FAF7F6] text-[#1A1836] hover:text-[#622347] text-xs font-bold transition-all cursor-pointer whitespace-nowrap border border-[#EFE6E6] hover:border-[#E0B4B2] shadow-xs"
             >
-              {t("Charger plus")}
+              {t("home.sections.load_more")}
             </button>
           </div>
         )}
@@ -113,10 +116,10 @@ export const CarouselLayout: React.FC<SectionLayoutProps> = ({
         <button
           type="button"
           onClick={() => scroll("right")}
-          className="absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-white text-slate-800 border border-slate-200 flex items-center justify-center hover:bg-slate-50 hover:border-slate-300 hover:scale-105 active:scale-95 transition-all shadow-md md:flex hidden cursor-pointer"
-          aria-label={t("Suivant")}
+          className="absolute -end-3 sm:-end-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-white text-[#1A1836] border border-[#EFE6E6] flex items-center justify-center hover:bg-[#FAF7F6] hover:border-[#E0B4B2] hover:scale-105 active:scale-95 transition-all shadow-md md:flex hidden cursor-pointer"
+          aria-label={t("common.next")}
         >
-          <ChevronRight className="w-5 h-5 text-slate-700" />
+          <ChevronRight className={`w-5 h-5 text-[#1A1836] ${isRTL ? "rotate-180" : ""}`} />
         </button>
       )}
 
@@ -140,7 +143,7 @@ export const StandardGridLayout: React.FC<SectionLayoutProps> = ({
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 sm:gap-4">
         {[...Array(limit)].map((_, i) => (
-          <div key={i} className="aspect-[3/4] bg-slate-200/60 rounded-2xl animate-pulse" />
+          <div key={i} className="aspect-[3/4] bg-[#EFE6E6]/70 rounded-2xl animate-pulse" />
         ))}
       </div>
     );
@@ -161,9 +164,9 @@ export const StandardGridLayout: React.FC<SectionLayoutProps> = ({
           <button
             type="button"
             onClick={loadMore}
-            className="px-6 py-2.5 rounded-full bg-white hover:bg-slate-50 text-slate-800 hover:text-emerald-700 border border-slate-200 shadow-xs text-xs font-bold transition-all cursor-pointer"
+            className="px-6 py-2.5 rounded-full bg-white hover:bg-[#FAF7F6] text-[#1A1836] hover:text-[#622347] border border-[#EFE6E6] hover:border-[#E0B4B2] shadow-xs text-xs font-bold transition-all cursor-pointer"
           >
-            {t("Voir plus de produits")}
+            {t("home.sections.see_more_products")}
           </button>
         </div>
       )}
@@ -178,13 +181,15 @@ export const BentoHeroLayout: React.FC<SectionLayoutProps> = ({
   styleVariant = "clean",
   limit = 6,
 }) => {
+  const { t } = useTranslation();
+
   if (isLoading && products.length === 0) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-1 aspect-[3/4] bg-slate-200/60 rounded-2xl animate-pulse" />
+        <div className="md:col-span-1 aspect-[3/4] bg-[#EFE6E6]/70 rounded-2xl animate-pulse" />
         <div className="md:col-span-2 grid grid-cols-2 gap-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="aspect-[3/4] bg-slate-200/60 rounded-2xl animate-pulse" />
+            <div key={i} className="aspect-[3/4] bg-[#EFE6E6]/70 rounded-2xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -200,8 +205,8 @@ export const BentoHeroLayout: React.FC<SectionLayoutProps> = ({
       {heroProduct && (
         <div className="md:col-span-5 flex flex-col">
           <div className="relative h-full">
-            <span className="absolute top-3 left-3 z-30 inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-700 text-white shadow-md">
-              <Zap className="w-3 h-3 fill-current" /> Vedette
+            <span className="absolute top-3 start-3 z-30 inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-[#42164B] to-[#622347] text-white shadow-md">
+              <Zap className="w-3 h-3 fill-[#E99856] text-[#E99856]" /> {t("home.sections.featured_lead")}
             </span>
             <ProductCard product={heroProduct} index={0} sectionStyle={cardStyle} styleVariant={styleVariant} variant="premium_immersive" />
           </div>

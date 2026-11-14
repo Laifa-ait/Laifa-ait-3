@@ -1,5 +1,6 @@
 export type CategoryImagePosition = "top" | "center" | "bottom";
 export type CategoryImageFit = "cover" | "contain";
+export type CategoryDeviceViewport = "desktop" | "tablet" | "mobile";
 
 export interface CategoryItem {
   id: string;
@@ -46,11 +47,26 @@ export type CategoryCardRadius = "none" | "sm" | "md" | "lg" | "full";
 export interface CategoryLayoutCapabilities {
   supportsAspectRatio: boolean;
   supportsColumnsDesktop: boolean;
+  supportsColumnsTablet: boolean;
   supportsColumnsMobile: boolean;
   supportsBorderRadius: boolean;
   supportsTextPositionChoice: boolean;
   supportsOverlayContrast: boolean;
   supportsGlassDockToggle: boolean;
+  recommendedDesktopCols: number[];
+  recommendedTabletCols: number[];
+  recommendedMobileCols: number[];
+}
+
+export interface CategoryDeviceProfile {
+  device: CategoryDeviceViewport;
+  layout: CategoryLayoutType;
+  cardSize: CategoryCardSize;
+  aspectRatio: CategoryAspectRatio;
+  columns: number;
+  hasCustomLayout: boolean;
+  hasCustomCardSize: boolean;
+  hasCustomAspectRatio: boolean;
 }
 
 export interface CategoryPreset {
@@ -59,11 +75,22 @@ export interface CategoryPreset {
   description: string;
   icon: string;
   tag: string;
+  sector?: string;
   settings: {
     title: string;
     subtitle?: string;
     layout: CategoryLayoutType;
+    layoutTablet?: CategoryLayoutType | "inherit";
+    layoutMobile?: CategoryLayoutType | "inherit";
+    cardSize?: CategoryCardSize;
+    cardSizeTablet?: CategoryCardSize | "inherit";
+    cardSizeMobile?: CategoryCardSize | "inherit";
     aspectRatio: CategoryAspectRatio;
+    aspectRatioTablet?: CategoryAspectRatio | "inherit";
+    aspectRatioMobile?: CategoryAspectRatio | "inherit";
+    columnsDesktop?: number;
+    columnsTablet?: number;
+    columnsMobile?: number;
     borderRadius: CategoryCardRadius;
     hoverEffect: CategoryHoverEffect;
     textPosition: CategoryTextPosition;

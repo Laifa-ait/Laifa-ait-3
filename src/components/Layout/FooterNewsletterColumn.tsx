@@ -19,29 +19,31 @@ export const FooterNewsletterColumn: React.FC = () => {
     e.preventDefault();
     if (!currentUser) {
       toast.error(
-        t("Veuillez vous connecter pour vous inscrire à la newsletter.") ||
+        t(
+          "newsletter_login_required",
           "Veuillez vous connecter pour vous inscrire à la newsletter."
+        )
       );
       return;
     }
     if (!email.trim() || !validateEmail(email)) {
-      toast.error(t("invalid_email") || "Veuillez entrer un email valide");
+      toast.error(t("invalid_email", "Veuillez entrer un email valide"));
       return;
     }
 
     setIsSubmitting(true);
     try {
       await subscribeToNewsletter(email);
-      toast.success(t("newsletter_success") || "Inscription réussie aux alertes Olmart !");
+      toast.success(t("newsletter_success", "Inscription réussie aux alertes Olmart !"));
       setEmail("");
     } catch (error: unknown) {
       safeLogger.error("Erreur lors de l'inscription à la newsletter", {
         err: error instanceof Error ? error.message : String(error),
       });
       if (error instanceof Error && error.message === "ALREADY_SUBSCRIBED") {
-        toast.error(t("already_subscribed") || "Vous êtes déjà inscrit !");
+        toast.error(t("already_subscribed", "Vous êtes déjà inscrit !"));
       } else {
-        toast.error(t("error_try_later") || "Erreur, veuillez réessayer ultérieurement");
+        toast.error(t("error_try_later", "Erreur, veuillez réessayer ultérieurement"));
       }
     } finally {
       setIsSubmitting(false);
@@ -53,7 +55,7 @@ export const FooterNewsletterColumn: React.FC = () => {
       <div className="p-4 rounded-2xl bg-[#161429] border border-white/10 shadow-lg shadow-black/40 space-y-3">
         <h5 className="text-xs font-extrabold uppercase tracking-widest text-white flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-[#E99856]" />
-          <span>{t("footer_offers_app_heading") || "Restez Informé"}</span>
+          <span>{t("footer_offers_app_heading", "Restez Informé")}</span>
         </h5>
 
         <p className="text-[11px] text-[#E0B4B2] leading-normal font-medium">
@@ -70,7 +72,7 @@ export const FooterNewsletterColumn: React.FC = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={t("footer_email_placeholder") || "Votre adresse email"}
+              placeholder={t("footer_email_placeholder", "Votre adresse email")}
               className="w-full bg-[#0D0C1A] border border-white/15 pl-9 pr-3 py-2.5 text-xs text-white rounded-xl focus:outline-none focus:border-[#E99856] transition-all placeholder:text-[#E0B4B2]/60"
             />
           </div>
@@ -83,8 +85,8 @@ export const FooterNewsletterColumn: React.FC = () => {
               <span>...</span>
             ) : (
               <>
-                <span>{t("footer_subscribe_btn") || "S'inscrire"}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <span>{t("footer_subscribe_btn", "S'inscrire")}</span>
+                <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
               </>
             )}
           </button>
@@ -96,10 +98,10 @@ export const FooterNewsletterColumn: React.FC = () => {
           </div>
           <div className="text-[11px] leading-tight">
             <p className="font-extrabold text-white text-xs">
-              {t("footer_app_title") || "Application Olmart"}
+              {t("footer_app_title", "Application Olmart")}
             </p>
             <p className="text-[10px] text-[#E0B4B2] mt-0.5 font-medium">
-              {t("footer_app_scan") || "Scannez pour naviguer sur mobile"}
+              {t("footer_app_scan", "Scannez pour naviguer sur mobile")}
             </p>
           </div>
         </div>

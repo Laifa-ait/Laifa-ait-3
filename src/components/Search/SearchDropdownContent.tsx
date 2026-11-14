@@ -67,7 +67,7 @@ export const SearchDropdownContent: React.FC<SearchDropdownContentProps> = (prop
           <div>
             <p className="px-2 pb-1.5 text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <Tag className="w-3 h-3 text-orange-500" />
-              <span>{t("Rayons correspondants", "Rayons correspondants")}</span>
+              <span>{t("search.matching_departments", "Rayons correspondants")}</span>
             </p>
             <div className="flex flex-wrap gap-1.5 px-1">
               {safeCategories.map((cat, idx) => (
@@ -90,7 +90,7 @@ export const SearchDropdownContent: React.FC<SearchDropdownContentProps> = (prop
           <div>
             <p className="px-2 pb-1.5 text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <Store className="w-3 h-3 text-emerald-600" />
-              <span>{t("Boutiques vérifiées", "Boutiques vérifiées")}</span>
+              <span>{t("search.verified_shops", "Boutiques vérifiées")}</span>
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {safeStores.map((st, idx) => (
@@ -104,7 +104,7 @@ export const SearchDropdownContent: React.FC<SearchDropdownContentProps> = (prop
           <div>
             <p className="px-2 pb-1.5 text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-amber-500" />
-              <span>{t("Suggestions", "Suggestions")}</span>
+              <span>{t("search.suggestions", "Suggestions")}</span>
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
               {safeSuggestions.map((sug, i) => (
@@ -128,10 +128,10 @@ export const SearchDropdownContent: React.FC<SearchDropdownContentProps> = (prop
         <div>
           <div className="px-2 pb-2 pt-1 flex items-center justify-between gap-2">
             <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">
-              {t("Produits trouvés", "Produits trouvés")} ({productResults.length})
+              {t("search.products_found", "Produits trouvés")} ({productResults.length})
             </span>
             {isBusy && (
-              <span className="text-[11px] text-orange-600 font-bold animate-pulse">{t("Recherche...", "Recherche...")}</span>
+              <span className="text-[11px] text-orange-600 font-bold animate-pulse">{t("search.searching", "Recherche...")}</span>
             )}
           </div>
 
@@ -147,14 +147,14 @@ export const SearchDropdownContent: React.FC<SearchDropdownContentProps> = (prop
                 onClick={handleSubmit}
                 className="w-full py-3 mt-2 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white text-xs sm:text-sm font-black rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-500/20 cursor-pointer"
               >
-                <span>{t("Voir tous les résultats pour", "Voir tous les résultats pour")} &ldquo;{effectiveQuery}&rdquo;</span>
+                <span>{t("search.see_all_results_for", "Voir tous les résultats pour")} &ldquo;{effectiveQuery}&rdquo;</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           ) : !isBusy ? (
             <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-5 text-center space-y-2">
-              <p className="text-xs sm:text-sm font-bold text-slate-800">Aucun résultat exact pour &ldquo;{effectiveQuery}&rdquo;</p>
-              <p className="text-xs text-slate-500">Essayez un autre mot-clé ou parcourez nos articles populaires ci-dessous.</p>
+              <p className="text-xs sm:text-sm font-bold text-slate-800">{t("search.no_exact_results", "Aucun résultat exact pour")} &ldquo;{effectiveQuery}&rdquo;</p>
+              <p className="text-xs text-slate-500">{t("search.try_another_keyword", "Essayez un autre mot-clé ou parcourez nos articles populaires ci-dessous.")}</p>
             </div>
           ) : (
             <div className="space-y-2 py-2">
@@ -175,7 +175,7 @@ export const SearchDropdownContent: React.FC<SearchDropdownContentProps> = (prop
           <div className="flex items-center justify-between px-1 pb-2">
             <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-slate-400" />
-              <span>{t("Recherches récentes", "Recherches récentes")}</span>
+              <span>{t("search.recent_searches", "Recherches récentes")}</span>
             </span>
             <button
               type="button"
@@ -183,7 +183,7 @@ export const SearchDropdownContent: React.FC<SearchDropdownContentProps> = (prop
               className="text-[11px] text-slate-400 hover:text-rose-600 font-bold flex items-center gap-1 transition-colors cursor-pointer"
             >
               <Trash2 className="w-3 h-3" />
-              <span>{t("Effacer", "Effacer")}</span>
+              <span>{t("search.clear", "Effacer")}</span>
             </button>
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -206,7 +206,7 @@ export const SearchDropdownContent: React.FC<SearchDropdownContentProps> = (prop
         <div>
           <span className="px-1 pb-2 text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-orange-500" />
-            <span>{t("Recherches populaires", "Recherches populaires")}</span>
+            <span>{t("search.popular_searches", "Recherches populaires")}</span>
           </span>
           <div className="flex flex-wrap gap-1.5">
             {safeTrending.map((tItem, i) => (
@@ -229,11 +229,11 @@ export const SearchDropdownContent: React.FC<SearchDropdownContentProps> = (prop
           <div className="flex items-center justify-between gap-2 px-1 pb-2.5">
             <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5 min-w-0">
               <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span className="truncate">{t("Articles populaires du catalogue", "Articles populaires du catalogue")}</span>
+              <span className="truncate">{t("search.popular_catalog_items", "Articles populaires du catalogue")}</span>
             </span>
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-orange-50 border border-orange-200/80 text-[10px] font-extrabold text-orange-600 shrink-0">
               <Flame className="w-3 h-3 text-orange-500" />
-              <span>{t("Tendance en Algérie", "Tendance en Algérie")}</span>
+              <span>{t("search.trending_algeria", "Tendance en Algérie")}</span>
             </span>
           </div>
           <div className="grid grid-cols-1 gap-2">

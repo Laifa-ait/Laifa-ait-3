@@ -14,7 +14,7 @@ export const NeoCategoryGrid: React.FC<{
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { setActiveCategory } = useShop();
-  const isRTL = i18n.dir() === "rtl";
+  const isRTL = i18n.dir() === "rtl" || i18n.language?.startsWith("ar");
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isGridMode, setIsGridMode] = useState(false);
@@ -63,14 +63,17 @@ export const NeoCategoryGrid: React.FC<{
   return (
     <section className="w-full max-w-[96rem] mx-auto px-4 sm:px-6 md:px-8 mb-10 sm:mb-14 pt-2 relative z-20">
       {/* Editorial Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-5 sm:mb-6 pb-3 border-b border-[#1A1836]/10">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-5 sm:mb-6 pb-3 border-b border-[#EFE6E6]">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-[0.22em] text-[#A54055]">
             <span className="w-2 h-2 rounded-full bg-[#E99856]" />
-            <span>{t("CATALOGUE OFFICIEL OLMART")} • {uniqueCategories.length} {t("RAYONS")}</span>
+            <span>
+              {t("home.categories.official_catalog")} • {uniqueCategories.length}{" "}
+              {t("home.categories.departments_unit")}
+            </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-sans font-bold text-[#1A1836] tracking-tight">
-            {t("home.categories.explore_by", "Explorer par départements")}
+            {t("home.categories.explore_by")}
           </h2>
         </div>
 
@@ -79,17 +82,19 @@ export const NeoCategoryGrid: React.FC<{
           <button
             type="button"
             onClick={() => setIsGridMode((prev) => !prev)}
-            className="px-3.5 py-2 rounded-xl border border-[#1A1836]/15 bg-white hover:bg-[#1A1836] text-[#1A1836] hover:text-white text-xs font-bold flex items-center gap-2 transition-all shadow-2xs cursor-pointer"
+            className="px-3.5 py-2 rounded-xl border border-[#EFE6E6] hover:border-[#42164B] bg-white hover:bg-[#1A1836] text-[#1A1836] hover:text-white text-xs font-bold flex items-center gap-2 transition-all shadow-2xs cursor-pointer"
           >
             {isGridMode ? (
               <>
                 <GalleryHorizontal className="w-3.5 h-3.5 text-[#E99856]" />
-                <span>{t("Vue Galerie")}</span>
+                <span>{t("home.categories.gallery_view")}</span>
               </>
             ) : (
               <>
                 <LayoutGrid className="w-3.5 h-3.5 text-[#E99856]" />
-                <span>{t("Tout voir")} ({uniqueCategories.length})</span>
+                <span>
+                  {t("home.categories.see_all")} ({uniqueCategories.length})
+                </span>
               </>
             )}
           </button>
@@ -99,16 +104,16 @@ export const NeoCategoryGrid: React.FC<{
               <button
                 type="button"
                 onClick={() => handleManualScroll("left")}
-                className="w-9 h-9 rounded-xl border border-[#1A1836]/15 hover:border-[#1A1836] bg-white flex items-center justify-center text-[#1A1836] hover:bg-[#1A1836] hover:text-white active:scale-95 transition-all shadow-2xs cursor-pointer"
-                aria-label="Rayons précédents"
+                className="w-9 h-9 rounded-xl border border-[#EFE6E6] hover:border-[#42164B] bg-white flex items-center justify-center text-[#1A1836] hover:bg-[#1A1836] hover:text-white active:scale-95 transition-all shadow-2xs cursor-pointer"
+                aria-label={t("home.categories.prev_departments")}
               >
                 <ChevronLeft className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`} />
               </button>
               <button
                 type="button"
                 onClick={() => handleManualScroll("right")}
-                className="w-9 h-9 rounded-xl border border-[#1A1836]/15 hover:border-[#1A1836] bg-white flex items-center justify-center text-[#1A1836] hover:bg-[#1A1836] hover:text-white active:scale-95 transition-all shadow-2xs cursor-pointer"
-                aria-label="Rayons suivants"
+                className="w-9 h-9 rounded-xl border border-[#EFE6E6] hover:border-[#42164B] bg-white flex items-center justify-center text-[#1A1836] hover:bg-[#1A1836] hover:text-white active:scale-95 transition-all shadow-2xs cursor-pointer"
+                aria-label={t("home.categories.next_departments")}
               >
                 <ChevronRight className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`} />
               </button>

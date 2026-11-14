@@ -1,6 +1,7 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import { execSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import type http from "node:http";
@@ -22,55 +23,40 @@ const legacyServerPath = path.join(currentDir, "dist", "server.cjs");
 const builtClientHtmlPath = path.join(currentDir, "dist", "index.html");
 const builtClientAssetsDir = path.join(currentDir, "dist", "assets");
 
-const CRITICAL_BOOT_PACKAGES = [
-  "dotenv",
-  "express",
-  "tsx",
-  "vite",
-  "esbuild",
-  "firebase-admin",
-  "firebase",
-  "pino",
-  "zod",
-];
+const CRITICAL_RUNTIME_PACKAGES = ["dotenv", "express", "firebase-admin", "firebase", "pino", "zod"];
+const DEV_TOOLING_PACKAGES = ["tsx", "vite", "esbuild"];
+
+const isTestMode = (): boolean => Boolean(process.env.VITEST || process.env.NODE_ENV === "test");
+const isCloudRunEnv = (): boolean => Boolean(process.env.K_SERVICE || process.env.CLOUD_RUN_JOB);
+const isProductionRuntime = (): boolean =>
+  process.env.NODE_ENV === "production" ||
+  (isCloudRunEnv() &&
+    process.env.NODE_ENV !== "development" &&
+    !String(process.env.K_SERVICE || "").startsWith("ais-dev-"));
+
+function resolveActiveServerBundlePath(): string | null {
+  if (fs.existsSync(isolatedServerPath)) return isolatedServerPath;
+  if (fs.existsSync(legacyServerPath)) return legacyServerPath;
+  return null;
+}
 
 function ensureBootstrapDependencies(): void {
-  if (process.env.NODE_ENV === "test" || process.env.VITEST) {
-    return;
-  }
+  if (isTestMode()) return;
+  const hasBundle = Boolean(resolveActiveServerBundlePath());
+  if (isProductionRuntime() && hasBundle) return;
 
-  const missingPackages = CRITICAL_BOOT_PACKAGES.filter(
+  const requiredPackages = isProductionRuntime()
+    ? CRITICAL_RUNTIME_PACKAGES
+    : [...CRITICAL_RUNTIME_PACKAGES, ...DEV_TOOLING_PACKAGES];
+
+  const missingPackages = requiredPackages.filter(
     (pkg) => !fs.existsSync(path.join(currentDir, "node_modules", pkg, "package.json"))
   );
+  if (missingPackages.length === 0) return;
 
-  if (missingPackages.length === 0) {
-    return;
-  }
-
-  process.stdout.write(
-    `⚙️ [Olmart Auto-Heal] ⚡ Missing critical packages at bootstrap (${missingPackages.join(", ")}). Reinstalling automatically...\n`
+  process.stderr.write(
+    `⚠️ [Olmart Auto-Heal] ⚠️ Missing packages detected (${missingPackages.join(", ")}). Continuing boot without blocking event loop.\n`
   );
-
-  try {
-    execSync("npm install --no-audit --no-fund --prefer-offline", {
-      cwd: currentDir,
-      stdio: "inherit",
-      env: {
-        ...process.env,
-        SCARF_ANALYTICS: "false",
-        HUSKY: "0",
-        CI: "true",
-      },
-    });
-    process.stdout.write(
-      "🟢 [Olmart Auto-Heal] ✅ Bootstrap dependencies reinstalled successfully.\n"
-    );
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    process.stderr.write(
-      `❌ [Olmart Auto-Heal] ❌ Bootstrap dependency repair failed: ${msg}\n`
-    );
-  }
 }
 
 function loadEnvVariablesFallback(): void {
@@ -97,18 +83,13 @@ function loadEnvVariablesFallback(): void {
 function getLatestMtimeMs(dirPath: string): number {
   let latest = 0;
   try {
-    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.name === "node_modules" || entry.name === "tests" || entry.name.startsWith(".")) {
-        continue;
-      }
+    for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
+      if (entry.name === "node_modules" || entry.name === "tests" || entry.name.startsWith(".")) continue;
       const fullPath = path.join(dirPath, entry.name);
       if (entry.isDirectory()) {
-        const subLatest = getLatestMtimeMs(fullPath);
-        if (subLatest > latest) latest = subLatest;
+        latest = Math.max(latest, getLatestMtimeMs(fullPath));
       } else if (entry.isFile()) {
-        const mtime = fs.statSync(fullPath).mtimeMs;
-        if (mtime > latest) latest = mtime;
+        latest = Math.max(latest, fs.statSync(fullPath).mtimeMs);
       }
     }
   } catch {
@@ -118,18 +99,12 @@ function getLatestMtimeMs(dirPath: string): number {
 }
 
 function isBuiltClientFresh(): boolean {
-  if (!fs.existsSync(builtClientHtmlPath) || !fs.existsSync(builtClientAssetsDir)) {
-    return false;
-  }
-  // In read-only production containers (e.g. Cloud Run Docker runner), if dist/index.html exists, trust it
-  if (process.env.NODE_ENV === "production" && Boolean(process.env.K_SERVICE || process.env.CLOUD_RUN_JOB)) {
-    return true;
-  }
+  if (!fs.existsSync(builtClientHtmlPath) || !fs.existsSync(builtClientAssetsDir)) return false;
+  if (isProductionRuntime()) return true;
   try {
     const htmlMtime = fs.statSync(builtClientHtmlPath).mtimeMs;
-    const rootIndexMtime = fs.existsSync(path.join(currentDir, "index.html"))
-      ? fs.statSync(path.join(currentDir, "index.html")).mtimeMs
-      : 0;
+    const rootIndexPath = path.join(currentDir, "index.html");
+    const rootIndexMtime = fs.existsSync(rootIndexPath) ? fs.statSync(rootIndexPath).mtimeMs : 0;
     const srcLatestMtime = getLatestMtimeMs(path.join(currentDir, "src"));
     return htmlMtime + 1500 >= Math.max(rootIndexMtime, srcLatestMtime);
   } catch {
@@ -137,42 +112,51 @@ function isBuiltClientFresh(): boolean {
   }
 }
 
-function ensureFreshClientBundle(): void {
-  if (process.env.NODE_ENV === "test" || process.env.VITEST || process.env.FORCE_VITE_DEV === "true") {
-    return;
-  }
-  if (isBuiltClientFresh()) {
-    return;
-  }
-  process.stdout.write(
-    "⚙️ [Olmart Auto-Heal] ⚡ Building fresh pre-compiled client bundle (dist/index.html) for instant loading...\n"
-  );
-  try {
-    execSync("npm run build:client", {
-      cwd: currentDir,
-      stdio: "inherit",
-      env: { ...process.env, NODE_ENV: "production" },
-    });
-    process.stdout.write("🟢 [Olmart Auto-Heal] ✅ Pre-compiled client bundle ready in dist/.\n");
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    process.stderr.write(`⚠️ [Olmart Auto-Heal] ⚠️ Client bundle build notice: ${msg}\n`);
-  }
-}
+let isBackgroundBuildRunning = false;
 
-function resolveActiveServerBundlePath(): string | null {
-  if (fs.existsSync(isolatedServerPath)) return isolatedServerPath;
-  if (fs.existsSync(legacyServerPath)) return legacyServerPath;
-  return null;
+function scheduleNonBlockingClientBuildIfNeeded(): void {
+  if (
+    isBackgroundBuildRunning ||
+    isTestMode() ||
+    isProductionRuntime() ||
+    process.env.FORCE_VITE_DEV === "true" ||
+    process.env.DISABLE_BG_BUILD === "true" ||
+    !fs.existsSync(builtClientHtmlPath) ||
+    !fs.existsSync(path.join(currentDir, "src")) ||
+    isBuiltClientFresh()
+  ) {
+    return;
+  }
+
+  isBackgroundBuildRunning = true;
+  const timer = setTimeout(() => {
+    try {
+      const child = spawn("npm", ["run", "build:client"], {
+        cwd: currentDir,
+        stdio: "ignore",
+        env: {
+          ...process.env,
+          NODE_ENV: "production",
+          NODE_OPTIONS: "--max-old-space-size=1536",
+        },
+      });
+      child.on("close", () => { isBackgroundBuildRunning = false; });
+      child.on("error", () => { isBackgroundBuildRunning = false; });
+      child.unref();
+    } catch {
+      isBackgroundBuildRunning = false;
+    }
+  }, 1500);
+  timer.unref?.();
 }
 
 function isBuiltServerFresh(): boolean {
   const activeBundle = resolveActiveServerBundlePath();
   if (!activeBundle) return false;
+  if (isProductionRuntime()) return true;
   try {
     const bundleMtime = fs.statSync(activeBundle).mtimeMs;
-    const coreFiles = ["server.core.ts", "app.ts"];
-    for (const file of coreFiles) {
+    for (const file of ["server.core.ts", "app.ts"]) {
       const full = path.join(currentDir, file);
       if (fs.existsSync(full) && fs.statSync(full).mtimeMs > bundleMtime + 1000) {
         return false;
@@ -184,6 +168,21 @@ function isBuiltServerFresh(): boolean {
   }
 }
 
+function compileAndLoadCoreWithEsbuild(): ServerCoreModule {
+  const esbuild = requireModule("esbuild") as typeof import("esbuild");
+  const entryPath = path.join(currentDir, "server.core.ts");
+  const outPath = path.join(os.tmpdir(), `olmart-server-${process.pid}.cjs`);
+  esbuild.buildSync({
+    entryPoints: [entryPath],
+    bundle: true,
+    platform: "node",
+    format: "cjs",
+    packages: "external",
+    outfile: outPath,
+  });
+  return requireModule(outPath) as ServerCoreModule;
+}
+
 ensureBootstrapDependencies();
 
 try {
@@ -192,43 +191,34 @@ try {
   loadEnvVariablesFallback();
 }
 
-const isTestMode = Boolean(process.env.VITEST || process.env.NODE_ENV === "test");
-
 async function loadServerCore(): Promise<ServerCoreModule> {
-  if (!isTestMode) {
-    ensureFreshClientBundle();
+  if (!isTestMode()) {
+    scheduleNonBlockingClientBuildIfNeeded();
   }
 
-  if (!isTestMode && process.env.FORCE_TSX_SERVER !== "true") {
-    if (!isBuiltServerFresh()) {
-      try {
-        execSync("npm run build:server", {
-          cwd: currentDir,
-          stdio: "ignore",
-          env: { ...process.env, NODE_ENV: "production" },
-        });
-      } catch {
-        // Fallback if esbuild is unavailable
-      }
-    }
+  if (!isTestMode() && process.env.FORCE_TSX_SERVER !== "true" && isBuiltServerFresh()) {
     const bundleToLoad = resolveActiveServerBundlePath();
     if (bundleToLoad) {
       try {
         return requireModule(bundleToLoad) as ServerCoreModule;
-      } catch {
-        // Fallback to tsx below
+      } catch (bundleErr: unknown) {
+        const msg = bundleErr instanceof Error ? bundleErr.stack || bundleErr.message : String(bundleErr);
+        process.stderr.write(`⚠️ [Olmart Gateway] ⚠️ Failed to load prebuilt bundle (${bundleToLoad}): ${msg}\n`);
       }
     }
   }
 
   try {
     return (await import("./server.core.ts")) as ServerCoreModule;
-  } catch {
+  } catch (tsImportErr: unknown) {
     const bundleToLoad = resolveActiveServerBundlePath();
     if (bundleToLoad) {
       return requireModule(bundleToLoad) as ServerCoreModule;
     }
-    return (await import("./server.core.ts")) as ServerCoreModule;
+    if (fs.existsSync(path.join(currentDir, "server.core.ts"))) {
+      return compileAndLoadCoreWithEsbuild();
+    }
+    throw tsImportErr;
   }
 }
 

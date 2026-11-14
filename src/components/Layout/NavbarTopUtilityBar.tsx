@@ -50,43 +50,43 @@ export const NavbarTopUtilityBar: React.FC<NavbarTopUtilityBarProps> = ({
             type="button"
             onClick={onOpenSwitcher}
             className="px-3 py-1 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-1.5 bg-[#42164B]/70 text-white border border-[#622347] hover:bg-[#622347] hover:border-[#E0B4B2]/50 cursor-pointer group shadow-xs mr-1 whitespace-nowrap shrink-0"
-            title={t("Ouvrir le commutateur d'univers Olmart Super-App", "Ouvrir le commutateur d'univers Olmart Super-App")}
+            title={t("nav.open_switcher", "Ouvrir le commutateur d'univers Olmart Super-App")}
           >
             <LayoutGrid className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform text-[#E99856]" />
-            <span>{t("Univers", "Univers")}</span>
+            <span>{t("nav.universes", "Univers")}</span>
           </button>
 
           <Link to="/shop" className={getPillClass(isActivePath("/shop", true))}>
             <ShoppingBag className="w-3.5 h-3.5 text-[#E99856]" />
-            <span>{t("Marketplace", "Marketplace")}</span>
+            <span>{t("nav.marketplace", "Marketplace")}</span>
           </Link>
 
           <Link to="/bricolage" className={getPillClass(isActivePath("/bricolage"))}>
             <Wrench className="w-3.5 h-3.5 text-[#E0B4B2]/80" />
-            <span>{t("Olma Bricolage", "Olma Bricolage")}</span>
+            <span>{t("nav.bricolage", "Olma Bricolage")}</span>
             <span className="text-[10px] font-medium text-[#E99856] ml-0.5">
-              · {t("Artisans", "Artisans")}
+              · {t("nav.artisans", "Artisans")}
             </span>
           </Link>
 
           <Link to="/auto" className={getPillClass(isActivePath("/auto"))}>
             <Car className="w-3.5 h-3.5 text-[#E0B4B2]/80" />
-            <span>{t("Olma Auto", "Olma Auto")}</span>
+            <span>{t("nav.auto", "Olma Auto")}</span>
           </Link>
 
           <Link to="/immo" className={getPillClass(isActivePath("/immo"))}>
             <Building2 className="w-3.5 h-3.5 text-[#E0B4B2]/80" />
-            <span>{t("Olma Immo", "Olma Immo")}</span>
+            <span>{t("nav.immo", "Olma Immo")}</span>
           </Link>
 
           <Link to="/shops" className={getPillClass(isActivePath("/shops"))}>
             <Store className="w-3.5 h-3.5 text-[#E0B4B2]/80" />
-            <span>{t("Boutiques", "Boutiques")}</span>
+            <span>{t("nav.shops", "Boutiques")}</span>
           </Link>
 
           <Link to="/comparator" className={getPillClass(isActivePath("/comparator"))}>
             <Scale className="w-3.5 h-3.5 text-[#E0B4B2]/80" />
-            <span>{t("Comparateur", "Comparateur")}</span>
+            <span>{t("nav.comparator", "Comparateur")}</span>
           </Link>
         </div>
 
@@ -97,7 +97,7 @@ export const NavbarTopUtilityBar: React.FC<NavbarTopUtilityBarProps> = ({
             className="text-[#E0B4B2]/90 hover:text-white transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0"
           >
             <Truck className="w-3.5 h-3.5 text-[#E99856]" />
-            <span>{t("shipping_calc") || "Tarifs Livraison 69 Wilayas"}</span>
+            <span>{t("shipping_calc", "Tarifs Livraison 69 Wilayas")}</span>
           </Link>
 
           <span className="text-[#622347]" aria-hidden="true">·</span>
@@ -107,7 +107,7 @@ export const NavbarTopUtilityBar: React.FC<NavbarTopUtilityBarProps> = ({
             className="text-[#E0B4B2]/90 hover:text-white transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0"
           >
             <Headphones className="w-3.5 h-3.5 text-[#E0B4B2]" />
-            <span>{t("support") || "Aide & Support"}</span>
+            <span>{t("support", "Aide & Support")}</span>
           </Link>
 
           <span className="text-[#622347]" aria-hidden="true">·</span>
@@ -130,7 +130,7 @@ export const NavbarTopUtilityBar: React.FC<NavbarTopUtilityBarProps> = ({
             }}
             className="px-3.5 py-1 rounded-full bg-gradient-to-r from-[#E99856] to-[#f0aa6e] hover:from-[#f2a668] hover:to-[#E99856] text-[#1A1836] font-extrabold transition-all duration-200 shadow-xs cursor-pointer border-none tracking-wide text-[11px] whitespace-nowrap shrink-0"
           >
-            {t("sell_on_olma")}
+            {t("sell_on_olma", "Vendre sur Olmart")}
           </button>
         </div>
       </div>

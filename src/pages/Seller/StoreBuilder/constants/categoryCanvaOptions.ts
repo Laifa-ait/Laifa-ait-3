@@ -56,8 +56,8 @@ export const CATEGORY_LAYOUT_OPTIONS: LayoutOptionItem[] = [
 ];
 
 /**
- * Matrice de cohérence fonctionnelle par modèle de Porte des Collections.
- * Garantit qu'aucun contrôle affiché dans l'inspecteur ou la QuickBar n'est inactif ou contradictoire.
+ * Matrice de cohérence fonctionnelle par modèle de Porte des Collections (PC, Tablette, Téléphone).
+ * Garantit que chaque design propose uniquement les colonnes, ratios et options harmonieuses sur chaque appareil.
  */
 export function getCategoryLayoutCapabilities(
   layout: string,
@@ -72,29 +72,40 @@ export function getCategoryLayoutCapabilities(
     layout === "glass-dock" ||
     layout === "accordion";
 
+  const fixedFlowLayouts = ["bento", "accordion", "magazine", "carousel"];
+  const supportsColumnsDesktop = !fixedFlowLayouts.includes(layout);
+  const supportsColumnsTablet = !fixedFlowLayouts.includes(layout) && layout !== "mesh-3d";
+  const supportsColumnsMobile = !fixedFlowLayouts.includes(layout) && !["mesh-3d", "overlay", "pills"].includes(layout);
+
+  const recommendedDesktopCols =
+    layout === "mesh-3d"
+      ? [1, 2]
+      : [2, 3, 4];
+
+  const recommendedTabletCols =
+    layout === "mesh-3d"
+      ? [1]
+      : [2];
+
+  const recommendedMobileCols =
+    layout === "mesh-3d" || layout === "overlay" || layout === "pills"
+      ? [1]
+      : [1, 2];
+
   return {
-    supportsAspectRatio: ["grid", "overlay", "glass-dock", "carousel", "arch", "polaroid"].includes(
-      layout
-    ),
-    supportsColumnsDesktop: [
-      "grid",
-      "overlay",
-      "glass-dock",
-      "arch",
-      "polaroid",
-      "bubbles",
-      "pills",
-      "mesh-3d",
-    ].includes(layout),
-    supportsColumnsMobile: !["accordion", "magazine"].includes(layout),
-    supportsBorderRadius: !["arch", "bubbles"].includes(layout),
+    supportsAspectRatio: ["grid", "glass-dock"].includes(layout),
+    supportsColumnsDesktop,
+    supportsColumnsTablet,
+    supportsColumnsMobile,
+    supportsBorderRadius: !["arch", "bubbles", "polaroid", "overlay", "glass-dock", "pills"].includes(layout),
     supportsTextPositionChoice:
-      showTitle && ["grid", "overlay", "carousel", "arch", "bento", "glass-dock"].includes(layout),
+      showTitle && ["bento", "arch"].includes(layout),
     supportsOverlayContrast: showTitle && isOverlayText,
     supportsGlassDockToggle:
-      showTitle &&
-      isOverlayText &&
-      ["grid", "overlay", "carousel", "bento", "glass-dock", "arch"].includes(layout),
+      showTitle && isOverlayText && ["bento", "arch"].includes(layout),
+    recommendedDesktopCols,
+    recommendedTabletCols,
+    recommendedMobileCols,
   };
 }
 

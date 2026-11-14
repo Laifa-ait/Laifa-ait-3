@@ -42,8 +42,8 @@ export const MobileCategoriesAccordion: React.FC<MobileCategoriesAccordionProps>
 
   return (
     <div className="space-y-2.5">
-      <h4 className="text-[10px] font-bold text-cyan-800/60 uppercase tracking-[0.18em] px-1">
-        {t("nav.sections.categories")}
+      <h4 className="text-[10px] font-bold text-[#622347] uppercase tracking-[0.18em] px-1">
+        {t("nav.sections.categories", "TOUTES LES CATÉGORIES")}
       </h4>
       <div className="flex flex-col space-y-2">
         {categories.map((cat, i) => {
@@ -53,14 +53,14 @@ export const MobileCategoriesAccordion: React.FC<MobileCategoriesAccordionProps>
           return (
             <div
               key={i}
-              className="bg-white rounded-2xl shadow-xs border border-[#E8F6F8] overflow-hidden"
+              className="bg-white rounded-2xl shadow-xs border border-[#EFE6E6] overflow-hidden"
             >
               <button
                 onClick={() => setExpandedCat(isExpanded ? null : cat.id)}
-                className="w-full flex items-center justify-between p-3 bg-transparent border-none cursor-pointer hover:bg-[#F2FAFB] group transition-colors"
+                className="w-full flex items-center justify-between p-3 bg-transparent border-none cursor-pointer hover:bg-[#FAF7F6] group transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-1.5 rounded-lg bg-[#F2FAFB] group-hover:bg-white transition-colors border border-transparent group-hover:border-[#E8F6F8] shadow-xs flex items-center justify-center">
+                  <div className="p-1.5 rounded-lg bg-[#FAF7F6] group-hover:bg-white transition-colors border border-transparent group-hover:border-[#EFE6E6] shadow-xs flex items-center justify-center">
                     <CategoryIcons8Logo
                       categoryName={cat.name}
                       categoryId={cat.id}
@@ -68,14 +68,14 @@ export const MobileCategoriesAccordion: React.FC<MobileCategoriesAccordionProps>
                       fallbackIcon={IconComponent}
                     />
                   </div>
-                  <span className="font-semibold text-sm text-cyan-950 group-hover:text-[#0088A8] transition-colors">
+                  <span className="font-semibold text-sm text-[#1A1836] group-hover:text-[#A54055] transition-colors">
                     {getCategoryTranslation(cat.name, t)}
                   </span>
                 </div>
                 {cat.sections && cat.sections.length > 0 && (
                   <ChevronRight
-                    className={`w-4 h-4 transition-transform duration-300 text-cyan-800/40 ${
-                      isExpanded ? "rotate-90 text-[#D92B6B]" : ""
+                    className={`w-4 h-4 transition-transform duration-300 text-[#622347]/50 rtl:rotate-180 ${
+                      isExpanded ? "rotate-90 rtl:rotate-90 text-[#A54055]" : ""
                     }`}
                   />
                 )}
@@ -87,7 +87,7 @@ export const MobileCategoriesAccordion: React.FC<MobileCategoriesAccordionProps>
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden bg-[#F2FAFB]/50 border-t border-[#E8F6F8]/50"
+                    className="overflow-hidden bg-[#FAF7F6]/60 border-t border-[#EFE6E6]"
                   >
                     <div className="px-3 py-2 space-y-1">
                       {cat.sections.map((sec, j) => {
@@ -96,7 +96,7 @@ export const MobileCategoriesAccordion: React.FC<MobileCategoriesAccordionProps>
                         const hasLinks = Array.isArray(sec.links) && sec.links.length > 0;
 
                         return (
-                          <div key={j} className="rounded-xl overflow-hidden bg-white/60">
+                          <div key={j} className="rounded-xl overflow-hidden bg-white/80">
                             <div className="flex items-center justify-between p-1.5">
                               <button
                                 type="button"
@@ -108,7 +108,7 @@ export const MobileCategoriesAccordion: React.FC<MobileCategoriesAccordionProps>
                                   );
                                   onClose();
                                 }}
-                                className="flex-1 text-start text-xs text-cyan-950 font-semibold border-none bg-transparent cursor-pointer hover:text-[#0088A8] transition-colors p-1"
+                                className="flex-1 text-start text-xs text-[#1A1836] font-semibold border-none bg-transparent cursor-pointer hover:text-[#A54055] transition-colors p-1"
                               >
                                 {getCategoryTranslation(sec.name, t)}
                               </button>
@@ -116,12 +116,12 @@ export const MobileCategoriesAccordion: React.FC<MobileCategoriesAccordionProps>
                                 <button
                                   type="button"
                                   onClick={() => toggleSub(subKey)}
-                                  className="p-1 text-cyan-700/60 hover:text-cyan-900 border-none bg-transparent cursor-pointer"
-                                  aria-label={`Ouvrir les rayons de ${sec.name}`}
+                                  className="p-1 text-[#622347]/60 hover:text-[#1A1836] border-none bg-transparent cursor-pointer"
+                                  aria-label={t("mobile_menu.open_subcategories", "Ouvrir les sous-rayons")}
                                 >
                                   <ChevronRight
-                                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                                      isSubExpanded ? "rotate-90 text-[#0088A8]" : ""
+                                    className={`w-3.5 h-3.5 transition-transform duration-200 rtl:rotate-180 ${
+                                      isSubExpanded ? "rotate-90 rtl:rotate-90 text-[#A54055]" : ""
                                     }`}
                                   />
                                 </button>

@@ -63,6 +63,14 @@ if (typeof window !== "undefined") {
 
 import { setupErrorAgent, logReactErrorBoundary } from "./utils/errorAgent";
 import { trackPerformance } from "./utils/performance";
+import { isDynamicChunkLoadError, triggerStaleChunkReload } from "./utils/lazyWithRetry";
+
+if (typeof window !== "undefined") {
+  window.addEventListener("vite:preloadError", (event) => {
+    event.preventDefault();
+    triggerStaleChunkReload();
+  });
+}
 
 // Initialize the global error agent
 setupErrorAgent();
@@ -93,6 +101,9 @@ const I18nLoader = () => {
 };
 
 const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
+  if (isDynamicChunkLoadError(error) && triggerStaleChunkReload()) {
+    return <I18nLoader />;
+  }
   const errorMessage = error instanceof Error ? error.message : String(error || "Erreur inattendue");
   return (
     <div

@@ -39,7 +39,7 @@ export class CoreService {
   private static initialProductsChecked = false;
   private static cachedHomeData: Record<string, unknown> | null = null;
   private static cachedHomeDataAt = 0;
-  private static readonly HOME_DATA_TTL_MS = 30 * 1000;
+  private static readonly HOME_DATA_TTL_MS = 5 * 60 * 1000; // 5 minutes server L2 cache
 
   static invalidateHomeDataCache(): void {
     CoreService.cachedHomeData = null;
@@ -122,19 +122,16 @@ export class CoreService {
 
       const [productsSnap, categoriesSnap, sectionsSnap, bannersSnap, tagsSnap, sellersSnap] = await Promise.all([
         withFirestoreDeadline(
-          () =>
-            db.collection("products").where("status", "in", ["active", "approved"]).limit(24).get().catch(() =>
-              db.collection("products").limit(24).get()
-            ),
+          () => db.collection("products").where("status", "in", ["active", "approved"]).limit(16).get(),
           emptySnap,
           1600,
           "home_products"
         ),
-        withFirestoreDeadline(() => db.collection("homepage_categories_v2").limit(100).get(), emptySnap, 1500, "home_cats"),
-        withFirestoreDeadline(() => db.collection("homepage_sections").orderBy("orderIndex", "asc").limit(50).get(), emptySnap, 1500, "home_sections"),
-        withFirestoreDeadline(() => db.collection("banners").limit(30).get(), emptySnap, 1500, "home_banners"),
-        withFirestoreDeadline(() => db.collection("tags").limit(100).get(), emptySnap, 1500, "home_tags"),
-        withFirestoreDeadline(() => db.collection("publicProfiles").limit(20).get(), emptySnap, 1500, "home_sellers"),
+        withFirestoreDeadline(() => db.collection("homepage_categories_v2").limit(24).get(), emptySnap, 1500, "home_cats"),
+        withFirestoreDeadline(() => db.collection("homepage_sections").orderBy("orderIndex", "asc").limit(20).get(), emptySnap, 1500, "home_sections"),
+        withFirestoreDeadline(() => db.collection("banners").limit(20).get(), emptySnap, 1500, "home_banners"),
+        withFirestoreDeadline(() => db.collection("tags").limit(30).get(), emptySnap, 1500, "home_tags"),
+        withFirestoreDeadline(() => db.collection("publicProfiles").limit(12).get(), emptySnap, 1500, "home_sellers"),
       ]);
 
       const categories = categoriesSnap.docs.map((doc: FirestoreDocSnapshot) => ({ id: doc.id, ...doc.data() }));
@@ -156,6 +153,9 @@ export class CoreService {
       CoreService.cachedHomeDataAt = Date.now();
       return result;
     } catch (err: unknown) {
+      if (CoreService.cachedHomeData) {
+        return CoreService.cachedHomeData;
+      }
       safeLogger.error("/api/v1/public/home-data failed", { durationMs: Date.now() - startTime, err: err instanceof Error ? err.message : String(err) });
       throw new Error("Failed to load homepage data", { cause: err });
     }

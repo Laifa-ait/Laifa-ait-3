@@ -1,6 +1,7 @@
 import { auth } from '../lib/firebase';
 import * as Sentry from '@sentry/react';
 import { safeLogger } from './logger';
+import { isDynamicChunkLoadError, triggerStaleChunkReload } from './lazyWithRetry';
 
 interface ErrorInfo {
   message: string;
@@ -75,6 +76,10 @@ const sendErrorToAgent = async (errorInfo: Omit<ErrorInfo, 'timestamp' | 'url' |
 
 export const setupErrorAgent = () => {
   window.addEventListener('error', (event) => {
+    if (isDynamicChunkLoadError(event.error || event.message)) {
+      triggerStaleChunkReload();
+      return;
+    }
     sendErrorToAgent({
       message: event.message,
       stack: event.error?.stack,
@@ -83,6 +88,11 @@ export const setupErrorAgent = () => {
   });
 
   window.addEventListener('unhandledrejection', (event) => {
+    if (isDynamicChunkLoadError(event.reason)) {
+      event.preventDefault();
+      triggerStaleChunkReload();
+      return;
+    }
     sendErrorToAgent({
       message: event.reason?.message || 'Unhandled Promise Rejection',
       stack: event.reason?.stack,
@@ -92,6 +102,10 @@ export const setupErrorAgent = () => {
 };
 
 export const logReactErrorBoundary = (error: unknown, info: { componentStack?: string | null }) => {
+  if (isDynamicChunkLoadError(error)) {
+    triggerStaleChunkReload();
+    return;
+  }
   const err = error instanceof Error ? error : new Error(String(error));
   sendErrorToAgent({
     message: err.message,

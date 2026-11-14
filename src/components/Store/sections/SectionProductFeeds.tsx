@@ -51,7 +51,10 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
   const imagePosition = settings.cardImagePosition || "center";
   const imageFit = settings.cardImageFit || "cover";
   const columnsDesktop = settings.columnsDesktop || 4;
-  const accentColor = settings.cardAccentColor || theme.accentColor || theme.primaryColor || "#023859";
+  const accentColor = styles.iconColor || settings.cardAccentColor || theme.accentColor || theme.primaryColor || "#023859";
+  const kickerColor = styles.kickerColor || accentColor;
+  const headingColor = styles.headingColor || settings.titleColor || styles.textColor || theme.secondaryColor || "#18181B";
+  const subtitleColor = styles.subtitleColor || settings.subtitleColor || styles.textColor || theme.mutedTextColor;
 
   const overtitleLabel =
     section.type === "featured_products" ? "SÉLECTION D'ATELIER"
@@ -88,6 +91,12 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
       imagePosition={imagePosition}
       imageFit={imageFit}
       accentColor={accentColor}
+      cardBgColor={styles.cardBgColor}
+      cardTextColor={styles.cardTextColor}
+      cardBorderColor={styles.cardBorderColor}
+      priceColor={styles.priceColor}
+      badgeBgColor={styles.badgeBgColor}
+      badgeTextColor={styles.badgeTextColor}
       cardMaterial={styles.cardMaterial}
       frameShape={styles.frameShape}
       showCategory={settings.showCategory !== false}
@@ -138,21 +147,25 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
               subtitle={settings.countdownSubtitle}
               endDate={settings.countdownEndDate}
               countdownStyle={settings.countdownStyle}
-              bannerBgColor={settings.countdownBgColor}
-              bannerTextColor={settings.countdownTextColor}
-              accentColor={settings.countdownAccentColor}
+              bannerBgColor={settings.countdownBgColor || styles.badgeBgColor}
+              bannerTextColor={settings.countdownTextColor || styles.badgeTextColor}
+              accentColor={settings.countdownAccentColor || accentColor}
               themePrimaryColor={theme.primaryColor}
             />
           </div>
         )}
 
         {(settings.title || section.title || settings.subtitle) && (
-          <div className="mb-7 flex items-end justify-between gap-4 border-b border-black/[0.06] pb-4">
+          <div className="mb-7 flex items-end justify-between gap-4 border-b border-black/[0.06] pb-4" style={{ borderColor: styles.sectionBorderColor || undefined }}>
             <div
               onClick={(e) => isEditable && triggerDesignFocus(e, "title")}
               className={`min-w-0 flex-1 ${isEditable ? "cursor-pointer rounded px-1 hover:ring-1 hover:ring-[#26658C]" : ""}`}
             >
-              <span className="block text-[10px] @md:text-[11px] font-bold uppercase tracking-[0.28em] mb-1.5" style={{ color: accentColor }}>
+              <span
+                data-testid="product-feed-kicker"
+                className="block text-[10px] @md:text-[11px] font-bold uppercase tracking-[0.28em] mb-1.5"
+                style={{ color: kickerColor }}
+              >
                 {overtitleLabel}
               </span>
               {(settings.title || section.title) && (
@@ -161,11 +174,11 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
                   text={String(settings.title || section.title)}
                   theme={theme}
                   sectionStyles={styles}
-                  accentColorOverride={accentColor}
+                  accentColorOverride={kickerColor}
                   isEditable={isEditable}
                   editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
                   className="text-xl @md:text-2xl @3xl:text-3xl font-extrabold tracking-tight leading-snug"
-                  style={{ color: theme.secondaryColor || "#18181B" }}
+                  style={{ color: headingColor }}
                 />
               )}
               {settings.subtitle && (
@@ -174,7 +187,8 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
                   value={settings.subtitle}
                   isEditable={isEditable}
                   editConfig={{ sectionId: section.id, settingKey: "subtitle" }}
-                  className="text-xs @md:text-sm opacity-65 max-w-xl mt-1.5 leading-relaxed"
+                  style={{ color: subtitleColor }}
+                  className="text-xs @md:text-sm opacity-80 max-w-xl mt-1.5 leading-relaxed"
                 />
               )}
             </div>
@@ -203,7 +217,7 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
         )}
       </div>
 
-      <SectionDividerRenderer divider={styles.divider} color={styles.backgroundColor} theme={theme} />
+      <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor || styles.backgroundColor} theme={theme} />
     </div>
   );
 };

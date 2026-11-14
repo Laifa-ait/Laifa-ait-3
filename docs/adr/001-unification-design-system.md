@@ -1,16 +1,25 @@
-# ADR 001: Unification du Design System
+# ADR 001: Unification du Design System & Charte Mindazzle Twilight
 
 ## Statut
-Accepté
+Accepté & Mis à jour (2026-11-12)
 
 ## Contexte
-L'application utilisait historiquement des tokens CSS personnalisés (ex: `.font-kinder`) en parallèle d'un design system Tailwind standard (Slate / Orange). Cette dualité créait une dette visuelle et rendait la maintenance UI complexe, comme souligné dans l'audit (PROBLEME-025).
+L'application présentait historiquement une fragmentation visuelle entre d'anciennes classes utilitaires disparates (`slate-*`, `emerald-*`, `zinc-*`, `rose-*`) et la charte identitaire d'Olmart définie dans `src/index.css`, ainsi que des textes français codés en dur qui brisaient l'expérience multilingue (`fr`, `ar`, `en`).
 
 ## Décision
-1. Nous consolidons le design system autour d'une palette unique "Slate + Orange" (slate pour les neutres, orange pour la marque).
-2. La typographie est standardisée via Tailwind (`font-sans`, `font-display`) au lieu de classes legacy comme `.font-kinder`.
-3. Les couleurs codées en dur (ex: `#3C2B22`, `#FF5C00`, `#ea580c`) doivent être remplacées progressivement par les tokens de la charte (ex: `text-slate-900`, `text-orange-600`).
+1. **Unification Chromatique (Mindazzle Twilight & Sunset Amber)** :
+   - Toute la marketplace publique (`Home.tsx`, `BentoHero`, `NeoCategoryGrid`, `CategoryCard`, `SponsoredSection`, `SponsoredProductCard`, `DynamicSection`, `SectionHeader`, `SectionLayouts`, `HomeEndlessGrid`, `ProductCard`) est consolidée autour des 6 tokens maîtres de `src/index.css` :
+     - `#1A1836` (*Midnight Indigo*) — Encre principale & surfaces sombres
+     - `#42164B` (*Royal Aubergine*) — Surfaces profondes & bordures actives
+     - `#622347` (*Rich Mulberry*) — Couleur interactive primaire
+     - `#A54055` (*Crimson Berry*) — Badges de remise & accents secondaires
+     - `#E99856` (*Sunset Amber*) — Accents chauds, étoiles & CTA Hero
+     - `#E0B4B2` (*Blush Rose*) & `#FAF7F6` / `#EFE6E6` — Bordures douces & fond ivoire chaud
+2. **Typographie 2+1 & Support RTL Arabe** :
+   - Standardisation sur `Plus Jakarta Sans` (`--font-sans`), `Playfair Display` (`--font-display`), `JetBrains Mono` (`--font-mono`) et bascule automatique sur `Cairo` en mode RTL (`html[dir="rtl"]`).
+3. **Zéro Code Dur & Parité Trilingue (FR / AR / EN)** :
+   - Synchronisation systématique des dictionnaires via `src/locales/homeTranslations.ts` et `public/locales/{fr,ar,en}.json`.
 
 ## Conséquences
-- **Positif** : Homogénéité du produit. Codebase CSS plus légère. Facilité de création du Dark Mode.
-- **Négatif** : Nécessite une passe de refactoring sur les anciens composants (BuyerDashboard, SellerSponsorships) pour migrer les anciennes classes.
+- **Positif** : Cohérence visuelle totale sur la page d'accueil, lisibilité optimale (WCAG AA), support complet de l'arabe (RTL) et de l'anglais sans chaînes françaises résiduelles.
+- **Vérification** : Couvert par la suite de tests automatisés `src/tests/homePageTranslationsAndColors.test.tsx`.

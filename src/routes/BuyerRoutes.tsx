@@ -8,8 +8,9 @@ const BuyerDashboard = lazyWithRetry(
   () => import("../pages/BuyerDashboard").then((m) => m.BuyerDashboard),
   "BuyerDashboard"
 );
-const OrderDetails = React.lazy(() =>
-  import("../pages/Public/OrderDetails").then((m) => ({ default: m.OrderDetails }))
+const OrderDetails = lazyWithRetry(
+  () => import("../pages/Public/OrderDetails"),
+  "OrderDetails"
 );
 
 export const renderBuyerRoutes = () => (

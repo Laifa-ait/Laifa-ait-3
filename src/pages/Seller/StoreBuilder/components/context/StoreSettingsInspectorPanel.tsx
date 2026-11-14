@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   StoreConfig,
   StoreCommerceConfig,
@@ -10,6 +10,7 @@ import { StoreSettingsCommerceAndStatusTabs } from "./StoreSettingsCommerceAndSt
 
 interface StoreSettingsInspectorPanelProps {
   storeConfig: StoreConfig | null;
+  onLiveChange?: (patch: Partial<StoreConfig>) => void;
   onSaveConfig: (updated: Partial<StoreConfig>) => Promise<void>;
 }
 
@@ -17,8 +18,11 @@ type SettingsTab = "general" | "commerce" | "status_pixels";
 
 export const StoreSettingsInspectorPanel: React.FC<StoreSettingsInspectorPanelProps> = ({
   storeConfig,
+  onLiveChange,
   onSaveConfig,
 }) => {
+  const onLiveChangeRef = useRef(onLiveChange);
+  onLiveChangeRef.current = onLiveChange;
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [shopName, setShopName] = useState(storeConfig?.shopName || "");
   const [shopSlug, setShopSlug] = useState(storeConfig?.shopSlug || "");
@@ -52,6 +56,19 @@ export const StoreSettingsInspectorPanel: React.FC<StoreSettingsInspectorPanelPr
 
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    onLiveChangeRef.current?.({
+      shopName: (shopName || "").trim() || "Ma Boutique",
+      shopSlug: (shopSlug || "").trim(),
+      shopDescription: shopDescription.trim(),
+      wilaya,
+      commune,
+      commerceConfig: commerce,
+      storeStatus,
+      pixelsConfig: pixels,
+    });
+  }, [shopName, shopSlug, shopDescription, wilaya, commune, commerce, storeStatus, pixels]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,116 +107,112 @@ export const StoreSettingsInspectorPanel: React.FC<StoreSettingsInspectorPanelPr
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#FFFFFF] select-none">
-      <div className="p-3.5 border-b border-[#E4E7EC]">
-        <div className="flex items-center justify-between mb-2.5">
+    <div className="flex flex-col h-full bg-white select-none">
+      <div className="px-4 pt-3.5 border-b border-slate-200 shrink-0 space-y-2.5">
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-[14px] font-bold text-[#17191C]">Paramètres Boutique 3.0</h2>
-            <p className="text-[11.5px] text-[#667085]">SEO, Logistique 69 Wilayas, Statut & Pixels</p>
+            <h2 className="text-[13px] font-semibold text-slate-900">Paramètres boutique</h2>
+            <p className="text-[11px] text-slate-500">SEO, livraison 69 Wilayas, statut &amp; pixels</p>
           </div>
           {savedSuccess && (
-            <span className="flex items-center gap-1 text-[12px] text-[#15803D] bg-[#F0FDF4] px-2 py-0.5 rounded-lg border border-[#15803D]/20 font-semibold">
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700">
               <Check className="w-3.5 h-3.5" /> Enregistré
             </span>
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-1 bg-[#F1F5F9] p-1 rounded-xl">
-          <button
-            type="button"
-            onClick={() => setActiveTab("general")}
-            className={`h-7 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer ${
-              activeTab === "general" ? "bg-white text-[#011C40] shadow-2xs" : "text-[#475569]"
-            }`}
-          >
-            <Globe className="w-3 h-3" /> Général
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("commerce")}
-            className={`h-7 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer ${
-              activeTab === "commerce" ? "bg-white text-[#011C40] shadow-2xs" : "text-[#475569]"
-            }`}
-          >
-            <Truck className="w-3 h-3" /> COD & 69W
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("status_pixels")}
-            className={`h-7 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer ${
-              activeTab === "status_pixels" ? "bg-white text-[#011C40] shadow-2xs" : "text-[#475569]"
-            }`}
-          >
-            <ShieldAlert className="w-3 h-3" /> Pixels & Statut
-          </button>
+        <div className="flex items-center gap-1 border-t border-slate-100">
+          {[
+            { id: "general" as const, label: "Général", icon: Globe },
+            { id: "commerce" as const, label: "COD & 69W", icon: Truck },
+            { id: "status_pixels" as const, label: "Pixels & Statut", icon: ShieldAlert },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 py-2.5 border-b-2 text-[11px] flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
+                  active
+                    ? "border-slate-900 text-slate-900 font-semibold"
+                    : "border-transparent text-slate-500 hover:text-slate-900 font-medium"
+                }`}
+              >
+                <Icon className="w-3 h-3 shrink-0" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-3.5 text-[13px]">
+      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-3.5 text-[12.5px]">
         {activeTab === "general" ? (
           <>
             <div className="space-y-1">
-              <label className="text-[12px] font-semibold text-[#17191C] block">Nom de la boutique</label>
+              <label className="text-[11.5px] font-medium text-slate-700 block">Nom de la boutique</label>
               <input
                 type="text"
                 value={shopName}
                 onChange={(e) => setShopName(e.target.value)}
-                className="w-full h-9 px-3 bg-white border border-[#CBD5E1] rounded-lg text-[13px]"
+                className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-[12.5px] text-slate-900 focus:border-slate-900 focus:outline-none"
                 required
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[12px] font-semibold text-[#17191C] block">Lien URL (slug)</label>
+              <label className="text-[11.5px] font-medium text-slate-700 block">Lien URL (slug)</label>
               <div className="flex items-center">
-                <span className="h-9 px-2.5 bg-[#F5F6F8] border border-r-0 border-[#CBD5E1] rounded-l-lg text-[12px] text-[#667085] flex items-center">
+                <span className="h-9 px-2.5 bg-slate-50 border border-r-0 border-slate-200 rounded-l-lg text-[11.5px] text-slate-500 font-mono flex items-center">
                   olmart.dz/
                 </span>
                 <input
                   type="text"
                   value={shopSlug}
                   onChange={(e) => setShopSlug(e.target.value)}
-                  className="flex-1 h-9 px-2.5 bg-white border border-[#CBD5E1] rounded-r-lg text-[13px]"
+                  className="flex-1 h-9 px-2.5 bg-white border border-slate-200 rounded-r-lg text-[12.5px] font-mono text-slate-900 focus:border-slate-900 focus:outline-none"
                   required
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="text-[12px] font-semibold text-[#17191C] block mb-1">Wilaya</label>
+                <label className="text-[11.5px] font-medium text-slate-700 block mb-1">Wilaya</label>
                 <input
                   type="text"
                   value={wilaya}
                   onChange={(e) => setWilaya(e.target.value)}
-                  className="w-full h-9 px-2.5 bg-white border border-[#CBD5E1] rounded-lg text-[13px]"
+                  className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-[12.5px] text-slate-900 focus:border-slate-900 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="text-[12px] font-semibold text-[#17191C] block mb-1">Commune</label>
+                <label className="text-[11.5px] font-medium text-slate-700 block mb-1">Commune</label>
                 <input
                   type="text"
                   value={commune}
                   onChange={(e) => setCommune(e.target.value)}
-                  className="w-full h-9 px-2.5 bg-white border border-[#CBD5E1] rounded-lg text-[13px]"
+                  className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-[12.5px] text-slate-900 focus:border-slate-900 focus:outline-none"
                 />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-[12px] font-semibold text-[#17191C] block">Titre SEO (Google)</label>
+              <label className="text-[11.5px] font-medium text-slate-700 block">Titre SEO (Google)</label>
               <input
                 type="text"
                 value={metaTitle}
                 onChange={(e) => setMetaTitle(e.target.value)}
                 placeholder="Boutique Officielle | Olmart Algérie"
-                className="w-full h-9 px-2.5 bg-white border border-[#CBD5E1] rounded-lg text-[13px]"
+                className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-[12.5px] text-slate-900 focus:border-slate-900 focus:outline-none"
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[12px] font-semibold text-[#17191C] block">Description vitrine & Meta</label>
+              <label className="text-[11.5px] font-medium text-slate-700 block">Description vitrine &amp; Meta</label>
               <textarea
                 value={shopDescription}
                 onChange={(e) => setShopDescription(e.target.value)}
                 rows={3}
-                className="w-full p-2.5 bg-white border border-[#CBD5E1] rounded-lg text-[12.5px] resize-none"
+                className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-[12px] text-slate-900 resize-none focus:border-slate-900 focus:outline-none"
               />
             </div>
           </>
@@ -215,15 +228,15 @@ export const StoreSettingsInspectorPanel: React.FC<StoreSettingsInspectorPanelPr
           />
         )}
 
-        <div className="pt-3 border-t border-[#E4E7EC]">
+        <div className="pt-3 border-t border-slate-200">
           <button
             type="submit"
             disabled={saving}
-            className="w-full h-10 bg-[#023859] hover:bg-[#011C40] text-white rounded-xl text-[13px] font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[12.5px] font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
             {saving ? (
               <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                 <span>Enregistrement…</span>
               </>
             ) : (

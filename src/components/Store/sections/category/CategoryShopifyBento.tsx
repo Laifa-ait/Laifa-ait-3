@@ -5,6 +5,7 @@ import {
   CategoryCardSize,
   CategoryImagePosition,
   CategoryImageFit,
+  CategoryDeviceViewport,
 } from "../../../../pages/Seller/StoreBuilder/constants/categoryPresetTypes";
 import {
   resolveCategoryPhoto,
@@ -31,11 +32,13 @@ interface CategoryShopifyBentoProps {
   gapClass: string;
   cardSize?: CategoryCardSize;
   cardSkin?: string;
+  columnsDesktop?: number;
+  columnsTablet?: number;
   columnsMobile?: number;
   imagePosition?: CategoryImagePosition;
   imageFit?: CategoryImageFit;
   primaryColor?: string;
-  previewViewport?: "mobile" | "tablet" | "desktop";
+  previewViewport?: CategoryDeviceViewport;
   isEditable?: boolean;
   selectedSectionId?: string | null;
   selectedSubElement?: string | null;
@@ -60,7 +63,6 @@ export const CategoryShopifyBento: React.FC<CategoryShopifyBentoProps> = ({
   gapClass,
   cardSize = "balanced",
   cardSkin = "editorial",
-  columnsMobile = 2,
   imagePosition = "center",
   imageFit = "cover",
   primaryColor = "#023859",
@@ -78,44 +80,49 @@ export const CategoryShopifyBento: React.FC<CategoryShopifyBentoProps> = ({
     cardRadius === "full" ? "lg" : cardRadius
   );
 
-  const autoRowClass =
-    previewViewport === "mobile" || previewViewport === "tablet"
-      ? ""
-      : cardSize === "compact"
-      ? "@[900px]:auto-rows-[175px]"
-      : cardSize === "large"
-      ? "@[900px]:auto-rows-[240px]"
-      : "@[900px]:auto-rows-[205px]";
+  // RÈGLE 2.1 : Desktop = grille 3 col. asymétrique (2+1 / 1+2 pour 4 cartes). Tablette & Mobile = grille 2 col.
+  const isCompactDevice = previewViewport === "mobile" || previewViewport === "tablet";
+  const activeCols = isCompactDevice ? 2 : 3;
+  const gridColsClass = isCompactDevice ? "grid-cols-2" : "grid-cols-3";
 
-  const heroMinH =
-    cardSize === "compact"
-      ? "min-h-[175px] @[560px]:min-h-[205px] @[900px]:min-h-full"
-      : cardSize === "large"
-      ? "min-h-[225px] @[560px]:min-h-[260px] @[900px]:min-h-full"
-      : "min-h-[195px] @[560px]:min-h-[230px] @[900px]:min-h-full";
+  const autoRowClass = isCompactDevice
+    ? ""
+    : cardSize === "compact"
+    ? "auto-rows-[220px]"
+    : cardSize === "large"
+    ? "auto-rows-[340px]"
+    : "auto-rows-[280px]";
 
-  const cellMinH =
-    columnsMobile === 1
-      ? "min-h-[185px] @[560px]:min-h-[185px] @[900px]:min-h-full"
-      : cardSize === "compact"
-      ? "min-h-[145px] @[560px]:min-h-[165px] @[900px]:min-h-full"
-      : cardSize === "large"
-      ? "min-h-[180px] @[560px]:min-h-[210px] @[900px]:min-h-full"
-      : "min-h-[160px] @[560px]:min-h-[185px] @[900px]:min-h-full";
+  const heroRowH =
+    previewViewport === "mobile"
+      ? "h-[180px]"
+      : previewViewport === "tablet"
+      ? cardSize === "compact"
+        ? "h-[190px]"
+        : cardSize === "large"
+        ? "h-[250px]"
+        : "h-[220px]"
+      : "h-full";
 
-  const gridColsClass =
-    previewViewport === "mobile" || previewViewport === "tablet"
-      ? "grid-cols-2"
-      : "grid-cols-2 @[900px]:grid-cols-4";
+  const cellRowH =
+    previewViewport === "mobile"
+      ? "h-[160px]"
+      : previewViewport === "tablet"
+      ? cardSize === "compact"
+        ? "h-[165px]"
+        : cardSize === "large"
+        ? "h-[220px]"
+        : "h-[190px]"
+      : "h-full";
 
   const isDarkSkin = cardSkin === "dark-glass";
 
   return (
-    <div className={`grid ${gridColsClass} ${autoRowClass} ${gapClass}`}>
+    <div className={`grid ${gridColsClass} ${autoRowClass} ${gapClass}`} data-category-model="bento">
       {categories.map((cat, idx) => {
         const photoUrl = resolveCategoryPhoto(cat, idx);
         const { posClass, fitClass } = resolveCategoryImageClasses(cat, imagePosition, imageFit);
-        const isHero = idx === 0;
+        const isWideTile = idx === 0 || (categories.length === 4 && idx === 3);
         const idxLabel = String(idx + 1).padStart(2, "0");
         const isCardSelected =
           isEditable && selectedSectionId === sectionId && selectedSubElement === `category-items:${idx}`;
@@ -123,10 +130,10 @@ export const CategoryShopifyBento: React.FC<CategoryShopifyBentoProps> = ({
         const spanClass = resolveResponsiveBentoSpan(
           idx,
           categories.length,
-          heroMinH,
-          cellMinH,
+          heroRowH,
+          cellRowH,
           previewViewport,
-          columnsMobile
+          activeCols
         );
         const countText = getCountLabel(cat);
         const useGlassDock = glassmorphism || cardSkin === "framed" || cardSkin === "soft-tint";
@@ -135,74 +142,82 @@ export const CategoryShopifyBento: React.FC<CategoryShopifyBentoProps> = ({
           <article
             key={cat.id || idx}
             onClick={(e) => onCardClick(cat, idx, e)}
-            className={`group relative overflow-hidden cursor-pointer select-none transition-all duration-200 ease-out border ${
+            className={`group relative overflow-hidden cursor-pointer select-none transition-all duration-300 ease-out border ${
               isDarkSkin
                 ? "border-white/15 bg-slate-950 shadow-sm"
                 : cardSkin === "framed"
-                ? "border-slate-200/95 bg-white p-1 @[560px]:p-1.5 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)]"
-                : "border-slate-200/80 bg-slate-100 shadow-[0_2px_10px_-3px_rgba(15,23,42,0.05)]"
+                ? "border-slate-200/95 bg-white p-1.5 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.08)]"
+                : cardSkin === "soft-tint"
+                ? "border-slate-200/90 bg-[#F8FAFC] p-1 shadow-2xs"
+                : "border-transparent bg-slate-900 shadow-[0_2px_10px_-3px_rgba(15,23,42,0.06)]"
             } ${outerRadiusClass} ${spanClass} ${hoverCardClass} ${
               isCardSelected ? "ring-2 ring-[#2563EB] ring-offset-2" : ""
             }`}
           >
-            <div className={`relative w-full h-full overflow-hidden ${cardSkin === "framed" ? mediaRadiusClass : ""}`}>
+            <div className={`relative w-full h-full overflow-hidden ${cardSkin === "framed" || cardSkin === "soft-tint" ? mediaRadiusClass : ""}`}>
               <img
                 src={photoUrl}
                 alt={cat.name}
                 referrerPolicy="no-referrer"
                 onError={(e) => handleCategoryImageError(e, idx)}
-                className={`absolute inset-0 w-full h-full ${posClass} ${fitClass} transition-transform duration-300 ease-out ${hoverImgClass}`}
+                className={`absolute inset-0 w-full h-full ${posClass} ${fitClass} transition-transform duration-500 ease-out ${hoverImgClass}`}
               />
-              <div className="absolute inset-1.5 @[560px]:inset-2 rounded-xl border border-white/20 pointer-events-none z-10" />
+              <div className="absolute inset-2 rounded-xl border border-white/25 pointer-events-none z-10" />
               <div
                 className="absolute inset-0 pointer-events-none transition-opacity duration-200"
                 style={{
                   background: showTitle
                     ? textPosition === "overlay-center"
                       ? `rgba(15, 23, 42, ${Math.min(0.65, Math.max(0.25, overlayOpacity))})`
-                      : `linear-gradient(180deg, rgba(15,23,42,0.05) 0%, rgba(15,23,42,0) 40%, rgba(10,15,29,${Math.min(0.86, overlayOpacity + 0.34)}) 100%)`
-                    : "none",
+                      : `linear-gradient(180deg, rgba(15,23,42,0.08) 0%, rgba(15,23,42,0) 40%, rgba(10,15,29,${Math.min(0.86, overlayOpacity + 0.34)}) 100%)`
+                    : "linear-gradient(180deg, rgba(15,23,42,0.18) 0%, rgba(15,23,42,0) 55%, rgba(15,23,42,0.35) 100%)",
                 }}
               />
 
-              <div className="absolute top-2 left-2 @[560px]:top-3 @[560px]:left-3 z-10 flex items-center gap-1 pointer-events-none">
-                <span className="hidden @[420px]:inline-block px-1.5 @[560px]:px-2 py-0.5 rounded-full bg-black/35 backdrop-blur-md border border-white/25 text-[9px] @[560px]:text-[10px] font-mono font-bold text-white tabular-nums">
-                  {idxLabel}
+              <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 pointer-events-none">
+                <span className="px-2 py-0.5 rounded-full bg-black/45 backdrop-blur-md border border-white/30 text-[10px] font-mono font-bold text-white tabular-nums">
+                  BENTO #{idxLabel}
                 </span>
                 {showBadge && cat.badge && (
-                  <span className="px-2 py-0.5 rounded-full text-[9px] @[560px]:text-[10px] font-semibold tracking-wide text-white shadow-2xs truncate max-w-[90px]" style={{ backgroundColor: cat.badgeColor || primaryColor }}>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide text-white shadow-2xs truncate max-w-[110px]" style={{ backgroundColor: cat.badgeColor || primaryColor }}>
                     {cat.badge}
                   </span>
                 )}
               </div>
 
               {isEditable && (
-                <div className="absolute top-2 right-2 @[560px]:top-3 @[560px]:right-3 z-20 flex items-center gap-1 opacity-85 @[560px]:opacity-0 @[560px]:group-hover:opacity-100 transition-opacity duration-150">
-                  <button type="button" onClick={(e) => onEditItem(idx, e)} className="bg-[#023859]/90 hover:bg-[#011C40] text-white text-[9px] font-bold p-1.5 @[560px]:px-2 @[560px]:py-1 rounded-md shadow-xs flex items-center gap-1 cursor-pointer border border-white/20">
+                <div className="absolute top-3 right-3 z-20 flex items-center gap-1 opacity-85 @[768px]:opacity-0 @[768px]:group-hover:opacity-100 transition-opacity duration-150">
+                  <button type="button" onClick={(e) => onEditItem(idx, e)} className="bg-[#023859]/90 hover:bg-[#011C40] text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-xs flex items-center gap-1 cursor-pointer border border-white/20">
                     <Camera className="w-2.5 h-2.5" />
-                    <span className="hidden @[560px]:inline">Photo</span>
+                    <span className="hidden @[768px]:inline">Photo</span>
                   </button>
-                  <button type="button" onClick={(e) => onOpenPage(cat, e)} className="hidden @[560px]:inline-block bg-slate-900/90 hover:bg-slate-950 text-white text-[9px] font-bold px-1.5 py-1 rounded-md shadow-xs cursor-pointer border border-white/15">
+                  <button type="button" onClick={(e) => onOpenPage(cat, e)} className="hidden @[768px]:inline-block bg-slate-900/90 hover:bg-slate-950 text-white text-[9px] font-bold px-1.5 py-1 rounded-md shadow-xs cursor-pointer border border-white/15">
                     Page →
                   </button>
                 </div>
               )}
 
-              {showTitle && (
-                <div className={`absolute inset-x-2 bottom-2 @[560px]:inset-x-3 @[560px]:bottom-3 z-10 flex flex-col ${textPosition === "overlay-center" ? "inset-y-2 items-center justify-center text-center" : "justify-end"}`}>
-                  <div className={useGlassDock ? "w-full bg-white/92 backdrop-blur-md text-slate-900 border border-white/80 rounded-xl px-2 py-1.5 @[560px]:px-3.5 @[560px]:py-2.5 shadow-sm flex items-center justify-between gap-1.5" : "w-full bg-slate-950/65 backdrop-blur-md text-white border border-white/20 rounded-xl px-2 py-1.5 @[560px]:px-3.5 @[560px]:py-2.5 flex items-center justify-between gap-1.5"}>
+              {showTitle ? (
+                <div className={`absolute inset-x-3 bottom-3 z-10 flex flex-col ${textPosition === "overlay-center" ? "inset-y-3 items-center justify-center text-center" : "justify-end"}`}>
+                  <div className={useGlassDock ? "w-full bg-white/92 backdrop-blur-md text-slate-900 border border-white/80 rounded-xl px-3 py-2 shadow-sm flex items-center justify-between gap-2" : "w-full bg-slate-950/65 backdrop-blur-md text-white border border-white/20 rounded-xl px-3 py-2 flex items-center justify-between gap-2"}>
                     <div className="min-w-0 text-left">
-                      <h3 className={`font-bold tracking-tight leading-snug line-clamp-1 ${useGlassDock ? "text-slate-900" : "text-white"} ${isHero ? "text-xs @[560px]:text-base @[900px]:text-lg" : "text-[11px] @[560px]:text-sm @[900px]:text-[15px]"}`}>
+                      <h3 className={`font-bold tracking-tight leading-snug line-clamp-1 ${useGlassDock ? "text-slate-900" : "text-white"} ${isWideTile ? "text-sm @[768px]:text-lg" : "text-xs @[768px]:text-[15px]"}`}>
                         {cat.name}
                       </h3>
-                      {(showItemCount || isHero) && countText && (
-                        <p className={`text-[10px] @[560px]:text-[11px] font-medium line-clamp-1 mt-0.5 ${useGlassDock ? "text-slate-500" : "text-white/75"}`}>{countText}</p>
+                      {(showItemCount || isWideTile) && countText && (
+                        <p className={`text-[10px] @[768px]:text-[11px] font-medium line-clamp-1 mt-0.5 ${useGlassDock ? "text-slate-500" : "text-white/80"}`}>{countText}</p>
                       )}
                     </div>
-                    <span className={`w-5 h-5 @[560px]:w-7 @[560px]:h-7 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 ${useGlassDock ? "bg-slate-900 text-white group-hover:scale-105" : "bg-white text-slate-950 group-hover:scale-105"}`}>
-                      <ArrowUpRight className="w-3 h-3 @[560px]:w-3.5 @[560px]:h-3.5" />
+                    <span className={`w-6 h-6 @[768px]:w-7 @[768px]:h-7 rounded-full flex items-center justify-center shrink-0 transition-transform duration-200 ${useGlassDock ? "bg-slate-900 text-white group-hover:scale-105" : "bg-white text-slate-950 group-hover:scale-105"}`}>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
                     </span>
                   </div>
+                </div>
+              ) : (
+                <div className="absolute bottom-3 right-3 z-10 pointer-events-none">
+                  <span className="w-7 h-7 rounded-full bg-white/85 backdrop-blur-md text-slate-950 border border-white/60 shadow-sm flex items-center justify-center">
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </span>
                 </div>
               )}
             </div>

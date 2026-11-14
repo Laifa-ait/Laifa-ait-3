@@ -22,6 +22,8 @@ interface CustomCategoryItem {
   featuredProductIds?: string[];
 }
 
+const DEFAULT_GRADIENT = "from-[#1A1836]/90 via-[#1A1836]/35 to-transparent";
+
 export const useHomeCategoryConfig = (
   customCategories: CustomCategoryItem[] = [],
   categoryHierarchy: Record<string, unknown> | Record<string, Record<string, string[]>> = {},
@@ -34,95 +36,95 @@ export const useHomeCategoryConfig = (
     () => [
       {
         key: "Maison & Déco",
-        title: t("cat_maison_deco", "Maison & Décoration"),
-        subtitle: t("cat_home_desc", "Salons d'architecte, Mobilier & Luminaires"),
+        title: t("cat_maison_deco"),
+        subtitle: t("cat_home_desc"),
         image: "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&q=80&w=800",
-        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+        gradient: DEFAULT_GRADIENT,
       },
       {
         key: "Électronique",
-        title: t("cat_tech", "Tech & Performance"),
-        subtitle: t("cat_tech_desc", "Smartphones, PC Pro, Audio & Domotique"),
+        title: t("cat_electronic_title"),
+        subtitle: t("cat_electronic_desc"),
         image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80&w=800",
-        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+        gradient: DEFAULT_GRADIENT,
       },
       {
         key: "Électroménager",
-        title: t("cat_electromenager", "Électroménager"),
-        subtitle: t("cat_electromenager_desc", "Froid, Cuisson encastrable & Caféterie"),
+        title: t("cat_appliance_title"),
+        subtitle: t("cat_appliance_desc"),
         image: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800",
-        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+        gradient: DEFAULT_GRADIENT,
       },
       {
         key: "Mode",
-        title: t("cat_fashion_title", "Mode & Élégance"),
-        subtitle: t("cat_fashion_desc", "Prêt-à-porter, Maroquinerie & Horlogerie"),
+        title: t("cat_fashion_title"),
+        subtitle: t("cat_fashion_desc"),
         image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=800",
-        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+        gradient: DEFAULT_GRADIENT,
       },
       {
         key: "Artisanat & Tradition",
-        title: t("cat_artisanat", "Artisanat & Tradition"),
-        subtitle: t("cat_artisanat_desc", "Haute couture algérienne, Dinanderie & Tapis"),
+        title: t("cat_craft_title"),
+        subtitle: t("cat_craft_desc"),
         image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&q=80&w=800",
-        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+        gradient: DEFAULT_GRADIENT,
       },
       {
         key: "Beauté & Santé",
-        title: t("cat_beaute", "Beauté & Soins"),
-        subtitle: t("cat_beaute_desc", "Haute Parfumerie, Dermo-cosmétique & Soins"),
+        title: t("cat_beauty_title"),
+        subtitle: t("cat_beauty_desc"),
         image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=800",
-        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+        gradient: DEFAULT_GRADIENT,
       },
       {
         key: "Auto & Moto",
-        title: t("cat_auto", "Auto & Moto"),
-        subtitle: t("cat_auto_desc", "Pièces OEM, Pneumatiques & Équipement"),
+        title: t("cat_auto"),
+        subtitle: t("cat_auto_desc"),
         image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=800",
-        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+        gradient: DEFAULT_GRADIENT,
       },
       {
         key: "Sport & Loisirs",
-        title: t("cat_sport", "Sport & Fitness"),
-        subtitle: t("cat_sport_desc", "Musculation, Running, Cyclisme & Outdoor"),
+        title: t("cat_sport"),
+        subtitle: t("cat_sport_desc"),
         image: "https://images.unsplash.com/photo-1517649763962-0c6232662000?auto=format&fit=crop&q=80&w=800",
-        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+        gradient: DEFAULT_GRADIENT,
       },
       {
         key: "Bébé & Puériculture",
-        title: t("cat_bebe", "Bébé & Puériculture"),
-        subtitle: t("cat_bebe_desc", "Poussettes Trio, Chambre & Premier Âge"),
+        title: t("cat_bebe"),
+        subtitle: t("cat_bebe_desc"),
         image: "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&q=80&w=800",
-        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+        gradient: DEFAULT_GRADIENT,
       },
       {
         key: "Bricolage & Outillage",
-        title: t("cat_bricolage", "Bricolage & Outillage"),
-        subtitle: t("cat_bricolage_desc", "Électroportatif Pro, Plomberie & Chantier"),
+        title: t("cat_bricolage"),
+        subtitle: t("cat_bricolage_desc"),
         image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=800",
-        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+        gradient: DEFAULT_GRADIENT,
       },
       {
         key: "Jeux & Jouets",
-        title: t("cat_jouets", "Jeux & Jouets"),
-        subtitle: t("cat_jouets_desc", "Jeux éducatifs, Figurines & Plein air"),
+        title: t("cat_jeux"),
+        subtitle: t("cat_jouets_desc"),
         image: "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&q=80&w=800",
-        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+        gradient: DEFAULT_GRADIENT,
       },
       {
         key: "Supermarché",
-        title: t("cat_supermarche", "Supermarché"),
-        subtitle: t("cat_supermarche_desc", "Épicerie fine, Huile de Kabylie & Quotidien"),
+        title: t("cat_supermarche"),
+        subtitle: t("cat_supermarche_desc"),
         image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800",
-        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+        gradient: DEFAULT_GRADIENT,
         withExploreButton: true,
       },
       {
         key: "Scolaire & Bureau",
-        title: t("cat_scolaire", "Scolaire & Bureau"),
-        subtitle: t("cat_scolaire_desc", "Papeterie, Livres, Manuels & Maroquinerie"),
+        title: t("cat_scolaire_title"),
+        subtitle: t("cat_scolaire_desc"),
         image: "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?auto=format&fit=crop&q=80&w=800",
-        gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+        gradient: DEFAULT_GRADIENT,
       },
     ],
     [t]
@@ -135,9 +137,7 @@ export const useHomeCategoryConfig = (
 
     Object.keys(safeHierarchy).forEach((rawKey) => {
       const canonicalKey = resolveCanonicalCategoryKey(rawKey);
-      if (!canonicalKey || seenCanonicalKeys.has(canonicalKey)) {
-        return;
-      }
+      if (!canonicalKey || seenCanonicalKeys.has(canonicalKey)) return;
       seenCanonicalKeys.add(canonicalKey);
 
       const defaultMapping = defaultCategoryMapping.find((dm) => dm.key === canonicalKey);
@@ -154,21 +154,19 @@ export const useHomeCategoryConfig = (
                 ? subcategoriesPreview.join(" • ")
                 : t("home.discover_category_articles", { category: canonicalKey }),
             image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800",
-            gradient: "from-zinc-950/90 via-zinc-950/35 to-transparent",
+            gradient: DEFAULT_GRADIENT,
             subcategoriesPreview,
           };
 
       const custom = customCategories.find((cc) => resolveCanonicalCategoryKey(cc.id) === canonicalKey);
       if (custom) {
         const hasValidImage =
-          custom.image &&
-          !custom.image.includes("placeholder") &&
-          custom.image.trim().length > 0;
+          custom.image && !custom.image.includes("placeholder") && custom.image.trim().length > 0;
 
         deduplicatedItems.push({
           ...baseCard,
-          title: custom.title || baseCard.title,
-          subtitle: custom.subtitle || baseCard.subtitle,
+          title: custom.title ? t(custom.title, custom.title) : baseCard.title,
+          subtitle: custom.subtitle ? t(custom.subtitle, custom.subtitle) : baseCard.subtitle,
           image: hasValidImage ? (custom.image as string) : baseCard.image,
           gradient: custom.gradient || baseCard.gradient,
           featuredProductIds: custom.featuredProductIds || [],
@@ -189,14 +187,9 @@ export const useHomeCategoryConfig = (
     return [...activeCategoriesConfig].sort((a, b) => {
       const aCount = categoriesVisiteesCount?.[a.key] || 0;
       const bCount = categoriesVisiteesCount?.[b.key] || 0;
-
-      if (bCount !== aCount) {
-        return bCount - aCount;
-      }
-
+      if (bCount !== aCount) return bCount - aCount;
       if (favoriteCategory === a.key) return -1;
       if (favoriteCategory === b.key) return 1;
-
       return canonicalOrder.indexOf(a.key) - canonicalOrder.indexOf(b.key);
     });
   }, [activeCategoriesConfig, categoriesVisiteesCount, favoriteCategory, categoryHierarchy]);

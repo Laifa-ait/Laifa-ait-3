@@ -1,26 +1,26 @@
 import React from "react";
-import { Check, Grid, Sliders, Wand2, Maximize2, Layers, Type, Smartphone } from "lucide-react";
+import { Check, Grid, Sliders, Wand2, Maximize2, Layers, Type, Monitor, Tablet, Smartphone, RotateCcw } from "lucide-react";
 import {
   CategoryItem,
   CategoryLayoutType,
   CategoryCardSize,
   CategoryTextPosition,
+  CategoryDeviceViewport,
 } from "../../../../pages/Seller/StoreBuilder/constants/categoryPresetTypes";
 import { getCategoryLayoutCapabilities } from "../../../../pages/Seller/StoreBuilder/constants/categoryCanvaOptions";
+import { useStudioStore } from "../../../../pages/Seller/StoreBuilder/store/useStudioStore";
 
 interface CategoryCanvasQuickBarProps {
   sectionId: string;
   categories: CategoryItem[];
+  activeDevice: CategoryDeviceViewport;
   activeLayout: CategoryLayoutType;
   cardSize: CategoryCardSize;
-  columnsMobile?: number;
+  columnsActiveDevice: number;
+  hasCustomDeviceLayout?: boolean;
   showTitle: boolean;
   textPosition: CategoryTextPosition;
-  onTriggerSubTab: (
-    subTab: "style" | "items" | "presets",
-    e?: React.MouseEvent,
-    categoryIndex?: number
-  ) => void;
+  onTriggerSubTab: (subTab: "style" | "items" | "presets", e?: React.MouseEvent, categoryIndex?: number) => void;
 }
 
 const QUICK_CARD_MODELS: Array<{ id: CategoryLayoutType; label: string }> = [
@@ -47,19 +47,25 @@ const QUICK_CARD_SIZES: Array<{ id: CategoryCardSize; label: string }> = [
 export const CategoryCanvasQuickBar: React.FC<CategoryCanvasQuickBarProps> = ({
   sectionId,
   categories,
+  activeDevice,
   activeLayout,
   cardSize,
-  columnsMobile = 2,
+  columnsActiveDevice,
+  hasCustomDeviceLayout,
   showTitle,
   textPosition,
   onTriggerSubTab,
 }) => {
+  const setPreviewViewport = useStudioStore((s) => s.setPreviewViewport);
   const caps = getCategoryLayoutCapabilities(activeLayout, textPosition, showTitle);
   const dispatchPatch = (patch: Record<string, unknown>) => {
     window.dispatchEvent(new CustomEvent("studio:patch-section-settings", { detail: { sectionId, patch } }));
   };
 
   const handleSelectModel = (modelId: CategoryLayoutType) => {
+    if (activeDevice === "tablet") return dispatchPatch({ layoutTablet: modelId });
+    if (activeDevice === "mobile") return dispatchPatch({ layoutMobile: modelId });
+
     const patch: Record<string, unknown> = { layout: modelId };
     if (modelId === "bubbles") {
       patch.aspectRatio = "circle";
@@ -77,6 +83,11 @@ export const CategoryCanvasQuickBar: React.FC<CategoryCanvasQuickBarProps> = ({
     dispatchPatch(patch);
   };
 
+  const handleSelectSize = (sz: CategoryCardSize) =>
+    dispatchPatch(activeDevice === "tablet" ? { cardSizeTablet: sz } : activeDevice === "mobile" ? { cardSizeMobile: sz } : { cardSize: sz });
+  const handleSelectCols = (col: number) =>
+    dispatchPatch(activeDevice === "tablet" ? { columnsTablet: col } : activeDevice === "mobile" ? { columnsMobile: col } : { columnsDesktop: col });
+
   const handleToggleCategoryCard = (idx: number) => {
     const next = categories.map((cat, i) => (i === idx ? { ...cat, hidden: !cat.hidden } : cat));
     dispatchPatch({ categories: next });
@@ -90,78 +101,73 @@ export const CategoryCanvasQuickBar: React.FC<CategoryCanvasQuickBarProps> = ({
       ? "overlay"
       : "below";
   const canSwitchBelowAndOverlay = ["grid", "overlay", "carousel", "arch"].includes(activeLayout);
+  const colChoices = activeDevice === "mobile" ? caps.recommendedMobileCols : activeDevice === "tablet" ? caps.recommendedTabletCols : caps.recommendedDesktopCols;
+  const supportsColsOnActiveDevice = activeDevice === "mobile" ? caps.supportsColumnsMobile : activeDevice === "tablet" ? caps.supportsColumnsTablet : caps.supportsColumnsDesktop;
 
   return (
-    <div
-      className="mb-3.5 p-2 @[560px]:p-2.5 bg-[#F8FBFC] border border-slate-200/90 rounded-2xl shadow-2xs space-y-2 select-none"
-      onClick={(e) => e.stopPropagation()}
-    >
+    <div className="mb-3.5 p-2 @[560px]:p-2.5 bg-[#F8FBFC] border border-slate-200/90 rounded-2xl shadow-2xs space-y-2 select-none" onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-[10px] @[560px]:text-[11px] font-extrabold text-[#011C40] flex items-center gap-1 mr-0.5">
-            <Layers className="w-3.5 h-3.5 text-[#023859]" />
-            <span>Cartes ({visibleCount}/{categories.length})</span>
+            <Layers className="w-3.5 h-3.5 text-[#023859]" /><span>Cartes ({visibleCount}/{categories.length})</span>
           </span>
 
           <div className="inline-flex items-center bg-white border border-slate-200 rounded-lg p-0.5 gap-0.5">
-            <span className="text-[9px] @[560px]:text-[10px] font-bold text-slate-500 px-1 hidden @[560px]:flex items-center gap-1">
-              <Type className="w-3 h-3 text-[#023859]" />Titre :
-            </span>
-            {canSwitchBelowAndOverlay ? (
-              <>
-                <button type="button" onClick={() => dispatchPatch({ showTitle: true, textPosition: "below" })} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${activeTitleMode === "below" ? "bg-[#023859] text-white" : "text-slate-600 hover:bg-slate-100"}`}>
-                  Sous carte
+            {([
+              { id: "desktop", label: "PC", icon: Monitor },
+              { id: "tablet", label: "Tablette", icon: Tablet },
+              { id: "mobile", label: "Mobile", icon: Smartphone },
+            ] as const).map((dev) => {
+              const Icon = dev.icon;
+              return (
+                <button key={dev.id} type="button" onClick={() => setPreviewViewport(dev.id)} className={`h-6 px-2 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${activeDevice === dev.id ? "bg-[#023859] text-white shadow-2xs" : "text-slate-600 hover:bg-slate-100"}`}>
+                  <Icon className="w-3 h-3" /><span>{dev.label}</span>
                 </button>
-                <button type="button" onClick={() => dispatchPatch({ showTitle: true, textPosition: "overlay-bottom" })} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${activeTitleMode === "overlay" ? "bg-[#023859] text-white" : "text-slate-600 hover:bg-slate-100"}`}>
-                  Sur image
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={() => dispatchPatch({ showTitle: true, textPosition: ["bento", "glass-dock", "accordion"].includes(activeLayout) ? "overlay-bottom" : "below" })}
-                className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${activeTitleMode !== "none" ? "bg-[#023859] text-white" : "text-slate-600 hover:bg-slate-100"}`}
-              >
-                Avec titre
+              );
+            })}
+            {activeDevice !== "desktop" && hasCustomDeviceLayout && (
+              <button type="button" onClick={() => dispatchPatch(activeDevice === "tablet" ? { layoutTablet: "inherit", cardSizeTablet: "inherit" } : { layoutMobile: "inherit", cardSizeMobile: "inherit" })} className="h-6 px-1.5 rounded-md text-[9px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 flex items-center gap-0.5 cursor-pointer" title="Réinitialiser sur le modèle PC">
+                <RotateCcw className="w-2.5 h-2.5" /><span>Sync PC</span>
               </button>
             )}
-            <button type="button" onClick={() => dispatchPatch({ showTitle: false, textPosition: "none" })} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${activeTitleMode === "none" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"}`}>
-              Sans titre
-            </button>
+          </div>
+
+          <div className="inline-flex items-center bg-white border border-slate-200 rounded-lg p-0.5 gap-0.5">
+            <span className="text-[9px] @[560px]:text-[10px] font-bold text-slate-500 px-1 hidden @[560px]:flex items-center gap-1"><Type className="w-3 h-3 text-[#023859]" />Titre :</span>
+            {canSwitchBelowAndOverlay ? (
+              <>
+                <button type="button" onClick={() => dispatchPatch({ showTitle: true, textPosition: "below" })} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${activeTitleMode === "below" ? "bg-[#023859] text-white" : "text-slate-600 hover:bg-slate-100"}`}>Sous carte</button>
+                <button type="button" onClick={() => dispatchPatch({ showTitle: true, textPosition: "overlay-bottom" })} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${activeTitleMode === "overlay" ? "bg-[#023859] text-white" : "text-slate-600 hover:bg-slate-100"}`}>Sur image</button>
+              </>
+            ) : (
+              <button type="button" onClick={() => dispatchPatch({ showTitle: true, textPosition: ["bento", "glass-dock", "accordion"].includes(activeLayout) ? "overlay-bottom" : "below" })} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${activeTitleMode !== "none" ? "bg-[#023859] text-white" : "text-slate-600 hover:bg-slate-100"}`}>Avec titre</button>
+            )}
+            <button type="button" onClick={() => dispatchPatch({ showTitle: false, textPosition: "none" })} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${activeTitleMode === "none" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"}`}>Sans titre</button>
           </div>
         </div>
 
         <div className="flex items-center gap-1 flex-wrap">
-          <button type="button" onClick={(e) => onTriggerSubTab("items", e, 0)} className="h-6 @[560px]:h-7 px-2 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[10px] @[560px]:text-[11px] font-bold flex items-center gap-1 cursor-pointer">
-            <Grid className="w-3 h-3" /><span>Rayons</span>
-          </button>
-          <button type="button" onClick={(e) => onTriggerSubTab("style", e)} className="h-6 @[560px]:h-7 px-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] @[560px]:text-[11px] font-bold flex items-center gap-1 cursor-pointer">
-            <Sliders className="w-3 h-3 text-[#26658C]" /><span>Style</span>
-          </button>
-          <button type="button" onClick={(e) => onTriggerSubTab("presets", e)} className="h-6 @[560px]:h-7 px-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] @[560px]:text-[11px] font-bold flex items-center gap-1 cursor-pointer">
-            <Wand2 className="w-3 h-3 text-[#26658C]" /><span>Packs</span>
-          </button>
+          <button type="button" onClick={(e) => onTriggerSubTab("items", e, 0)} className="h-6 @[560px]:h-7 px-2 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[10px] @[560px]:text-[11px] font-bold flex items-center gap-1 cursor-pointer"><Grid className="w-3 h-3" /><span>Rayons</span></button>
+          <button type="button" onClick={(e) => onTriggerSubTab("style", e)} className="h-6 @[560px]:h-7 px-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] @[560px]:text-[11px] font-bold flex items-center gap-1 cursor-pointer"><Sliders className="w-3 h-3 text-[#26658C]" /><span>Style</span></button>
+          <button type="button" onClick={(e) => onTriggerSubTab("presets", e)} className="h-6 @[560px]:h-7 px-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] @[560px]:text-[11px] font-bold flex items-center gap-1 cursor-pointer"><Wand2 className="w-3 h-3 text-[#26658C]" /><span>Packs</span></button>
         </div>
       </div>
 
       <div className="flex flex-col @[900px]:flex-row items-stretch @[900px]:items-center justify-between gap-2 pt-1.5 border-t border-slate-200/70">
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-0.5">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-0.5 shrink-0">Modèle :</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-0.5 shrink-0">
+            Modèle ({activeDevice === "desktop" ? "PC" : activeDevice === "tablet" ? "Tablette" : "Mobile"}) :
+          </span>
           {QUICK_CARD_MODELS.map((m) => (
-            <button key={m.id} type="button" onClick={() => handleSelectModel(m.id)} className={`h-6 px-2 rounded-md text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${activeLayout === m.id ? "bg-[#023859] text-white shadow-2xs" : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300"}`}>
-              {m.label}
-            </button>
+            <button key={m.id} type="button" onClick={() => handleSelectModel(m.id)} className={`h-6 px-2 rounded-md text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${activeLayout === m.id ? "bg-[#023859] text-white shadow-2xs" : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300"}`}>{m.label}</button>
           ))}
         </div>
 
         <div className="flex items-center justify-between @[560px]:justify-end gap-2 shrink-0 flex-wrap">
-          {caps.supportsColumnsMobile && (
+          {supportsColsOnActiveDevice && (
             <div className="inline-flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
-              <Smartphone className="w-3 h-3 text-[#26658C] ml-1" />
-              {[1, 2].map((col) => (
-                <button key={col} type="button" onClick={() => dispatchPatch({ columnsMobile: col })} className={`h-5 px-1.5 rounded text-[9px] font-bold cursor-pointer ${columnsMobile === col ? "bg-[#023859] text-white" : "text-slate-600 hover:bg-slate-100"}`}>
-                  {col} col.
-                </button>
+              {colChoices.map((col) => (
+                <button key={col} type="button" onClick={() => handleSelectCols(col)} className={`h-5 px-1.5 rounded text-[9px] font-bold cursor-pointer ${columnsActiveDevice === col ? "bg-[#023859] text-white" : "text-slate-600 hover:bg-slate-100"}`}>{col} col.</button>
               ))}
             </div>
           )}
@@ -169,9 +175,7 @@ export const CategoryCanvasQuickBar: React.FC<CategoryCanvasQuickBarProps> = ({
           <div className="flex items-center gap-1 shrink-0">
             <Maximize2 className="w-3 h-3 text-slate-400 shrink-0 hidden @[560px]:block" />
             {QUICK_CARD_SIZES.map((sz) => (
-              <button key={sz.id} type="button" onClick={() => dispatchPatch({ cardSize: sz.id })} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${cardSize === sz.id ? "bg-[#011C40] text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"}`}>
-                {sz.label}
-              </button>
+              <button key={sz.id} type="button" onClick={() => handleSelectSize(sz.id)} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${cardSize === sz.id ? "bg-[#011C40] text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"}`}>{sz.label}</button>
             ))}
           </div>
         </div>

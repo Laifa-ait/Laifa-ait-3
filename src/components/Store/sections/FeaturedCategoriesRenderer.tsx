@@ -2,7 +2,6 @@ import React, { useRef } from "react";
 import { Sparkles } from "lucide-react";
 import {
   CategoryItem,
-  CategoryCardSize,
   CategoryImagePosition,
   CategoryImageFit,
 } from "../../../pages/Seller/StoreBuilder/constants/categoryPresets";
@@ -16,6 +15,8 @@ import {
   resolveCategoryGridCols,
   resolveCategoryGapClass,
   resolveOuterAndMediaRadius,
+  useCategoryContainerDevice,
+  resolveCategoryDeviceProfile,
 } from "./category/categoryResponsiveHelper";
 
 interface FeaturedCategoriesRendererProps {
@@ -45,14 +46,19 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
   isEditable,
   onSelect,
 }) => {
+  const containerRef = useRef<HTMLElement | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
   const rawCategories = Array.isArray(settings.categories)
     ? (settings.categories as CategoryItem[])
     : [];
   const categories = rawCategories.filter((c) => !c.hidden);
 
-  const layout = String(settings.layout || "grid");
-  const aspectRatio = String(settings.aspectRatio || "4/5");
+  const activeDevice = useCategoryContainerDevice(containerRef, undefined, Boolean(isEditable));
+  const deviceProfile = resolveCategoryDeviceProfile(settings, activeDevice);
+
+  const layout = deviceProfile.layout;
+  const cardSize = deviceProfile.cardSize;
+  const aspectRatio = deviceProfile.aspectRatio;
   const borderRadius = String(settings.borderRadius || "md");
   const hoverEffect = String(settings.hoverEffect || "zoom");
   const textPosition = String(
@@ -65,12 +71,17 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
   const showItemCount = Boolean(settings.showItemCount);
   const glassmorphism = Boolean(settings.glassmorphism);
   const cardSkin = String(settings.cardSkin || "editorial");
-  const cardSize = (settings.cardSize as CategoryCardSize) || "balanced";
   const bubbleSize = String(settings.bubbleSize || "md");
   const bubbleRing = String(settings.bubbleRing || "gradient");
   const pillShowImage = settings.pillShowImage !== false;
   const columnsDesktop = Number(settings.columnsDesktop ?? 4);
-  const columnsMobile = Number(settings.columnsMobile ?? 2);
+  const columnsTablet =
+    typeof settings.columnsTablet === "number"
+      ? settings.columnsTablet
+      : columnsDesktop <= 2
+      ? 2
+      : 3;
+  const columnsMobile = Number(settings.columnsMobile ?? (layout === "pills" || layout === "mesh-3d" ? 1 : 2));
   const gapSize = String(settings.gapSize || "normal");
   const imagePosition = (settings.imagePosition as CategoryImagePosition) || "center";
   const imageFit = (settings.imageFit as CategoryImageFit) || "cover";
@@ -110,7 +121,10 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
     columnsDesktop,
     columnsMobile,
     cardSize,
-    "desktop"
+    activeDevice,
+    columnsTablet,
+    layout,
+    categories.length
   );
   const gapClass = resolveCategoryGapClass(gapSize, cardSize);
 
@@ -131,7 +145,9 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
     cardSize,
     cardSkin,
     columnsDesktop,
+    columnsTablet,
     columnsMobile,
+    previewViewport: activeDevice,
     imagePosition,
     imageFit,
     primaryColor: theme.primaryColor,
@@ -144,6 +160,7 @@ export const FeaturedCategoriesRenderer: React.FC<FeaturedCategoriesRendererProp
 
   return (
     <section
+      ref={containerRef}
       onClick={isEditable ? onSelect : undefined}
       className={`@container ${wrapperClass}`}
       style={sectionStyle}

@@ -2,19 +2,15 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { apiGet, apiPut, apiPost } from "../../../../lib/api";
 import { useAuth } from "../../../../context/AuthContext";
 import {
-  StudioDataResponse,
-  StoreConfig,
-  CustomPageSection,
-  CustomPageTheme,
-  StoreHistoryEntry,
-  MediaGalleryItem,
-  CustomPageSectionType,
+  StudioDataResponse, StoreConfig, CustomPageSection, CustomPageTheme,
+  StoreHistoryEntry, MediaGalleryItem, CustomPageSectionType,
 } from "../../../../domains/seller/customPage.types";
 import { Product } from "../../../../domains/product/product.types";
 import { useStudioUndoRedo } from "./useStudioUndoRedo";
 import { useStudioSaveManager } from "./useStudioSaveManager";
 import { useStudioMediaManager } from "./useStudioMediaManager";
 import { useStudioStore } from "../store/useStudioStore";
+import { buildSectorAwareSectionDefaults, DEFAULT_STUDIO_SECTOR } from "../constants/sectorCoherenceDefaults";
 import { toast } from "react-hot-toast";
 
 export type { SaveStatus } from "./useStudioSaveManager";
@@ -30,121 +26,107 @@ export function useSellerStudio() {
 
   const selectedSectionId = useStudioStore((s) => s.selectedSectionId);
   const selectSectionInStore = useStudioStore((s) => s.selectSection);
-  const setSelectedSectionId = useCallback(
-    (id: string | null) => {
-      selectSectionInStore(id);
-    },
-    [selectSectionInStore]
-  );
+  const setSelectedSectionId = useCallback((id: string | null) => selectSectionInStore(id), [selectSectionInStore]);
 
   const initialSectionsRef = useRef<CustomPageSection[]>([]);
-  const isFetchingRef = useRef(false);
-  const hasInitialFetchedRef = useRef(false);
+  const fetchRequestIdRef = useRef(0);
+  const activeUserIdRef = useRef<string | undefined>(currentUser?.uid);
 
   const {
-    saveStatus,
-    setSaveStatus,
-    hasUnsavedChanges,
-    saveDraft,
-    triggerAutoSave,
-    syncServerDraftRevision,
+    saveStatus, setSaveStatus, hasUnsavedChanges, saveDraft, triggerAutoSave,
+    syncServerDraftRevision, recoverableBackup, checkRecoverableBackup, clearLocalBackup,
   } = useStudioSaveManager({
-    backupKey: currentUser?.uid
-      ? `olmart_studio_unsaved_backup_${currentUser.uid}`
-      : "olmart_studio_unsaved_backup",
+    backupKey: currentUser?.uid ? `olmart_studio_unsaved_backup_${currentUser.uid}` : "olmart_studio_unsaved_backup",
   });
 
   const { uploadMedia, deleteMedia } = useStudioMediaManager({
-    userId: currentUser?.uid,
-    mediaGallery,
-    setMediaGallery,
-    setStoreConfig,
+    userId: currentUser?.uid, mediaGallery, setMediaGallery, setStoreConfig,
   });
 
   const handleRestoreThemeFromHistory = useCallback((restoredTheme: CustomPageTheme) => {
     setStoreConfig((prev) => (prev ? { ...prev, theme: restoredTheme } : prev));
-    void apiPut<{ success: boolean; data: StoreConfig }>("/api/v1/seller/store/config", {
-      theme: restoredTheme,
-    }).catch(() => {});
-  }, []);
+    setSaveStatus("saving");
+    void apiPut<{ success: boolean; data: StoreConfig }>("/api/v1/seller/store/config", { theme: restoredTheme })
+      .then((res) => { if (res?.data) setStoreConfig(res.data); setSaveStatus("saved"); })
+      .catch((err: unknown) => {
+        setSaveStatus("error");
+        toast.error(err instanceof Error ? err.message : "Échec de la synchronisation du thème restauré avec le serveur");
+      });
+  }, [setSaveStatus]);
 
   const {
-    sections,
-    setSectionsDirectly,
-    resetHistory,
-    pushState,
-    pushThemeState,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    currentActionLabel,
+    sections, setSectionsDirectly, resetHistory, pushState, pushThemeState,
+    undo, redo, canUndo, canRedo, currentActionLabel,
   } = useStudioUndoRedo(initialSectionsRef.current, triggerAutoSave, {
     storageKey: currentUser?.uid ? `olmart_studio_undo_${currentUser.uid}` : "olmart_studio_undo_session",
     initialTheme: storeConfig?.theme,
     onThemeChange: handleRestoreThemeFromHistory,
   });
 
-  const fetchStudioData = useCallback(
-    async (resetUndoHistory = false) => {
-      if (isFetchingRef.current) return;
-      isFetchingRef.current = true;
-      try {
-        setLoading(true);
-        const [studioRes, prodRes] = await Promise.all([
-          apiGet<{ success: boolean; data: StudioDataResponse }>("/api/v1/seller/studio"),
-          apiGet<{ success: boolean; products: Product[] }>("/api/v1/seller/products").catch(() => ({
-            success: true,
-            products: [],
-          })),
-        ]);
+  const fetchStudioData = useCallback(async (resetUndoHistory = false) => {
+    const reqId = ++fetchRequestIdRef.current;
+    try {
+      setLoading(true);
+      const [studioRes, prodRes] = await Promise.all([
+        apiGet<{ success: boolean; data: StudioDataResponse }>("/api/v1/seller/studio"),
+        apiGet<{ success: boolean; products: Product[] }>("/api/v1/seller/products").catch(() => ({ success: true, products: [] })),
+      ]);
+      if (reqId !== fetchRequestIdRef.current) return;
 
-        if (studioRes?.success && studioRes.data) {
-          setStoreConfig(studioRes.data.storeConfig);
-          const draftSections = studioRes.data.draftLayout?.sections || [];
-          syncServerDraftRevision(studioRes.data.draftLayout?.draftRevision ?? 1);
-          initialSectionsRef.current = draftSections;
-          if (resetUndoHistory) {
-            resetHistory(draftSections, studioRes.data.storeConfig?.theme, "Version restaurée");
-          } else {
-            setSectionsDirectly(draftSections, studioRes.data.storeConfig?.theme);
-          }
-          setHistoryList(studioRes.data.historyList || []);
-          setMediaGallery(studioRes.data.mediaGallery || []);
-          setPublishedLayout(studioRes.data.publishedLayout || null);
-          if (draftSections.length > 0) {
-            setSelectedSectionId(draftSections[0].id);
-          }
-        }
-        if (prodRes && Array.isArray(prodRes.products)) {
-          setProducts(prodRes.products);
-        }
-      } catch (err: unknown) {
-        toast.error(err instanceof Error ? err.message : "Erreur lors du chargement du Studio");
-      } finally {
-        isFetchingRef.current = false;
-        setLoading(false);
+      if (studioRes?.success && studioRes.data) {
+        setStoreConfig(studioRes.data.storeConfig);
+        const draftSections = studioRes.data.draftLayout?.sections || [];
+        syncServerDraftRevision(studioRes.data.draftLayout?.draftRevision ?? 1);
+        initialSectionsRef.current = draftSections;
+        if (resetUndoHistory) resetHistory(draftSections, studioRes.data.storeConfig?.theme, "Version restaurée");
+        else setSectionsDirectly(draftSections, studioRes.data.storeConfig?.theme, false);
+        setHistoryList(studioRes.data.historyList || []);
+        setMediaGallery(studioRes.data.mediaGallery || []);
+        setPublishedLayout(studioRes.data.publishedLayout || null);
+        if (draftSections.length > 0) setSelectedSectionId(draftSections[0].id);
+        checkRecoverableBackup(studioRes.data.draftLayout?.updatedAt, draftSections);
       }
-    },
-    [resetHistory, setSectionsDirectly, setSelectedSectionId, syncServerDraftRevision]
-  );
+      if (prodRes && Array.isArray(prodRes.products)) setProducts(prodRes.products);
+    } catch (err: unknown) {
+      if (reqId !== fetchRequestIdRef.current) return;
+      toast.error(err instanceof Error ? err.message : "Erreur lors du chargement du Studio");
+    } finally {
+      if (reqId === fetchRequestIdRef.current) setLoading(false);
+    }
+  }, [checkRecoverableBackup, resetHistory, setSectionsDirectly, setSelectedSectionId, syncServerDraftRevision]);
 
   useEffect(() => {
-    if (hasInitialFetchedRef.current) return;
-    hasInitialFetchedRef.current = true;
+    const uid = currentUser?.uid;
+    if (activeUserIdRef.current !== uid) {
+      activeUserIdRef.current = uid;
+      setStoreConfig(null);
+      setProducts([]);
+      setHistoryList([]);
+      setMediaGallery([]);
+      setPublishedLayout(null);
+      resetHistory([], undefined, "Changement de session");
+    }
     void fetchStudioData();
-  }, [fetchStudioData]);
+  }, [currentUser?.uid, fetchStudioData, resetHistory]);
+
+  const applyRecoveredBackup = useCallback(() => {
+    if (!recoverableBackup) return;
+    pushState(recoverableBackup.sections, undefined, "Restauration sauvegarde locale");
+    clearLocalBackup();
+    toast.success("Modifications locales non sauvegardées restaurées !");
+  }, [clearLocalBackup, pushState, recoverableBackup]);
+
+  const dismissRecoveredBackup = useCallback(() => { clearLocalBackup(); }, [clearLocalBackup]);
 
   const addSection = (type: CustomPageSectionType, defaultSettings: Record<string, unknown>, defaultTitle?: string) => {
     const title = defaultTitle || `Section ${type}`;
+    const activeSector = storeConfig?.theme?.sector || DEFAULT_STUDIO_SECTOR;
+    const coherentSettings = buildSectorAwareSectionDefaults(type, defaultSettings, activeSector, storeConfig?.wilaya || "Alger", products);
     const newSection: CustomPageSection = {
-      id: `sec_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      type,
-      title,
-      settings: defaultSettings as unknown as CustomPageSection["settings"],
+      id: `sec_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, type, title,
+      settings: coherentSettings as unknown as CustomPageSection["settings"],
       styles: { containerWidth: "contained", paddingY: "md", borderRadius: "none" },
-      isVisible: true,
-      order: sections.length,
+      isVisible: true, order: sections.length,
     };
     pushState([...sections, newSection], undefined, `Ajout section: ${title}`);
     setSelectedSectionId(newSection.id);
@@ -222,9 +204,7 @@ export function useSellerStudio() {
     try {
       setSaveStatus("saving");
       const confirmedRevision = await saveDraft(sections);
-      if (confirmedRevision === null) {
-        return;
-      }
+      if (confirmedRevision === null) return;
       await apiPost("/api/v1/seller/studio/layout/publish", {
         changeSummary: changeSummary || "Mise en ligne de la vitrine",
         expectedRevision: confirmedRevision,
@@ -252,12 +232,17 @@ export function useSellerStudio() {
     }
   };
 
+  const saveDraftNow = useCallback(async () => {
+    return await saveDraft(sections);
+  }, [saveDraft, sections]);
+
   return {
     loading, saveStatus, storeConfig, sections, products, historyList, mediaGallery,
     publishedLayout, selectedSectionId, setSelectedSectionId, hasUnsavedChanges,
+    recoverableBackup, applyRecoveredBackup, dismissRecoveredBackup,
     addSection, updateSection, reorderSections, deleteSection, duplicateSection,
     toggleVisibility, replaceSections, saveStoreConfig, uploadMedia, deleteMedia,
-    publishStudio, rollbackVersion, triggerAutoSave, refreshData: fetchStudioData,
+    publishStudio, rollbackVersion, saveDraftNow, triggerAutoSave, refreshData: fetchStudioData,
     undo, redo, canUndo, canRedo, currentActionLabel,
   };
 }

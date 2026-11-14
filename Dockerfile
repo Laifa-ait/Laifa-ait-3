@@ -55,11 +55,12 @@ RUN npm ci --omit=dev || npm install --omit=dev --no-audit --no-fund
 
 # Copy built assets and assets required at runtime from builder with node ownership
 COPY --from=builder --chown=node:node /app/dist ./dist
+COPY --from=builder --chown=node:node /app/dist-server ./dist-server
 COPY --from=builder --chown=node:node /app/public ./public
 COPY --from=builder --chown=node:node /app/server.ts ./server.ts
 
 # Security Hardening: Revoke write permissions on static assets to prevent tampering/injection
-RUN chmod -R a-w dist public
+RUN chmod -R a-w dist dist-server public
 
 # Set non-root user
 USER node

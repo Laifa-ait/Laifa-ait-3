@@ -1,5 +1,7 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
-import React from "react";
+import React, { act } from "react";
+import { createRoot } from "react-dom/client";
 import { StoreSectionRenderer } from "../components/Store/sections/StoreSectionRenderer";
 import { CustomPageSection, CustomPageTheme } from "../domains/seller/customPage.types";
 import { Product } from "../domains/product/product.types";
@@ -92,13 +94,22 @@ describe("Store Studio Frontend Components (Phase 2B)", () => {
       order: 2,
     };
 
-    const rendered = StoreSectionRenderer({
-      section: hiddenSection,
-      theme: mockTheme,
-      products: [],
-      isEditable: false,
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    act(() => {
+      root.render(
+        <StoreSectionRenderer
+          section={hiddenSection}
+          theme={mockTheme}
+          products={[]}
+          isEditable={false}
+        />
+      );
     });
 
-    expect(rendered).toBeNull();
+    expect(container.innerHTML).toBe("");
+    act(() => {
+      root.unmount();
+    });
   });
 });

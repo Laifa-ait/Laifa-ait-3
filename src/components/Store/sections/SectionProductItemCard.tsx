@@ -25,6 +25,12 @@ interface SectionProductItemCardProps {
   imagePosition: string;
   imageFit: string;
   accentColor: string;
+  cardBgColor?: string;
+  cardTextColor?: string;
+  cardBorderColor?: string;
+  priceColor?: string;
+  badgeBgColor?: string;
+  badgeTextColor?: string;
   cardMaterial?: ArtisticCardMaterial;
   frameShape?: ArtisticFrameShape;
   showCategory?: boolean;
@@ -39,13 +45,25 @@ interface SectionProductItemCardProps {
   triggerDesignFocus?: (e: React.MouseEvent, focusTarget: string) => void;
 }
 
-function resolveProductCardStyleTokens(cardStyle: string, isHorizontalList: boolean, isArchShape: boolean, primaryColor: string) {
+function resolveProductCardStyleTokens(
+  cardStyle: string,
+  isHorizontalList: boolean,
+  isArchShape: boolean,
+  primaryColor: string,
+  cardBgColor?: string,
+  cardBorderColor?: string
+) {
+  const customOuterStyle: React.CSSProperties = {
+    ...(cardBgColor ? { backgroundColor: cardBgColor } : {}),
+    ...(cardBorderColor ? { borderColor: cardBorderColor } : {}),
+  };
+
   if (cardStyle === "minimal") {
     return {
       outer: "bg-transparent border-transparent shadow-none p-0 transition-all duration-300 hover:-translate-y-0.5",
       media: isArchShape ? "rounded-t-[999px] rounded-b-xl" : "rounded-2xl",
       body: isHorizontalList ? "py-1 pr-1 flex-1" : "pt-3 pb-1 px-0.5",
-      outerStyle: {} as React.CSSProperties,
+      outerStyle: customOuterStyle,
     };
   }
   if (cardStyle === "bordered") {
@@ -55,7 +73,7 @@ function resolveProductCardStyleTokens(cardStyle: string, isHorizontalList: bool
       }`,
       media: `${isArchShape ? "rounded-t-[999px] rounded-b-xl" : "rounded-xl"} ring-1 ring-black/10`,
       body: isHorizontalList ? "py-1 pr-1 flex-1" : "pt-3 pb-1 px-1",
-      outerStyle: { borderColor: `${primaryColor}55` } as React.CSSProperties,
+      outerStyle: { borderColor: cardBorderColor || `${primaryColor}55`, ...customOuterStyle },
     };
   }
   if (cardStyle === "elevated") {
@@ -65,16 +83,16 @@ function resolveProductCardStyleTokens(cardStyle: string, isHorizontalList: bool
       }`,
       media: isArchShape ? "rounded-t-[999px] rounded-b-xl" : "rounded-2xl",
       body: isHorizontalList ? "py-1 pr-2 flex-1" : "pt-3.5 pb-1.5 px-1.5",
-      outerStyle: {} as React.CSSProperties,
+      outerStyle: customOuterStyle,
     };
   }
   return {
-    outer: `bg-[var(--store-surface,#FFFFFF)] border border-slate-200/90 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 overflow-hidden ${
+    outer: `bg-[var(--store-surface,#FFFFFF)] border border-[var(--store-border,#E4E7EC)] shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 overflow-hidden ${
       isHorizontalList ? "p-2.5 rounded-2xl" : isArchShape ? "rounded-t-[999px] rounded-b-2xl" : "rounded-2xl"
     }`,
     media: isHorizontalList ? "rounded-xl" : isArchShape ? "rounded-t-[999px]" : "rounded-t-2xl rounded-b-none",
     body: isHorizontalList ? "py-1 pr-2 flex-1" : "p-3 @sm:p-3.5",
-    outerStyle: {} as React.CSSProperties,
+    outerStyle: customOuterStyle,
   };
 }
 
@@ -86,6 +104,12 @@ export const SectionProductItemCard: React.FC<SectionProductItemCardProps> = ({
   imagePosition = "center",
   imageFit = "cover",
   accentColor,
+  cardBgColor,
+  cardTextColor,
+  cardBorderColor,
+  priceColor,
+  badgeBgColor,
+  badgeTextColor,
   frameShape,
   showCategory = true,
   showStockBadge = true,
@@ -122,12 +146,15 @@ export const SectionProductItemCard: React.FC<SectionProductItemCardProps> = ({
   const stockCount = typeof product.stock === "number" ? Math.max(0, product.stock) : 1;
   const reviewsCount = Number(product.stats?.reviewCount || 0);
   const ratingValue = Number(product.stats?.averageRating || product.rating || 5);
-  const primaryColor = accentColor || theme.accentColor || theme.primaryColor || "#023859";
-  const titleColor = theme.secondaryColor || "#18181B";
+  const primaryColor = accentColor || theme.accentColor || theme.primaryColor || "var(--store-primary, #B45309)";
+  const titleColor = cardTextColor || theme.secondaryColor || "var(--store-secondary, #18181B)";
+  const resolvedPriceColor = priceColor || theme.priceColor || titleColor;
+  const resolvedBadgeBg = badgeBgColor || theme.accentBadgeColor || primaryColor;
+  const resolvedBadgeText = badgeTextColor || theme.badgeTextColor || "#FFFFFF";
 
   const isArchShape = !isHorizontalList && effectiveShape === "casbah-arch";
   const isPolaroid = !isHorizontalList && effectiveShape === "polaroid-atelier";
-  const styleTokens = resolveProductCardStyleTokens(cardStyle, isHorizontalList, isArchShape, primaryColor);
+  const styleTokens = resolveProductCardStyleTokens(cardStyle, isHorizontalList, isArchShape, primaryColor, cardBgColor, cardBorderColor);
 
   const statusPillText =
     stockCount <= 0 ? "Rupture" : showCompareAtPrice !== false && discountPct > 0 ? `-${discountPct}%` : stockCount <= 3 ? `Plus que ${stockCount}` : showStockBadge ? "En stock" : null;
@@ -136,8 +163,10 @@ export const SectionProductItemCard: React.FC<SectionProductItemCardProps> = ({
 
   return (
     <article
+      id={`product-${product.id}`}
       onClick={(e) => (isEditable ? triggerDesignFocus?.(e, "selection") : navigate(`/product/${product.id}`))}
       style={styleTokens.outerStyle}
+      data-testid="section-product-card"
       data-artistic-frame={effectiveShape}
       data-card-style={cardStyle}
       className={`group relative flex ${isHorizontalList ? "flex-row items-center gap-3.5 @sm:gap-5" : "flex-col h-full"} cursor-pointer select-none ${styleTokens.outer}`}
@@ -154,6 +183,7 @@ export const SectionProductItemCard: React.FC<SectionProductItemCardProps> = ({
             src={primaryImgUrl}
             alt=""
             loading="lazy"
+            style={{ filter: "var(--section-image-filter, none)" }}
             onError={() => setImgBroken(true)}
             className={`w-full h-full transition-transform duration-700 ease-out group-hover:scale-105 ${posClass} ${fitClass}`}
           />
@@ -165,14 +195,15 @@ export const SectionProductItemCard: React.FC<SectionProductItemCardProps> = ({
         )}
 
         {(cardStyle === "bordered" || frameVisuals.showDoubleGalleryBorder) && !isHorizontalList && (
-          <div className="pointer-events-none absolute inset-2 border z-10 rounded-lg" style={{ borderColor: `${primaryColor}55` }} />
+          <div className="pointer-events-none absolute inset-2 border z-10 rounded-lg" style={{ borderColor: cardBorderColor || `${primaryColor}55` }} />
         )}
 
         {showStockBadge && statusPillText && (
           <div className={`pointer-events-none absolute z-20 ${isArchShape ? "bottom-2.5 left-1/2 -translate-x-1/2" : "bottom-2.5 left-2.5"}`}>
             <span
-              style={{ backgroundColor: stockCount <= 0 ? "#be123c" : primaryColor }}
-              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-[0.12em] text-white border border-white/25 shadow-sm whitespace-nowrap"
+              data-testid="product-card-badge"
+              style={{ backgroundColor: stockCount <= 0 ? "#be123c" : resolvedBadgeBg, color: resolvedBadgeText }}
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-[0.12em] border border-white/25 shadow-sm whitespace-nowrap"
             >
               {statusPillText}
             </span>
@@ -191,6 +222,7 @@ export const SectionProductItemCard: React.FC<SectionProductItemCardProps> = ({
             {showStarRating && ratingValue > 0 && <ProductStarRating rating={ratingValue} reviewsCount={reviewsCount} />}
           </div>
           <h4
+            data-testid="product-card-title"
             className={`${isHorizontalList ? "text-sm @sm:text-base font-bold line-clamp-2" : "text-sm font-semibold line-clamp-1"} leading-snug mt-1 transition-opacity group-hover:opacity-80 ${isPolaroid ? "italic font-serif" : ""}`}
             style={{ color: titleColor }}
           >
@@ -206,9 +238,13 @@ export const SectionProductItemCard: React.FC<SectionProductItemCardProps> = ({
           )}
         </div>
 
-        <div className="mt-2.5 flex items-baseline justify-between gap-2 pt-1.5 border-t border-black/[0.04]">
+        <div className="mt-2.5 flex items-baseline justify-between gap-2 pt-1.5 border-t border-black/[0.04]" style={{ borderColor: cardBorderColor || undefined }}>
           <div className="flex flex-wrap items-baseline gap-1.5 min-w-0">
-            <span className="text-sm @sm:text-base font-extrabold tracking-tight tabular-nums whitespace-nowrap" style={{ color: titleColor }}>
+            <span
+              data-testid="product-card-price"
+              className="text-sm @sm:text-base font-extrabold tracking-tight tabular-nums whitespace-nowrap"
+              style={{ color: resolvedPriceColor }}
+            >
               {displayPrice.toLocaleString("fr-DZ")} DA
             </span>
             {showCompareAtPrice !== false && comparePrice && comparePrice > displayPrice && (

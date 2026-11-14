@@ -1,4 +1,5 @@
 import { Response, Router } from "express";
+import NodeCache from "node-cache";
 import { z } from "zod";
 import path from "path";
 import { admin, db } from "../../config/firebase-admin";
@@ -6,6 +7,10 @@ import { AuthenticatedRequest, authenticateToken } from "../../middlewares/auth"
 import { validateRequest } from "../../middlewares/validation";
 import { safeLogger } from "../../utils/logger";
 import { DocumentCategory, UserDocumentDTO, UserDataConsentPreferences } from "../../types/documents";
+import { isFirestoreQuotaError } from "../../utils/firestoreTimeout";
+
+const consentServerCache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
+const isServerCacheEnabled = () => process.env.NODE_ENV !== "test" && !process.env.VITEST;
 
 const RecordDocumentSchema = z.object({
   category: z.enum([
@@ -42,17 +47,12 @@ export const userDocumentsRouter = Router();
 // 1. GET /api/v1/user-documents/my - List user's documents
 userDocumentsRouter.get("/my", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.uid;
-  if (!userId) {
-    return res.status(401).json({ success: false, error: "Non authentifié" });
-  }
+  if (!userId) return res.status(401).json({ success: false, error: "Non authentifié" });
 
   try {
     const category = req.query.category as DocumentCategory | undefined;
     let query: FirebaseFirestore.Query = db.collection("user_documents").where("userId", "==", userId);
-
-    if (category) {
-      query = query.where("category", "==", category);
-    }
+    if (category) query = query.where("category", "==", category);
 
     const snapshot = await query.orderBy("createdAt", "desc").get();
     const documents: UserDocumentDTO[] = snapshot.docs.map((doc) => {
@@ -76,6 +76,10 @@ userDocumentsRouter.get("/my", authenticateToken, async (req: AuthenticatedReque
     safeLogger.info(`[UserDocuments] 🟢 ${documents.length} document(s) récupéré(s) pour uid=${userId}`);
     return res.json({ success: true, data: documents });
   } catch (err) {
+    if (isFirestoreQuotaError(err)) {
+      safeLogger.warn("[UserDocuments] ⚠️ Quota Firestore atteint sur GET /my — retour liste vide.");
+      return res.json({ success: true, data: [], degraded: true });
+    }
     safeLogger.error("[UserDocuments] ❌ Erreur récupération documents", { error: err });
     return res.status(500).json({ success: false, error: "Erreur serveur lors de la récupération des documents" });
   }
@@ -88,13 +92,9 @@ userDocumentsRouter.post(
   validateRequest(RecordDocumentSchema),
   async (req: AuthenticatedRequest, res: Response) => {
     const userId = req.user?.uid;
-    if (!userId) {
-      return res.status(401).json({ success: false, error: "Non authentifié" });
-    }
+    if (!userId) return res.status(401).json({ success: false, error: "Non authentifié" });
 
     const body = req.body as z.infer<typeof RecordDocumentSchema>;
-
-    // Strict path verification: path must start with user_documents/{userId}/ after posix normalization
     const expectedPrefix = `user_documents/${userId}/`;
     const normalizedStoragePath = path.posix.normalize(body.storagePath);
     if (!normalizedStoragePath.startsWith(expectedPrefix) || normalizedStoragePath.includes("..")) {
@@ -102,36 +102,24 @@ userDocumentsRouter.post(
       return res.status(403).json({ success: false, error: "Accès refusé : chemin de stockage non autorisé" });
     }
 
-    // Sanitize file name (strip directory traversal & HTML injection tokens)
     const sanitizedFileName = path.basename(body.fileName).replace(/[<>"'`;\\/]/g, "_");
-
     let verifiedSize = body.fileSize;
     let verifiedMime = body.mimeType;
 
-    // Server-side verification of physical object in Firebase Storage
     try {
       if (admin && admin.apps && admin.apps.length > 0) {
         const bucket = admin.storage().bucket();
         const file = bucket.file(body.storagePath);
         const [exists] = await file.exists();
-
         if (exists) {
           const [metadata] = await file.getMetadata();
-          if (metadata.size) {
-            verifiedSize = parseInt(String(metadata.size), 10);
-          }
-          if (metadata.contentType) {
-            verifiedMime = metadata.contentType;
-          }
-          safeLogger.info(`[UserDocuments] 🔐 Métadonnées Storage vérifiées côté serveur pour ${body.storagePath} (size: ${verifiedSize} bytes)`);
+          if (metadata.size) verifiedSize = parseInt(String(metadata.size), 10);
+          if (metadata.contentType) verifiedMime = metadata.contentType;
         } else {
-          // If storage bucket is accessible and file physically does not exist, reject fraudulent record
-          safeLogger.warn(`[UserDocuments] ⚠️ Fichier introuvable sur Firebase Storage pour storagePath: ${body.storagePath}`);
           return res.status(404).json({ success: false, error: "Fichier introuvable sur le stockage distant" });
         }
       }
     } catch (storageErr) {
-      // In testing or emulator mode without storage credentials, log warning and preserve validated payload
       safeLogger.warn("[UserDocuments] ⚠️ Impossible de vérifier physiquement le fichier sur Storage (mode secours)", {
         err: storageErr instanceof Error ? storageErr.message : String(storageErr),
       });
@@ -155,23 +143,12 @@ userDocumentsRouter.post(
       };
 
       await docRef.set(newDoc);
-
       const createdDTO: UserDocumentDTO = {
         id: docRef.id,
-        userId: newDoc.userId,
-        category: newDoc.category,
-        fileName: newDoc.fileName,
-        fileSize: newDoc.fileSize,
-        mimeType: newDoc.mimeType,
-        downloadUrl: newDoc.downloadUrl,
-        storagePath: newDoc.storagePath,
-        description: newDoc.description,
-        isVerified: newDoc.isVerified,
+        ...newDoc,
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
       };
-
-      safeLogger.info(`[UserDocuments] 🟢 Document enregistré: ${docRef.id} pour uid=${userId}`);
       return res.status(201).json({ success: true, data: createdDTO });
     } catch (err) {
       safeLogger.error("[UserDocuments] ❌ Erreur enregistrement document", { error: err });
@@ -185,16 +162,11 @@ userDocumentsRouter.delete("/:id", authenticateToken, async (req: AuthenticatedR
   const userId = req.user?.uid;
   const docId = req.params.id;
   const isAdmin = req.user?.role === "admin" || req.user?.admin === true;
-
-  if (!userId) {
-    return res.status(401).json({ success: false, error: "Non authentifié" });
-  }
+  if (!userId) return res.status(401).json({ success: false, error: "Non authentifié" });
 
   try {
     const docSnap = await db.collection("user_documents").doc(docId).get();
-    if (!docSnap.exists) {
-      return res.status(404).json({ success: false, error: "Document introuvable" });
-    }
+    if (!docSnap.exists) return res.status(404).json({ success: false, error: "Document introuvable" });
 
     const docData = docSnap.data();
     if (docData?.userId !== userId && !isAdmin) {
@@ -202,23 +174,16 @@ userDocumentsRouter.delete("/:id", authenticateToken, async (req: AuthenticatedR
       return res.status(403).json({ success: false, error: "Accès refusé" });
     }
 
-    // Delete Firestore document
     await db.collection("user_documents").doc(docId).delete();
-
-    // Optionally delete physical Storage object if storagePath is present
     if (docData?.storagePath) {
       try {
         if (admin && admin.apps && admin.apps.length > 0) {
-          const bucket = admin.storage().bucket();
-          await bucket.file(docData.storagePath).delete({ ignoreNotFound: true });
-          safeLogger.info(`[UserDocuments] 🗑️ Fichier Storage supprimé: ${docData.storagePath}`);
+          await admin.storage().bucket().file(docData.storagePath).delete({ ignoreNotFound: true });
         }
       } catch (storageDelErr) {
         safeLogger.warn("[UserDocuments] ⚠️ Avertissement suppression Storage physique", { err: String(storageDelErr) });
       }
     }
-
-    safeLogger.info(`[UserDocuments] 🟢 Document supprimé: ${docId} par uid=${userId}`);
     return res.json({ success: true, message: "Document supprimé avec succès" });
   } catch (err) {
     safeLogger.error("[UserDocuments] ❌ Erreur suppression document", { error: err });
@@ -229,17 +194,23 @@ userDocumentsRouter.delete("/:id", authenticateToken, async (req: AuthenticatedR
 // 4. GET /api/v1/user-documents/consent - Get user consent state
 userDocumentsRouter.get("/consent", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.uid;
-  if (!userId) {
-    return res.status(401).json({ success: false, error: "Non authentifié" });
-  }
+  if (!userId) return res.status(401).json({ success: false, error: "Non authentifié" });
 
+  const cacheKey = `consent:${userId}`;
   try {
-    const consentSnap = await db.collection("users").doc(userId).collection("consents").doc("privacy").get();
-    if (!consentSnap.exists) {
-      return res.json({ success: true, data: null });
+    if (isServerCacheEnabled() && consentServerCache.has(cacheKey)) {
+      const cached = consentServerCache.get<UserDataConsentPreferences | null>(cacheKey);
+      return res.json({ success: true, data: cached ?? null });
     }
-    return res.json({ success: true, data: consentSnap.data() as UserDataConsentPreferences });
+    const consentSnap = await db.collection("users").doc(userId).collection("consents").doc("privacy").get();
+    const consentData = consentSnap.exists ? (consentSnap.data() as UserDataConsentPreferences) : null;
+    if (isServerCacheEnabled()) consentServerCache.set(cacheKey, consentData);
+    return res.json({ success: true, data: consentData });
   } catch (err) {
+    if (isFirestoreQuotaError(err)) {
+      safeLogger.warn("[UserDocuments] ⚠️ Quota Firestore atteint sur GET /consent — retour null.");
+      return res.json({ success: true, data: null, degraded: true });
+    }
     safeLogger.error("[UserDocuments] ❌ Erreur récupération consentement", { error: err });
     return res.status(500).json({ success: false, error: "Erreur serveur" });
   }
@@ -252,16 +223,19 @@ userDocumentsRouter.post(
   validateRequest(ConsentSchema),
   async (req: AuthenticatedRequest, res: Response) => {
     const userId = req.user?.uid;
-    if (!userId) {
-      return res.status(401).json({ success: false, error: "Non authentifié" });
-    }
+    if (!userId) return res.status(401).json({ success: false, error: "Non authentifié" });
 
     const body = req.body as UserDataConsentPreferences;
     try {
       await db.collection("users").doc(userId).collection("consents").doc("privacy").set(body, { merge: true });
+      if (isServerCacheEnabled()) consentServerCache.set(`consent:${userId}`, body);
       safeLogger.info(`[UserDocuments] 🟢 Consentement enregistré pour uid=${userId}`);
       return res.json({ success: true, data: body });
     } catch (err) {
+      if (isFirestoreQuotaError(err)) {
+        safeLogger.warn("[UserDocuments] ⚠️ Quota Firestore atteint sur POST /consent.");
+        return res.json({ success: true, data: body, degraded: true });
+      }
       safeLogger.error("[UserDocuments] ❌ Erreur enregistrement consentement", { error: err });
       return res.status(500).json({ success: false, error: "Erreur serveur" });
     }

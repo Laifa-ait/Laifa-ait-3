@@ -9,43 +9,68 @@ import { useAuth } from "../../context/AuthContext";
 import { apiPost } from "../../lib/api";
 import { WifiOff } from "lucide-react";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
+import { lazyWithRetry } from "../../utils/lazyWithRetry";
 
 // Lazy-loaded drawers, modals, and specialized ecosystem navigation bars
-const ArtisanMobileBottomNav = React.lazy(() =>
-  import("../artisans/ArtisanMobileBottomNav").then((m) => ({ default: m.ArtisanMobileBottomNav }))
+const ArtisanMobileBottomNav = lazyWithRetry(
+  () => import("../artisans/ArtisanMobileBottomNav"),
+  "ArtisanMobileBottomNav",
+  { fallbackToNull: true }
 );
-const OlmaAutoNavbar = React.lazy(() =>
-  import("../Auto/OlmaAutoNavbar").then((m) => ({ default: m.OlmaAutoNavbar }))
+const OlmaAutoNavbar = lazyWithRetry(
+  () => import("../Auto/OlmaAutoNavbar"),
+  "OlmaAutoNavbar",
+  { fallbackToNull: true }
 );
-const OlmaAutoBottomNav = React.lazy(() =>
-  import("../Auto/OlmaAutoBottomNav").then((m) => ({ default: m.OlmaAutoBottomNav }))
+const OlmaAutoBottomNav = lazyWithRetry(
+  () => import("../Auto/OlmaAutoBottomNav"),
+  "OlmaAutoBottomNav",
+  { fallbackToNull: true }
 );
-const CartDrawer = React.lazy(() =>
-  import("../Cart/CartDrawer").then((m) => ({ default: m.CartDrawer }))
+const CartDrawer = lazyWithRetry(
+  () => import("../Cart/CartDrawer"),
+  "CartDrawer",
+  { fallbackToNull: true }
 );
-const WishlistDrawer = React.lazy(() =>
-  import("../Wishlist/WishlistDrawer").then((m) => ({ default: m.WishlistDrawer }))
+const WishlistDrawer = lazyWithRetry(
+  () => import("../Wishlist/WishlistDrawer"),
+  "WishlistDrawer",
+  { fallbackToNull: true }
 );
-const ComparatorDrawer = React.lazy(() =>
-  import("../Comparator/ComparatorDrawer").then((m) => ({ default: m.ComparatorDrawer }))
+const ComparatorDrawer = lazyWithRetry(
+  () => import("../Comparator/ComparatorDrawer"),
+  "ComparatorDrawer",
+  { fallbackToNull: true }
 );
-const MobileMenu = React.lazy(() =>
-  import("./MobileMenu").then((m) => ({ default: m.MobileMenu }))
+const MobileMenu = lazyWithRetry(
+  () => import("./MobileMenu"),
+  "MobileMenu",
+  { fallbackToNull: true }
 );
-const SearchOverlay = React.lazy(() =>
-  import("../Search/SearchOverlay").then((m) => ({ default: m.SearchOverlay }))
+const SearchOverlay = lazyWithRetry(
+  () => import("../Search/SearchOverlay"),
+  "SearchOverlay",
+  { fallbackToNull: true }
 );
-const RecentlyViewedDrawer = React.lazy(() =>
-  import("../RecentlyViewed/RecentlyViewedDrawer").then((m) => ({ default: m.RecentlyViewedDrawer }))
+const RecentlyViewedDrawer = lazyWithRetry(
+  () => import("../RecentlyViewed/RecentlyViewedDrawer"),
+  "RecentlyViewedDrawer",
+  { fallbackToNull: true }
 );
-const VerificationModal = React.lazy(() =>
-  import("../Auth/VerificationModal").then((m) => ({ default: m.VerificationModal }))
+const VerificationModal = lazyWithRetry(
+  () => import("../Auth/VerificationModal"),
+  "VerificationModal",
+  { fallbackToNull: true }
 );
-const AuthModal = React.lazy(() =>
-  import("../Auth/AuthModal").then((m) => ({ default: m.AuthModal }))
+const AuthModal = lazyWithRetry(
+  () => import("../Auth/AuthModal"),
+  "AuthModal",
+  { fallbackToNull: true }
 );
-const GoogleAccountMenu = React.lazy(() =>
-  import("../Buyer/GoogleAccountMenu").then((m) => ({ default: m.GoogleAccountMenu }))
+const GoogleAccountMenu = lazyWithRetry(
+  () => import("../Buyer/GoogleAccountMenu"),
+  "GoogleAccountMenu",
+  { fallbackToNull: true }
 );
 
 interface LayoutProps {

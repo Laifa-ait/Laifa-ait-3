@@ -16,8 +16,10 @@ export const FooterBottomBar: React.FC<FooterBottomBarProps> = ({
       <div className="flex items-center gap-2 text-center sm:text-start">
         <span className="font-semibold text-[11px] text-white">
           © {new Date().getFullYear()}{" "}
-          {t("footer_copyright") ||
-            "Olmart Marketplace Algérie. Tous droits réservés."}
+          {t(
+            "footer_copyright",
+            "Olmart Marketplace Algérie. Tous droits réservés."
+          )}
         </span>
         {supportEmail && (
           <span className="text-[10px] text-[#E99856] font-mono hidden sm:inline">
@@ -28,7 +30,12 @@ export const FooterBottomBar: React.FC<FooterBottomBarProps> = ({
 
       <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#161429] border border-[#E99856]/30 text-[10px] font-bold text-[#E0B4B2] shadow-sm">
         <Handshake className="w-3.5 h-3.5 text-[#E99856] shrink-0" />
-        <span>Plateforme d&apos;intermédiation Acheteurs & Vendeurs indépendants</span>
+        <span>
+          {t(
+            "footer_intermediation_badge",
+            "Plateforme d'intermédiation Acheteurs & Vendeurs indépendants"
+          )}
+        </span>
       </div>
     </div>
   );

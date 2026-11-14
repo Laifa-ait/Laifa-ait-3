@@ -1,222 +1,222 @@
-import React, { useEffect, useState, useRef } from "react";
-import { MediaGalleryItem } from "../../../../../domains/seller/customPage.types";
+import React, { useState, useRef } from "react";
 import {
-  Upload,
-  Search,
-  Trash2,
-  CheckCircle2,
-  FileImage,
-  LoaderCircle,
-} from "lucide-react";
-import { toast } from "react-hot-toast";
+  CustomPageSection,
+  MediaFolderCategory,
+  MediaGalleryItem,
+  SellerStoreConfig,
+} from "../../../../../domains/seller/customPage.types";
+import { Image as ImageIcon, Loader2, Search, Upload } from "lucide-react";
 import { MediaCard } from "./MediaCard";
+import { MediaSelectedInspector } from "./MediaSelectedInspector";
 
 interface MediaInspectorPanelProps {
   mediaGallery: MediaGalleryItem[];
+  sections?: CustomPageSection[];
+  storeConfig?: SellerStoreConfig | null;
   onSelectMediaUrl?: (url: string) => void;
   onUploadMedia?: (file: File) => Promise<MediaGalleryItem>;
   onDeleteMedia?: (id: string) => Promise<void>;
+  onSaveConfig?: (updatedConfig: Partial<SellerStoreConfig>) => Promise<void>;
 }
+
+const ALLOWED_MIMES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+
+export function findMediaUsageInSections(
+  url: string,
+  sections: CustomPageSection[] = [],
+  storeConfig?: SellerStoreConfig | null
+): string[] {
+  const cleanUrl = (url || "").trim();
+  if (!cleanUrl) return [];
+  const usages: string[] = [];
+
+  if (storeConfig?.logoUrl === cleanUrl) usages.push("Logo de la boutique");
+  if (storeConfig?.bannerUrl === cleanUrl) usages.push("Bannière de profil");
+  if (storeConfig?.seo?.ogImage === cleanUrl) usages.push("Image OpenGraph SEO");
+
+  sections.forEach((sec) => {
+    if (JSON.stringify(sec.settings || {}).includes(cleanUrl)) {
+      usages.push(sec.title || `Section ${sec.type}`);
+    }
+  });
+  return usages;
+}
+
+const FOLDER_TABS: Array<{ id: "all" | MediaFolderCategory; label: string }> = [
+  { id: "all", label: "Tous" },
+  { id: "images", label: "Images" },
+  { id: "logos", label: "Logos" },
+  { id: "banners", label: "Bannières" },
+  { id: "collections", label: "Collections" },
+];
 
 export const MediaInspectorPanel: React.FC<MediaInspectorPanelProps> = ({
   mediaGallery,
+  sections = [],
+  storeConfig,
   onSelectMediaUrl,
   onUploadMedia,
   onDeleteMedia,
+  onSaveConfig,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState<"all" | "images" | "logos" | "banners">("all");
-  const [selectedMedia, setSelectedMedia] = useState<MediaGalleryItem | null>(null);
+  const [folderFilter, setFolderFilter] = useState<"all" | MediaFolderCategory>("all");
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
-  const [localItems, setLocalItems] = useState<MediaGalleryItem[]>(mediaGallery);
-  const [isUploading, setIsUploading] = useState(false);
+  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
+  const [localOverrides, setLocalOverrides] = useState<
+    Record<string, { name?: string; folder?: MediaFolderCategory; dims?: string }>
+  >({});
+  const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => setLocalItems(mediaGallery), [mediaGallery]);
+  const enrichedGallery: MediaGalleryItem[] = mediaGallery.map((m) => ({
+    ...m,
+    name: localOverrides[m.id]?.name ?? m.name,
+    folder: localOverrides[m.id]?.folder ?? m.folder ?? "images",
+  }));
+
+  const filteredMedia = enrichedGallery.filter((item) => {
+    const matchesSearch = (item.name || item.url).toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFolder = folderFilter === "all" || (item.folder || "images") === folderFilter;
+    return matchesSearch && matchesFolder;
+  });
+
+  const selectedMedia = enrichedGallery.find((m) => m.id === selectedMediaId) || null;
+  const selectedUsages = selectedMedia ? findMediaUsageInSections(selectedMedia.url, sections, storeConfig) : [];
 
   const handleCopy = (url: string) => {
-    navigator.clipboard?.writeText(url);
+    if (navigator.clipboard) navigator.clipboard.writeText(url);
     setCopiedUrl(url);
-    toast.success("Adresse de l'image copiée !");
+    if (onSelectMediaUrl) onSelectMediaUrl(url);
     setTimeout(() => setCopiedUrl(null), 2000);
   };
 
-  const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length || !onUploadMedia) return;
-    setIsUploading(true);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !onUploadMedia) return;
+    setUploadError(null);
+    if (!ALLOWED_MIMES.includes(file.type)) {
+      setUploadError("Format non autorisé. Utilisez JPEG, PNG, WebP ou AVIF.");
+      return;
+    }
+    if (file.size > MAX_SIZE_BYTES) {
+      setUploadError("Fichier trop lourd (max 5 Mo autorisé).");
+      return;
+    }
+    setUploading(true);
     try {
-      const uploaded = await Promise.all(files.map((file) => onUploadMedia(file)));
-      setLocalItems((prev) => [...uploaded, ...prev.filter((item) => !uploaded.some((entry) => entry.id === item.id))]);
-      toast.success(`${uploaded.length} image${uploaded.length > 1 ? "s" : ""} ajoutée${uploaded.length > 1 ? "s" : ""} à votre médiathèque.`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "L'import de l'image a échoué.");
+      const uploaded = await onUploadMedia(file);
+      setSelectedMediaId(uploaded.id);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Échec de l'import");
     } finally {
-      setIsUploading(false);
+      setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleSaveRenameOrFolder = async (
+    item: MediaGalleryItem,
+    patch: { name?: string; folder?: MediaFolderCategory }
+  ) => {
+    setLocalOverrides((prev) => ({ ...prev, [item.id]: { ...prev[item.id], ...patch } }));
+    if (onSaveConfig && storeConfig?.mediaGallery) {
+      await onSaveConfig({
+        mediaGallery: storeConfig.mediaGallery.map((m) => (m.id === item.id ? { ...m, ...patch } : m)),
+      });
+    }
+  };
+
+  const executeDelete = async (id: string) => {
     if (!onDeleteMedia) return;
+    setDeletingId(id);
     try {
       await onDeleteMedia(id);
-      setLocalItems((prev) => prev.filter((item) => item.id !== id));
-      if (selectedMedia?.id === id) setSelectedMedia(null);
-      toast.success("Image supprimée de la médiathèque.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "La suppression de l'image a échoué.");
+      if (selectedMediaId === id) setSelectedMediaId(null);
+    } finally {
+      setDeletingId(null);
     }
   };
-
-  const handleUseImage = (url: string) => {
-    if (onSelectMediaUrl) {
-      onSelectMediaUrl(url);
-    } else {
-      handleCopy(url);
-    }
-  };
-
-  const filteredItems = localItems.filter((item) => {
-    const matchesSearch = (item.name || "").toLowerCase().includes(searchQuery.toLowerCase());
-    if (activeCategory === "logos") return matchesSearch && (item.name || "").toLowerCase().includes("logo");
-    if (activeCategory === "banners") return matchesSearch && (item.name || "").toLowerCase().includes("banner");
-    return matchesSearch;
-  });
 
   return (
-    <div className="flex flex-col h-full bg-[#FFFFFF] select-none">
-      {/* Header */}
-      <div className="p-4 border-b border-[#E5E7EB] space-y-3">
-        <div className="flex items-center justify-between">
+    <div className="p-4 space-y-4 select-none" data-testid="media-inspector-panel">
+      <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div>
+          <h3 className="text-[13px] font-semibold text-slate-900">Médiathèque</h3>
+          <p className="text-[11px] text-slate-500 mt-0.5">Images, dossiers et vérification d&apos;usage</p>
+        </div>
+        {onUploadMedia && (
           <div>
-            <h2 className="text-[15px] font-bold text-[#17191C]">Médiathèque</h2>
-            <p className="text-[12px] text-[#667085]">
-              {localItems.length} fichier{localItems.length > 1 ? "s" : ""} disponible{localItems.length > 1 ? "s" : ""}
-            </p>
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={handleFileChange} className="hidden" data-testid="media-file-input" />
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} data-testid="media-upload-btn" className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[11.5px] font-medium disabled:opacity-60 cursor-pointer">
+              {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+              <span>Importer</span>
+            </button>
           </div>
+        )}
+      </div>
 
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading || !onUploadMedia}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] px-3.5 text-[13px] font-semibold text-white transition-colors cursor-pointer shadow-xs shrink-0 disabled:opacity-60 disabled:cursor-wait"
-          >
-            {isUploading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            <span>{isUploading ? "Import en cours" : "Importer"}</span>
-          </button>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/jpeg,image/png,image/webp"
-            className="sr-only hidden"
-            onChange={handleFilesSelected}
-          />
+      {uploadError && (
+        <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-[11px] text-rose-700 font-medium" data-testid="media-upload-error">
+          {uploadError}
         </div>
+      )}
 
-        {/* Search */}
+      <div className="space-y-2">
         <div className="relative">
-          <Search className="w-4 h-4 text-[#9CA3AF] absolute left-3 top-2.5" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Rechercher un média par nom..."
-            className="w-full h-9 pl-9 pr-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg text-[13px] text-[#17191C] focus:outline-none focus:border-[#F97316]"
-          />
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Rechercher par nom de fichier..." data-testid="media-search-input" className="w-full h-8.5 pl-8 pr-3 text-xs bg-slate-50/70 border border-slate-200 rounded-lg focus:bg-white focus:border-slate-900 focus:outline-none" />
         </div>
-
-        {/* Filter Categories */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 text-[12px] font-medium no-scrollbar">
-          {(["all", "images", "logos", "banners"] as const).map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setActiveCategory(cat)}
-              className={`px-3 py-1 rounded-md shrink-0 transition-colors cursor-pointer capitalize ${
-                activeCategory === cat
-                  ? "bg-[#FFF1E7] text-[#F97316] font-semibold"
-                  : "text-[#667085] hover:bg-[#F3F4F6]"
-              }`}
-            >
-              {{ all: "Tous", images: "Images", logos: "Logos", banners: "Bannières" }[cat]}
+        <div className="flex flex-wrap gap-1" data-testid="media-folder-tabs">
+          {FOLDER_TABS.map((tab) => (
+            <button key={tab.id} type="button" data-testid={`media-folder-tab-${tab.id}`} onClick={() => setFolderFilter(tab.id)} className={`px-2 py-1 rounded-md text-[10.5px] font-medium border cursor-pointer ${folderFilter === tab.id ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}>
+              {tab.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Selected Media Inspector Card */}
       {selectedMedia && (
-        <div className="p-3 bg-[#FFF7ED] border-b border-[#FDBA74] space-y-2 text-[12px]">
-          <div className="flex items-center justify-between">
-            <span className="font-bold text-[#17191C] truncate">{selectedMedia.name || "Visuel sélectionné"}</span>
-            <button
-              type="button"
-              onClick={() => setSelectedMedia(null)}
-              className="text-[#667085] hover:text-[#17191C] font-bold"
-            >
-              ×
-            </button>
-          </div>
-          <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => handleUseImage(selectedMedia.url)}
-              className="flex-1 h-8 bg-[#F97316] hover:bg-[#EA580C] text-white text-[12px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Utiliser cette image</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleDelete(selectedMedia.id)}
-              disabled={!selectedMedia.id.startsWith("studio_")}
-              className="h-8 px-2.5 bg-[#FEF2F2] border border-[#FCA5A5] text-[#DC2626] hover:bg-[#FEE2E2] rounded-lg cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Supprimer de la médiathèque"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
+        <MediaSelectedInspector
+          key={selectedMedia.id}
+          selectedMedia={selectedMedia}
+          selectedUsages={selectedUsages}
+          copiedUrl={copiedUrl}
+          dims={localOverrides[selectedMedia.id]?.dims}
+          deletingId={deletingId}
+          onCopy={handleCopy}
+          onDetectedDimensions={(id, dims) => setLocalOverrides((prev) => ({ ...prev, [id]: { ...prev[id], dims } }))}
+          onSaveRenameOrFolder={handleSaveRenameOrFolder}
+          onConfirmDelete={onDeleteMedia ? executeDelete : undefined}
+        />
       )}
 
-      {/* Content Grid */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
-        {filteredItems.length === 0 ? (
-          <div className="p-6 text-center bg-[#F9FAFB] rounded-xl border border-[#E5E7EB] space-y-2 my-4">
-            <FileImage className="w-8 h-8 text-[#9CA3AF] mx-auto" />
-            <p className="text-[14px] font-bold text-[#17191C]">Aucun média trouvé</p>
-            <p className="text-[12px] text-[#667085]">
-              Importez des photos ou modifiez vos termes de recherche.
-            </p>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="h-9 px-4 bg-[#FFFFFF] border border-[#E5E7EB] text-[#F97316] font-semibold text-[12px] rounded-lg mt-2 transition-colors cursor-pointer"
-            >
-              + Importer une image
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-2.5">
-            {filteredItems.map((item) => (
-              <MediaCard
-                key={item.id}
-                item={item}
-                isSelected={selectedMedia?.id === item.id}
-                isCopied={copiedUrl === item.url}
-                onSelect={() => {
-                  setSelectedMedia(item);
-                }}
-                onCopy={handleCopy}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {filteredMedia.length === 0 ? (
+        <div className="text-center py-8 border border-dashed border-slate-200 rounded-xl bg-slate-50/60 p-4">
+          <ImageIcon className="w-6 h-6 text-slate-400 mx-auto mb-1.5" />
+          <p className="text-xs font-medium text-slate-700">Aucun média dans ce filtre</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2.5">
+          {filteredMedia.map((item) => (
+            <MediaCard
+              key={item.id}
+              item={item}
+              isSelected={selectedMediaId === item.id}
+              isCopied={copiedUrl === item.url}
+              inUseCount={findMediaUsageInSections(item.url, sections, storeConfig).length}
+              onSelect={() => {
+                setSelectedMediaId(item.id);
+                if (onSelectMediaUrl) onSelectMediaUrl(item.url);
+              }}
+              onCopy={handleCopy}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
-

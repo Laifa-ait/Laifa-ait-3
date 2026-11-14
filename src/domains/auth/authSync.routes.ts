@@ -1,11 +1,13 @@
 import { Response, Router } from "express";
-import { authenticateToken, AuthenticatedRequest } from "../../middlewares/auth";
+import { authenticateToken, AuthenticatedRequest, getUserProfileFromCache, setUserProfileInCache } from "../../middlewares/auth";
 import { loginLimiter } from "../../middlewares/rateLimiters";
 import { admin, db, isFirebaseReady } from "../../config/firebase-admin";
 import { ALGERIA_WILAYAS, ALGERIA_SHIPPING_DATA } from "../../constants";
 import { safeLogger } from "../../utils/logger";
+import { isFirestoreQuotaError } from "../../utils/firestoreTimeout";
 
 const authSyncRouter = Router();
+const isServerCacheEnabled = () => process.env.NODE_ENV !== "test" && !process.env.VITEST;
 
 authSyncRouter.post("/sync-user-claims", loginLimiter, authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   if (!isFirebaseReady() || !db) {
@@ -44,6 +46,10 @@ authSyncRouter.post("/sync-user-claims", loginLimiter, authenticateToken, async 
       return res.status(404).json({ error: "User not found in Firestore" });
     }
   } catch (error: unknown) {
+    if (isFirestoreQuotaError(error)) {
+      safeLogger.warn("[AuthSync] ⚠️ Quota Firestore atteint sur POST /sync-user-claims.");
+      return res.json({ success: true, degraded: true, message: "Claims sync deferred (quota exceeded)" });
+    }
     safeLogger.error("Error syncing claims", { err: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
   }
@@ -56,6 +62,14 @@ authSyncRouter.post("/sync", loginLimiter, authenticateToken, async (req: Authen
   const uid = req.user?.uid || "";
   const { displayName, email, photoURL, role, lastAuthMethod } = req.body;
   try {
+    // Fast-path L2 cache hit for passive page refreshes (auto_sync)
+    if (isServerCacheEnabled() && lastAuthMethod === "auto_sync") {
+      const cachedProfile = getUserProfileFromCache(uid);
+      if (cachedProfile) {
+        return res.json({ success: true, profile: { uid, ...cachedProfile } });
+      }
+    }
+
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
 
@@ -88,6 +102,7 @@ authSyncRouter.post("/sync", loginLimiter, authenticateToken, async (req: Authen
       };
 
       await userRef.set(initialProfile);
+      if (isServerCacheEnabled()) setUserProfileInCache(uid, initialProfile);
 
       if (userRole === "seller") {
         try {
@@ -129,9 +144,26 @@ authSyncRouter.post("/sync", loginLimiter, authenticateToken, async (req: Authen
         Object.assign(existingData, updates);
       }
 
-      return res.json({ success: true, profile: { uid: userDoc.id, ...existingData } });
+      const fullProfile = { uid: userDoc.id, ...existingData };
+      if (isServerCacheEnabled()) setUserProfileInCache(uid, fullProfile);
+      return res.json({ success: true, profile: fullProfile });
     }
   } catch (error: unknown) {
+    if (isFirestoreQuotaError(error)) {
+      safeLogger.warn("[AuthSync] ⚠️ Quota Firestore atteint sur POST /sync — retour profil session.");
+      return res.json({
+        success: true,
+        degraded: true,
+        profile: {
+          uid,
+          displayName: displayName || "Utilisateur",
+          email: email || req.user?.email || "",
+          photoURL: photoURL || "",
+          role: req.user?.role || (role === "seller" ? "seller" : "buyer"),
+          status: "active",
+        },
+      });
+    }
     safeLogger.error("Error syncing user profile", { err: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
   }

@@ -1,5 +1,4 @@
 import React from "react";
-import { Palette, Sparkles } from "lucide-react";
 
 interface PaletteControlsProps {
   canvasColor: string;
@@ -15,38 +14,10 @@ interface PaletteControlsProps {
 }
 
 const PRESET_PALETTES = [
-  {
-    name: "Olmart Warm & Ambre",
-    canvas: "#f8fafc",
-    surface: "#ffffff",
-    accent: "#ea580c",
-    primary: "#f97316",
-    secondary: "#fbbf24",
-  },
-  {
-    name: "Terracotta & Sahara",
-    canvas: "#fdfbf7",
-    surface: "#ffffff",
-    accent: "#c2410c",
-    primary: "#ea580c",
-    secondary: "#fdba74",
-  },
-  {
-    name: "Bleu Méditerranée",
-    canvas: "#f8fafc",
-    surface: "#ffffff",
-    accent: "#0284c7",
-    primary: "#0369a1",
-    secondary: "#38bdf8",
-  },
-  {
-    name: "Émeraude Royale",
-    canvas: "#f6fbf7",
-    surface: "#ffffff",
-    accent: "#059669",
-    primary: "#047857",
-    secondary: "#10b981",
-  },
+  { name: "Obsidian Studio", canvas: "#F8FAFC", surface: "#FFFFFF", accent: "#0F172A", primary: "#1E293B", secondary: "#334155" },
+  { name: "Terracotta", canvas: "#FDFBF7", surface: "#FFFFFF", accent: "#B45309", primary: "#9A3412", secondary: "#451A03" },
+  { name: "Méditerranée", canvas: "#F8FAFC", surface: "#FFFFFF", accent: "#0284C7", primary: "#0369A1", secondary: "#0F172A" },
+  { name: "Émeraude", canvas: "#F6FBF7", surface: "#FFFFFF", accent: "#059669", primary: "#047857", secondary: "#064E3B" },
 ];
 
 export const PaletteControls: React.FC<PaletteControlsProps> = ({
@@ -61,142 +32,67 @@ export const PaletteControls: React.FC<PaletteControlsProps> = ({
   secondaryColor,
   setSecondaryColor,
 }) => {
+  const tokens = [
+    { label: "60% Fond Canvas", value: canvasColor, setter: setCanvasColor },
+    { label: "30% Surface Cartes", value: surfaceColor, setter: setSurfaceColor },
+    { label: "10% Accent CTA", value: accentColor, setter: setAccentColor },
+    { label: "Couleur Principale", value: primaryColor, setter: setPrimaryColor },
+    { label: "Couleur Secondaire", value: secondaryColor, setter: setSecondaryColor },
+  ];
+
   return (
-    <div className="space-y-4 p-5 bg-slate-50/80 rounded-2xl border border-slate-200">
+    <div className="space-y-3 pt-3 border-t border-slate-200">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Palette className="w-4 h-4 text-orange-500" />
-          <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900">
-            Palette 60-30-10 & Identité
-          </h3>
-        </div>
-        <span className="text-[10px] text-slate-500 font-mono">Harmonie visuelle</span>
+        <h3 className="font-semibold text-[11px] uppercase tracking-wider text-slate-500">
+          Palette 60-30-10
+        </h3>
+        <span className="text-[10.5px] text-slate-400">Harmonie de base</span>
       </div>
 
-      {/* Preset Pickers */}
-      <div className="space-y-1.5">
-        <label className="text-[11px] font-semibold text-slate-700 flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-orange-500" />
-          <span>Palettes d'harmonie prédéfinies</span>
-        </label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {PRESET_PALETTES.map((preset) => (
-            <button
-              key={preset.name}
-              type="button"
-              onClick={() => {
-                setCanvasColor(preset.canvas);
-                setSurfaceColor(preset.surface);
-                setAccentColor(preset.accent);
-                setPrimaryColor(preset.primary);
-                setSecondaryColor(preset.secondary);
-              }}
-              className="p-2.5 bg-white border border-slate-200 hover:border-orange-400 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-1.5 shadow-xs hover:shadow-sm"
-            >
-              <div className="flex h-3 w-full rounded overflow-hidden border border-slate-200/80">
-                <div style={{ backgroundColor: preset.canvas }} className="w-1/2" />
-                <div style={{ backgroundColor: preset.surface }} className="w-1/4" />
-                <div style={{ backgroundColor: preset.accent }} className="w-1/4" />
-              </div>
-              <span className="text-[10px] font-bold text-slate-800 truncate">{preset.name}</span>
-            </button>
-          ))}
-        </div>
+      <div className="grid grid-cols-2 gap-1.5">
+        {PRESET_PALETTES.map((preset) => (
+          <button
+            key={preset.name}
+            type="button"
+            onClick={() => {
+              setCanvasColor(preset.canvas);
+              setSurfaceColor(preset.surface);
+              setAccentColor(preset.accent);
+              setPrimaryColor(preset.primary);
+              setSecondaryColor(preset.secondary);
+            }}
+            className="p-2 bg-white border border-slate-200 hover:border-slate-400 rounded-lg text-left transition-colors cursor-pointer flex flex-col gap-1.5"
+          >
+            <div className="flex h-2.5 w-full rounded overflow-hidden border border-slate-200">
+              <div style={{ backgroundColor: preset.canvas }} className="w-1/2" />
+              <div style={{ backgroundColor: preset.surface }} className="w-1/4" />
+              <div style={{ backgroundColor: preset.accent }} className="w-1/4" />
+            </div>
+            <span className="text-[10.5px] font-medium text-slate-800 truncate">{preset.name}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Individual Color Inputs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200">
-        <div className="space-y-1">
-          <label className="font-semibold text-slate-700 text-[11px] block">60% Fond Canvas</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={canvasColor}
-              onChange={(e) => setCanvasColor(e.target.value)}
-              className="w-7 h-7 rounded-lg cursor-pointer bg-transparent border border-slate-200"
-            />
-            <input
-              type="text"
-              value={canvasColor}
-              onChange={(e) => setCanvasColor(e.target.value)}
-              className="flex-1 p-1.5 bg-white border border-slate-200 rounded-lg font-mono text-[11px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-orange-500"
-            />
+      <div className="grid grid-cols-2 gap-2 pt-1">
+        {tokens.map((tok) => (
+          <div key={tok.label} className="space-y-1">
+            <label className="font-medium text-slate-600 text-[10.5px] block">{tok.label}</label>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="color"
+                value={tok.value}
+                onChange={(e) => tok.setter(e.target.value)}
+                className="w-7 h-7 rounded cursor-pointer bg-transparent border border-slate-200 shrink-0"
+              />
+              <input
+                type="text"
+                value={tok.value}
+                onChange={(e) => tok.setter(e.target.value)}
+                className="w-full h-7 px-2 bg-white border border-slate-200 rounded-md font-mono text-[10.5px] text-slate-900 focus:outline-none focus:border-slate-900"
+              />
+            </div>
           </div>
-        </div>
-
-        <div className="space-y-1">
-          <label className="font-semibold text-slate-700 text-[11px] block">30% Cartes / Surface</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={surfaceColor}
-              onChange={(e) => setSurfaceColor(e.target.value)}
-              className="w-7 h-7 rounded-lg cursor-pointer bg-transparent border border-slate-200"
-            />
-            <input
-              type="text"
-              value={surfaceColor}
-              onChange={(e) => setSurfaceColor(e.target.value)}
-              className="flex-1 p-1.5 bg-white border border-slate-200 rounded-lg font-mono text-[11px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-orange-500"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1">
-          <label className="font-semibold text-slate-700 text-[11px] block">10% Accent CTA</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={accentColor}
-              onChange={(e) => setAccentColor(e.target.value)}
-              className="w-7 h-7 rounded-lg cursor-pointer bg-transparent border border-slate-200"
-            />
-            <input
-              type="text"
-              value={accentColor}
-              onChange={(e) => setAccentColor(e.target.value)}
-              className="flex-1 p-1.5 bg-white border border-slate-200 rounded-lg font-mono text-[11px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-orange-500"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
-        <div className="space-y-1">
-          <label className="font-semibold text-slate-700 text-[11px] block">Couleur de Marque Principale</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={primaryColor}
-              onChange={(e) => setPrimaryColor(e.target.value)}
-              className="w-7 h-7 rounded-lg cursor-pointer bg-transparent border border-slate-200"
-            />
-            <input
-              type="text"
-              value={primaryColor}
-              onChange={(e) => setPrimaryColor(e.target.value)}
-              className="flex-1 p-1.5 bg-white border border-slate-200 rounded-lg font-mono text-[11px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-orange-500"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1">
-          <label className="font-semibold text-slate-700 text-[11px] block">Couleur Secondaire</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={secondaryColor}
-              onChange={(e) => setSecondaryColor(e.target.value)}
-              className="w-7 h-7 rounded-lg cursor-pointer bg-transparent border border-slate-200"
-            />
-            <input
-              type="text"
-              value={secondaryColor}
-              onChange={(e) => setSecondaryColor(e.target.value)}
-              className="flex-1 p-1.5 bg-white border border-slate-200 rounded-lg font-mono text-[11px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-orange-500"
-            />
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );

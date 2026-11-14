@@ -82,13 +82,13 @@ export const AlignmentMatrix3x3: React.FC<AlignmentMatrix3x3Props> = ({
     MATRIX_CELLS.find((c) => c.id === resolved.position) || MATRIX_CELLS[4];
 
   return (
-    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 select-none">
+    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2.5 select-none">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
-          <LayoutGrid className="w-3.5 h-3.5 text-[#F97316]" />
+        <span className="text-[11px] font-semibold text-slate-900 flex items-center gap-1.5">
+          <LayoutGrid className="w-3.5 h-3.5 text-slate-700" />
           <span>{label}</span>
         </span>
-        <span className="text-[10px] font-bold text-[#EA580C] bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
+        <span className="text-[11px] font-medium text-slate-700 bg-white px-2 py-0.5 rounded-md border border-slate-200">
           {activeCell.label}
         </span>
       </div>
@@ -98,7 +98,7 @@ export const AlignmentMatrix3x3: React.FC<AlignmentMatrix3x3Props> = ({
         <div
           role="radiogroup"
           aria-label={label}
-          className="grid grid-cols-3 gap-1.5 p-2 bg-white rounded-xl border border-slate-200 shadow-2xs w-28 h-28 shrink-0"
+          className="grid grid-cols-3 gap-1.5 p-2 bg-white rounded-lg border border-slate-200 w-28 h-28 shrink-0"
         >
           {MATRIX_CELLS.map((cell) => {
             const isSelected = resolved.position === cell.id;
@@ -110,7 +110,7 @@ export const AlignmentMatrix3x3: React.FC<AlignmentMatrix3x3Props> = ({
                 aria-checked={isSelected}
                 title={cell.label}
                 onClick={() => onChange(cell.id, cell.h, cell.v)}
-                className={`rounded-lg border transition-all flex flex-col justify-center p-1 cursor-pointer ${
+                className={`rounded-md border transition-colors flex flex-col justify-center p-1 cursor-pointer ${
                   cell.h === "left"
                     ? "items-start"
                     : cell.h === "right"
@@ -118,8 +118,8 @@ export const AlignmentMatrix3x3: React.FC<AlignmentMatrix3x3Props> = ({
                     : "items-center"
                 } ${
                   isSelected
-                    ? "bg-[#F97316] border-[#EA580C] shadow-xs scale-105"
-                    : "bg-slate-50 border-slate-200 hover:border-orange-300 hover:bg-orange-50/50"
+                    ? "bg-slate-900 border-slate-900"
+                    : "bg-slate-50 border-slate-200 hover:border-slate-400 hover:bg-slate-100"
                 }`}
               >
                 {isSelected ? (
@@ -136,7 +136,7 @@ export const AlignmentMatrix3x3: React.FC<AlignmentMatrix3x3Props> = ({
                     />
                   </span>
                 ) : (
-                  <span className="w-2 h-2 rounded-full bg-slate-300" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                 )}
               </button>
             );
@@ -145,11 +145,11 @@ export const AlignmentMatrix3x3: React.FC<AlignmentMatrix3x3Props> = ({
 
         {/* Contextual Helper Description */}
         <div className="text-[11px] text-slate-600 space-y-1 leading-snug">
-          <p className="font-semibold text-slate-800">
+          <p className="font-semibold text-slate-900">
             Alignement : {activeCell.label}
           </p>
-          <p className="text-[10px] text-slate-500">
-            Positionne instantanément le titre, le sous-titre et les boutons d'action sur votre bannière comme dans Shopify OS 2.0.
+          <p className="text-[11px] text-slate-500">
+            Positionne le titre, le sous-titre et les boutons d&apos;action sur votre bannière.
           </p>
         </div>
       </div>

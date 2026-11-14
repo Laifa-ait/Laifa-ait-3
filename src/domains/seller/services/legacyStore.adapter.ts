@@ -125,10 +125,7 @@ export class LegacyStoreAdapter {
   }
 
   static buildDefaultSections(config: StoreConfig, activeProductIds: string[] = []): CustomPageSection[] {
-    const cleanBanner =
-      config.bannerUrl && config.bannerUrl.trim()
-        ? config.bannerUrl
-        : "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80";
+    const cleanBanner = config.bannerUrl && config.bannerUrl.trim() ? config.bannerUrl : "";
 
     return [
       {
@@ -137,18 +134,19 @@ export class LegacyStoreAdapter {
         title: "Acte 1 — Hero Scénographique",
         settings: {
           heroLayout: "editorial-split",
-          title: `L'Art de *${config.shopName}* — Pièces {Authentiques}`,
-          subtitle: config.shopDescription || "Découvrez notre collection façonnée avec exigence, livrée dans les 69 wilayas.",
-          badgeText: "MAISON D'EXCELLENCE • ALGÉRIE",
+          title: config.shopName ? `${config.shopName} — Produits & Nouveautés` : "Sélection Produits Phares",
+          subtitle: config.shopDescription || "Commandez en ligne en toute confiance avec livraison dans les 69 wilayas.",
+          badgeText: "BOUTIQUE OFFICIELLE",
           imageUrl: cleanBanner,
-          ctaText: "Explorer la Collection",
+          ctaText: "Voir les Produits",
           ctaLink: "#catalog",
-          secondaryCtaText: "Notre Histoire",
-          secondaryCtaLink: "#story",
-          socialProofBadge: "FAIT MAIN EN ALGÉRIE • ÉDITION LIMITÉE •",
+          secondaryCtaText: "Catégories",
+          secondaryCtaLink: "#collections",
+          socialProofBadge: "LIVRAISON 69 WILAYAS • PAIEMENT À LA LIVRAISON",
+          showSocialProofBadge: false,
           ctaStyle: "pill",
           textAlignment: "left",
-          overlayOpacity: 35,
+          overlayOpacity: 0,
           showBadge: true,
           showSubtitle: true,
           showCta: true,
@@ -197,7 +195,7 @@ export class LegacyStoreAdapter {
               subtitle: "Créations iconiques",
               slug: "pieces-signature",
               badge: "N° 01",
-              imageUrl: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80",
+              imageUrl: "",
             },
             {
               id: "cat_nouveautes",
@@ -205,7 +203,7 @@ export class LegacyStoreAdapter {
               subtitle: "Arrivages & séries limitées",
               slug: "nouvelle-edition",
               badge: "N° 02",
-              imageUrl: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80",
+              imageUrl: "",
             },
             {
               id: "cat_essentiels",
@@ -213,7 +211,7 @@ export class LegacyStoreAdapter {
               subtitle: "Savoir-faire & élégance durable",
               slug: "les-intemporels",
               badge: "N° 03",
-              imageUrl: "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&w=800&q=80",
+              imageUrl: "",
             },
           ],
         },

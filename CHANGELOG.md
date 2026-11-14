@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-11-12
+
+### 🏠 Audit & Unification Complète de la Page d'Accueil (`Home.tsx`)
+- **Éradication Totale du Code Dur & Parité Trilingue (`fr`, `ar`, `en`)** : Création du dictionnaire synchrone `src/locales/homeTranslations.ts` injecté dans `src/i18n.ts` et synchronisé avec `public/locales/{fr,ar,en}.json`. Traduction intégrale de `SponsoredSection`, `SponsoredProductCard`, `NeoCategoryGrid`, `CategoryCard` (tags d'édition `cat_tag.*` et actions), `BentoHero`, `BentoHeroSlide`, `DynamicSection`, `SectionHeader`, `SectionLayouts` (badge `Vedette`, pagination et `aria-label`), `HomeEndlessGrid` et `ProductCard`.
+- **Unification Chromatique Mindazzle Twilight & Sunset Amber** : Suppression des classes disparates (`bg-slate-50`, `text-emerald-700`, `bg-emerald-700`, `bg-red-600`, `bg-rose-600`, `bg-zinc-200`) au profit des tokens officiels (`#1A1836`, `#42164B`, `#622347`, `#A54055`, `#E99856`, `#E0B4B2`, `#FAF7F6`, `#EFE6E6`).
+- **Correction des Incohérences de Ciblage & d'État (`useHomeData` & `Home.tsx`)** : Normalisation bidirectionnelle `isActive` / `is_active` et `orderIndex` / `sort_order` sur les sections dynamiques, et harmonisation du filtrage régional par Wilaya (suppression des préfixes numériques `"16 - Alger"`).
+
+### 🏛️ Studio Vendeur — Refonte Architecturale & Minimaliste du Hero Scénographique
+- **5 Styles Architecturaux 100 % Isolés** : Remplacement des anciennes vues surchargées par 5 composants dédiés (`HeroFullBleed`, `HeroSplit`, `HeroArch`, `HeroGallery`, `HeroDiptych`) avec contenu minimaliste strict (1 Titre, 1 Petite phrase explicative, 1 Seul Bouton d'action).
+- **Responsive Indépendant par Appareil & Adaptateur Zéro Crash** : Gestion d'états isolés (`heroDesktopConfig`, `heroTabletConfig`, `heroMobileConfig`), bouton de suggestion d'adaptation depuis le PC avec confirmation manuelle, et adaptateur de rétrocompatibilité (`normalizeHeroSettingsAdapter`).
+
 ## [1.4.0] - 2026-10-28
 
 ### 🚗 Application Olma Auto (Expérience Native & Recherche Directe)
@@ -38,36 +49,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Sémantique Mobile Accessible** : Enrichissement de l'arbre d'accessibilité de la navigation mobile avec l'ajout des attributs `aria-label`, `aria-current="page"`, et d'une vocalisation dynamique du nombre d'articles du panier/favoris pour les lecteurs d'écrans.
 - **Surcouche Dialogue Accessible (Search Overlay)** : Refonte de la recherche globale en véritable fenêtre modale accessible (`role="dialog"`, `aria-modal="true"`, interception clavier et piège de focus (Focus Trap), restauration du focus au bouton déclencheur, et annonces en temps réel `aria-live="polite"` pour les résultats de recherche).
 - **Réduction de Mouvement Universelle** : Ajout de la règle média `@media (prefers-reduced-motion: reduce)` dans les styles de base pour désactiver les transitions, défilements fluides et boucles d'animation pour les utilisateurs souffrant de troubles vestibulaires.
-
-### 🎨 Rendu Programmatique d'Assets
-- **Régénération Autonome locale d'Images** : Implémentation d'un algorithme de tracé pixellaire en mémoire (`pngjs`/`jpeg-js`) à la racine du projet pour générer l'ensemble des 6 visuels enrichis (Bannières d'en-tête, arrière-plans de Zellige répétables et captures d'écrans) selon la charte d'Olmart, sans dépendance externe à Vertex AI.
-
-### 📦 Déploiement & DevOps
-- **Fiabilisation de l'initialisation Cloud Run** : Migration du package `firebase-admin` vers la section `dependencies` pour assurer l'installation lors de la phase de build Docker multi-stage, résolvant un crash fatal au lancement du serveur de production.
-
-## [1.1.0] - 2026-08-27
-
-### 🔒 Sécurité (Security Hardening & Zero-Trust)
-- **Vérification Révocation des Jetons JWT (`checkRevoked = true`)** : Migration de l'authentification Firebase Admin SDK vers `verifyIdToken(idToken, true)` dans les middlewares `authenticateToken` et `optionalAuthenticateToken`.
-- **Architecture Fail-Closed pour les Privilèges Administrateurs** : Refonte de la validation de rôle ; en cas d'indisponibilité, de timeout ou d'erreur réseau de Firestore, tout jeton avec des privilèges d'administration est rétrogradé en `suspended` (`adminValidated = false`) afin de garantir un refus `403 Forbidden` systématique.
-- **Invalidation Immédiate des Refresh Tokens (`revokeRefreshTokens`)** : Révocation instantanée des sessions utilisateur et vendeur lors des suspensions (`PUT /admin/users/:id/status`, `AdminSellerService.suspendSeller`), des blocages en masse (`POST /admin/users/bulk-status`), des suppressions (`DELETE /admin/users/:id`), et des modifications de rôle (`PUT /admin/users/:id/role`).
-- **Protection Anti-IDOR & Traçabilité Audit Logs** : Contrôle systématique des propriétaires de ressources et journalisation immuable dans la collection `audit_logs` pour toutes les actions d'administration et de modération.
-- **Suite de Tests de Non-Régression** : Ajout de tests automatisés couvrant les scénarios de jeton révoqué (401), d'administrateur suspendu avec base de données indisponible (Fail-Closed 403), et de révocation des refresh tokens dans `src/tests/authPrivilegeEscalation.test.ts`.
-
-## [1.0.0] - 2026-08-20
-
-### 🚀 Fonctionnalités Majeures (Core Marketplace Release)
-- **Plateforme Multi-Rôles E-commerce Algérienne** : Support unifié des Acheteurs, Vendeurs (Sellers), Artisans (Bricolage) et Administrateurs couvrant les 69 Wilayas.
-- **Transactions ACID Firestore** : Sécurisation de la réservation des stocks et de la validation des commandes via `db.runTransaction()`.
-- **API REST v1 Unifiée** : Déploiement des routes Express standardisées sous `/api/v1/*`.
-- **Système de Résolution de Litiges & Forensics** : Module complet d'arbitrage des commandes avec analyse de motifs et journalisation d'audit.
-- **Module Immobilier (Olma Immo)** : Recherche géospatiale par Geohash et Wilaya avec indexation composite NoSQL.
-- **Design System Slate + Orange** : Typographie et tokens Tailwind CSS unifiés et accessibles (WCAG AA).
-
-## [0.1.0] - 2026-08-10
-
-### 🛠️ Initialisation & Infrastructure
-- Endpoints de santé `/api/v1/health` et `/api/v1/health/live`.
-- Configuration de Swagger UI pour la documentation interactive de l'API (`/api-docs`).
-- Rate limiting anti-abus sur les points d'entrée sensibles.
-- Intégration de Firebase Admin SDK et des schémas d'indexation Firestore.

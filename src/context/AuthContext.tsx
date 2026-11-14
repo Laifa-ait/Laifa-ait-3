@@ -59,7 +59,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       })
       .catch((err) => {
-        safeLogger.warn("AuthContext: getRedirectResult warning", { err: err instanceof Error ? err.message : String(err) });
+        const msg = err instanceof Error ? err.message : String(err);
+        if (
+          msg.includes("Database is closing") ||
+          msg.includes("AbortError") ||
+          msg.includes("IDBDatabase")
+        ) {
+          return;
+        }
+        safeLogger.warn("AuthContext: getRedirectResult warning", { err: msg });
       });
   }, []);
 
@@ -99,16 +107,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     if (!currentUser || !isFirebaseInitialized) return;
-    const fetchProfile = async () => {
+    const handleManualRefresh = async () => {
       try {
         const data = await apiGet<UserProfile>("/api/v1/auth/profile", 1);
         if (data) setUserProfile(data);
       } catch (err) {
-        safeLogger.warn("AuthContext: Periodic profile fetch retry finished", { err: err instanceof Error ? err.message : String(err) });
+        safeLogger.warn("AuthContext: Profile refresh warning", { err: err instanceof Error ? err.message : String(err) });
       }
     };
-    const interval = setInterval(fetchProfile, 60000);
-    return () => clearInterval(interval);
+    window.addEventListener("auth:refreshProfile", handleManualRefresh);
+    return () => window.removeEventListener("auth:refreshProfile", handleManualRefresh);
   }, [currentUser]);
 
   const signInWithGoogle = async (role?: string) => {

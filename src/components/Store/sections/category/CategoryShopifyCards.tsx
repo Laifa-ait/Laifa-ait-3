@@ -1,17 +1,21 @@
-import React, { RefObject } from "react";
-import { ArrowUpRight, Camera } from "lucide-react";
+import React, { RefObject, useState } from "react";
+import { ArrowUpRight, Camera, ChevronLeft, ChevronRight, Film } from "lucide-react";
 import {
   CategoryItem,
   CategoryCardSize,
   CategoryImagePosition,
   CategoryImageFit,
+  CategoryDeviceViewport,
 } from "../../../../pages/Seller/StoreBuilder/constants/categoryPresetTypes";
 import {
   resolveCategoryPhoto,
   resolveCategoryImageClasses,
   handleCategoryImageError,
 } from "./categoryImageHelper";
-import { resolveOuterAndMediaRadius } from "./categoryResponsiveHelper";
+import {
+  resolveAntiHoleSpanClass,
+  resolveCategoryActiveCols,
+} from "./categoryResponsiveHelper";
 
 interface CategoryShopifyCardsProps {
   categories: CategoryItem[];
@@ -33,7 +37,10 @@ interface CategoryShopifyCardsProps {
   showItemCount: boolean;
   cardSize?: CategoryCardSize;
   cardSkin?: string;
+  columnsDesktop?: number;
+  columnsTablet?: number;
   columnsMobile?: number;
+  previewViewport?: CategoryDeviceViewport;
   imagePosition?: CategoryImagePosition;
   imageFit?: CategoryImageFit;
   textColor?: string;
@@ -49,180 +56,186 @@ interface CategoryShopifyCardsProps {
 }
 
 export const CategoryShopifyCards: React.FC<CategoryShopifyCardsProps> = ({
-  categories,
-  layout,
-  carouselRef,
-  containerGridColsClass,
-  gapClass,
-  aspectRatioClass,
-  cardRadius = "md",
-  hoverImgClass,
-  hoverCardClass,
-  effectiveOverlay,
-  textPosition,
-  overlayOpacity,
-  glassmorphism,
-  showTitle = true,
-  showBadge,
-  showItemCount,
-  cardSize = "balanced",
-  cardSkin = "editorial",
-  columnsMobile = 2,
-  imagePosition = "center",
-  imageFit = "cover",
-  textColor = "#0F172A",
-  primaryColor = "#023859",
-  isEditable,
-  selectedSectionId,
-  selectedSubElement,
-  sectionId,
-  getCountLabel,
-  onCardClick,
-  onEditItem,
-  onOpenPage,
+  categories, layout, carouselRef, containerGridColsClass, gapClass,
+  hoverImgClass, hoverCardClass, showTitle = true, showBadge, showItemCount,
+  cardSize = "balanced", columnsDesktop = 3, columnsTablet = 2, columnsMobile = 2,
+  previewViewport = "desktop", imagePosition = "center", imageFit = "cover",
+  textColor = "#0F172A", primaryColor = "#023859", isEditable,
+  selectedSectionId, selectedSubElement, sectionId, getCountLabel, onCardClick, onEditItem,
 }) => {
-  const isCarousel = layout === "carousel";
-  const isGlassDock = layout === "glass-dock";
-  const isTitleVisible = showTitle && textPosition !== "none";
-  const isDarkSkin = cardSkin === "dark-glass";
-  const isOverlayMode =
-    effectiveOverlay || isGlassDock || textPosition === "overlay-bottom" || textPosition === "overlay-center";
+  const [scrollProgress, setScrollProgress] = useState<number>(25);
+  const activeCols = resolveCategoryActiveCols(
+    columnsDesktop, columnsMobile, previewViewport, columnsTablet, layout, categories.length, cardSize
+  );
 
-  const { outerRadiusClass, mediaRadiusClass } = resolveOuterAndMediaRadius(cardRadius === "full" ? "lg" : cardRadius);
-  const resolvedAspectClass = aspectRatioClass.includes("rounded-full") ? "aspect-[4/5]" : aspectRatioClass;
+  // 12. LOOKBOOK SLIDER (Carrousel horizontal gap-5 + flèches + barre de progression fine en bas)
+  if (layout === "carousel") {
+    const slideWidthClass =
+      previewViewport === "mobile"
+        ? "w-[78vw] max-w-[320px]"
+        : previewViewport === "tablet" || cardSize === "compact"
+        ? "w-[280px]"
+        : cardSize === "large"
+        ? "w-[420px]"
+        : "w-[340px]";
 
-  const padScaleClass =
-    cardSize === "compact" ? "p-0.5 @[560px]:p-1" : cardSize === "large" ? "p-1.5 @[560px]:p-2.5" : "p-1 @[560px]:p-1.5";
-  const titleSizeClass =
-    cardSize === "compact"
-      ? "text-[11px] @[560px]:text-xs @[900px]:text-sm"
-      : cardSize === "large"
-      ? "text-xs @[560px]:text-base @[900px]:text-lg"
-      : "text-xs @[560px]:text-sm @[900px]:text-[15px]";
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 0) return setScrollProgress(100);
+      setScrollProgress(Math.min(100, Math.max(15, Math.round((el.scrollLeft / max) * 85) + 15)));
+    };
 
-  const carouselWidthClass =
-    columnsMobile === 1
-      ? "snap-start shrink-0 w-[82%] min-w-[220px] @[560px]:w-[44%] @[900px]:w-[28%]"
-      : cardSize === "compact"
-      ? "snap-start shrink-0 w-[46%] min-w-[142px] @[560px]:w-[31%] @[900px]:w-[23%]"
-      : cardSize === "large"
-      ? "snap-start shrink-0 w-[72%] min-w-[200px] @[560px]:w-[44%] @[900px]:w-[31%]"
-      : "snap-start shrink-0 w-[48%] min-w-[152px] @[560px]:w-[36%] @[900px]:w-[24%]";
+    const scrollByStep = (dir: number, e: React.MouseEvent) => {
+      e.stopPropagation();
+      carouselRef?.current?.scrollBy({ left: dir * 320, behavior: "smooth" });
+    };
+
+    return (
+      <div className="space-y-3" data-category-model="carousel">
+        <div className="flex items-center justify-end gap-1.5">
+          <button type="button" onClick={(e) => scrollByStep(-1, e)} className="w-8 h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-900 hover:text-white text-slate-800 flex items-center justify-center shadow-2xs transition-colors cursor-pointer"><ChevronLeft className="w-4 h-4" /></button>
+          <button type="button" onClick={(e) => scrollByStep(1, e)} className="w-8 h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-900 hover:text-white text-slate-800 flex items-center justify-center shadow-2xs transition-colors cursor-pointer"><ChevronRight className="w-4 h-4" /></button>
+        </div>
+        <div ref={carouselRef} onScroll={handleScroll} className="flex overflow-x-auto snap-x snap-mandatory gap-5 pb-2 scrollbar-none scroll-smooth">
+          {categories.map((cat, idx) => {
+            const photoUrl = resolveCategoryPhoto(cat, idx);
+            const { posClass, fitClass } = resolveCategoryImageClasses(cat, imagePosition, imageFit);
+            const countText = getCountLabel(cat);
+            const idxLabel = String(idx + 1).padStart(2, "0");
+            return (
+              <article key={cat.id || idx} onClick={(e) => onCardClick(cat, idx, e)} className={`group relative snap-start shrink-0 ${slideWidthClass} aspect-[3/4] rounded-2xl overflow-hidden bg-slate-900 border border-slate-200/80 shadow-sm cursor-pointer select-none ${hoverCardClass}`}>
+                <img src={photoUrl} alt={cat.name} referrerPolicy="no-referrer" onError={(e) => handleCategoryImageError(e, idx)} className={`w-full h-full ${posClass} ${fitClass} transition-transform duration-500 ${hoverImgClass}`} />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+                <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-white/90 text-slate-900 text-[10px] font-mono font-bold">LOOK #{idxLabel}</span>
+                <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2 text-white">
+                  <div className="min-w-0">
+                    {showTitle && <h3 className="font-bold text-sm @[768px]:text-base tracking-tight truncate">{cat.name}</h3>}
+                    {showItemCount && countText && <p className="text-[11px] text-white/80 truncate">{countText}</p>}
+                  </div>
+                  <span className="w-8 h-8 rounded-full bg-white text-slate-950 flex items-center justify-center shrink-0 shadow-xs"><ArrowUpRight className="w-4 h-4" /></span>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+        <div className="w-full h-1 bg-slate-200/80 rounded-full overflow-hidden">
+          <div className="h-full bg-slate-900 rounded-full transition-all duration-300" style={{ width: `${scrollProgress}%` }} />
+        </div>
+      </div>
+    );
+  }
+
+  // 9. AFFICHE CINÉMA (overlay : modèle modulaire à hauteur fixe avec resolveAntiHoleSpanClass)
+  if (layout === "overlay") {
+    const isMobilePoster = previewViewport === "mobile";
+    const posterGridClass = isMobilePoster ? "grid-cols-1" : containerGridColsClass;
+    const hasRemainder = !isMobilePoster && categories.length % activeCols !== 0;
+    const posterHeightOrAspect = isMobilePoster
+      ? "aspect-video h-[200px]"
+      : hasRemainder
+      ? cardSize === "compact" ? "h-[240px]" : cardSize === "large" ? "h-[360px]" : "h-[300px]"
+      : activeCols <= 2 ? "aspect-video" : "aspect-[2/3]";
+
+    return (
+      <div className={`grid ${posterGridClass} gap-2`} data-category-model="overlay">
+        {categories.map((cat, idx) => {
+          const photoUrl = resolveCategoryPhoto(cat, idx);
+          const { posClass, fitClass } = resolveCategoryImageClasses(cat, imagePosition, imageFit);
+          const countText = getCountLabel(cat);
+          const idxLabel = String(idx + 1).padStart(2, "0");
+          const spanClass = isMobilePoster ? "col-span-1" : resolveAntiHoleSpanClass(idx, categories.length, activeCols, "overlay");
+
+          return (
+            <article key={cat.id || idx} onClick={(e) => onCardClick(cat, idx, e)} style={{ borderRadius: "6px" }} className={`group relative overflow-hidden bg-black p-0 border-0 cursor-pointer select-none ${posterHeightOrAspect} ${spanClass} ${hoverCardClass}`}>
+              <img src={photoUrl} alt={cat.name} referrerPolicy="no-referrer" onError={(e) => handleCategoryImageError(e, idx)} className={`w-full h-full ${posClass} ${fitClass} transition-transform duration-500 ${hoverImgClass}`} />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-black/35 pointer-events-none" />
+              <div className="absolute inset-x-2.5 top-2 z-10 flex items-center justify-between text-[9px] font-mono tracking-widest uppercase text-white/85 border-b border-white/20 pb-1">
+                <span className="flex items-center gap-1"><Film className="w-3 h-3 text-amber-400" /> SCENE #{idxLabel}</span>
+                <span>{cat.badge || "35MM RAW"}</span>
+              </div>
+              <div className="absolute inset-x-3 bottom-2.5 z-10 flex items-end justify-between gap-2 border-t border-white/20 pt-1.5 text-white">
+                <div className="min-w-0">
+                  {showTitle ? (
+                    <h3 className="font-extrabold text-sm @[768px]:text-base uppercase tracking-wider truncate drop-shadow-xs">{cat.name}</h3>
+                  ) : (
+                    <span className="text-[10px] font-mono tracking-widest uppercase text-amber-300">AFFICHE #{idxLabel}</span>
+                  )}
+                  {showTitle && showItemCount && countText && <p className="text-[10px] font-mono text-white/75 truncate">{countText}</p>}
+                </div>
+                <span className="w-7 h-7 rounded-sm bg-white/15 backdrop-blur-xs border border-white/35 text-white flex items-center justify-center shrink-0"><ArrowUpRight className="w-3.5 h-3.5" /></span>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // 6. GLASS DOCK 3D (modulaire à hauteur fixe) & 8. GRILLE PRESTIGE (symétrique strict : toujours col-span-1)
+  const glassDockHasRemainder = layout === "glass-dock" && categories.length % activeCols !== 0;
+  const glassDockSizeClass = glassDockHasRemainder
+    ? previewViewport === "mobile" ? "h-[230px]" : cardSize === "compact" ? "h-[260px]" : cardSize === "large" ? "h-[380px]" : "h-[320px]"
+    : "aspect-[4/5]";
 
   return (
-    <div
-      ref={isCarousel ? carouselRef : undefined}
-      className={
-        isCarousel
-          ? `flex overflow-x-auto snap-x snap-mandatory ${gapClass} pb-3 pt-1 scrollbar-none scroll-smooth`
-          : `grid ${containerGridColsClass} ${gapClass}`
-      }
-    >
+    <div className={`grid ${containerGridColsClass} ${gapClass}`} data-category-model={layout}>
       {categories.map((cat, idx) => {
         const photoUrl = resolveCategoryPhoto(cat, idx);
         const { posClass, fitClass } = resolveCategoryImageClasses(cat, imagePosition, imageFit);
         const countText = getCountLabel(cat);
         const idxLabel = String(idx + 1).padStart(2, "0");
+        const spanClass = resolveAntiHoleSpanClass(idx, categories.length, activeCols, layout);
         const isCardSelected = isEditable && selectedSectionId === sectionId && selectedSubElement === `category-items:${idx}`;
 
-        const surfaceClass = isDarkSkin
-          ? `bg-slate-950 border border-white/15 text-white ${padScaleClass} shadow-sm hover:border-white/30`
-          : cardSkin === "soft-tint"
-          ? `bg-[#F8FAFC] border border-slate-200/90 ${padScaleClass} hover:bg-white hover:border-slate-300 shadow-[0_2px_10px_-3px_rgba(15,23,42,0.05)]`
-          : cardSkin === "framed"
-          ? `bg-white border border-slate-200/95 p-1.5 @[560px]:p-2.5 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.07)] hover:border-slate-300`
-          : layout === "overlay"
-          ? "bg-slate-900 border border-slate-200/80 p-0 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.08)]"
-          : `bg-white border border-slate-200/85 ${padScaleClass} shadow-[0_2px_12px_-3px_rgba(15,23,42,0.06)] hover:border-slate-300`;
-
-        const innerMediaRadius = layout === "overlay" && cardSkin === "editorial" ? outerRadiusClass : mediaRadiusClass;
-        const useDock = isGlassDock || glassmorphism;
-
-        return (
-          <article
-            key={cat.id || idx}
-            onClick={(e) => onCardClick(cat, idx, e)}
-            className={`group relative flex flex-col overflow-hidden cursor-pointer select-none transition-all duration-200 ease-out ${outerRadiusClass} ${surfaceClass} ${hoverCardClass} ${
-              isCarousel ? carouselWidthClass : ""
-            } ${isCardSelected ? "ring-2 ring-[#2563EB] ring-offset-2" : ""}`}
-          >
-            <div className={`relative w-full overflow-hidden bg-slate-100 ${innerMediaRadius} ${resolvedAspectClass}`}>
-              <img
-                src={photoUrl}
-                alt={cat.name}
-                referrerPolicy="no-referrer"
-                onError={(e) => handleCategoryImageError(e, idx)}
-                className={`w-full h-full ${posClass} ${fitClass} transition-transform duration-300 ease-out ${hoverImgClass}`}
-              />
-
-              <div className="absolute top-2 left-2 @[560px]:top-2.5 @[560px]:left-2.5 z-10 flex items-center gap-1 pointer-events-none">
-                <span className="hidden @[420px]:inline-block px-1.5 @[560px]:px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/25 text-[9px] @[560px]:text-[10px] font-mono font-bold text-white tabular-nums">
-                  {idxLabel}
-                </span>
-                {showBadge && cat.badge && (
-                  <span className="text-[9px] @[560px]:text-[10px] font-semibold tracking-wide px-2 py-0.5 rounded-full text-white shadow-2xs truncate max-w-[95px]" style={{ backgroundColor: cat.badgeColor || primaryColor }}>
-                    {cat.badge}
-                  </span>
-                )}
-              </div>
-
+        if (layout === "glass-dock") {
+          return (
+            <article key={cat.id || idx} onClick={(e) => onCardClick(cat, idx, e)} style={{ borderRadius: "24px" }} className={`group relative ${glassDockSizeClass} overflow-hidden bg-slate-900 cursor-pointer select-none shadow-sm ${spanClass} ${hoverCardClass} ${isCardSelected ? "ring-2 ring-[#2563EB]" : ""}`}>
+              <img src={photoUrl} alt={cat.name} referrerPolicy="no-referrer" onError={(e) => handleCategoryImageError(e, idx)} className={`w-full h-full ${posClass} ${fitClass} transition-transform duration-500 ${hoverImgClass}`} />
               {isEditable && (
-                <div className="absolute top-2 right-2 @[560px]:top-2.5 @[560px]:right-2.5 z-20 flex items-center gap-1 opacity-85 @[560px]:opacity-0 @[560px]:group-hover:opacity-100 transition-opacity duration-150">
-                  <button type="button" onClick={(e) => onEditItem(idx, e)} className="bg-[#023859]/90 hover:bg-[#011C40] text-white text-[9px] font-bold p-1.5 @[560px]:px-2 @[560px]:py-1 rounded-md shadow-xs flex items-center gap-1 cursor-pointer border border-white/20">
-                    <Camera className="w-2.5 h-2.5" />
-                    <span className="hidden @[560px]:inline">Photo</span>
-                  </button>
-                  <button type="button" onClick={(e) => onOpenPage(cat, e)} className="hidden @[560px]:inline-block bg-slate-900/90 hover:bg-slate-950 text-white text-[9px] font-bold px-1.5 py-1 rounded-md shadow-xs cursor-pointer border border-white/15">
-                    Page →
-                  </button>
-                </div>
+                <button type="button" onClick={(e) => onEditItem(idx, e)} className="absolute top-3 right-3 z-20 bg-[#023859]/90 text-white text-[9px] font-bold px-2 py-1 rounded-md flex items-center gap-1 cursor-pointer border border-white/20"><Camera className="w-2.5 h-2.5" /></button>
               )}
-
-              {isTitleVisible && isOverlayMode && (
-                <div
-                  className={`absolute inset-0 flex flex-col p-2 @[560px]:p-3 transition-opacity duration-200 ${
-                    textPosition === "overlay-center" ? "items-center justify-center text-center" : "justify-end text-left"
-                  }`}
-                  style={{
-                    background:
-                      textPosition === "overlay-center"
-                        ? `rgba(15, 23, 42, ${Math.min(0.68, Math.max(0.25, overlayOpacity))})`
-                        : `linear-gradient(180deg, rgba(15,23,42,0) 40%, rgba(10,15,29,${Math.min(0.88, overlayOpacity + 0.32)}) 100%)`,
-                  }}
-                >
-                  <div className={useDock ? `w-full ${isDarkSkin ? "bg-slate-950/88 text-white border-white/20" : "bg-white/92 text-slate-900 border-white/80"} backdrop-blur-md border rounded-xl px-2 py-1.5 @[560px]:px-3 @[560px]:py-2 shadow-sm flex items-center justify-between gap-1.5` : "w-full flex items-end justify-between gap-1.5 px-1 pb-0.5"}>
+              <div
+                style={{
+                  position: "absolute", bottom: "12px", left: "12px", right: "12px", height: "54px",
+                  backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                  background: "rgba(255,255,255,0.72)", border: "1px solid rgba(255,255,255,0.5)", borderRadius: "16px",
+                }}
+                className="z-10 px-3.5 flex items-center justify-between gap-2 shadow-sm text-slate-900"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="px-2 py-0.5 rounded-md bg-slate-900/10 text-[10px] font-mono font-extrabold text-slate-900 shrink-0">#{idxLabel}</span>
+                  {showTitle ? (
                     <div className="min-w-0">
-                      <h3 className={`font-bold tracking-tight leading-snug line-clamp-1 ${useDock ? (isDarkSkin ? "text-white" : "text-slate-900") : "text-white drop-shadow-xs"} ${titleSizeClass}`}>
-                        {cat.name}
-                      </h3>
-                      {showItemCount && countText && (
-                        <p className={`text-[10px] @[560px]:text-[11px] font-medium line-clamp-1 mt-0.5 ${useDock ? (isDarkSkin ? "text-slate-300" : "text-slate-500") : "text-white/85"}`}>
-                          {countText}
-                        </p>
-                      )}
+                      <h3 className="font-bold text-xs @[768px]:text-sm tracking-tight truncate">{cat.name}</h3>
+                      {showItemCount && countText && <p className="text-[10px] text-slate-600 truncate">{countText}</p>}
                     </div>
-                    <span className={`w-5 h-5 @[560px]:w-6 @[560px]:h-6 rounded-full flex items-center justify-center shrink-0 ${useDock ? (isDarkSkin ? "bg-white text-slate-950" : "bg-slate-900 text-white") : "bg-white/20 backdrop-blur-xs text-white border border-white/30"}`}>
-                      <ArrowUpRight className="w-3 h-3" />
-                    </span>
-                  </div>
+                  ) : (
+                    <span className="text-[11px] font-semibold text-slate-800 truncate">{cat.badge || "Capsule Glass 3D"}</span>
+                  )}
                 </div>
+                <span className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"><ArrowUpRight className="w-4 h-4" /></span>
+              </div>
+            </article>
+          );
+        }
+
+        const prestigeAspect = cardSize === "large" ? "aspect-[3/4]" : "aspect-[4/5]";
+        return (
+          <article key={cat.id || idx} onClick={(e) => onCardClick(cat, idx, e)} className={`group relative flex flex-col rounded-xl bg-[#FAF8F5] border border-[#E5E0D8] p-[8px] @[768px]:p-[14px] shadow-[0_4px_18px_-6px_rgba(15,23,42,0.07)] cursor-pointer select-none col-span-1 ${hoverCardClass} ${isCardSelected ? "ring-2 ring-[#2563EB]" : ""}`}>
+            <div className={`relative w-full ${prestigeAspect} rounded-lg overflow-hidden bg-stone-200 border border-[#E5E0D8]`}>
+              <img src={photoUrl} alt={cat.name} referrerPolicy="no-referrer" onError={(e) => handleCategoryImageError(e, idx)} className={`w-full h-full ${posClass} ${fitClass} transition-transform duration-500 ${hoverImgClass}`} />
+              {showBadge && cat.badge && (
+                <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[9px] font-semibold text-white" style={{ backgroundColor: cat.badgeColor || primaryColor }}>{cat.badge}</span>
               )}
             </div>
-
-            {isTitleVisible && !isOverlayMode && (
-              <div className="flex items-center justify-between gap-1.5 px-2 pt-2 pb-1 @[560px]:px-2.5 @[560px]:pt-2.5 @[560px]:pb-1.5">
-                <div className="min-w-0">
-                  <h3 className={`font-bold tracking-tight leading-snug line-clamp-1 ${titleSizeClass}`} style={{ color: isDarkSkin ? "#FFFFFF" : textColor }}>
-                    {cat.name}
-                  </h3>
-                  <p className={`text-[10px] @[560px]:text-[11px] font-medium line-clamp-1 mt-0.5 ${isDarkSkin ? "text-slate-400" : "text-slate-500"}`}>
-                    {showItemCount && countText ? countText : cat.subtitle || "Explorer la collection"}
-                  </p>
-                </div>
-                <span className={`w-6 h-6 @[560px]:w-7 @[560px]:h-7 rounded-full flex items-center justify-center shrink-0 ${isDarkSkin ? "bg-white text-slate-950" : "bg-slate-900 text-white"}`}>
-                  <ArrowUpRight className="w-3 h-3 @[560px]:w-3.5 @[560px]:h-3.5" />
-                </span>
-              </div>
+            <div className="relative z-10 -mt-4 mx-auto px-3.5 py-1.5 rounded-full bg-white border border-[#E5E0D8] shadow-xs flex items-center gap-2 max-w-[92%]">
+              <span className="text-[10px] font-mono font-bold text-stone-400 shrink-0">N°{idxLabel}</span>
+              {showTitle && <h3 className="font-bold text-xs @[768px]:text-sm tracking-tight truncate" style={{ color: textColor }}>{cat.name}</h3>}
+              <ArrowUpRight className="w-3.5 h-3.5 text-stone-700 shrink-0" />
+            </div>
+            {showTitle && showItemCount && countText && (
+              <p className="text-[10px] text-center text-stone-500 mt-1.5 truncate">{countText}</p>
             )}
           </article>
         );

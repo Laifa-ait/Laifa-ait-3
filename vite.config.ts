@@ -27,7 +27,7 @@ export default defineConfig(({mode, command}) => {
     build: {
       target: 'es2022',
       outDir: 'dist',
-      emptyOutDir: true,
+      emptyOutDir: false,
       sourcemap: false,
       chunkSizeWarningLimit: 600,
       rollupOptions: {

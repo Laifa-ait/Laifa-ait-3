@@ -103,13 +103,13 @@ export const StudioSubscriptionModal: React.FC<StudioSubscriptionModalProps> = (
   const instructions = pendingRequest?.paymentInstructions;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white text-slate-900 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 my-8 animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 bg-slate-950/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white text-slate-900 rounded-xl max-w-2xl w-full p-6 sm:p-7 shadow-xl border border-slate-200 space-y-5 my-8">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-orange-50 text-orange-600 rounded-2xl border border-orange-200/80">
-              <Send className="w-5 h-5" />
+            <div className="p-2 bg-slate-100 text-slate-900 rounded-lg border border-slate-200">
+              <Send className="w-4 h-4" />
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-bold text-slate-900">

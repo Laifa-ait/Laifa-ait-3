@@ -3,9 +3,11 @@ import { CustomPageSection, CustomPageTheme } from "../../../domains/seller/cust
 import { Product } from "../../../domains/product/product.types";
 import {
   buildSectionContainerStyle, resolveBorderRadiusClass, resolveContainerWidthClass,
-  resolveShadowClass, resolveAnimationClass, SectionDividerRenderer,
+  resolveShadowClass, resolveAnimationClass, resolveSectionImageFilterCss,
+  resolveSectionButtonInlineStyle, SectionDividerRenderer,
 } from "./sectionStyleHelper";
-import { Play, Layers, Award } from "lucide-react";
+import { ELEGANT_HERO_FALLBACK_IMG } from "./hero/HeroMinimalTextAndGuides";
+import { Play, Award } from "lucide-react";
 import { useStudioStore } from "../../../pages/Seller/StoreBuilder/store/useStudioStore";
 import { ArtisticFrameWrapper } from "../ArtisticFrameWrapper";
 import { EditorialHeading, EditorialDropCapParagraph } from "../EditorialHeading";
@@ -42,16 +44,26 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
   const styles = section.styles || {};
   const rawSettings = (section.settings || {}) as Record<string, unknown>;
   const radiusClass = resolveBorderRadiusClass(styles.borderRadius);
+  const cardShadowClass = resolveShadowClass(styles.cardShadow || "sm");
   const widthClass = resolveContainerWidthClass(styles.containerWidth);
-  const accentColor = theme.primaryColor || "#F97316";
+  const accentColor = styles.iconColor || styles.buttonBgColor || theme.primaryColor || "var(--store-primary, #B45309)";
+  const headingColor = styles.headingColor || styles.textColor || theme.secondaryColor || "var(--store-secondary, #18181B)";
+  const subtitleColor = styles.subtitleColor || styles.textColor || theme.mutedTextColor;
+  const cardBgColor = styles.cardBgColor || theme.surfaceColor || "var(--store-surface, #FFFFFF)";
+  const cardTextColor = styles.cardTextColor || styles.textColor || theme.secondaryColor || "var(--store-secondary, #0F172A)";
+  const cardBorderColor = styles.cardBorderColor || theme.borderColor || "#E4E7EC";
+  const badgeBgColor = styles.badgeBgColor || theme.accentBadgeColor || accentColor;
+  const badgeTextColor = styles.badgeTextColor || theme.badgeTextColor || "#FFFFFF";
   const textAlign = (rawSettings.textAlignment as string) || "left";
   const alignClass = textAlign === "center" ? "text-center" : textAlign === "right" ? "text-right" : "text-left";
+  const imgFilterCss = resolveSectionImageFilterCss(styles, rawSettings);
+  const btnInlineStyle = resolveSectionButtonInlineStyle(styles, theme, rawSettings);
 
   const wrapperClass = `transition-all relative select-none ${radiusClass} ${resolveShadowClass(styles.shadow)} ${resolveAnimationClass(styles.animation)} ${
     isEditable && isSelected
-      ? "ring-2 ring-[var(--store-primary,#F97316)] shadow-xl z-10"
+      ? "ring-2 ring-[var(--store-primary,#023859)] shadow-xl z-10"
       : isEditable
-      ? "hover:ring-2 hover:ring-[var(--store-primary,#F97316)]/50 cursor-pointer"
+      ? "hover:ring-2 hover:ring-[var(--store-primary,#023859)]/50 cursor-pointer"
       : ""
   }`;
 
@@ -59,6 +71,7 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
     const collections = Array.isArray(rawSettings.collections)
       ? (rawSettings.collections as Array<{ id: string; title: string; imageUrl?: string; productIds?: string[] }>)
       : [];
+    const ctaText = typeof rawSettings.ctaText === "string" && rawSettings.ctaText.trim() ? rawSettings.ctaText : "Explorer →";
     return (
       <div onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={buildSectionContainerStyle(styles, "transparent", "var(--store-secondary, #17191C)", theme)}>
         <div className={widthClass}>
@@ -68,9 +81,11 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
               text={String(rawSettings.title || section.title || "Nos Collections")}
               theme={theme}
               sectionStyles={styles}
+              accentColorOverride={styles.kickerColor || accentColor}
               isEditable={isEditable}
               editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
               onClick={(e) => handleSubElementClick("title", e)}
+              style={{ color: headingColor }}
               className={`text-xl @md:text-2xl font-extrabold inline-block rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`}
             />
           </div>
@@ -82,25 +97,23 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
             <div className="grid grid-cols-1 @sm:grid-cols-2 @md:grid-cols-3 gap-5">
               {collections.map((col, idx) => {
                 const colProducts = products.filter((p) => (col.productIds || []).includes(p.id));
-                const coverImg = col.imageUrl || colProducts[0]?.image;
+                const coverImg = col.imageUrl || colProducts[0]?.image || ELEGANT_HERO_FALLBACK_IMG;
                 return (
                   <div key={col.id || idx} onClick={(e) => handleSubElementClick(`collection-${idx}`, e)} className={`group transition-all ${isSubActive(`collection-${idx}`) ? "ring-2 ring-[#2563EB] rounded-2xl" : ""}`}>
-                    <ArtisticFrameWrapper shape={styles.frameShape} theme={theme} caption={col.title} fallbackRadiusClass={radiusClass} className="bg-[var(--store-surface,#FFFFFF)] border border-slate-200 shadow-xs hover:shadow-md overflow-hidden">
+                    <ArtisticFrameWrapper shape={styles.frameShape} theme={theme} caption={col.title} fallbackRadiusClass={radiusClass} className={`border ${cardShadowClass} hover:shadow-md overflow-hidden`} style={{ backgroundColor: cardBgColor, borderColor: cardBorderColor }}>
                       <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden">
-                        {coverImg ? (
-                          <img src={coverImg} alt={col.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-orange-50" style={{ color: accentColor }}>
-                            <Layers className="w-8 h-8" />
-                          </div>
-                        )}
-                        <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-black/70 text-white text-[10px] font-bold">
+                        <img src={coverImg} alt={col.title} style={{ filter: imgFilterCss }} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <span
+                          data-testid={`collection-badge-${idx}`}
+                          style={{ backgroundColor: styles.badgeBgColor || "rgba(0,0,0,0.72)", color: badgeTextColor }}
+                          className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold"
+                        >
                           {(col.productIds || []).length} article{(col.productIds || []).length > 1 ? "s" : ""}
                         </span>
                       </div>
-                      <div className="p-4 flex items-center justify-between">
-                        <h3 className="font-bold text-sm text-[var(--store-secondary,#0F172A)]">{col.title}</h3>
-                        <span className="text-xs font-bold" style={{ color: accentColor }}>Explorer →</span>
+                      <div className="p-4 flex items-center justify-between gap-2" style={{ backgroundColor: cardBgColor }}>
+                        <h3 data-testid={`collection-card-title-${idx}`} className="font-bold text-sm" style={{ color: cardTextColor }}>{col.title}</h3>
+                        <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold" style={btnInlineStyle}>{ctaText}</span>
                       </div>
                     </ArtisticFrameWrapper>
                   </div>
@@ -109,7 +122,7 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
             </div>
           )}
         </div>
-        <SectionDividerRenderer divider={styles.divider} theme={theme} />
+        <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
       </div>
     );
   }
@@ -121,15 +134,20 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
         <div className={`${widthClass} flex flex-col ${imgPos === "right" ? "@md:flex-row-reverse" : "@md:flex-row"} items-center gap-8`}>
           {Boolean(rawSettings.imageUrl) && (
             <div className="w-full @md:w-5/12 shrink-0" onClick={(e) => handleSubElementClick("background", e)}>
-              <ArtisticFrameWrapper shape={styles.frameShape} theme={theme} caption={String(rawSettings.signature || rawSettings.heading || "Notre Atelier")} fallbackRadiusClass={radiusClass} className="shadow-md">
-                <img src={String(rawSettings.imageUrl)} alt={String(rawSettings.heading || "Histoire")} className="w-full h-64 @md:h-72 object-cover" />
+              <ArtisticFrameWrapper shape={styles.frameShape} theme={theme} caption={String(rawSettings.signature || rawSettings.heading || "Notre Atelier")} fallbackRadiusClass={radiusClass} className={cardShadowClass} style={{ backgroundColor: cardBgColor, borderColor: cardBorderColor }}>
+                <img src={String(rawSettings.imageUrl)} alt={String(rawSettings.heading || "Histoire")} style={{ filter: imgFilterCss }} className="w-full h-64 @md:h-72 object-cover" />
               </ArtisticFrameWrapper>
             </div>
           )}
           <div className={`flex-1 space-y-3 ${alignClass}`}>
             {typeof rawSettings.yearsOfExperience === "number" && rawSettings.yearsOfExperience > 0 && (
-              <span onClick={(e) => handleSubElementClick("badge", e)} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: `${accentColor}18`, color: accentColor }}>
-                <Award className="w-3.5 h-3.5" />
+              <span
+                data-testid="brand-story-badge"
+                onClick={(e) => handleSubElementClick("badge", e)}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
+                style={{ backgroundColor: styles.badgeBgColor || `${accentColor}18`, color: styles.badgeTextColor || accentColor }}
+              >
+                <Award className="w-3.5 h-3.5" style={{ color: styles.iconColor || styles.badgeTextColor || accentColor }} />
                 <span>{rawSettings.yearsOfExperience} ans de savoir-faire</span>
               </span>
             )}
@@ -138,37 +156,46 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
               text={String(rawSettings.heading || "Notre Histoire")}
               theme={theme}
               sectionStyles={styles}
+              accentColorOverride={styles.kickerColor || accentColor}
               isEditable={isEditable}
               editConfig={{ sectionId: section.id, settingKey: "heading", alsoUpdateSectionTitle: true }}
               onClick={(e) => handleSubElementClick("title", e)}
               className={`text-2xl @md:text-3xl font-extrabold rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`}
-              style={{ color: styles.textColor || accentColor }}
+              style={{ color: headingColor }}
             />
             <EditorialDropCapParagraph
               text={String(rawSettings.bodyText || "")}
               dropCap={Boolean(rawSettings.dropCap)}
-              accentColor={accentColor}
+              accentColor={styles.kickerColor || accentColor}
               theme={theme}
               isEditable={isEditable}
               editConfig={{ sectionId: section.id, settingKey: "bodyText", subElement: "subtitle" }}
               onClick={(e) => handleSubElementClick("subtitle", e)}
+              style={{ color: subtitleColor }}
               className={`text-sm @md:text-base opacity-90 leading-relaxed whitespace-pre-line rounded px-1 ${isSubActive("subtitle") ? "ring-2 ring-[#2563EB]" : ""}`}
             />
             {Boolean(rawSettings.signature) && (
-              <p className="pt-2 font-bold italic text-sm" style={{ color: accentColor }}>
+              <p className="pt-2 font-bold italic text-sm" style={{ color: styles.kickerColor || accentColor }}>
                 — {String(rawSettings.signature)}
               </p>
             )}
+            {Boolean(rawSettings.ctaText) && (
+              <div className="pt-2">
+                <a href={String(rawSettings.ctaLink || "#catalog")} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold" style={btnInlineStyle}>
+                  {String(rawSettings.ctaText)}
+                </a>
+              </div>
+            )}
           </div>
         </div>
-        <SectionDividerRenderer divider={styles.divider} theme={theme} />
+        <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
       </div>
     );
   }
 
   if (section.type === "showcase_video") {
     const videoUrl = String(rawSettings.videoUrl || "");
-    const posterUrl = String(rawSettings.posterUrl || "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80");
+    const posterUrl = String(rawSettings.coverImageUrl || rawSettings.posterUrl || ELEGANT_HERO_FALLBACK_IMG);
     return (
       <div onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={buildSectionContainerStyle(styles, "transparent", "var(--store-secondary, #17191C)", theme)}>
         <div className={widthClass}>
@@ -178,24 +205,26 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
               text={String(rawSettings.title)}
               theme={theme}
               sectionStyles={styles}
+              accentColorOverride={styles.kickerColor || accentColor}
               isEditable={isEditable}
               editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
               onClick={(e) => handleSubElementClick("title", e)}
+              style={{ color: headingColor }}
               className={`text-xl @md:text-2xl font-extrabold mb-4 ${alignClass} ${isSubActive("title") ? "ring-2 ring-[#2563EB] rounded" : ""}`}
             />
           )}
-          <ArtisticFrameWrapper shape={styles.frameShape} theme={theme} caption={String(rawSettings.title || "En Coulisses")} fallbackRadiusClass={radiusClass} className="shadow-lg">
-            <div className="relative aspect-video bg-slate-900 overflow-hidden" onClick={(e) => handleSubElementClick("background", e)}>
+          <ArtisticFrameWrapper shape={styles.frameShape} theme={theme} caption={String(rawSettings.title || "En Coulisses")} fallbackRadiusClass={radiusClass} className={cardShadowClass} style={{ backgroundColor: cardBgColor, borderColor: cardBorderColor }}>
+            <div className="relative aspect-video bg-slate-900 overflow-hidden" style={{ backgroundColor: styles.overlayColor || "#090D16" }} onClick={(e) => handleSubElementClick("background", e)}>
               {videoUrl ? (
-                <video src={videoUrl} poster={posterUrl} controls autoPlay={Boolean(rawSettings.autoplay)} loop={Boolean(rawSettings.loop)} muted={rawSettings.muted !== false} className="w-full h-full object-cover" />
+                <video src={videoUrl} poster={posterUrl} controls autoPlay={Boolean(rawSettings.autoplay)} loop={Boolean(rawSettings.loop)} muted={rawSettings.muted !== false} style={{ filter: imgFilterCss }} className="w-full h-full object-cover" />
               ) : (
                 <div className="relative w-full h-full flex items-center justify-center">
-                  <img src={posterUrl} alt="Aperçu vidéo" className="w-full h-full object-cover opacity-60" />
+                  <img src={posterUrl} alt="Aperçu vidéo" style={{ filter: imgFilterCss }} className="w-full h-full object-cover opacity-60" />
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4 text-center">
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-xl mb-2" style={{ backgroundColor: accentColor }}>
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-xl mb-2" style={btnInlineStyle}>
                       <Play className="w-6 h-6 fill-current ml-0.5" />
                     </div>
-                    <span className="text-xs font-bold bg-black/60 px-3 py-1 rounded-full">
+                    <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ backgroundColor: badgeBgColor, color: badgeTextColor }}>
                       Ajoutez l&apos;adresse MP4/WebM de votre vidéo dans l&apos;onglet Contenu
                     </span>
                   </div>
@@ -204,7 +233,7 @@ export const SectionContentAndTrust: React.FC<SectionContentAndTrustProps> = ({
             </div>
           </ArtisticFrameWrapper>
         </div>
-        <SectionDividerRenderer divider={styles.divider} theme={theme} />
+        <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
       </div>
     );
   }

@@ -24,7 +24,7 @@ export const MobileMenuQuickActions: React.FC<MobileMenuQuickActionsProps> = ({
   const actions = [
     {
       id: "catalog",
-      label: t("Catalogue"),
+      label: t("mobile_menu.action_catalog", "Catalogue"),
       icon: ShoppingBag,
       color: "text-[#1A1836]",
       bg: "bg-[#1A1836]/10",
@@ -36,7 +36,7 @@ export const MobileMenuQuickActions: React.FC<MobileMenuQuickActionsProps> = ({
     },
     {
       id: "wishlist",
-      label: t("Favoris"),
+      label: t("mobile_menu.action_wishlist", "Favoris"),
       icon: Heart,
       color: "text-[#A54055]",
       bg: "bg-[#A54055]/10",
@@ -53,7 +53,7 @@ export const MobileMenuQuickActions: React.FC<MobileMenuQuickActionsProps> = ({
     },
     {
       id: "orders",
-      label: t("Commandes"),
+      label: t("mobile_menu.action_orders", "Commandes"),
       icon: Package,
       color: "text-[#E99856]",
       bg: "bg-[#E99856]/15",
@@ -65,7 +65,7 @@ export const MobileMenuQuickActions: React.FC<MobileMenuQuickActionsProps> = ({
     },
     {
       id: "cart",
-      label: t("Panier"),
+      label: t("mobile_menu.action_cart", "Panier"),
       icon: ShoppingCart,
       color: "text-[#622347]",
       bg: "bg-[#622347]/10",

@@ -1,43 +1,27 @@
 import { db } from "../../../config/firebase-admin";
 import { StoreConfig, StoreLayoutVersion } from "../customPage.types";
+import { PublicStorefrontProductDTO } from "../shop.types";
 import { LegacyStoreAdapter } from "./legacyStore.adapter";
 import { USER_STATUSES } from "../../user/user.status";
+import { redactStoreConfigForPublic } from "../../../security/studioCyberSecurity";
+import {
+  evaluatePaidStudioSubscription, isPubliclyVisibleProductStatus, isStorePasswordLocked,
+  resolveProductImagesList, resolveProductPrimaryImage, verifyStoreVipAccessToken,
+} from "../../../security/storeVipAccessGuard";
 
-export interface PublicStorefrontProductDTO {
-  id: string;
-  name: string;
-  title: string;
-  description: string;
-  price: number;
-  promoPrice?: number;
-  originalPrice?: number;
-  flashPrice?: number;
-  flashSaleActive: boolean;
-  category: string;
-  subcategory: string;
-  image: string;
-  images: string[];
-  stock: number;
-  rating: number;
-  salesCount: number;
-  colors: string[];
-  sizes: string[];
-  variants: unknown[];
-  sellerId: string;
-  sellerName: string;
-  storeName: string;
-  wilaya: string;
-  status: string;
-}
+export type { PublicStorefrontProductDTO };
 
 export interface PublicStorefrontResponse {
   sellerId: string;
   canonicalSlug: string;
   redirectToSlug?: string;
   hasPaidStudioSubscription: boolean;
+  isVipLocked?: boolean;
   storeConfig: StoreConfig;
   publishedLayout: StoreLayoutVersion | null;
   products: PublicStorefrontProductDTO[];
+  nextProductsCursor?: string | null;
+  totalProductsCount?: number;
   activeCoupons: unknown[];
   trustMetrics: {
     activeProductsCount: number;
@@ -50,15 +34,11 @@ export interface PublicStorefrontResponse {
   };
 }
 
-const HIDDEN_STATUSES = new Set(["draft", "rejected", "suspended", "archived", "pending_deletion"]);
 const publicStorefrontCache = new Map<string, { timestamp: number; data: PublicStorefrontResponse }>();
 const CACHE_TTL_MS = 30 * 1000;
 
 export function invalidatePublicStorefrontCache(sellerId?: string, slug?: string) {
-  if (!sellerId && !slug) {
-    publicStorefrontCache.clear();
-    return;
-  }
+  if (!sellerId && !slug) { publicStorefrontCache.clear(); return; }
   for (const [key, value] of publicStorefrontCache.entries()) {
     if (sellerId && value.data.sellerId === sellerId) publicStorefrontCache.delete(key);
     else if (slug && (key === slug || value.data.canonicalSlug === slug)) publicStorefrontCache.delete(key);
@@ -67,9 +47,7 @@ export function invalidatePublicStorefrontCache(sellerId?: string, slug?: string
 
 export class StorePublicService {
   static async resolveSellerIdentity(slugOrId: string): Promise<{
-    targetSellerId: string;
-    canonicalSlug: string | null;
-    shouldRedirectSlug: string | null;
+    targetSellerId: string; canonicalSlug: string | null; shouldRedirectSlug: string | null;
   }> {
     let targetSellerId: string | null = null;
     let canonicalSlug: string | null = null;
@@ -112,20 +90,27 @@ export class StorePublicService {
     return { targetSellerId, canonicalSlug, shouldRedirectSlug };
   }
 
-  static async fetchSellerPublicProducts(sellerIdOrSlug: string): Promise<PublicStorefrontProductDTO[]> {
+  static async fetchSellerPublicProductsPaginated(
+    sellerIdOrSlug: string,
+    options?: { limit?: number; cursorId?: string; vipAccessToken?: string }
+  ): Promise<{ products: PublicStorefrontProductDTO[]; nextCursor: string | null; totalCount: number }> {
     let resolvedId = sellerIdOrSlug;
     try {
-      const resolved = await this.resolveSellerIdentity(sellerIdOrSlug);
-      resolvedId = resolved.targetSellerId;
-    } catch {
-      resolvedId = sellerIdOrSlug;
+      resolvedId = (await this.resolveSellerIdentity(sellerIdOrSlug)).targetSellerId;
+    } catch { resolvedId = sellerIdOrSlug; }
+
+    const configSnap = await db.collection("store_configs").doc(resolvedId).get().catch(() => null);
+    if (configSnap?.exists) {
+      const cfg = configSnap.data() as StoreConfig;
+      if (isStorePasswordLocked(cfg) && !verifyStoreVipAccessToken(options?.vipAccessToken, resolvedId, cfg)) {
+        return { products: [], nextCursor: null, totalCount: 0 };
+      }
     }
 
+    const batchLimit = Math.min(500, Math.max(20, (options?.limit ?? 100) * 3));
     const candidateFields = ["sellerId", "sellerUid", "userId", "storeId", "shopId"];
     const snaps = await Promise.all(
-      candidateFields.map((field) =>
-        db.collection("products").where(field, "==", resolvedId).limit(100).get().catch(() => null)
-      )
+      candidateFields.map((field) => db.collection("products").where(field, "==", resolvedId).limit(batchLimit).get().catch(() => null))
     );
 
     const productMap = new Map<string, PublicStorefrontProductDTO>();
@@ -133,62 +118,69 @@ export class StorePublicService {
       if (!snap) continue;
       for (const doc of snap.docs) {
         const d = doc.data() || {};
-        const rawStatus = typeof d.status === "string" ? d.status.trim().toLowerCase() : "active";
-        if (HIDDEN_STATUSES.has(rawStatus)) continue;
-
-        const imagesList = Array.isArray(d.images) ? (d.images as string[]).filter(Boolean) : [];
-        const primaryImage = typeof d.image === "string" && d.image.trim() ? d.image : imagesList[0] || "";
+        if (!isPubliclyVisibleProductStatus(d.status)) continue;
         const prodName = String(d.name || d.title || "Article");
-
         productMap.set(doc.id, {
-          id: doc.id,
-          name: prodName,
-          title: prodName,
-          description: String(d.description || ""),
+          id: doc.id, name: prodName, title: prodName, description: String(d.description || ""),
           price: Number(d.price) || 0,
           promoPrice: typeof d.promoPrice === "number" ? d.promoPrice : undefined,
           originalPrice: typeof d.originalPrice === "number" ? d.originalPrice : undefined,
           flashPrice: typeof d.flashPrice === "number" ? d.flashPrice : undefined,
           flashSaleActive: Boolean(d.flashSaleActive),
-          category: String(d.category || "Général"),
-          subcategory: String(d.subcategory || d.subCategory || ""),
-          image: primaryImage,
-          images: imagesList.length > 0 ? imagesList : primaryImage ? [primaryImage] : [],
-          stock: typeof d.stock === "number" ? d.stock : 10,
-          rating: typeof d.rating === "number" ? d.rating : 5,
+          category: String(d.category || "Général"), subcategory: String(d.subcategory || d.subCategory || ""),
+          image: resolveProductPrimaryImage(d, ""), images: resolveProductImagesList(d),
+          stock: typeof d.stock === "number" ? d.stock : 10, rating: typeof d.rating === "number" ? d.rating : 5,
           salesCount: typeof d.salesCount === "number" ? d.salesCount : 0,
           colors: Array.isArray(d.colors) ? (d.colors as string[]) : [],
           sizes: Array.isArray(d.sizes) ? (d.sizes as string[]) : [],
           variants: Array.isArray(d.variants) ? d.variants : [],
-          sellerId: resolvedId,
-          sellerName: String(d.sellerName || d.storeName || ""),
-          storeName: String(d.storeName || d.sellerName || ""),
-          wilaya: String(d.wilaya || ""),
-          status: "active",
+          sellerId: resolvedId, sellerName: String(d.sellerName || d.storeName || ""),
+          storeName: String(d.storeName || d.sellerName || ""), wilaya: String(d.wilaya || ""), status: "active",
         });
       }
     }
-    return Array.from(productMap.values());
+
+    const sortedAll = Array.from(productMap.values()).sort((a, b) => a.id.localeCompare(b.id));
+    const totalCount = sortedAll.length;
+    const pageSize = options?.limit && options.limit > 0 ? Math.min(200, options.limit) : totalCount || 100;
+    let startIndex = 0;
+    if (options?.cursorId) {
+      const idx = sortedAll.findIndex((p) => p.id === options.cursorId);
+      if (idx !== -1) startIndex = idx + 1;
+    }
+    const pageItems = sortedAll.slice(startIndex, startIndex + pageSize);
+    const nextCursor = startIndex + pageSize < totalCount ? pageItems[pageItems.length - 1]?.id ?? null : null;
+    return { products: pageItems, nextCursor, totalCount };
   }
 
-  static async resolveAndGetStorefront(slugOrId: string): Promise<PublicStorefrontResponse> {
-    const cached = publicStorefrontCache.get(slugOrId);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) return cached.data;
+  static async fetchSellerPublicProducts(
+    sellerIdOrSlug: string,
+    options?: { limit?: number; cursorId?: string; vipAccessToken?: string }
+  ): Promise<PublicStorefrontProductDTO[]> {
+    return (await this.fetchSellerPublicProductsPaginated(sellerIdOrSlug, options)).products;
+  }
 
-    const { targetSellerId, canonicalSlug: initialSlug, shouldRedirectSlug } =
-      await this.resolveSellerIdentity(slugOrId);
+  static async resolveAndGetStorefront(
+    slugOrId: string,
+    vipAccessToken?: string,
+    options?: { previewDraft?: boolean }
+  ): Promise<PublicStorefrontResponse> {
+    const isPreviewDraft = Boolean(options?.previewDraft);
+    if (!vipAccessToken && !isPreviewDraft) {
+      const cached = publicStorefrontCache.get(slugOrId);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) return cached.data;
+    }
 
-    const [configDoc, userDoc, pubDoc, layoutDoc, products, couponsSnap, reviewsSnap, paidReqSnap] =
-      await Promise.all([
-        db.collection("store_configs").doc(targetSellerId).get(),
-        db.collection("users").doc(targetSellerId).get(),
-        db.collection("publicProfiles").doc(targetSellerId).get(),
-        db.collection("store_layouts").doc(targetSellerId).get(),
-        this.fetchSellerPublicProducts(targetSellerId),
-        db.collection("coupons").where("sellerId", "==", targetSellerId).where("isActive", "==", true).limit(10).get(),
-        db.collection("reviews").where("sellerId", "==", targetSellerId).limit(50).get().catch(() => ({ empty: true, docs: [] })),
-        db.collection("subscription_requests").where("sellerId", "==", targetSellerId).where("status", "in", ["payment_confirmed", "granted"]).limit(10).get().catch(() => ({ empty: true, docs: [] })),
-      ]);
+    const { targetSellerId, canonicalSlug: initialSlug, shouldRedirectSlug } = await this.resolveSellerIdentity(slugOrId);
+    const [configDoc, userDoc, pubDoc, layoutDoc, couponsSnap, reviewsSnap, paidReqSnap] = await Promise.all([
+      db.collection("store_configs").doc(targetSellerId).get(),
+      db.collection("users").doc(targetSellerId).get(),
+      db.collection("publicProfiles").doc(targetSellerId).get(),
+      db.collection("store_layouts").doc(targetSellerId).get(),
+      db.collection("coupons").where("sellerId", "==", targetSellerId).where("isActive", "==", true).limit(10).get(),
+      db.collection("reviews").where("sellerId", "==", targetSellerId).limit(50).get().catch(() => ({ empty: true, docs: [] })),
+      db.collection("subscription_requests").where("sellerId", "==", targetSellerId).where("status", "in", ["payment_confirmed", "granted"]).limit(10).get().catch(() => ({ empty: true, docs: [] })),
+    ]);
 
     const userData = userDoc.data() || {};
     const pubData = pubDoc.data() || {};
@@ -197,81 +189,68 @@ export class StorePublicService {
       throw new Error("Cette boutique est temporairement indisponible ou suspendue.");
     }
 
-    const layoutData = layoutDoc.exists ? layoutDoc.data() : null;
-    const rawPublishedSections = Array.isArray(layoutData?.published?.sections) ? layoutData.published.sections : [];
-    const rawDraftSections = Array.isArray(layoutData?.draft?.sections) ? layoutData.draft.sections : [];
-    const hasPaidStudioSubscription =
-      rawPublishedSections.length > 0 ||
-      rawDraftSections.length > 0 ||
-      configDoc.exists ||
-      paidReqSnap.docs.some((d) => Number(d.data()?.planSnapshot?.price) > 0 || d.data()?.status === "granted") ||
-      true;
-
     const baseConfig = LegacyStoreAdapter.buildStoreConfig(targetSellerId, userData, pubData);
     const savedConfig = configDoc.exists ? (configDoc.data() as StoreConfig) : null;
     const rawBanner = savedConfig?.bannerUrl || baseConfig.bannerUrl;
     const cleanBanner = rawBanner && !rawBanner.includes("images.unsplash.com") ? rawBanner : baseConfig.bannerUrl;
-
-    const storeConfig: StoreConfig = savedConfig
-      ? {
-          ...baseConfig,
-          ...savedConfig,
-          bannerUrl: cleanBanner,
-          logoUrl: savedConfig.logoUrl || baseConfig.logoUrl,
-          theme: savedConfig.theme ? { ...baseConfig.theme, ...savedConfig.theme } : baseConfig.theme,
-        }
+    const rawStoreConfig: StoreConfig = savedConfig
+      ? { ...baseConfig, ...savedConfig, bannerUrl: cleanBanner, logoUrl: savedConfig.logoUrl || baseConfig.logoUrl, theme: savedConfig.theme ? { ...baseConfig.theme, ...savedConfig.theme } : baseConfig.theme }
       : baseConfig;
 
+    const storeConfig = redactStoreConfigForPublic(rawStoreConfig);
     const canonicalSlug = initialSlug || storeConfig.shopSlug;
-    const activeLayoutSource =
-      rawPublishedSections.length > 0
-        ? layoutData!.published
-        : rawDraftSections.length > 0
-        ? layoutData!.draft
-        : LegacyStoreAdapter.buildInitialLayoutVersion(
-            storeConfig,
-            products.map((p) => p.id)
-          );
-
-    const activeRawSections = Array.isArray(activeLayoutSource?.sections)
-      ? activeLayoutSource.sections
-      : [];
-
-    const publishedLayout: StoreLayoutVersion | null = {
-      ...activeLayoutSource,
-      sections: activeRawSections
-        .filter((sec: { isVisible?: boolean }) => sec.isVisible !== false)
-        .sort((a: { order?: number }, b: { order?: number }) => (a.order || 0) - (b.order || 0)),
-    };
+    const hasPaidStudioSubscription = evaluatePaidStudioSubscription(userData, paidReqSnap.docs.map((d) => d.data() || {}));
 
     let ratingSum = 0;
     reviewsSnap.docs.forEach((d) => { ratingSum += Number(d.data().rating) || 5; });
     const reviewsCount = reviewsSnap.docs.length;
     const ratingAverage = reviewsCount > 0 ? Number((ratingSum / reviewsCount).toFixed(1)) : 5.0;
-
-    const responseData: PublicStorefrontResponse = {
-      sellerId: targetSellerId,
-      canonicalSlug,
-      ...(shouldRedirectSlug ? { redirectToSlug: shouldRedirectSlug } : {}),
-      hasPaidStudioSubscription,
-      storeConfig,
-      publishedLayout,
-      products,
-      activeCoupons: couponsSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
-      trustMetrics: {
-        activeProductsCount: products.length,
-        ratingAverage,
-        reviewsCount,
-        avgPreparationTime: storeConfig.avgPreparationTime || "24h - 48h",
-        codAvailable: storeConfig.commerceConfig?.codEnabled ?? true,
-        wilaya: storeConfig.wilaya || "Alger",
-        followersCount: Number(pubData.followersCount ?? userData.followersCount ?? 0),
-      },
+    const baseMetrics = {
+      ratingAverage, reviewsCount, avgPreparationTime: storeConfig.avgPreparationTime || "24h - 48h",
+      codAvailable: storeConfig.commerceConfig?.codEnabled ?? true, wilaya: storeConfig.wilaya || "Alger",
+      followersCount: Number(pubData.followersCount ?? userData.followersCount ?? 0),
     };
 
-    publicStorefrontCache.set(slugOrId, { timestamp: Date.now(), data: responseData });
-    publicStorefrontCache.set(canonicalSlug, { timestamp: Date.now(), data: responseData });
-    publicStorefrontCache.set(targetSellerId, { timestamp: Date.now(), data: responseData });
+    if (isStorePasswordLocked(rawStoreConfig) && !verifyStoreVipAccessToken(vipAccessToken, targetSellerId, rawStoreConfig)) {
+      return {
+        sellerId: targetSellerId, canonicalSlug, ...(shouldRedirectSlug ? { redirectToSlug: shouldRedirectSlug } : {}),
+        hasPaidStudioSubscription, isVipLocked: true, storeConfig: { ...storeConfig, customPages: [] },
+        publishedLayout: null, products: [], nextProductsCursor: null, totalProductsCount: 0, activeCoupons: [],
+        trustMetrics: { ...baseMetrics, activeProductsCount: 0 },
+      };
+    }
+
+    const { products, nextCursor, totalCount } = await this.fetchSellerPublicProductsPaginated(targetSellerId, { vipAccessToken });
+    const layoutData = layoutDoc.exists ? layoutDoc.data() : null;
+    const rawPublishedSections = Array.isArray(layoutData?.published?.sections) ? layoutData.published.sections : [];
+    const rawDraftSections = Array.isArray(layoutData?.draft?.sections) ? layoutData.draft.sections : [];
+    const activeLayoutSource = isPreviewDraft && rawDraftSections.length > 0
+      ? layoutData!.draft
+      : rawPublishedSections.length > 0
+        ? layoutData!.published
+        : rawDraftSections.length > 0
+          ? layoutData!.draft
+          : { ...LegacyStoreAdapter.buildInitialLayoutVersion(storeConfig, products.map((p) => p.id)), status: "published" as const };
+
+    const activeRawSections = Array.isArray(activeLayoutSource?.sections) ? activeLayoutSource.sections : [];
+    const publishedLayout: StoreLayoutVersion = {
+      ...activeLayoutSource, status: isPreviewDraft ? "draft" : "published",
+      sections: activeRawSections.filter((sec: { isVisible?: boolean }) => sec.isVisible !== false).sort((a: { order?: number }, b: { order?: number }) => (a.order || 0) - (b.order || 0)),
+    };
+
+    const responseData: PublicStorefrontResponse = {
+      sellerId: targetSellerId, canonicalSlug, ...(shouldRedirectSlug ? { redirectToSlug: shouldRedirectSlug } : {}),
+      hasPaidStudioSubscription, isVipLocked: false, storeConfig, publishedLayout, products,
+      nextProductsCursor: nextCursor, totalProductsCount: totalCount,
+      activeCoupons: couponsSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+      trustMetrics: { ...baseMetrics, activeProductsCount: totalCount },
+    };
+
+    if (!isStorePasswordLocked(rawStoreConfig) && !isPreviewDraft) {
+      publicStorefrontCache.set(slugOrId, { timestamp: Date.now(), data: responseData });
+      publicStorefrontCache.set(canonicalSlug, { timestamp: Date.now(), data: responseData });
+      publicStorefrontCache.set(targetSellerId, { timestamp: Date.now(), data: responseData });
+    }
     return responseData;
   }
 }

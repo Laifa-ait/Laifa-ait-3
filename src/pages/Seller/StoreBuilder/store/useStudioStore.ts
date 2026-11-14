@@ -1,61 +1,32 @@
 import { create } from "zustand";
+import { StudioStoreState } from "./studioStore.types";
 
-export type StudioViewport = "desktop" | "tablet" | "mobile";
+export type {
+  StudioViewport,
+  StudioInspectorTab,
+  StudioSectionActionType,
+  PendingSectionAction,
+  StudioExperienceMode,
+  SectionStepProgressEntry,
+  StudioStoreState,
+} from "./studioStore.types";
 
-export type StudioInspectorTab =
-  | "content"
-  | "style"
-  | "layout"
-  | "responsive"
-  | "advanced";
-
-export type StudioSectionActionType =
-  | "move-up"
-  | "move-down"
-  | "cycle-color-scheme"
-  | "duplicate"
-  | "toggle-visibility"
-  | "toggle-lock"
-  | "delete";
-
-export interface PendingSectionAction {
-  sectionId: string;
-  action: StudioSectionActionType;
-  timestamp: number;
-}
-
-export interface StudioStoreState {
-  selectedSectionId: string | null;
-  selectedSubElement: string | null;
-  hoveredSectionId: string | null;
-  hoveredSubElement: string | null;
-  viewport: StudioViewport;
-  isDraggingSection: boolean;
-  zoom: number;
-  activeInspectorTab: StudioInspectorTab;
-  pendingSectionAction: PendingSectionAction | null;
-
-  selectSection: (sectionId: string | null, subElement?: string | null) => void;
-  hoverElement: (sectionId: string | null, subElement?: string | null) => void;
-  clearHover: () => void;
-  setViewport: (viewport: StudioViewport) => void;
-  setIsDraggingSection: (isDragging: boolean) => void;
-  setZoom: (zoom: number) => void;
-  setActiveInspectorTab: (tab: StudioInspectorTab) => void;
-  triggerSectionAction: (sectionId: string, action: StudioSectionActionType) => void;
-  clearPendingSectionAction: () => void;
-}
-
-export const useStudioStore = create<StudioStoreState>((set) => ({
+export const useStudioStore = create<StudioStoreState>((set, get) => ({
   selectedSectionId: null,
   selectedSubElement: null,
   hoveredSectionId: null,
   hoveredSubElement: null,
   viewport: "desktop",
+  isInteractiveMode: false,
   isDraggingSection: false,
   zoom: 1,
   activeInspectorTab: "content",
   pendingSectionAction: null,
+  studioExperienceMode: "guided",
+  activeStudioStep: 1,
+  unlockedStudioStep: 1,
+  completedStudioSteps: [],
+  sectionStepProgress: {},
 
   selectSection: (sectionId, subElement) =>
     set((state) => {
@@ -109,6 +80,16 @@ export const useStudioStore = create<StudioStoreState>((set) => ({
       return { viewport };
     }),
 
+  setIsInteractiveMode: (next) =>
+    set((state) => {
+      const resolved = typeof next === "function" ? next(state.isInteractiveMode) : next;
+      if (state.isInteractiveMode === resolved) return state;
+      return { isInteractiveMode: resolved };
+    }),
+
+  toggleInteractiveMode: () =>
+    set((state) => ({ isInteractiveMode: !state.isInteractiveMode })),
+
   setIsDraggingSection: (isDraggingSection) =>
     set((state) => {
       const targetZoom = isDraggingSection ? 0.88 : state.zoom === 0.88 ? 1 : state.zoom;
@@ -147,5 +128,83 @@ export const useStudioStore = create<StudioStoreState>((set) => ({
     set((state) => {
       if (state.pendingSectionAction === null) return state;
       return { pendingSectionAction: null };
+    }),
+
+  setStudioExperienceMode: (studioExperienceMode) =>
+    set({ studioExperienceMode }),
+
+  setActiveStudioStep: (step) =>
+    set((state) => {
+      if (state.studioExperienceMode === "guided" && step > state.unlockedStudioStep) {
+        return state;
+      }
+      return { activeStudioStep: step };
+    }),
+
+  completeAndAdvanceStudioStep: (step) => {
+    const nextStep = (step < 4 ? step + 1 : 4) as 1 | 2 | 3 | 4;
+    set((state) => {
+      const completedStudioSteps = state.completedStudioSteps.includes(step)
+        ? state.completedStudioSteps
+        : [...state.completedStudioSteps, step];
+      const unlockedStudioStep = Math.max(state.unlockedStudioStep, nextStep) as 1 | 2 | 3 | 4;
+      return {
+        completedStudioSteps,
+        unlockedStudioStep,
+        activeStudioStep: nextStep,
+      };
+    });
+    return nextStep;
+  },
+
+  setSectionActiveStep: (key, step) =>
+    set((state) => {
+      const prev = state.sectionStepProgress[key] || {
+        activeStep: 1,
+        unlockedStep: 1,
+        completedSteps: [],
+      };
+      if (state.studioExperienceMode === "guided" && step > prev.unlockedStep) {
+        return state;
+      }
+      return {
+        sectionStepProgress: {
+          ...state.sectionStepProgress,
+          [key]: { ...prev, activeStep: step },
+        },
+      };
+    }),
+
+  completeAndAdvanceSectionStep: (key, step, maxStep) => {
+    const clampedNext = Math.min(maxStep, step + 1);
+    const cur = get().sectionStepProgress[key] || {
+      activeStep: 1,
+      unlockedStep: 1,
+      completedSteps: [],
+    };
+    const nextCompleted = cur.completedSteps.includes(step)
+      ? cur.completedSteps
+      : [...cur.completedSteps, step];
+    const nextUnlocked = Math.max(cur.unlockedStep, clampedNext);
+    set((state) => ({
+      sectionStepProgress: {
+        ...state.sectionStepProgress,
+        [key]: {
+          activeStep: clampedNext,
+          unlockedStep: nextUnlocked,
+          completedSteps: nextCompleted,
+        },
+      },
+    }));
+    return clampedNext;
+  },
+
+  resetStepProgress: () =>
+    set({
+      studioExperienceMode: "guided",
+      activeStudioStep: 1,
+      unlockedStudioStep: 1,
+      completedStudioSteps: [],
+      sectionStepProgress: {},
     }),
 }));

@@ -1,34 +1,43 @@
 import React from "react";
-import { Home, Layers, FolderOpen } from "lucide-react";
-import { CategoryItem } from "../../../../../domains/seller/customPage.types";
+import { Home, Layers, FolderOpen, FileText } from "lucide-react";
+import {
+  CategoryItem,
+  StoreCustomPageItem,
+} from "../../../../../domains/seller/customPage.types";
 
 interface CanvasPageSwitcherBarProps {
   canvasViewMode: "home" | "category" | "collection" | "custom-page";
   activeCategorySlug: string | null;
   allCategories: CategoryItem[];
+  customPages?: StoreCustomPageItem[];
+  activeCustomPage?: StoreCustomPageItem | null;
   onSelectHome: () => void;
   onSelectCollection: () => void;
   onSelectCategorySlug: (slug: string | null) => void;
+  onSelectCustomPage?: (page: StoreCustomPageItem) => void;
 }
 
 export const CanvasPageSwitcherBar: React.FC<CanvasPageSwitcherBarProps> = ({
   canvasViewMode,
   activeCategorySlug,
   allCategories,
+  customPages = [],
+  activeCustomPage,
   onSelectHome,
   onSelectCollection,
   onSelectCategorySlug,
+  onSelectCustomPage,
 }) => {
   return (
-    <div className="bg-[#F8FBFC] text-[#011C40] px-3 py-2 flex items-center justify-between gap-2 border-b border-slate-200/90">
-      <div className="inline-flex items-center bg-slate-200/70 p-0.5 rounded-lg border border-slate-200/80 shrink-0">
+    <div className="bg-white text-slate-900 px-3 h-9 flex items-center justify-between gap-2 border-b border-slate-200">
+      <div className="flex items-center gap-4 shrink-0 h-full">
         <button
           type="button"
           onClick={onSelectHome}
-          className={`h-7 px-2.5 rounded-md text-[11px] font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-all ${
+          className={`h-full text-[11.5px] flex items-center gap-1.5 border-b-2 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
             canvasViewMode === "home"
-              ? "bg-[#023859] text-white shadow-2xs"
-              : "text-slate-600 hover:text-[#011C40]"
+              ? "border-slate-900 text-slate-900 font-semibold"
+              : "border-transparent text-slate-500 hover:text-slate-900 font-medium"
           }`}
         >
           <Home className="w-3.5 h-3.5" />
@@ -38,10 +47,10 @@ export const CanvasPageSwitcherBar: React.FC<CanvasPageSwitcherBarProps> = ({
         <button
           type="button"
           onClick={onSelectCollection}
-          className={`h-7 px-2.5 rounded-md text-[11px] font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-all ${
+          className={`h-full text-[11.5px] flex items-center gap-1.5 border-b-2 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
             canvasViewMode === "collection" && !activeCategorySlug
-              ? "bg-[#023859] text-white shadow-2xs"
-              : "text-slate-600 hover:text-[#011C40]"
+              ? "border-slate-900 text-slate-900 font-semibold"
+              : "border-transparent text-slate-500 hover:text-slate-900 font-medium"
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
@@ -49,30 +58,61 @@ export const CanvasPageSwitcherBar: React.FC<CanvasPageSwitcherBarProps> = ({
         </button>
       </div>
 
-      {allCategories.length > 0 && (
-        <div className="flex items-center gap-1.5 min-w-0">
-          <FolderOpen className="w-3.5 h-3.5 text-[#26658C] shrink-0 hidden sm:block" />
-          <select
-            aria-label="Sélectionner un rayon à prévisualiser"
-            value={canvasViewMode === "category" && activeCategorySlug ? activeCategorySlug : ""}
-            onChange={(e) => onSelectCategorySlug(e.target.value || null)}
-            className={`h-7 pl-2.5 pr-6 rounded-lg text-[11px] font-bold border transition-all cursor-pointer outline-none max-w-[175px] sm:max-w-[220px] truncate ${
-              canvasViewMode === "category" && activeCategorySlug
-                ? "bg-[#023859] text-white border-[#023859]"
-                : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
-            }`}
-          >
-            <option value="" className="bg-white text-slate-700">
-              Rayon ({allCategories.length})...
-            </option>
-            {allCategories.map((cat) => (
-              <option key={cat.id} value={cat.slug} className="bg-white text-slate-800">
-                {cat.name}
+      <div className="flex items-center gap-2 min-w-0">
+        {customPages.length > 0 && onSelectCustomPage && (
+          <div className="flex items-center gap-1 min-w-0">
+            <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0 hidden sm:block" />
+            <select
+              aria-label="Sélectionner une page personnalisée"
+              value={canvasViewMode === "custom-page" && activeCustomPage ? activeCustomPage.id : ""}
+              onChange={(e) => {
+                const found = customPages.find((p) => p.id === e.target.value);
+                if (found) onSelectCustomPage(found);
+                else onSelectHome();
+              }}
+              className={`h-6.5 pl-2 pr-5 rounded text-[11px] font-medium border transition-colors cursor-pointer outline-none max-w-[140px] truncate ${
+                canvasViewMode === "custom-page" && activeCustomPage
+                  ? "bg-slate-900 text-white border-slate-900"
+                  : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+              }`}
+            >
+              <option value="" className="bg-white text-slate-700">
+                Pages ({customPages.length})
               </option>
-            ))}
-          </select>
-        </div>
-      )}
+              {customPages.map((cp) => (
+                <option key={cp.id} value={cp.id} className="bg-white text-slate-800">
+                  {cp.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {allCategories.length > 0 && (
+          <div className="flex items-center gap-1 min-w-0">
+            <FolderOpen className="w-3.5 h-3.5 text-slate-400 shrink-0 hidden sm:block" />
+            <select
+              aria-label="Sélectionner un rayon à prévisualiser"
+              value={canvasViewMode === "category" && activeCategorySlug ? activeCategorySlug : ""}
+              onChange={(e) => onSelectCategorySlug(e.target.value || null)}
+              className={`h-6.5 pl-2 pr-5 rounded text-[11px] font-medium border transition-colors cursor-pointer outline-none max-w-[140px] sm:max-w-[180px] truncate ${
+                canvasViewMode === "category" && activeCategorySlug
+                  ? "bg-slate-900 text-white border-slate-900"
+                  : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+              }`}
+            >
+              <option value="" className="bg-white text-slate-700">
+                Rayons ({allCategories.length})
+              </option>
+              {allCategories.map((cat) => (
+                <option key={cat.id} value={cat.slug} className="bg-white text-slate-800">
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

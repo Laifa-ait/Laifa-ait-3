@@ -9,12 +9,12 @@ import { SearchDropdownContent } from "./SearchDropdownContent";
 import { useSearchOverlayState } from "./useSearchOverlayState";
 
 const ROTATING_HINTS = [
-  "Robe de soirée luxe & Caftan",
-  "Sneakers en cuir DZ & Chaussures",
-  "Smartphones & Accessoires Tech",
-  "Électroménager & Maison",
-  "Pack mariée traditionnel",
-  "Outillage & Bricolage pro",
+  { key: "search.hint_1", fallback: "Robe de soirée luxe & Caftan" },
+  { key: "search.hint_2", fallback: "Sneakers en cuir DZ & Chaussures" },
+  { key: "search.hint_3", fallback: "Smartphones & Accessoires Tech" },
+  { key: "search.hint_4", fallback: "Électroménager & Maison" },
+  { key: "search.hint_5", fallback: "Pack mariée traditionnel" },
+  { key: "search.hint_6", fallback: "Outillage & Bricolage pro" },
 ];
 
 interface AdvancedSearchbarProps {
@@ -141,7 +141,9 @@ export const AdvancedSearchbar: React.FC<AdvancedSearchbarProps> = ({
                 }
               }}
               placeholder={
-                localQuery ? "" : t(ROTATING_HINTS[hintIndex], ROTATING_HINTS[hintIndex])
+                localQuery
+                  ? ""
+                  : t(ROTATING_HINTS[hintIndex].key, ROTATING_HINTS[hintIndex].fallback)
               }
               autoComplete="off"
               spellCheck="false"
@@ -169,7 +171,7 @@ export const AdvancedSearchbar: React.FC<AdvancedSearchbarProps> = ({
             onClick={handleSearchSubmit}
             className="h-full px-4 sm:px-6 bg-gradient-to-r from-[#42164B] via-[#622347] to-[#A54055] hover:from-[#622347] hover:via-[#A54055] hover:to-[#E99856] text-white font-bold text-xs sm:text-[13px] rounded-xl shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all duration-200 shrink-0 cursor-pointer border-none whitespace-nowrap"
           >
-            <span>{t("Rechercher", "Rechercher")}</span>
+            <span>{t("nav.search_btn", "Rechercher")}</span>
           </button>
         </div>
 
@@ -189,7 +191,7 @@ export const AdvancedSearchbar: React.FC<AdvancedSearchbarProps> = ({
                     setShowDropdown(false);
                   }}
                   className="p-1 rounded-full hover:bg-[#FAF7F6] text-[#6E5A6F] hover:text-[#1A1836] cursor-pointer border-none bg-transparent shrink-0"
-                  aria-label="Fermer"
+                  aria-label={t("search.close", "Fermer")}
                 >
                   <X className="w-4 h-4" />
                 </button>

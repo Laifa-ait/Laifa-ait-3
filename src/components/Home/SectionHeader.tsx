@@ -12,11 +12,20 @@ interface SectionHeaderProps {
 
 export const SectionHeader: React.FC<SectionHeaderProps> = ({ section, isDarkBg = false }) => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { userProfile } = useAuth();
+  const cleanLang = (i18n.language || "fr").split("-")[0] as "fr" | "ar" | "en";
 
-  const titleText = section.title || section.name || t("home.sections.default");
-  const seeMoreLabel = t("home.sections.see_more", "Voir tout");
+  const rawTitle =
+    section.translations?.[cleanLang]?.title ||
+    section.title ||
+    section.name ||
+    t("home.sections.default");
+  const titleText = t(rawTitle, rawTitle);
+
+  const rawSubtitle = section.translations?.[cleanLang]?.subtitle || section.subtitle;
+  const subtitleText = rawSubtitle ? t(rawSubtitle, rawSubtitle) : "";
+  const seeMoreLabel = t("home.sections.see_more");
 
   const targetLink = section.category
     ? `/shop?category=${encodeURIComponent(section.category)}`
@@ -29,9 +38,9 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({ section, isDarkBg 
   const renderStyleBadge = () => {
     if (section.themeName) {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#FAF2F2] text-[#622347] border border-[#E0B4B2]/60">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#F9F2F4] text-[#622347] border border-[#E0B4B2]/60">
           <Sparkles className="w-2.5 h-2.5 text-[#A54055] fill-[#A54055]" />
-          {section.themeName}
+          {t(section.themeName, section.themeName)}
         </span>
       );
     }
@@ -39,7 +48,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({ section, isDarkBg 
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-[#42164B] to-[#622347] text-white shadow-xs">
           <Sparkles className="w-2.5 h-2.5 fill-[#E99856] text-[#E99856]" />
-          {t("Prestige")}
+          {t("home.sections.badge_prestige")}
         </span>
       );
     }
@@ -47,14 +56,14 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({ section, isDarkBg 
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#E99856] text-[#1A1836] shadow-xs">
           <Zap className="w-2.5 h-2.5 fill-[#1A1836] text-[#1A1836]" />
-          {t("Flash Deal")}
+          {t("home.sections.badge_flash")}
         </span>
       );
     }
     if (styleVariant === "glass") {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/50 backdrop-blur-md text-[#1A1836] border border-[#E0B4B2]/60">
-          {t("Édition Spéciale")}
+          {t("home.sections.badge_special")}
         </span>
       );
     }
@@ -78,9 +87,9 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({ section, isDarkBg 
           {renderStyleBadge()}
         </div>
 
-        {section.subtitle && (
+        {subtitleText && (
           <p className={`text-xs sm:text-sm font-medium ${isDarkBg ? "text-[#E0B4B2]" : "text-[#6E5A6F]"}`}>
-            {section.subtitle}
+            {subtitleText}
           </p>
         )}
       </div>
@@ -92,7 +101,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({ section, isDarkBg 
           className={`group flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 ${getButtonStyles()}`}
         >
           <span>{seeMoreLabel}</span>
-          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform" />
+          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 rtl:rotate-180 transition-transform" />
         </button>
 
         {userProfile?.role === "admin" && (

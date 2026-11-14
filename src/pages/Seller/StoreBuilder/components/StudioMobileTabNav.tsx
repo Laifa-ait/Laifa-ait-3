@@ -13,13 +13,13 @@ export const StudioMobileTabNav: React.FC<StudioMobileTabNavProps> = ({
   sectionCount,
 }) => {
   return (
-    <div className="lg:hidden flex border-b border-[#E4E7EC] bg-[#FFFFFF] text-[13px] font-medium shrink-0">
+    <div className="lg:hidden flex border-b border-slate-200 bg-white text-[13px] font-medium shrink-0">
       <button
         onClick={() => setMobileColumn("tree")}
         className={`flex-1 py-2.5 text-center flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
           mobileColumn === "tree"
-            ? "bg-[#FFF7ED] text-[#F97316] border-b-2 border-[#F97316] font-semibold"
-            : "text-[#667085] hover:text-[#17191C]"
+            ? "bg-slate-50 text-slate-900 border-b-2 border-slate-900 font-semibold"
+            : "text-slate-500 hover:text-slate-900"
         }`}
       >
         <Layers className="w-4 h-4" />
@@ -29,8 +29,8 @@ export const StudioMobileTabNav: React.FC<StudioMobileTabNavProps> = ({
         onClick={() => setMobileColumn("canvas")}
         className={`flex-1 py-2.5 text-center flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
           mobileColumn === "canvas"
-            ? "bg-[#FFF7ED] text-[#F97316] border-b-2 border-[#F97316] font-semibold"
-            : "text-[#667085] hover:text-[#17191C]"
+            ? "bg-slate-50 text-slate-900 border-b-2 border-slate-900 font-semibold"
+            : "text-slate-500 hover:text-slate-900"
         }`}
       >
         <Eye className="w-4 h-4" />
@@ -40,8 +40,8 @@ export const StudioMobileTabNav: React.FC<StudioMobileTabNavProps> = ({
         onClick={() => setMobileColumn("inspector")}
         className={`flex-1 py-2.5 text-center flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
           mobileColumn === "inspector"
-            ? "bg-[#FFF7ED] text-[#F97316] border-b-2 border-[#F97316] font-semibold"
-            : "text-[#667085] hover:text-[#17191C]"
+            ? "bg-slate-50 text-slate-900 border-b-2 border-slate-900 font-semibold"
+            : "text-slate-500 hover:text-slate-900"
         }`}
       >
         <Sliders className="w-4 h-4" />

@@ -1,5 +1,44 @@
 import React from "react";
 
+let isReloadingInCurrentWindow = false;
+
+export function isDynamicChunkLoadError(error: unknown): boolean {
+  const errStr = error instanceof Error ? `${error.name}: ${error.message}` : String(error || "");
+  return (
+    errStr.includes("Failed to fetch dynamically imported module") ||
+    errStr.includes("Loading chunk") ||
+    errStr.includes("Loading CSS chunk") ||
+    errStr.includes("Importing a module script failed") ||
+    errStr.includes("error loading dynamically imported module") ||
+    errStr.includes("Unable to preload CSS")
+  );
+}
+
+export function triggerStaleChunkReload(): boolean {
+  if (typeof window === "undefined") return false;
+  if (isReloadingInCurrentWindow) return true;
+
+  try {
+    const lastReload = Number(window.sessionStorage.getItem("page_reloaded_timestamp") || "0");
+    const now = Date.now();
+    if (now - lastReload < 10000) {
+      return false;
+    }
+    isReloadingInCurrentWindow = true;
+    window.sessionStorage.setItem("page_reloaded_timestamp", String(now));
+    window.location.reload();
+    return true;
+  } catch {
+    isReloadingInCurrentWindow = true;
+    window.location.reload();
+    return true;
+  }
+}
+
+export interface LazyWithRetryOptions {
+  fallbackToNull?: boolean;
+}
+
 /**
  * Wraps React.lazy to automatically handle chunk loading errors
  * caused by server redeployments or stale asset hashes.
@@ -9,15 +48,24 @@ export function lazyWithRetry<
   T extends React.ComponentType<P> = React.ComponentType<P>
 >(
   componentImport: () => Promise<Record<string, unknown> | { default: T } | T>,
-  exportName?: string
+  exportName?: string,
+  options?: LazyWithRetryOptions
 ): React.LazyExoticComponent<T> {
   return React.lazy(async () => {
+    if (isReloadingInCurrentWindow) {
+      return new Promise<never>(() => {});
+    }
+
     let attempts = 0;
     while (attempts < 2) {
       try {
         attempts++;
         const loaded = await componentImport();
-        window.sessionStorage.removeItem("page_reloaded_timestamp");
+        try {
+          window.sessionStorage.removeItem("page_reloaded_timestamp");
+        } catch {
+          // ignore storage restriction
+        }
 
         if (exportName && loaded && typeof loaded === "object" && exportName in loaded) {
           const namedExport = (loaded as Record<string, unknown>)[exportName] as T;
@@ -28,30 +76,29 @@ export function lazyWithRetry<
         }
         return { default: loaded as T };
       } catch (error: unknown) {
+        if (isReloadingInCurrentWindow) {
+          return new Promise<never>(() => {});
+        }
         if (attempts < 2) {
-          await new Promise((resolve) => setTimeout(resolve, 400));
+          await new Promise((resolve) => setTimeout(resolve, 350));
           continue;
         }
 
-        const errStr = error instanceof Error ? error.message : String(error);
-        const isChunkError =
-          errStr.includes("Failed to fetch dynamically imported module") ||
-          errStr.includes("Loading chunk") ||
-          errStr.includes("Importing a module script failed") ||
-          errStr.includes("error loading dynamically imported module");
-
-        const lastReload = Number(window.sessionStorage.getItem("page_reloaded_timestamp") || "0");
-        const now = Date.now();
-        const reloadedRecently = now - lastReload < 10000;
-
-        if (isChunkError && !reloadedRecently) {
-          console.warn("[LazyWithRetry] Chunk loading failed. Reloading page...", error);
-          window.sessionStorage.setItem("page_reloaded_timestamp", String(now));
-          window.location.reload();
-          return new Promise(() => {});
+        if (isDynamicChunkLoadError(error)) {
+          if (triggerStaleChunkReload()) {
+            return new Promise<never>(() => {});
+          }
+          if (options?.fallbackToNull) {
+            const NullFallback: React.FC = () => null;
+            return { default: NullFallback as unknown as T };
+          }
         }
 
-        console.error("[LazyWithRetry] Dynamic import failed:", error);
+        if (options?.fallbackToNull) {
+          const NullFallback: React.FC = () => null;
+          return { default: NullFallback as unknown as T };
+        }
+
         throw error;
       }
     }

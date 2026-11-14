@@ -149,12 +149,12 @@ describe("useStudioSaveManager Real Production Hook Tests", () => {
 
     const { result } = renderHook(() => useStudioSaveManager());
 
-    let firstAttemptRev: number | null = 99;
+    let savePromise!: Promise<number | null>;
     await act(async () => {
-      firstAttemptRev = await result.current.saveDraft([section1]);
+      savePromise = result.current.saveDraft([section1]);
+      await Promise.resolve();
     });
 
-    expect(firstAttemptRev).toBeNull();
     expect(apiModule.apiPut).toHaveBeenCalledTimes(1);
     expect(result.current.saveStatus).toBe("retrying");
 
@@ -169,9 +169,12 @@ describe("useStudioSaveManager Real Production Hook Tests", () => {
     });
     expect(apiModule.apiPut).toHaveBeenCalledTimes(3);
 
+    let finalRev: number | null = 99;
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3000);
+      finalRev = await savePromise;
     });
+    expect(finalRev).toBeNull();
     expect(apiModule.apiPut).toHaveBeenCalledTimes(4);
     expect(result.current.saveStatus).toBe("error");
   });

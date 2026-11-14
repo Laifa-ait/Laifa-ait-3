@@ -26,15 +26,43 @@ export function getTranslatedField(product: Product | CartItem, field: 'name' | 
   return product.name || "";
 }
 
+const CATEGORY_KEY_MAP: Record<string, string> = {
+  "Maison & Déco": "cat_maison_deco",
+  "Maison & Décoration": "cat_maison_deco",
+  Électronique: "cat_tech",
+  "Électronique & High-Tech": "cat_tech",
+  Électroménager: "cat_electromenager",
+  Mode: "cat_fashion_title",
+  "Mode & Élégance": "cat_fashion_title",
+  "Mode & Accessoires": "cat_fashion_title",
+  "Artisanat & Tradition": "cat_artisanat",
+  Artisanat: "cat_artisanat",
+  "Beauté & Santé": "cat_beaute",
+  "Beauté & Bien-être": "cat_beaute",
+  "Auto & Moto": "cat_auto",
+  "Sport & Loisirs": "cat_sport",
+  "Bébé & Puériculture": "cat_bebe",
+  "Bricolage & Outillage": "cat_bricolage",
+  "Jeux & Jouets": "cat_jouets",
+  Supermarché: "cat_supermarche",
+  "Scolaire & Bureau": "cat_scolaire",
+  Scolaire: "cat_scolaire",
+};
+
 export const getCategoryTranslation = (text: string, t: (key: string) => string) => {
   if (!text) return "";
-  
-  // Handle special cases for the "All Categories" filter
+
   if (text === "Tous" || text === "all" || text === "Toutes" || text === "Toutes les catégories") {
     return t("all_categories") || "Toutes les catégories";
   }
 
-  // Use the raw text as the key. i18next will return the translation if it exists,
-  // or the raw text (the key) if it doesn't, which is exactly what we want for French.
+  const mappedKey = CATEGORY_KEY_MAP[text];
+  if (mappedKey) {
+    const mappedVal = t(mappedKey);
+    if (mappedVal && mappedVal !== mappedKey) {
+      return mappedVal;
+    }
+  }
+
   return t(text);
 };

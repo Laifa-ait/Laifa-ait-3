@@ -90,72 +90,71 @@ interface ThemePresetsProps {
 }
 
 export const ThemePresets: React.FC<ThemePresetsProps> = ({
-  currentPrimaryColor = "#F97316",
+  currentPrimaryColor = "#111827",
   onApplyTheme,
 }) => {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="text-[13px] font-bold text-[#17191C] flex items-center gap-1.5">
-          <Palette className="w-4 h-4 text-[#F97316]" />
-          <span>Thèmes Prédéfinis (6 Palettes Signature)</span>
+        <label className="text-[12px] font-semibold text-slate-900 flex items-center gap-1.5">
+          <Palette className="w-4 h-4 text-slate-700" />
+          <span>Thèmes Prédéfinis ({PRESET_THEMES.length} Palettes Signature)</span>
         </label>
       </div>
 
-      <div className="grid grid-cols-1 gap-2.5">
+      <div className="grid grid-cols-1 gap-2">
         {PRESET_THEMES.map((theme) => {
           const isCurrent = currentPrimaryColor.toLowerCase() === theme.primary.toLowerCase();
           return (
             <div
               key={theme.id}
-              className={`p-3 rounded-xl border transition-all text-[13px] ${
+              className={`p-3 rounded-lg border transition-colors text-[12px] ${
                 isCurrent
-                  ? "bg-[#FFF7ED] border-[#FDBA74] shadow-xs"
-                  : "bg-[#FFFFFF] border-[#E5E7EB] hover:border-[#D0D5DD]"
+                  ? "bg-slate-50 border-slate-900"
+                  : "bg-white border-slate-200 hover:border-slate-300"
               }`}
             >
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
-                  {/* Swatches */}
                   <div className="flex items-center gap-1">
                     <span
-                      className="w-4 h-4 rounded-full border border-black/10 inline-block shrink-0 shadow-2xs"
+                      className="w-3.5 h-3.5 rounded-full border border-black/10 inline-block shrink-0"
                       style={{ backgroundColor: theme.primary }}
                       title="Principal"
                     />
                     <span
-                      className="w-4 h-4 rounded-full border border-black/10 inline-block shrink-0 shadow-2xs"
+                      className="w-3.5 h-3.5 rounded-full border border-black/10 inline-block shrink-0"
                       style={{ backgroundColor: theme.secondary }}
                       title="Secondaire"
                     />
                     <span
-                      className="w-4 h-4 rounded-full border border-black/10 inline-block shrink-0 shadow-2xs"
+                      className="w-3.5 h-3.5 rounded-full border border-black/10 inline-block shrink-0"
                       style={{ backgroundColor: theme.accent }}
                       title="Accent"
                     />
                   </div>
-                  <span className="font-bold text-[#17191C] text-[13px]">
+                  <span className="font-semibold text-slate-900 text-[12px]">
                     {theme.name}
                   </span>
                 </div>
 
                 {isCurrent && (
-                  <span className="px-2 py-0.5 bg-[#F0FDF4] text-[#15803D] text-[11px] font-bold rounded-full border border-[#86EFAC] flex items-center gap-1">
-                    <Check className="w-3 h-3" />
-                    Thème actuel
+                  <span className="text-emerald-700 text-[11px] font-medium flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5" />
+                    Actuel
                   </span>
                 )}
               </div>
 
-              <p className="text-[11px] text-[#667085] mb-2.5 leading-snug">
+              <p className="text-[11px] text-slate-500 mb-2.5 leading-snug">
                 {theme.description}
               </p>
 
-              <div className="flex items-center gap-2 pt-1 border-t border-[#E5E7EB]">
+              <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => onApplyTheme(theme)}
-                  className="h-8 w-full px-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white text-[12px] font-bold rounded-lg flex items-center justify-center gap-1 transition-colors cursor-pointer shadow-xs"
+                  className="h-8 w-full px-2.5 bg-slate-900 hover:bg-slate-800 text-white text-[12px] font-medium rounded-lg flex items-center justify-center gap-1 transition-colors cursor-pointer"
                 >
                   <span>Utiliser ce thème</span>
                 </button>

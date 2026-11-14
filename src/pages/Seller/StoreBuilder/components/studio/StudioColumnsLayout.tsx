@@ -44,9 +44,11 @@ interface StudioColumnsLayoutProps {
   updateSection: (id: string, updatedData: Partial<CustomPageSection>) => void;
   handleSaveTheme: (theme: CustomPageTheme) => Promise<void>;
   setLiveThemeOverride: (theme: CustomPageTheme | null) => void;
+  onLiveStorePatch?: (patch: Partial<SellerStoreConfig>) => void;
   saveStoreConfig: (config: Partial<SellerStoreConfig>) => Promise<void>;
   handleApplyFullArchetype: (sections: CustomPageSection[], theme: CustomPageTheme) => Promise<void>;
   onReplaceSections?: (sections: CustomPageSection[]) => void;
+  onSaveDraft?: () => void;
 }
 
 export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
@@ -80,22 +82,25 @@ export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
   updateSection,
   handleSaveTheme,
   setLiveThemeOverride,
+  onLiveStorePatch,
   saveStoreConfig,
   handleApplyFullArchetype,
   onReplaceSections,
+  onSaveDraft,
 }) => {
   return (
     <div className="flex-1 flex overflow-hidden min-w-0 min-h-0">
-      {/* Left Column: Unified Navigation + Section Tree */}
       <div
-        className={`h-full min-w-0 transition-all duration-200 ${
+        className={`h-full min-w-0 ${
           mobileColumn === "tree" ? "block w-full flex-1 md:flex-none" : "hidden"
-        } ${showLeftSidebar ? "md:block md:w-[295px] lg:w-[305px] md:shrink-0" : "md:hidden"}`}
+        } ${showLeftSidebar ? "md:block md:w-[272px] lg:w-[280px] md:shrink-0" : "md:hidden"}`}
       >
         <SectionTreePanel
           sections={sections}
           selectedSectionId={selectedSectionId}
           products={products}
+          activeSector={currentTheme.sector}
+          storeConfig={storeConfig}
           navMode={navMode}
           onSelectNavMode={onSelectNavMode}
           onSelectSection={(id) => {
@@ -110,10 +115,10 @@ export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
           onDeleteSection={deleteSection}
           onDuplicateSection={duplicateSection}
           onAddSection={addSection}
+          onSaveDraft={onSaveDraft}
         />
       </div>
 
-      {/* Center Column: Live Storefront Canvas */}
       <div
         className={`h-full flex-1 min-w-0 overflow-hidden ${
           mobileColumn === "canvas" ? "block w-full" : "hidden md:block"
@@ -141,11 +146,10 @@ export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
         />
       </div>
 
-      {/* Right Column: Contextual Inspector */}
       <div
-        className={`h-full min-w-0 transition-all duration-200 ${
+        className={`h-full min-w-0 ${
           mobileColumn === "inspector" ? "block w-full flex-1 md:flex-none" : "hidden"
-        } ${showRightSidebar ? "md:block md:w-[335px] md:shrink-0" : "md:hidden"}`}
+        } ${showRightSidebar ? "md:block md:w-[356px] lg:w-[372px] md:shrink-0" : "md:hidden"}`}
       >
         <PropertiesInspector
           navMode={navMode}
@@ -163,9 +167,11 @@ export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
           onAddSection={addSection}
           onSaveTheme={handleSaveTheme}
           onThemeChangeLive={(newTheme) => setLiveThemeOverride(newTheme)}
+          onLiveStorePatch={onLiveStorePatch}
           onSaveConfig={saveStoreConfig}
           onApplyFullArchetype={handleApplyFullArchetype}
           onReplaceSections={onReplaceSections}
+          onSaveDraft={onSaveDraft}
         />
       </div>
     </div>

@@ -95,3 +95,30 @@ export interface PublicShopResponse {
   error?: string;
 }
 
+export interface PublicStorefrontProductDTO {
+  id: string;
+  name: string;
+  title: string;
+  description: string;
+  price: number;
+  promoPrice?: number;
+  originalPrice?: number;
+  flashPrice?: number;
+  flashSaleActive: boolean;
+  category: string;
+  subcategory: string;
+  image: string;
+  images: string[];
+  stock: number;
+  rating: number;
+  salesCount: number;
+  colors: string[];
+  sizes: string[];
+  variants: unknown[];
+  sellerId: string;
+  sellerName: string;
+  storeName: string;
+  wilaya: string;
+  status: string;
+}
+

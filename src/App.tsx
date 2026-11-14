@@ -11,15 +11,22 @@ import { useTranslation } from "react-i18next";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MetaTags } from "./components/MetaTags";
 import { useTranslationRealtimeSync } from "./hooks/useTranslationRealtimeSync";
+import { lazyWithRetry } from "./utils/lazyWithRetry";
 
-const GlobalSearchModal = React.lazy(() =>
-  import("./components/common/GlobalSearchModal").then((m) => ({ default: m.GlobalSearchModal }))
+const GlobalSearchModal = lazyWithRetry(
+  () => import("./components/common/GlobalSearchModal"),
+  "GlobalSearchModal",
+  { fallbackToNull: true }
 );
-const DataConsentBanner = React.lazy(() =>
-  import("./components/Consent/DataConsentBanner").then((m) => ({ default: m.DataConsentBanner }))
+const DataConsentBanner = lazyWithRetry(
+  () => import("./components/Consent/DataConsentBanner"),
+  "DataConsentBanner",
+  { fallbackToNull: true }
 );
-const InstallPrompt = React.lazy(() =>
-  import("./components/InstallPrompt").then((m) => ({ default: m.InstallPrompt }))
+const InstallPrompt = lazyWithRetry(
+  () => import("./components/InstallPrompt"),
+  "InstallPrompt",
+  { fallbackToNull: true }
 );
 
 const App = () => {

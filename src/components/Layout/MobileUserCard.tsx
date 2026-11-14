@@ -30,10 +30,13 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="font-extrabold text-sm text-white leading-tight">
-              {t("Bienvenue sur Olmart")}
+              {t("mobile_menu.welcome_title", "Bienvenue sur Olmart")}
             </h4>
             <p className="text-xs text-[#E0B4B2] font-normal mt-1 leading-relaxed">
-              {t("Connectez-vous pour suivre vos commandes et gérer vos favoris.")}
+              {t(
+                "mobile_menu.welcome_subtitle",
+                "Connectez-vous pour suivre vos commandes et gérer vos favoris."
+              )}
             </p>
           </div>
         </div>
@@ -46,7 +49,7 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
           }}
           className="w-full mt-3.5 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#E99856] to-[#d8823e] text-[#1A1836] font-extrabold text-xs transition-all shadow-xs cursor-pointer border-none"
         >
-          <span>{t("Se connecter / S'inscrire")}</span>
+          <span>{t("mobile_menu.login_register", "Se connecter / S'inscrire")}</span>
           <ChevronRight className="w-4 h-4 rtl:rotate-180 stroke-[2.5]" />
         </button>
       </div>
@@ -60,7 +63,7 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
     userProfile?.displayName ||
     currentUser.displayName ||
     currentUser.email?.split("@")[0] ||
-    "Utilisateur";
+    t("mobile_menu.default_user", "Utilisateur");
 
   return (
     <div className="bg-white rounded-2xl p-4 border border-[#E0B4B2]/40 shadow-xs space-y-3.5">
@@ -83,13 +86,13 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
             {isAdmin && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#A54055]/15 text-[#A54055] border border-[#A54055]/30">
                 <ShieldCheck className="w-3 h-3 text-[#A54055]" />
-                <span>{t("Admin", "Admin")}</span>
+                <span>{t("mobile_menu.role_admin", "Admin")}</span>
               </span>
             )}
             {role === "seller" && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#622347]/15 text-[#622347] border border-[#622347]/30">
                 <Store className="w-3 h-3 text-[#622347]" />
-                <span>{t("Vendeur", "Vendeur")}</span>
+                <span>{t("mobile_menu.role_seller", "Vendeur")}</span>
               </span>
             )}
           </div>
@@ -112,7 +115,7 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
             <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center text-[#622347] border border-[#E0B4B2]/40 shadow-2xs">
               <UserIcon className="w-3.5 h-3.5 stroke-[2]" />
             </div>
-            <span>{t("Mon Espace Client")}</span>
+            <span>{t("mobile_menu.buyer_space", "Mon Espace Client")}</span>
           </div>
           <ChevronRight className="w-4 h-4 text-zinc-400 rtl:rotate-180" />
         </button>
@@ -130,7 +133,7 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
               <div className="w-6 h-6 rounded-lg bg-[#A54055] text-white flex items-center justify-center shadow-2xs">
                 <ShieldCheck className="w-3.5 h-3.5 stroke-[2.5]" />
               </div>
-              <span>{t("Espace Administration")}</span>
+              <span>{t("mobile_menu.admin_space", "Espace Administration")}</span>
             </div>
             <ChevronRight className="w-4 h-4 text-[#A54055] rtl:rotate-180" />
           </button>
@@ -149,7 +152,7 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
               <div className="w-6 h-6 rounded-lg bg-[#E99856] text-[#1A1836] flex items-center justify-center shadow-2xs">
                 <Store className="w-3.5 h-3.5 stroke-[2.5]" />
               </div>
-              <span>{t("Espace Vendeur Pro")}</span>
+              <span>{t("mobile_menu.seller_space", "Espace Vendeur Pro")}</span>
             </div>
             <ChevronRight className="w-4 h-4 text-[#E99856] rtl:rotate-180" />
           </button>
@@ -168,9 +171,11 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
               <div className="w-6 h-6 rounded-lg bg-rose-200/80 text-rose-700 flex items-center justify-center">
                 <LogOut className="w-3.5 h-3.5 stroke-[2.2]" />
               </div>
-              <span>{t("Se déconnecter", "Se déconnecter")}</span>
+              <span>{t("mobile_menu.logout_btn", "Se déconnecter")}</span>
             </div>
-            <span className="text-[11px] text-rose-600 font-semibold">{t("Déconnexion")}</span>
+            <span className="text-[11px] text-rose-600 font-semibold">
+              {t("mobile_menu.logout_short", "Déconnexion")}
+            </span>
           </button>
         )}
       </div>

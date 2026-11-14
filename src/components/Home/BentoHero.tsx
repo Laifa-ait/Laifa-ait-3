@@ -9,8 +9,8 @@ import { BentoHeroSlide } from "./BentoHeroSlide";
 export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
   const { i18n, t } = useTranslation();
   const navigate = useNavigate();
-  const lang = i18n.language || "fr";
-  const isRTL = lang === "ar";
+  const lang = (i18n.language || "fr").split("-")[0];
+  const isRTL = lang === "ar" || i18n.dir() === "rtl";
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
@@ -20,9 +20,9 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
   const DEFAULT_BANNERS: Banner[] = [
     {
       id: "default-hero-1",
-      title: t("hero_default_title", "Le Premier Marketplace Algérien"),
-      subtitle: t("hero_default_subtitle", "Découvrez les meilleures offres et artisans certifiés à travers 69 Wilayas"),
-      buttonText: t("hero_default_btn", "Explorer la boutique"),
+      title: t("home.hero.default_title"),
+      subtitle: t("home.hero.default_subtitle"),
+      buttonText: t("home.hero.default_cta"),
       ctaLink: "/shop",
       imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=1200",
       isActive: true,
@@ -34,7 +34,6 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
   );
   const activeBanners = rawActiveBanners.length > 0 ? rawActiveBanners : DEFAULT_BANNERS;
 
-  // Auto-advance banner every 6.5s if multi-slide
   useEffect(() => {
     if (activeBanners.length <= 1) return;
     const interval = setInterval(() => {
@@ -60,8 +59,7 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (touchStartX === null) return;
-    const currentX = e.touches[0].clientX;
-    setDragOffset(currentX - touchStartX);
+    setDragOffset(e.touches[0].clientX - touchStartX);
   };
 
   const handleTouchEnd = () => {
@@ -92,11 +90,8 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
     }
     if (rType === "custom_url" && (b.cta_link || b.ctaLink)) {
       const target = b.cta_link || b.ctaLink || "/shop";
-      if (target.startsWith("http")) {
-        window.location.href = target;
-      } else {
-        navigate(target);
-      }
+      if (target.startsWith("http")) window.location.href = target;
+      else navigate(target);
       return;
     }
     if (b.cta_link || b.ctaLink) {
@@ -123,7 +118,6 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
       onTouchEnd={handleTouchEnd}
       className="w-full min-h-[340px] sm:min-h-[420px] md:min-h-[480px] lg:min-h-[500px] relative rounded-3xl overflow-hidden group shadow-[0_20px_48px_-12px_rgba(26,24,54,0.22)] border border-[#42164B]/30 select-none touch-pan-y bg-[#1A1836]"
     >
-      {/* Sliding Strip */}
       <motion.div
         animate={{ x: `${totalPercent}%` }}
         transition={{ type: "spring", stiffness: 220, damping: 28, mass: 0.8 }}
@@ -142,13 +136,12 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
         ))}
       </motion.div>
 
-      {/* Nav Chevrons */}
       {activeBanners.length > 1 && (
         <>
           <button
             type="button"
             onClick={isRTL ? handleNext : handlePrev}
-            aria-label="Previous Slide"
+            aria-label={t("home.hero.prev_slide")}
             className={`absolute top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-[#1A1836]/80 hover:bg-[#42164B] backdrop-blur-md border border-[#E0B4B2]/25 text-white shadow-lg transition-all opacity-0 group-hover:opacity-100 duration-200 cursor-pointer ${
               isRTL ? "right-3 sm:right-6" : "left-3 sm:left-6"
             }`}
@@ -158,7 +151,7 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
           <button
             type="button"
             onClick={isRTL ? handlePrev : handleNext}
-            aria-label="Next Slide"
+            aria-label={t("home.hero.next_slide")}
             className={`absolute top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-[#1A1836]/80 hover:bg-[#42164B] backdrop-blur-md border border-[#E0B4B2]/25 text-white shadow-lg transition-all opacity-0 group-hover:opacity-100 duration-200 cursor-pointer ${
               isRTL ? "left-3 sm:left-6" : "right-3 sm:right-6"
             }`}
@@ -168,7 +161,6 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
         </>
       )}
 
-      {/* Slide Indicators with Active Progress Pill */}
       {activeBanners.length > 1 && (
         <div className="absolute bottom-3.5 sm:bottom-5 end-3.5 sm:end-6 z-30 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[#1A1836]/80 backdrop-blur-md border border-[#42164B] shadow-md">
           {activeBanners.map((_, idx) => {
@@ -186,7 +178,7 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
                     ? "w-5 h-1.5 bg-[#E99856] shadow-xs"
                     : "w-1.5 h-1.5 bg-[#E0B4B2]/45 hover:bg-[#E0B4B2]"
                 }`}
-                aria-label={`Slide ${idx + 1}`}
+                aria-label={t("home.hero.go_to_slide", { number: idx + 1 })}
               />
             );
           })}

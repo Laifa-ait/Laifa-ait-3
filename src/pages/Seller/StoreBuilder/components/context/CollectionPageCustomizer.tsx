@@ -35,38 +35,34 @@ export const CollectionPageCustomizer: React.FC<CollectionPageCustomizerProps> =
     key: K,
     value: CollectionPageDesignConfig[K]
   ) => {
-    onChange({
-      ...current,
-      [key]: value,
-    });
+    onChange({ ...current, [key]: value });
   };
 
   return (
-    <div className="space-y-3.5 pt-2 border-t border-slate-200">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-200">
         <div>
-          <h3 className="text-[12px] font-bold text-[#011C40] uppercase tracking-wider">
-            Design Page Rayon & Collection
+          <h3 className="text-[12px] font-semibold text-slate-900">
+            Mise en page Catalogue
           </h3>
           <p className="text-[11px] text-slate-500">
-            Page affichée au clic sur un rayon ou le catalogue
+            Affichée au clic sur un rayon ou collection
           </p>
         </div>
         <button
           type="button"
           onClick={onPreviewCollectionPage}
-          className="h-7 px-2.5 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+          className="h-7 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer shrink-0"
         >
           <Eye className="w-3 h-3" />
           <span>Simuler</span>
         </button>
       </div>
 
-      {/* 1. Header Style */}
-      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#011C40]">
-          <Layout className="w-3.5 h-3.5 text-[#023859]" />
-          <span>1. En-tête du Rayon (Bannière)</span>
+      <div className="space-y-2.5 pb-4 border-b border-slate-200">
+        <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-slate-900">
+          <Layout className="w-3.5 h-3.5 text-slate-500" />
+          <span>En-tête du rayon</span>
         </div>
 
         <div className="grid grid-cols-2 gap-1.5">
@@ -78,10 +74,10 @@ export const CollectionPageCustomizer: React.FC<CollectionPageCustomizerProps> =
               key={st.id}
               type="button"
               onClick={() => updateField("headerStyle", st.id)}
-              className={`h-8 rounded-lg border text-[11px] font-semibold transition-all cursor-pointer ${
+              className={`h-8 rounded-lg border text-[11px] font-medium transition-colors cursor-pointer ${
                 current.headerStyle === st.id
-                  ? "border-[#023859] bg-[#F8FBFC] text-[#011C40] font-bold"
-                  : "border-slate-200 bg-white text-slate-600"
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
               }`}
             >
               {st.label}
@@ -101,9 +97,9 @@ export const CollectionPageCustomizer: React.FC<CollectionPageCustomizerProps> =
                   key={h.id}
                   type="button"
                   onClick={() => updateField("headerHeight", h.id)}
-                  className={`h-7 rounded-md border text-[10px] font-semibold cursor-pointer ${
+                  className={`h-7 rounded-md border text-[10.5px] font-medium cursor-pointer ${
                     current.headerHeight === h.id
-                      ? "border-[#023859] bg-[#F8FBFC] text-[#011C40] font-bold"
+                      ? "border-slate-900 bg-slate-50 text-slate-900 font-semibold"
                       : "border-slate-200 bg-white text-slate-500"
                   }`}
                 >
@@ -113,9 +109,9 @@ export const CollectionPageCustomizer: React.FC<CollectionPageCustomizerProps> =
             </div>
 
             <label className="block space-y-1">
-              <div className="flex justify-between text-[11px] text-slate-600">
-                <span>Voile sombre sur l'image</span>
-                <span className="font-mono font-bold text-[#023859]">
+              <div className="flex justify-between text-[11px] text-slate-600 tabular-nums">
+                <span>Voile sombre sur l&apos;image</span>
+                <span className="font-mono font-semibold text-slate-900">
                   {current.headerOverlayOpacity}%
                 </span>
               </div>
@@ -126,82 +122,64 @@ export const CollectionPageCustomizer: React.FC<CollectionPageCustomizerProps> =
                 step={5}
                 value={current.headerOverlayOpacity}
                 onChange={(e) => updateField("headerOverlayOpacity", Number(e.target.value))}
-                className="w-full accent-[#023859] cursor-pointer"
+                className="w-full accent-slate-900 cursor-pointer"
               />
             </label>
           </>
         )}
       </div>
 
-      {/* 2. Filters & Navigation Bar */}
-      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#011C40]">
-          <SlidersHorizontal className="w-3.5 h-3.5 text-[#023859]" />
-          <span>2. Barre de Filtres & Navigation</span>
+      <div className="space-y-2 pb-4 border-b border-slate-200">
+        <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-slate-900">
+          <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
+          <span>Barre de filtres</span>
         </div>
 
-        <label className="flex items-center justify-between text-[12px] text-[#011C40] cursor-pointer">
-          <span>Boutons de navigation entre rayons</span>
-          <input
-            type="checkbox"
-            checked={current.showCategoryPills}
-            onChange={(e) => updateField("showCategoryPills", e.target.checked)}
-            className="accent-[#023859]"
-          />
-        </label>
-        <label className="flex items-center justify-between text-[12px] text-[#011C40] cursor-pointer">
-          <span>Barre de recherche rapide</span>
-          <input
-            type="checkbox"
-            checked={current.showSearch}
-            onChange={(e) => updateField("showSearch", e.target.checked)}
-            className="accent-[#023859]"
-          />
-        </label>
-        <label className="flex items-center justify-between text-[12px] text-[#011C40] cursor-pointer">
-          <span>Tri par prix (Croissant / Décroissant)</span>
-          <input
-            type="checkbox"
-            checked={current.showSortDropdown}
-            onChange={(e) => updateField("showSortDropdown", e.target.checked)}
-            className="accent-[#023859]"
-          />
-        </label>
+        {[
+          { key: "showCategoryPills" as const, label: "Boutons de navigation entre rayons", checked: current.showCategoryPills },
+          { key: "showSearch" as const, label: "Barre de recherche rapide", checked: current.showSearch },
+          { key: "showSortDropdown" as const, label: "Tri par prix (Croissant / Décroissant)", checked: current.showSortDropdown },
+        ].map((item) => (
+          <label key={item.key} className="flex items-center justify-between text-[12px] text-slate-700 cursor-pointer">
+            <span>{item.label}</span>
+            <input
+              type="checkbox"
+              checked={item.checked}
+              onChange={(e) => updateField(item.key, e.target.checked)}
+              className="w-4 h-4 accent-slate-900 cursor-pointer"
+            />
+          </label>
+        ))}
       </div>
 
-      {/* 3. Product Grid & Card Design */}
-      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#011C40]">
-          <ShoppingBag className="w-3.5 h-3.5 text-[#023859]" />
-          <span>3. Grille & Cartes Produits du Rayon</span>
+      <div className="space-y-3">
+        <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-slate-900">
+          <ShoppingBag className="w-3.5 h-3.5 text-slate-500" />
+          <span>Grille &amp; cartes produits</span>
         </div>
 
         <div>
-          <span className="text-[11px] font-medium text-slate-600 block mb-1">
-            Colonnes sur PC
-          </span>
+          <span className="text-[11px] font-medium text-slate-600 block mb-1">Colonnes sur bureau</span>
           <div className="grid grid-cols-3 gap-1">
             {([2, 3, 4] as const).map((col) => (
               <button
                 key={col}
                 type="button"
                 onClick={() => updateField("columnsDesktop", col)}
-                className={`h-7 rounded-md border text-[11px] font-semibold cursor-pointer ${
+                className={`h-7 rounded-md border text-[11px] font-medium cursor-pointer ${
                   current.columnsDesktop === col
-                    ? "border-[#023859] bg-[#F8FBFC] text-[#011C40] font-bold"
-                    : "border-slate-200 bg-white text-slate-500"
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-slate-200 bg-white text-slate-600"
                 }`}
               >
-                {col} Colonnes
+                {col} colonnes
               </button>
             ))}
           </div>
         </div>
 
         <div>
-          <span className="text-[11px] font-medium text-slate-600 block mb-1">
-            Style des cartes produits
-          </span>
+          <span className="text-[11px] font-medium text-slate-600 block mb-1">Style des cartes</span>
           <div className="grid grid-cols-2 gap-1">
             {[
               { id: "modern" as ProductCardStyleVariant, label: "Moderne" },
@@ -213,10 +191,10 @@ export const CollectionPageCustomizer: React.FC<CollectionPageCustomizerProps> =
                 key={cs.id}
                 type="button"
                 onClick={() => updateField("cardStyle", cs.id)}
-                className={`h-7 rounded-md border text-[11px] font-semibold cursor-pointer ${
+                className={`h-7 rounded-md border text-[11px] font-medium cursor-pointer ${
                   current.cardStyle === cs.id
-                    ? "border-[#023859] bg-[#F8FBFC] text-[#011C40] font-bold"
-                    : "border-slate-200 bg-white text-slate-500"
+                    ? "border-slate-900 bg-slate-50 text-slate-900 font-semibold"
+                    : "border-slate-200 bg-white text-slate-600"
                 }`}
               >
                 {cs.label}
@@ -226,9 +204,7 @@ export const CollectionPageCustomizer: React.FC<CollectionPageCustomizerProps> =
         </div>
 
         <div>
-          <span className="text-[11px] font-medium text-slate-600 block mb-1">
-            Format des photos produits
-          </span>
+          <span className="text-[11px] font-medium text-slate-600 block mb-1">Format des photos</span>
           <div className="grid grid-cols-3 gap-1">
             {[
               { id: "1/1" as ProductCardAspectRatio, label: "Carré 1:1" },
@@ -239,10 +215,10 @@ export const CollectionPageCustomizer: React.FC<CollectionPageCustomizerProps> =
                 key={ar.id}
                 type="button"
                 onClick={() => updateField("cardAspectRatio", ar.id)}
-                className={`h-7 rounded-md border text-[11px] font-semibold cursor-pointer ${
+                className={`h-7 rounded-md border text-[11px] font-medium cursor-pointer ${
                   current.cardAspectRatio === ar.id
-                    ? "border-[#023859] bg-[#F8FBFC] text-[#011C40] font-bold"
-                    : "border-slate-200 bg-white text-slate-500"
+                    ? "border-slate-900 bg-slate-50 text-slate-900 font-semibold"
+                    : "border-slate-200 bg-white text-slate-600"
                 }`}
               >
                 {ar.label}

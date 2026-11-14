@@ -1,8 +1,9 @@
 import React, { Suspense } from "react";
 import { RefreshCw, BarChart3, Activity } from "lucide-react";
+import { lazyWithRetry } from "../../utils/lazyWithRetry";
 
-const OverviewChart = React.lazy(() => import("../../components/Admin/OverviewChart"));
-const TrafficChart = React.lazy(() => import("../../components/Admin/TrafficChart"));
+const OverviewChart = lazyWithRetry(() => import("../../components/Admin/OverviewChart"), undefined, { fallbackToNull: true });
+const TrafficChart = lazyWithRetry(() => import("../../components/Admin/TrafficChart"), undefined, { fallbackToNull: true });
 
 import { WorkspaceActions } from "../../components/Admin/WorkspaceActions";
 import { AdminManualGuide } from "../../components/Admin/AdminManualGuide";

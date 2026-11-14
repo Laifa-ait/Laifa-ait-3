@@ -32,6 +32,7 @@ export const SECTION_CATALOG: SectionOption[] = [
     description: "Bannière sur-mesure (Éditorial Arche, Plein Écran ou Collage) avec badge, titre (*italique* / {souligné}), ombres et boutons.",
     defaultSettings: {
       heroLayout: "editorial-split",
+      heroVariant: "minimalist",
       badgeText: "SAVOIR-FAIRE AUTHENTIQUE",
       showBadge: true,
       badgeStyle: "soft",
@@ -42,6 +43,7 @@ export const SECTION_CATALOG: SectionOption[] = [
       showSubtitle: true,
       imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
       backgroundImage: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
+      imageAlt: "Bannière principale de la boutique",
       imageShadow: "lg",
       imageAspectRatio: "4/5",
       imageSide: "right",
@@ -216,12 +218,7 @@ export const SECTION_CATALOG: SectionOption[] = [
     category: "Confiance & Contact",
     icon: ShieldCheck,
     description: "Présentez clairement vos conditions de retour et d'échange.",
-    defaultSettings: {
-      title: "Retours & *Échanges*",
-      delayDays: 14,
-      conditions: "Décrivez ici les conditions de retour.",
-      returnShippingFeeBy: "buyer",
-    },
+    defaultSettings: { title: "Retours & *Échanges*", delayDays: 14, conditions: "Décrivez ici les conditions de retour.", returnShippingFeeBy: "buyer" },
   },
   {
     type: "faq_accordion",
@@ -243,8 +240,7 @@ export const SECTION_CATALOG: SectionOption[] = [
     category: "Confiance & Contact",
     icon: Phone,
     description: "Affichez votre numéro de service client, adresse, email et horaires d'ouverture.",
-    defaultSettings: {
-      workingHours: "Samedi au Jeudi de 09h00 à 18h00",
-    },
+    defaultSettings: { workingHours: "Samedi au Jeudi de 09h00 à 18h00" },
   },
 ];
+

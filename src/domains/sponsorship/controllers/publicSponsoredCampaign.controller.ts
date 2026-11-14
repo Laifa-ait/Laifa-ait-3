@@ -2,6 +2,8 @@ import { Router, Request, Response } from "express";
 import crypto from "crypto";
 import { SponsoredCampaignService } from "../sponsoredCampaign.service";
 import { SponsoredPlacement } from "../../../types/sponsoredCampaign";
+import { isFirestoreQuotaError, isFirestoreAdminCircuitOpen } from "../../../utils/firestoreTimeout";
+import { safeLogger } from "../../../utils/logger";
 
 const router = Router();
 
@@ -30,6 +32,10 @@ router.get("/products", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Emplacement invalide (home, category, search requis)." });
     }
 
+    if (isFirestoreAdminCircuitOpen()) {
+      return res.status(200).json({ success: true, data: [], degraded: true });
+    }
+
     const products = await SponsoredCampaignService.getPublicSponsoredProducts({
       placement,
       category,
@@ -39,6 +45,10 @@ router.get("/products", async (req: Request, res: Response) => {
 
     return res.status(200).json({ success: true, data: products });
   } catch (err: unknown) {
+    if (isFirestoreQuotaError(err)) {
+      safeLogger.warn("[SponsoredCampaign] ⚠️ Quota Firestore atteint sur GET /products — retour liste vide.");
+      return res.status(200).json({ success: true, data: [], degraded: true });
+    }
     const message = err instanceof Error ? err.message : "Erreur récupération produits sponsorisés.";
     return res.status(500).json({ error: message });
   }

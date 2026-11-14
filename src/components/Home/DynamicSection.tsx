@@ -26,7 +26,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({ section, isFrame
   const { t } = useTranslation();
   const { products, isLoading, hasMore, loadMore } = useSectionProducts(section);
 
-  if (!section.isActive) return null;
+  if (section.isActive === false || section.is_active === false) return null;
 
   const styleVariant = section.style || "clean";
 
@@ -49,7 +49,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({ section, isFrame
     }
   };
 
-  const isDarkBg = isColorDark(section.backgroundColor);
+  const isDarkBg = styleVariant === "dark" || isColorDark(section.backgroundColor);
   const customBgStyle = section.backgroundColor
     ? { backgroundColor: section.backgroundColor }
     : undefined;
@@ -116,7 +116,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({ section, isFrame
         <SectionHeader section={section} isDarkBg={isDarkBg} />
         {products.length === 0 && !isLoading ? (
           <p className="text-[#9B879C] font-medium text-center py-8 text-xs">
-            {t("Aucun produit trouvé pour cette section.")}
+            {t("home.sections.empty")}
           </p>
         ) : (
           renderContentByLayout()
@@ -136,8 +136,8 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({ section, isFrame
           <SectionHeader section={section} isDarkBg={isDarkBg} />
 
           {products.length === 0 && !isLoading ? (
-            <p className={`font-medium text-center py-8 text-xs ${isDarkBg ? "text-zinc-300" : "text-zinc-400"}`}>
-              {t("Aucun produit trouvé pour cette section.")}
+            <p className={`font-medium text-center py-8 text-xs ${isDarkBg ? "text-[#E0B4B2]/80" : "text-[#9B879C]"}`}>
+              {t("home.sections.empty")}
             </p>
           ) : (
             renderContentByLayout()

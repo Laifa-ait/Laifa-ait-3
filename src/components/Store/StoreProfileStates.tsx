@@ -1,5 +1,6 @@
 import React from 'react';
 import { Store, ChevronLeft, AlertTriangle } from 'lucide-react';
+import { Spinner } from '../ui/Spinner';
 
 interface StoreLoadingStateProps {
   message: string;
@@ -13,6 +14,7 @@ export const StoreLoadingState: React.FC<StoreLoadingStateProps> = ({ message })
       </div>
       <div className="absolute -inset-2 border-2 border-dashed border-[#54ACBF]/40 rounded-3xl animate-spin [animation-duration:8s]" />
     </div>
+    <Spinner />
     <span className="text-xs font-bold text-[#023859] tracking-wide uppercase">{message}</span>
   </div>
 );

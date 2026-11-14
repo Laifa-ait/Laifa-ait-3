@@ -12,13 +12,8 @@ import { useStudioWorkspaceEvents } from "./hooks/useStudioWorkspaceEvents";
 import { applyMediaToSection } from "./utils/studioMediaHandler";
 import { useStudioStore } from "./store/useStudioStore";
 import {
-  CustomPageSection,
-  CustomPageSectionType,
-  CustomPageTheme,
-  SellerStoreConfig,
-  StoreLayoutVersion,
-  StoreHistoryEntry,
-  MediaGalleryItem,
+  CustomPageSection, CustomPageSectionType, CustomPageTheme,
+  SellerStoreConfig, StoreLayoutVersion, StoreHistoryEntry, MediaGalleryItem,
 } from "../../../domains/seller/customPage.types";
 import { Product } from "../../../domains/product/product.types";
 
@@ -41,10 +36,12 @@ interface StudioWorkspaceProps {
   duplicateSection?: (id: string) => void;
   toggleVisibility: (id: string) => void;
   saveStoreConfig: (updatedConfig: Partial<SellerStoreConfig>) => Promise<void>;
-  onSaveDraft?: () => void;
+  onSaveDraft?: () => void | Promise<unknown>;
   publishStudio: (changeSummary?: string) => void;
   onRollback?: (versionNumber: number) => void;
   onReplaceSections?: (sections: CustomPageSection[]) => void;
+  onExitStudio?: () => void;
+  onOpenSponsorships?: () => void;
   undo?: () => void;
   redo?: () => void;
   canUndo?: boolean;
@@ -58,18 +55,25 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
     selectedSectionId, setSelectedSectionId, addSection, updateSection,
     reorderSections, deleteSection, duplicateSection, toggleVisibility,
     saveStoreConfig, onSaveDraft, publishStudio, onRollback,
-    onReplaceSections, undo, redo, canUndo, canRedo,
+    onReplaceSections, onExitStudio, onOpenSponsorships, undo, redo, canUndo, canRedo,
   } = props;
 
   const viewport = useStudioStore((s) => s.viewport);
   const setViewport = useStudioStore((s) => s.setViewport);
+  const isInteractiveMode = useStudioStore((s) => s.isInteractiveMode);
+  const setIsInteractiveMode = useStudioStore((s) => s.setIsInteractiveMode);
+  const toggleInteractiveMode = useStudioStore((s) => s.toggleInteractiveMode);
   const storeSelectedSectionId = useStudioStore((s) => s.selectedSectionId);
   const selectSectionInStore = useStudioStore((s) => s.selectSection);
 
-  const [navMode, setNavMode] = useState<StudioNavMode>("sections");
+  const studioExperienceMode = useStudioStore((s) => s.studioExperienceMode);
+  const [navMode, setNavMode] = useState<StudioNavMode>(() =>
+    studioExperienceMode === "guided" ? "identity" : "sections"
+  );
   const [mobileColumn, setMobileColumn] = useState<MobileStudioColumn>("canvas");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [liveThemeOverride, setLiveThemeOverride] = useState<CustomPageTheme | null>(null);
+  const [liveStorePatch, setLiveStorePatch] = useState<Partial<SellerStoreConfig> | null>(null);
   const [showLeftSidebar, setShowLeftSidebar] = useState<boolean>(true);
   const [showRightSidebar, setShowRightSidebar] = useState<boolean>(true);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -91,7 +95,18 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
 
   const activeSectionId = storeSelectedSectionId ?? selectedSectionId;
   const selectedSection = sections.find((sec) => sec.id === activeSectionId) || null;
-  const currentTheme: CustomPageTheme = liveThemeOverride || storeConfig?.theme || defaultTheme;
+  const currentTheme: CustomPageTheme =
+    liveThemeOverride || liveStorePatch?.theme || storeConfig?.theme || defaultTheme;
+
+  const effectiveStoreConfig = React.useMemo<SellerStoreConfig | null>(() => {
+    if (!storeConfig && !liveStorePatch) return null;
+    const base = (storeConfig || { shopName: "Ma Boutique", wilaya: "Alger" }) as SellerStoreConfig;
+    return {
+      ...base,
+      ...(liveStorePatch || {}),
+      theme: currentTheme,
+    };
+  }, [storeConfig, liveStorePatch, currentTheme]);
 
   useStudioWorkspaceEvents({
     sections, currentTheme, reorderSections, updateSection, duplicateSection, toggleVisibility,
@@ -101,13 +116,25 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
 
   const isPublished = Boolean(publishedLayout && publishedLayout.sections?.length > 0);
 
+  const handleLiveStorePatch = React.useCallback((patch: Partial<SellerStoreConfig>) => {
+    if (patch.theme) setLiveThemeOverride(patch.theme);
+    setLiveStorePatch((prev) => ({ ...(prev || {}), ...patch }));
+  }, []);
+
+  const handleSaveStoreConfig = async (updatedConfig: Partial<SellerStoreConfig>) => {
+    handleLiveStorePatch(updatedConfig);
+    await saveStoreConfig(updatedConfig);
+  };
+
   const handleSaveTheme = async (updatedTheme: CustomPageTheme) => {
     setLiveThemeOverride(updatedTheme);
+    setLiveStorePatch((prev) => ({ ...(prev || {}), theme: updatedTheme }));
     await saveStoreConfig({ theme: updatedTheme });
   };
 
   const handleApplyFullArchetype = async (newSections: CustomPageSection[], newTheme: CustomPageTheme) => {
     setLiveThemeOverride(newTheme);
+    setLiveStorePatch((prev) => ({ ...(prev || {}), theme: newTheme }));
     if (onReplaceSections) onReplaceSections(newSections);
     if (newSections.length > 0) handleSelectSection(newSections[0].id);
     await saveStoreConfig({ theme: newTheme });
@@ -128,70 +155,67 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
   };
 
   return (
-    <div className="flex flex-col flex-1 h-full bg-[#F7F8FA] text-[#17191C] overflow-hidden select-none min-w-0 min-h-0">
+    <div className="flex flex-col flex-1 h-full bg-[#F6F7F9] text-slate-900 overflow-hidden select-none min-w-0 min-h-0">
       <div className="hidden md:block shrink-0">
         <StudioTopBar
-          viewport={viewport} setViewport={setViewport} saveStatus={saveStatus}
-          shopName={storeConfig?.shopName || "Ma Boutique"} shopSlug={storeConfig?.shopSlug}
-          isPublished={isPublished} historyList={historyList} onSaveDraft={() => onSaveDraft?.()}
-          onPublish={publishStudio} onRollback={onRollback} showLeftSidebar={showLeftSidebar}
-          onToggleLeftSidebar={() => setShowLeftSidebar((prev) => !prev)}
-          showRightSidebar={showRightSidebar}
-          onToggleRightSidebar={() => setShowRightSidebar((prev) => !prev)}
-          onToggleBothSidebars={() => {
-            const hide = showLeftSidebar || showRightSidebar;
-            setShowLeftSidebar(!hide); setShowRightSidebar(!hide);
-          }}
-          canUndo={Boolean(canUndo)} canRedo={Boolean(canRedo)} onUndo={() => undo?.()} onRedo={() => redo?.()}
+          viewport={viewport}
+          setViewport={setViewport}
+          saveStatus={saveStatus}
+          shopName={effectiveStoreConfig?.shopName || "Ma Boutique"}
+          shopSlug={effectiveStoreConfig?.shopSlug}
+          sellerId={effectiveStoreConfig?.sellerId}
+          isPublished={isPublished}
+          versionNumber={publishedLayout?.versionNumber}
+          sectionCount={sections.length}
+          productCount={products.length}
+          historyList={historyList}
+          previewMode={isInteractiveMode ? "preview" : "edit"}
+          onPreviewModeChange={(mode) => setIsInteractiveMode(mode === "preview")}
+          onOpenAudit={() => window.dispatchEvent(new CustomEvent("studio:open-audit"))}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+          onSaveDraft={() => onSaveDraft?.()}
+          onPublish={publishStudio}
+          onRollback={onRollback}
+          onExitStudio={onExitStudio}
+          onOpenSponsorships={onOpenSponsorships}
+          canUndo={Boolean(canUndo)}
+          canRedo={Boolean(canRedo)}
+          onUndo={() => undo?.()}
+          onRedo={() => redo?.()}
         />
       </div>
 
       <div className="block md:hidden shrink-0">
-        <MobileStudioHeader
-          shopName={storeConfig?.shopName || "Ma Boutique"} isPublished={isPublished}
-          onPublish={() => publishStudio()} onOpenMenu={() => setIsMobileMenuOpen(true)}
-        />
-        <MobileStudioNavigation
-          mobileColumn={mobileColumn} setMobileColumn={setMobileColumn} sectionCount={sections.length}
-        />
+        <MobileStudioHeader shopName={effectiveStoreConfig?.shopName || "Ma Boutique"} isPublished={isPublished} onPublish={() => publishStudio()} onOpenMenu={() => setIsMobileMenuOpen(true)} onExitStudio={onExitStudio} />
+        <MobileStudioNavigation mobileColumn={mobileColumn} setMobileColumn={setMobileColumn} sectionCount={sections.length} />
       </div>
 
-      <StudioMobileMenu
-        isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)}
-        navMode={navMode} onSelectNavMode={handleSelectNavMode} shopName={storeConfig?.shopName}
-      />
+      <StudioMobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} navMode={navMode} onSelectNavMode={handleSelectNavMode} shopName={effectiveStoreConfig?.shopName} />
 
       <StudioColumnsLayout
         mobileColumn={mobileColumn} showLeftSidebar={showLeftSidebar} showRightSidebar={showRightSidebar}
-        sections={sections} selectedSectionId={activeSectionId} navMode={navMode}
-        onSelectNavMode={handleSelectNavMode} setSelectedSectionId={handleSelectSection}
-        setNavMode={setNavMode} setShowRightSidebar={setShowRightSidebar} setMobileColumn={setMobileColumn}
-        reorderSections={reorderSections} toggleVisibility={toggleVisibility} deleteSection={deleteSection}
-        duplicateSection={duplicateSection} addSection={addSection} currentTheme={currentTheme}
-        products={products} storeConfig={storeConfig} viewport={viewport} setViewport={setViewport}
-        setShowLeftSidebar={setShowLeftSidebar} selectedSection={selectedSection} mediaGallery={mediaGallery}
-        handleSelectMediaUrl={handleSelectMediaUrl} onUploadMedia={onUploadMedia} onDeleteMedia={onDeleteMedia}
-        updateSection={updateSection} handleSaveTheme={handleSaveTheme} setLiveThemeOverride={setLiveThemeOverride}
-        saveStoreConfig={saveStoreConfig} handleApplyFullArchetype={handleApplyFullArchetype}
-        onReplaceSections={onReplaceSections}
+        sections={sections} selectedSectionId={activeSectionId} navMode={navMode} onSelectNavMode={handleSelectNavMode}
+        setSelectedSectionId={handleSelectSection} setNavMode={setNavMode} setShowRightSidebar={setShowRightSidebar}
+        setMobileColumn={setMobileColumn} reorderSections={reorderSections} toggleVisibility={toggleVisibility}
+        deleteSection={deleteSection} duplicateSection={duplicateSection} addSection={addSection}
+        currentTheme={currentTheme} products={products} storeConfig={effectiveStoreConfig}
+        viewport={viewport} setViewport={setViewport} setShowLeftSidebar={setShowLeftSidebar}
+        selectedSection={selectedSection} mediaGallery={mediaGallery} handleSelectMediaUrl={handleSelectMediaUrl}
+        onUploadMedia={onUploadMedia} onDeleteMedia={onDeleteMedia} updateSection={updateSection}
+        handleSaveTheme={handleSaveTheme} setLiveThemeOverride={setLiveThemeOverride}
+        onLiveStorePatch={handleLiveStorePatch} saveStoreConfig={handleSaveStoreConfig}
+        handleApplyFullArchetype={handleApplyFullArchetype} onReplaceSections={onReplaceSections} onSaveDraft={onSaveDraft}
       />
 
       <StudioCommandPalette
         isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)}
         onAddSection={addSection} onSetViewport={setViewport}
-        onNavigatePage={(viewMode, slug) => {
-          window.dispatchEvent(new CustomEvent("studio:navigate-page", { detail: { viewMode, categorySlug: slug } }));
-        }}
-        onToggleInteractiveMode={() => window.dispatchEvent(new CustomEvent("studio:toggle-interactive"))}
-        isInteractiveMode={false}
+        onNavigatePage={(viewMode, slug) => window.dispatchEvent(new CustomEvent("studio:navigate-page", { detail: { viewMode, categorySlug: slug } }))}
+        onToggleInteractiveMode={toggleInteractiveMode} isInteractiveMode={isInteractiveMode}
         onOpenAuditModal={() => window.dispatchEvent(new CustomEvent("studio:open-audit"))}
         onOpenQrModal={() => window.dispatchEvent(new CustomEvent("studio:open-qr"))}
-        onPublish={() => publishStudio()}
-        onUndo={undo}
-        onRedo={redo}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onSelectNavMode={handleSelectNavMode}
+        onPublish={() => publishStudio()} onUndo={undo} onRedo={redo}
+        canUndo={canUndo} canRedo={canRedo} onSelectNavMode={handleSelectNavMode}
       />
     </div>
   );

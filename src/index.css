@@ -213,3 +213,9 @@ html[dir="rtl"],
 #seller-dashboard-root [class~="text-orange-500"] {
   color: #e99856 !important;
 }
+
+/* Studio Section Real-Time Image Filter Propagation */
+[style*="--section-image-filter"] img {
+  filter: var(--section-image-filter, none);
+}
+

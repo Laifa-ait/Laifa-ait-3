@@ -1,108 +1,222 @@
 import React from "react";
 import {
-  Layers,
-  FileText,
-  Palette,
-  Image as ImageIcon,
-  Settings,
-  Store,
-  ShoppingBag,
-  ClipboardList,
-  Rocket,
-  PanelTop,
-  Sparkles,
+  ArrowRight, Check, Layers, FileText, Palette, Image as ImageIcon,
+  Settings, Store, ShoppingBag, ClipboardList, PanelTop, Sparkles, Lock, Compass, ListChecks,
 } from "lucide-react";
 import { StudioNavMode } from "./studio.types";
+import { useStudioStore } from "../../store/useStudioStore";
+import { STUDIO_JOURNEY_STEPS, EXPERT_NAV_GROUPS } from "./studioSidebarSteps";
 
 interface StudioSidebarProps {
   navMode: StudioNavMode;
   onSelectNavMode: (mode: StudioNavMode) => void;
+  onSaveDraft?: () => void;
 }
 
-const CREATION_ITEMS: Array<{ id: StudioNavMode; label: string; icon: React.ElementType }> = [
-  { id: "sections", label: "Sections OS 2.0", icon: Layers },
-  { id: "atelier", label: "✨ Atelier & Matières", icon: Sparkles },
-  { id: "theme", label: "Thème & Styles", icon: Palette },
-  { id: "header", label: "En-tête & Menus", icon: PanelTop },
-  { id: "identity", label: "Identité", icon: Store },
-  { id: "pages", label: "Pages", icon: FileText },
-  { id: "media", label: "Médias", icon: ImageIcon },
-];
-
-const MANAGEMENT_ITEMS: Array<{ id: StudioNavMode; label: string; icon: React.ElementType }> = [
-  { id: "catalog", label: "Catalogue", icon: ShoppingBag },
-  { id: "orders", label: "Commandes", icon: ClipboardList },
-  { id: "settings", label: "Commerce & Pixels", icon: Settings },
-];
+const EXPERT_ICONS: Record<StudioNavMode, React.ElementType> = {
+  sections: Layers,
+  theme: Palette,
+  identity: Store,
+  header: PanelTop,
+  atelier: Sparkles,
+  media: ImageIcon,
+  pages: FileText,
+  catalog: ShoppingBag,
+  settings: Settings,
+  orders: ClipboardList,
+  launchpad: ListChecks,
+};
 
 export const StudioSidebar: React.FC<StudioSidebarProps> = ({
   navMode,
   onSelectNavMode,
+  onSaveDraft,
 }) => {
-  const renderButton = (item: { id: StudioNavMode; label: string; icon: React.ElementType }) => {
-    const Icon = item.icon;
-    const isActive = navMode === item.id;
-    return (
-      <button
-        key={item.id}
-        type="button"
-        onClick={() => onSelectNavMode(item.id)}
-        className={`h-8.5 px-2.5 rounded-lg text-[11.5px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer truncate ${
-          isActive
-            ? "bg-[#023859] text-white border border-[#023859] shadow-2xs font-bold"
-            : "bg-[#F9FAFB] text-[#344054] hover:bg-[#F0F7FA] hover:text-[#023859] border border-[#E5E7EB]"
-        }`}
-      >
-        <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-white" : "text-[#023859]"}`} />
-        <span className="truncate">{item.label}</span>
-      </button>
-    );
+  const mode = useStudioStore((s) => s.studioExperienceMode);
+  const setMode = useStudioStore((s) => s.setStudioExperienceMode);
+  const activeStep = useStudioStore((s) => s.activeStudioStep);
+  const unlockedStep = useStudioStore((s) => s.unlockedStudioStep);
+  const completedSteps = useStudioStore((s) => s.completedStudioSteps);
+  const setActiveStudioStep = useStudioStore((s) => s.setActiveStudioStep);
+  const completeAndAdvance = useStudioStore((s) => s.completeAndAdvanceStudioStep);
+
+  const handleSaveCurrentStudioStep = () => {
+    onSaveDraft?.();
+    const nextStep = completeAndAdvance(activeStep);
+    const nextMeta = STUDIO_JOURNEY_STEPS.find((s) => s.step === nextStep);
+    if (nextMeta && activeStep < 4) {
+      onSelectNavMode(nextMeta.defaultNav);
+    }
   };
 
-  const isLaunchpad = navMode === "launchpad";
+  if (mode === "expert") {
+    return (
+      <aside className="w-full bg-white p-3 space-y-3 select-none">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] font-semibold text-slate-900">
+            Accès Libre
+          </span>
+          <button
+            type="button"
+            data-testid="studio-experience-mode-toggle"
+            onClick={() => setMode("guided")}
+            className="text-[11px] font-medium text-slate-600 hover:text-slate-900 cursor-pointer inline-flex items-center gap-1 whitespace-nowrap shrink-0"
+          >
+            <Compass className="w-3 h-3" />
+            <span>Mode Guidé</span>
+          </button>
+        </div>
+
+        <div className="space-y-2.5">
+          {EXPERT_NAV_GROUPS.map((group) => (
+            <div key={group.title} className="space-y-1">
+              <span className="block text-[10.5px] font-medium text-slate-400 px-1">
+                {group.title}
+              </span>
+              <div className="grid grid-cols-2 gap-1">
+                {group.items.map((item) => {
+                  const Icon = EXPERT_ICONS[item.id];
+                  const isAct = navMode === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => onSelectNavMode(item.id)}
+                      className={`h-8 px-2 rounded-md text-[11.5px] font-medium flex items-center gap-1.5 cursor-pointer truncate transition-colors ${
+                        isAct
+                          ? "bg-slate-900 text-white"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </aside>
+    );
+  }
 
   return (
-    <aside className="w-full bg-[#FFFFFF] flex flex-col shrink-0 select-none">
-      <div className="p-2.5 space-y-2.5">
+    <aside className="w-full bg-white p-3 space-y-3 select-none" data-testid="studio-guided-sidebar">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <span className="text-[12px] font-semibold text-slate-900 block tabular-nums">
+            Parcours · {activeStep}/4
+          </span>
+          <span className="text-[11px] text-slate-500 block">
+            Progression étape par étape
+          </span>
+        </div>
         <button
           type="button"
-          onClick={() => onSelectNavMode("launchpad")}
-          className={`w-full h-9 px-3 rounded-xl text-[12px] font-bold flex items-center justify-between transition-all cursor-pointer border ${
-            isLaunchpad
-              ? "bg-[#011C40] text-white border-[#011C40] shadow-xs"
-              : "bg-gradient-to-r from-[#F0F7FA] to-[#E6F3F8] text-[#011C40] border-[#B8DCE8] hover:border-[#023859]"
-          }`}
+          data-testid="studio-experience-mode-toggle"
+          onClick={() => setMode("expert")}
+          className="text-[11px] font-medium text-slate-500 hover:text-slate-900 cursor-pointer shrink-0 whitespace-nowrap"
         >
-          <span className="flex items-center gap-2 truncate">
-            <Rocket className={`w-3.5 h-3.5 shrink-0 ${isLaunchpad ? "text-[#54ACBF]" : "text-[#023859]"}`} />
-            <span className="truncate">Guide Création 3.0</span>
-          </span>
-          <span
-            className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider ${
-              isLaunchpad ? "bg-[#54ACBF]/25 text-[#A7EBF2]" : "bg-[#023859] text-white"
-            }`}
-          >
-            Setup
-          </span>
+          Accès Libre
         </button>
+      </div>
 
-        <div>
-          <span className="block text-[10px] font-bold uppercase text-[#667085] tracking-wider mb-1.5 px-0.5">
-            Design & Vitrine (OS 2.0)
-          </span>
-          <div className="grid grid-cols-2 gap-1.5">
-            {CREATION_ITEMS.map(renderButton)}
-          </div>
-        </div>
+      <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden">
+        {STUDIO_JOURNEY_STEPS.map((st) => {
+          const isCurrent = activeStep === st.step;
+          const isDone = completedSteps.includes(st.step);
+          const isLocked = st.step > unlockedStep && !isDone;
 
-        <div>
-          <span className="block text-[10px] font-bold uppercase text-[#667085] tracking-wider mb-1.5 px-0.5">
-            Commerce & Exploitation
-          </span>
-          <div className="grid grid-cols-3 gap-1.5">
-            {MANAGEMENT_ITEMS.map(renderButton)}
-          </div>
-        </div>
+          return (
+            <div
+              key={st.step}
+              className={isCurrent ? "bg-slate-50/70" : isLocked ? "bg-white opacity-55" : "bg-white"}
+            >
+              <button
+                type="button"
+                disabled={isLocked}
+                data-testid={`studio-journey-step-${st.step}`}
+                onClick={() => {
+                  if (isLocked) return;
+                  setActiveStudioStep(st.step);
+                  onSelectNavMode(st.defaultNav);
+                }}
+                className={`w-full px-2.5 py-2 flex items-center gap-2.5 text-left transition-colors ${
+                  isLocked ? "cursor-not-allowed" : "cursor-pointer hover:bg-slate-50"
+                }`}
+              >
+                <span
+                  className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10.5px] font-semibold tabular-nums ${
+                    isCurrent
+                      ? "bg-slate-900 text-white"
+                      : isDone
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  {isDone && !isCurrent ? (
+                    <Check className="w-3 h-3" />
+                  ) : isLocked ? (
+                    <Lock className="w-2.5 h-2.5" />
+                  ) : (
+                    st.step
+                  )}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <span className="block text-[12px] font-medium text-slate-900 truncate">
+                    {st.title}
+                  </span>
+                  {isCurrent && (
+                    <span className="block text-[10.5px] text-slate-500 truncate">
+                      {st.subtitle}
+                    </span>
+                  )}
+                </div>
+              </button>
+
+              {isCurrent && (
+                <div className="px-2.5 pb-2.5 pt-0.5 space-y-2">
+                  <div className="flex flex-wrap gap-1">
+                    {st.subLinks.map((sub) => (
+                      <button
+                        key={sub.id}
+                        type="button"
+                        onClick={() => onSelectNavMode(sub.id)}
+                        className={`px-2 py-1 rounded-md text-[11px] font-medium cursor-pointer transition-colors whitespace-nowrap shrink-0 ${
+                          navMode === sub.id
+                            ? "bg-slate-900 text-white"
+                            : "bg-white border border-slate-200 text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        {sub.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    data-testid="studio-save-and-advance-btn"
+                    onClick={handleSaveCurrentStudioStep}
+                    className="w-full h-8 px-2.5 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-[11.5px] font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+                  >
+                    {activeStep < 4 ? (
+                      <>
+                        <span>Enregistrer &amp; Étape {activeStep + 1}</span>
+                        <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5 shrink-0" />
+                        <span>Enregistrer cette étape</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </aside>
   );

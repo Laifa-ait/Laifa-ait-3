@@ -107,7 +107,7 @@ export const StoreSettingsCommerceAndStatusTabs: React.FC<
     <>
       <div className="space-y-1.5">
         <label className="text-[12px] font-bold text-[#0F172A] block">
-          Mode d'ouverture de la boutique
+          Mode d&apos;ouverture de la boutique
         </label>
         <div className="grid grid-cols-3 gap-1.5">
           {(
@@ -133,13 +133,31 @@ export const StoreSettingsCommerceAndStatusTabs: React.FC<
         </div>
       </div>
       {storeStatus.mode !== "open" && (
-        <textarea
-          value={storeStatus.vacationMessage || ""}
-          onChange={(e) => setStoreStatus((p) => ({ ...p, vacationMessage: e.target.value }))}
-          rows={2}
-          placeholder="Message affiché aux visiteurs..."
-          className="w-full p-2.5 bg-white border border-[#CBD5E1] rounded-lg text-[12px]"
-        />
+        <div className="space-y-2">
+          <textarea
+            value={storeStatus.vacationMessage || ""}
+            onChange={(e) => setStoreStatus((p) => ({ ...p, vacationMessage: e.target.value }))}
+            rows={2}
+            placeholder="Message affiché aux visiteurs..."
+            className="w-full p-2.5 bg-white border border-[#CBD5E1] rounded-lg text-[12px]"
+          />
+          {storeStatus.mode === "password" && (
+            <div className="space-y-1">
+              <label className="text-[11.5px] font-semibold text-[#17191C] block">
+                Code d&apos;accès VIP (Pré-lancement)
+              </label>
+              <input
+                type="text"
+                value={storeStatus.passwordProtectionCode || ""}
+                onChange={(e) =>
+                  setStoreStatus((p) => ({ ...p, passwordProtectionCode: e.target.value }))
+                }
+                placeholder="Ex: VIP2026"
+                className="w-full h-8.5 px-2.5 bg-white border border-[#CBD5E1] rounded-lg text-[12px] font-mono"
+              />
+            </div>
+          )}
+        </div>
       )}
       <div className="pt-2 border-t border-[#E2E8F0] space-y-2.5">
         <span className="block text-[12px] font-bold text-[#0F172A]">

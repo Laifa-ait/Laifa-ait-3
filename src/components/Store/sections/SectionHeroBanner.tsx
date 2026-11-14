@@ -1,218 +1,221 @@
 import React from "react";
 import {
-  CustomPageSection, HeroBannerSettings, CustomPageTheme, HeroSubElement,
+  CustomPageSection,
+  CustomPageTheme,
+  HeroBannerSettings,
+  HeroSubElement,
 } from "../../../domains/seller/customPage.types";
+import { HeroArch } from "./hero/HeroArch";
+import { HeroDiptych } from "./hero/HeroDiptych";
+import { HeroFullBleed } from "./hero/HeroFullBleed";
+import { HeroGallery } from "./hero/HeroGallery";
+import { HeroSplit } from "./hero/HeroSplit";
 import {
-  resolveBorderRadiusClass, resolveShadowClass, resolveContainerWidthClass,
-  resolveAnimationClass, resolveSectionPaddingX, resolveSectionPaddingY, SectionDividerRenderer,
+  normalizeHeroSettingsAdapter,
+  resolveHeroDeviceProfile,
+} from "./hero/heroResponsiveHelper";
+import {
+  resolveSectionPaddingX,
+  resolveSectionPaddingY,
+  SectionDividerRenderer,
 } from "./sectionStyleHelper";
 import { useStudioStore } from "../../../pages/Seller/StoreBuilder/store/useStudioStore";
-import { resolveBannerPosition } from "../../../pages/Seller/StoreBuilder/components/inspector/controls/AlignmentMatrix3x3";
-import { EditorialHeading } from "../EditorialHeading";
-import { RotatingSealBadge } from "../RotatingSealBadge";
-import { ArtisticAtmosphereLayer, resolveCardMaterialClasses } from "../ArtisticAtmosphereLayer";
-import { resolveEffectiveFrameShape } from "../ArtisticFrameWrapper";
-import { HeroCanvasSubToolbar } from "./HeroCanvasSubToolbar";
-import { HeroEditorialSplitView } from "./HeroEditorialSplitView";
-import { CanvasInlineText } from "./CanvasInlineText";
-import {
-  getContrastingTextColor, resolveHeroBadgeVisuals, resolveHeroButtonVisuals,
-  resolveHeroFrameShapeVisuals, resolveHeroImageShadow, resolveHeroTextShadowStyle, resolveHeroTitleSizeClasses,
-} from "./heroBannerStyleHelpers";
-import { handleSmartLinkClick } from "./safeNavigationHref";
 
 interface SectionHeroBannerProps {
   section: CustomPageSection<"hero_banner">;
   theme: CustomPageTheme;
+  previewViewport?: "desktop" | "tablet" | "mobile";
   isEditable?: boolean;
   isSelected?: boolean;
   onSelect?: () => void;
-  previewViewport?: "mobile" | "tablet" | "desktop";
+  activeSubElement?: HeroSubElement | null;
+  onSelectSubElement?: (sub: HeroSubElement | null) => void;
+  onInlineUpdate?: (patch: Partial<HeroBannerSettings>) => void;
 }
-
-const DEFAULT_HERO_FALLBACK = "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80";
-
-function resolveHeroImageSource(settings: HeroBannerSettings, previewViewport: "mobile" | "tablet" | "desktop"): string {
-  const mobileSrc = settings.mobileImageUrl || settings.backgroundImageMobile || "";
-  if (previewViewport === "mobile" && mobileSrc) return mobileSrc;
-  const bgImg = settings.backgroundImage || "";
-  const imgUrl = settings.imageUrl || "";
-  if (bgImg && (!imgUrl || imgUrl.startsWith("data:image/svg+xml") || (imgUrl === DEFAULT_HERO_FALLBACK && bgImg !== DEFAULT_HERO_FALLBACK))) {
-    return bgImg;
-  }
-  return imgUrl || bgImg || DEFAULT_HERO_FALLBACK;
-}
-
-const HEIGHT_DESKTOP_MAP: Record<string, number> = { sm: 340, md: 480, lg: 560, xl: 660 };
-const HEIGHT_MOBILE_MAP: Record<string, number> = { sm: 260, md: 360, lg: 440 };
-const VALID_SUB: HeroSubElement[] = ["background", "badge", "title", "subtitle", "cta", "ctaPrimary", "ctaSecondary"];
 
 export const SectionHeroBanner: React.FC<SectionHeroBannerProps> = ({
-  section, theme, isEditable, isSelected, onSelect, previewViewport = "desktop",
+  section,
+  theme,
+  previewViewport = "desktop",
+  isEditable = false,
+  onSelect,
+  activeSubElement,
+  onSelectSubElement,
+  onInlineUpdate,
 }) => {
-  const settings: HeroBannerSettings = section.settings;
-  const styles = section.styles || {};
-
+  const storeSelectedSectionId = useStudioStore((s) => s.selectedSectionId);
+  const storeSubElement = useStudioStore((s) => s.selectedSubElement);
   const selectSection = useStudioStore((s) => s.selectSection);
   const setActiveInspectorTab = useStudioStore((s) => s.setActiveInspectorTab);
-  const hoverElement = useStudioStore((s) => s.hoverElement);
-  const selectedSectionId = useStudioStore((s) => s.selectedSectionId);
-  const selectedSubElement = useStudioStore((s) => s.selectedSubElement);
-  const hoveredSectionId = useStudioStore((s) => s.hoveredSectionId);
-  const hoveredSubElement = useStudioStore((s) => s.hoveredSubElement);
 
-  const activeSubElement: HeroSubElement | null =
-    selectedSectionId === section.id && VALID_SUB.includes(selectedSubElement as HeroSubElement)
-      ? selectedSubElement === "ctaPrimary" ? "cta" : (selectedSubElement as HeroSubElement)
-      : null;
+  const styles = section.styles || {};
+  const rawSettings = normalizeHeroSettingsAdapter(section.settings);
 
-  const triggerSubElementFocus = (el: HeroSubElement, e?: React.MouseEvent) => {
-    if (!isEditable) return;
-    if (e) e.stopPropagation();
-    onSelect?.();
-    setActiveInspectorTab("content");
-    selectSection(section.id, el);
+  const settings: HeroBannerSettings = {
+    ...rawSettings,
+    bannerBgColor: styles.backgroundColor || rawSettings.bannerBgColor,
+    bannerBorderColor: styles.sectionBorderColor || rawSettings.bannerBorderColor,
+    titleColor: styles.headingColor || styles.textColor || rawSettings.titleColor,
+    subtitleColor: styles.subtitleColor || styles.textColor || rawSettings.subtitleColor,
+    badgeBgColor: styles.badgeBgColor || rawSettings.badgeBgColor,
+    badgeTextColor: styles.badgeTextColor || rawSettings.badgeTextColor,
+    ctaBgColor: styles.buttonBgColor || rawSettings.ctaBgColor,
+    ctaTextColor: styles.buttonTextColor || rawSettings.ctaTextColor,
+    ctaBorderColor: styles.buttonBorderColor || rawSettings.ctaBorderColor,
+    ctaStyle: (styles.buttonStyle as HeroBannerSettings["ctaStyle"]) || rawSettings.ctaStyle,
+    ctaShadow: (styles.buttonShadow as HeroBannerSettings["ctaShadow"]) || rawSettings.ctaShadow,
+    ctaBorderRadiusPx:
+      typeof styles.buttonBorderRadiusPx === "number"
+        ? styles.buttonBorderRadiusPx
+        : rawSettings.ctaBorderRadiusPx,
+    ctaBorderWidthPx:
+      typeof styles.buttonBorderWidthPx === "number"
+        ? styles.buttonBorderWidthPx
+        : rawSettings.ctaBorderWidthPx,
+    ctaShowArrow:
+      typeof styles.buttonShowArrow === "boolean"
+        ? styles.buttonShowArrow
+        : rawSettings.ctaShowArrow,
+    bannerShadow: (styles.shadow as HeroBannerSettings["bannerShadow"]) || rawSettings.bannerShadow,
+    useCornerColors: styles.useCornerColors ?? rawSettings.useCornerColors,
+    cornerColorTl: styles.cornerColorTl || rawSettings.cornerColorTl,
+    cornerColorTr: styles.cornerColorTr || rawSettings.cornerColorTr,
+    cornerColorBr: styles.cornerColorBr || rawSettings.cornerColorBr,
+    cornerColorBl: styles.cornerColorBl || rawSettings.cornerColorBl,
+    usePerCornerRadius: styles.usePerCornerRadius ?? rawSettings.usePerCornerRadius,
+    borderRadiusTlPx: styles.borderRadiusTlPx ?? rawSettings.borderRadiusTlPx,
+    borderRadiusTrPx: styles.borderRadiusTrPx ?? rawSettings.borderRadiusTrPx,
+    borderRadiusBrPx: styles.borderRadiusBrPx ?? rawSettings.borderRadiusBrPx,
+    borderRadiusBlPx: styles.borderRadiusBlPx ?? rawSettings.borderRadiusBlPx,
+    imageFilterPreset: styles.imageFilterPreset || rawSettings.imageFilterPreset,
+    imageBrightness: styles.imageBrightness ?? rawSettings.imageBrightness,
+    imageContrast: styles.imageContrast ?? rawSettings.imageContrast,
+    imageSaturation: styles.imageSaturation ?? rawSettings.imageSaturation,
+    imageSepia: styles.imageSepia ?? rawSettings.imageSepia,
+    imageBlurPx: styles.imageBlurPx ?? rawSettings.imageBlurPx,
+    archShape:
+      rawSettings.archShape ||
+      (styles.frameShape === "pill"
+        ? "capsule"
+        : styles.frameShape === "cut-corners" || styles.frameShape === "diamond"
+          ? "asymmetric-leaf"
+          : "roman-arch"),
   };
 
-  const isSubHovered = (el: HeroSubElement) => isEditable && hoveredSectionId === section.id && hoveredSubElement === el;
+  const sectionOpacity =
+    typeof (section.settings as Record<string, unknown>)?.sectionOpacity === "number"
+      ? Number((section.settings as Record<string, unknown>).sectionOpacity)
+      : 100;
 
-  const posDesktop = settings.imagePositionDesktop || settings.backgroundPosition || "50% 30%";
-  const activeObjectPosition =
-    previewViewport === "mobile"
-      ? settings.imagePositionMobile || settings.backgroundPositionMobile || posDesktop
-      : previewViewport === "tablet"
-      ? settings.imagePositionTablet || settings.backgroundPositionTablet || posDesktop
-      : posDesktop;
+  const profile = resolveHeroDeviceProfile(settings, previewViewport);
+  const resolvedSubElement =
+    activeSubElement !== undefined
+      ? activeSubElement
+      : storeSelectedSectionId === section.id
+        ? (storeSubElement as HeroSubElement | null)
+        : null;
 
-  const activeImageSrc = resolveHeroImageSource(settings, previewViewport);
-  const accentColor = theme.accentColor || theme.primaryColor || "#B45309";
-  const sectionBg = styles.backgroundColor || theme.canvasColor || "#FAF6F0";
-  const rawCtaBg = settings.ctaBgColor || styles.buttonBgColor || accentColor;
-  const resolvedCtaBg =
-    rawCtaBg.toLowerCase() === sectionBg.toLowerCase()
-      ? styles.buttonBgColor && styles.buttonBgColor.toLowerCase() !== sectionBg.toLowerCase()
-        ? styles.buttonBgColor
-        : getContrastingTextColor(sectionBg)
-      : rawCtaBg;
-  const resolvedCtaText =
-    settings.ctaTextColor && resolvedCtaBg === rawCtaBg
-      ? settings.ctaTextColor
-      : styles.buttonTextColor && resolvedCtaBg === styles.buttonBgColor
-      ? styles.buttonTextColor
-      : getContrastingTextColor(resolvedCtaBg);
-
-  const effectiveHeroLayout = settings.heroLayout || "editorial-split";
-
-  if (effectiveHeroLayout === "editorial-split" || effectiveHeroLayout === "atelier-collage") {
-    return (
-      <div className="flex flex-col">
-        {isEditable && isSelected && (
-          <HeroCanvasSubToolbar sectionId={section.id} settings={settings} activeSubElement={activeSubElement} activeObjectPosition={activeObjectPosition} onSelectSubElement={triggerSubElementFocus} />
-        )}
-        <HeroEditorialSplitView sectionId={section.id} settings={settings} styles={styles} theme={theme} activeImageSrc={activeImageSrc} activeObjectPosition={activeObjectPosition} resolvedCtaBg={resolvedCtaBg} resolvedCtaText={resolvedCtaText} isEditable={isEditable} activeSubElement={activeSubElement} onTriggerSubElement={triggerSubElementFocus} />
-      </div>
+  const isSubSelected = (sub: HeroSubElement): boolean =>
+    Boolean(
+      isEditable &&
+        (resolvedSubElement === sub ||
+          (sub === "ctaPrimary" && resolvedSubElement === "cta"))
     );
-  }
 
-  const baseMinHeight = previewViewport === "mobile" ? HEIGHT_MOBILE_MAP[settings.bannerHeightMobile || "md"] || 360 : HEIGHT_DESKTOP_MAP[settings.bannerHeightDesktop || "lg"] || 540;
-  const effectiveShape = resolveEffectiveFrameShape(theme, styles.frameShape);
-  const frameVis = resolveHeroFrameShapeVisuals(effectiveShape, styles.borderRadius);
-  const cardMatClass = resolveCardMaterialClasses(theme.cardMaterial, styles.cardMaterial, true);
-  const badgeVis = resolveHeroBadgeVisuals(settings, accentColor, "solid", true);
-  const titleSizeClass = resolveHeroTitleSizeClasses(settings.titleSizeDesktop, settings.titleSizeMobile);
-  const titleShadowStyle = resolveHeroTextShadowStyle(settings.textShadow || "md");
-  const primaryBtnVis = resolveHeroButtonVisuals(settings.ctaStyle, resolvedCtaBg, resolvedCtaText, settings.ctaShadow, Boolean(settings.ctaTextColor), true);
-  const secBg = settings.secondaryCtaBgColor || "#FFFFFF";
-  const secText = settings.secondaryCtaTextColor || getContrastingTextColor(secBg);
-  const secondaryBtnVis = resolveHeroButtonVisuals(settings.secondaryCtaStyle || "glass", secBg, secText, settings.secondaryCtaShadow || "none", Boolean(settings.secondaryCtaTextColor), true);
-  const imgShadow = resolveHeroImageShadow(settings.imageShadow || "none", accentColor);
+  const selectSub = (e: React.MouseEvent, sub: HeroSubElement): void => {
+    if (!isEditable) return;
+    e.stopPropagation();
+    onSelect?.();
+    if (onSelectSubElement) {
+      onSelectSubElement(sub);
+    } else {
+      setActiveInspectorTab("content");
+      selectSection(section.id, sub);
+    }
+  };
 
-  const showBadge = settings.showBadge !== false && Boolean(settings.badgeText);
-  const showSubtitle = settings.showSubtitle !== false && Boolean(settings.subtitle);
-  const showCta = settings.showCta !== false && Boolean(settings.ctaText);
-  const showSecondaryCta = settings.showSecondaryCta !== false && Boolean(settings.secondaryCtaText);
-  const showSeal = settings.showSocialProofBadge === true;
-  const overlayAlpha = Math.min(90, Math.max(0, Number(settings.overlayOpacity ?? 40))) / 100;
-  const imageMargin = typeof settings.imageMargin === "number" ? Math.max(0, settings.imageMargin) : 0;
-  const isContain = settings.imageFit === "contain";
-  const hasClip = Boolean(frameVis.clipStyle);
-  const bannerPos = resolveBannerPosition(settings.contentPosition, settings.textAlignment || "center", settings.verticalAlignment || "bottom");
-  const btnJustifyClass = bannerPos.horizontal === "left" ? "justify-start" : bannerPos.horizontal === "right" ? "justify-end" : "justify-center";
-  const padY = resolveSectionPaddingY(styles.paddingY);
-  const padX = resolveSectionPaddingX(styles.paddingX);
-  const rawAlt = typeof (settings as unknown as Record<string, unknown>).imageAlt === "string" ? String((settings as unknown as Record<string, unknown>).imageAlt) : "";
+  const getSubRing = (sub: HeroSubElement): string =>
+    isSubSelected(sub) ? "ring-2 ring-blue-500 ring-offset-2 rounded-lg" : "";
+
+  const handleTextPatch = (field: keyof HeroBannerSettings, val: string): void => {
+    if (onInlineUpdate) {
+      onInlineUpdate({ [field]: val });
+    } else if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("studio:patch-section-settings", {
+          detail: {
+            sectionId: section.id,
+            patch: { [field]: val },
+            ...(field === "title" ? { title: val } : {}),
+          },
+        })
+      );
+    }
+  };
+
+  const sharedStyleProps = {
+    settings,
+    theme,
+    profile,
+    isEditable,
+    activeSubElement: resolvedSubElement,
+    isSubSelected,
+    selectSub,
+    getSubRing,
+    handleTextPatch,
+  };
+
+  const isFullWidthContainer =
+    settings.containerMode === "full" ||
+    styles.containerWidth === "full" ||
+    Boolean(settings.fullTopWidth);
+
+  const hasCustomPaddingY = styles.paddingY !== undefined;
+  const hasCustomPaddingX = styles.paddingX !== undefined;
+  const padY = hasCustomPaddingY ? resolveSectionPaddingY(styles.paddingY, theme.spacingYPx) : undefined;
+  const padX = hasCustomPaddingX ? resolveSectionPaddingX(styles.paddingX) : undefined;
+
+  const renderArchitecturalStyle = (): React.ReactNode => {
+    switch (profile.heroLayout) {
+      case "cinema-full":
+        return <HeroFullBleed {...sharedStyleProps} />;
+      case "arch-palace":
+        return <HeroArch {...sharedStyleProps} />;
+      case "atelier-collage":
+        return <HeroGallery {...sharedStyleProps} />;
+      case "bento-hero":
+        return <HeroDiptych {...sharedStyleProps} />;
+      case "editorial-split":
+      default:
+        return <HeroSplit {...sharedStyleProps} />;
+    }
+  };
 
   return (
-    <div className="flex flex-col relative" style={{ backgroundColor: imageMargin > 0 ? sectionBg : undefined, padding: imageMargin > 0 ? `${imageMargin}px` : undefined, ...(hasClip ? imgShadow.dropShadowStyle : {}) }}>
-      {isEditable && isSelected && (
-        <HeroCanvasSubToolbar sectionId={section.id} settings={settings} activeSubElement={activeSubElement} activeObjectPosition={activeObjectPosition} onSelectSubElement={triggerSubElementFocus} />
-      )}
-
+    <section
+      onClick={isEditable ? onSelect : undefined}
+      data-testid="section-hero-banner-root"
+      className="@container relative w-full overflow-x-hidden transition-colors duration-300 motion-reduce:transition-none"
+      style={{
+        backgroundColor: styles.backgroundColor || theme.canvasColor || "#FAF8F5",
+        color: styles.textColor || theme.secondaryColor || "#111827",
+        ...(sectionOpacity < 100 ? { opacity: sectionOpacity / 100 } : {}),
+        ...(padY !== undefined ? { paddingTop: `${padY}px`, paddingBottom: `${padY}px` } : {}),
+        ...(padX !== undefined ? { paddingLeft: `${padX}px`, paddingRight: `${padX}px` } : {}),
+      }}
+    >
       <div
-        onClick={isEditable ? (e) => triggerSubElementFocus("background", e) : undefined}
-        style={{ ...(hasClip ? {} : imgShadow.style), ...frameVis.clipStyle }}
-        className={`relative overflow-hidden transition-all select-none text-white bg-slate-950 ${frameVis.frameClass || resolveBorderRadiusClass(styles.borderRadius)} ${resolveShadowClass(styles.shadow)} ${hasClip ? "" : imgShadow.className} ${resolveAnimationClass(styles.animation)}${isEditable && !isSelected ? " cursor-pointer" : ""}`}
+        className={
+          isFullWidthContainer
+            ? "w-full"
+            : styles.containerWidth === "narrow"
+              ? "max-w-3xl mx-auto px-3 sm:px-6 py-3 sm:py-5"
+              : "max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-5"
+        }
       >
-        <div className="absolute inset-0 z-0">
-          {isContain && activeImageSrc && <img src={activeImageSrc} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-45" />}
-          <img src={activeImageSrc} alt={rawAlt || settings.title || "Bannière"} style={{ objectPosition: activeObjectPosition, objectFit: settings.imageFit || "cover" }} className="relative z-10 w-full h-full transition-all duration-300" />
-          {styles.backgroundColor && <div className="absolute inset-0 z-10 mix-blend-multiply opacity-35" style={{ backgroundColor: styles.backgroundColor }} />}
-          <div className="absolute inset-0 z-10" style={{ backgroundColor: `rgba(15, 23, 42, ${overlayAlpha})` }} />
-          <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
-        </div>
-
-        <ArtisticAtmosphereLayer theme={theme} sectionStyles={styles} />
-
-        <div style={{ minHeight: `${baseMinHeight}px`, paddingTop: `${padY}px`, paddingBottom: `${padY}px`, paddingLeft: `${padX}px`, paddingRight: `${padX}px` }} className={`relative z-20 flex flex-col ${resolveContainerWidthClass(styles.containerWidth)} ${bannerPos.flexContainerClass}`}>
-          <div className={cardMatClass ? `p-6 @md:p-8 rounded-3xl flex flex-col ${bannerPos.flexContainerClass} ${cardMatClass}` : `flex flex-col ${bannerPos.flexContainerClass}`}>
-            {showBadge && (
-              <span onMouseEnter={isEditable ? () => hoverElement(section.id, "badge") : undefined} onMouseLeave={isEditable ? () => hoverElement(section.id, null) : undefined} onClick={(e) => triggerSubElementFocus("badge", e)} style={badgeVis.style} className={`inline-flex items-center gap-1.5 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] mb-4 ${badgeVis.className}`}>
-                <CanvasInlineText value={settings.badgeText || ""} isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "badgeText", subElement: "badge" }} />
-              </span>
-            )}
-
-            <EditorialHeading
-              as="h1" text={settings.title || "Titre de votre boutique"} theme={theme} sectionStyles={styles}
-              isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", subElement: "title" }}
-              onClick={(e) => triggerSubElementFocus("title", e)} style={{ color: settings.titleColor || "#FFFFFF", ...titleShadowStyle }}
-              className={`${titleSizeClass} font-extrabold tracking-tight mb-3 max-w-3xl break-words rounded-lg px-2 py-0.5 ${isEditable && (isSubHovered("title") || activeSubElement === "title") ? "bg-white/10 ring-1 ring-white/80" : ""}`}
-            />
-
-            {showSubtitle && (
-              <CanvasInlineText
-                as="p" multiline value={settings.subtitle || ""} isEditable={isEditable}
-                editConfig={{ sectionId: section.id, settingKey: "subtitle", subElement: "subtitle" }}
-                onClick={(e) => triggerSubElementFocus("subtitle", e)} style={{ color: settings.subtitleColor || "#F8FAFC" }}
-                className="text-sm @3xl:text-base opacity-90 max-w-2xl mb-7 font-medium leading-relaxed break-words"
-              />
-            )}
-
-            <div className={`flex flex-wrap items-center gap-3 w-full ${btnJustifyClass}`}>
-              {showCta && (
-                <a
-                  href={settings.ctaLink || "#catalog"}
-                  onClick={(e) => { if (isEditable) { e.preventDefault(); triggerSubElementFocus("cta", e); } else handleSmartLinkClick(settings.ctaLink || "#catalog", e, settings.ctaText || settings.title); }}
-                  className={`inline-flex items-center justify-center px-7 py-3.5 text-xs @3xl:text-sm font-bold uppercase tracking-[0.15em] ${primaryBtnVis.className}`} style={primaryBtnVis.style}
-                >
-                  <CanvasInlineText value={settings.ctaText || ""} isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "ctaText", subElement: "cta" }} />
-                </a>
-              )}
-              {showSecondaryCta && (
-                <a
-                  href={settings.secondaryCtaLink || "#catalog"}
-                  onClick={(e) => { if (isEditable) { e.preventDefault(); triggerSubElementFocus("ctaSecondary", e); } else handleSmartLinkClick(settings.secondaryCtaLink || "#catalog", e, settings.secondaryCtaText || settings.title); }}
-                  className={`inline-flex items-center justify-center px-6 py-3.5 text-xs @3xl:text-sm font-semibold ${secondaryBtnVis.className}`} style={secondaryBtnVis.style}
-                >
-                  <CanvasInlineText value={settings.secondaryCtaText || ""} isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "secondaryCtaText", subElement: "ctaSecondary" }} />
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {showSeal && <RotatingSealBadge text={settings.socialProofBadge || "FAIT MAIN EN ALGÉRIE • ÉDITION LIMITÉE •"} accentColor={accentColor} surfaceColor="#0F172A" textColor="#F8FAFC" className="absolute bottom-5 right-5 z-30" />}
-        <SectionDividerRenderer divider={styles.divider} color="#FFFFFF" theme={theme} />
+        {renderArchitecturalStyle()}
       </div>
-    </div>
+      <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
+    </section>
   );
 };

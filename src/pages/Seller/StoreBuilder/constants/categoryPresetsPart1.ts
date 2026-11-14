@@ -7,6 +7,7 @@ export const CATEGORY_PRESETS_PART1: CategoryPreset[] = [
     description: "Cartes portraits immersives idéales pour le prêt-à-porter et la haute couture algérienne",
     icon: "Shirt",
     tag: "Tendance 2026",
+    sector: "mode",
     settings: {
       title: "Rayons & Collections Prêt-à-Porter",
       subtitle: "Explorez nos lignes de couture contemporaine et traditionnelle",
@@ -87,6 +88,7 @@ export const CATEGORY_PRESETS_PART1: CategoryPreset[] = [
     description: "Grille Bento futuriste avec mise en valeur grand format et effets glow",
     icon: "Smartphone",
     tag: "Bento Grid",
+    sector: "tech",
     settings: {
       title: "Écosystème High-Tech & Gaming",
       subtitle: "Les composants, périphériques et smartphones de dernière génération",
@@ -160,6 +162,7 @@ export const CATEGORY_PRESETS_PART1: CategoryPreset[] = [
     description: "Cercles Story Bubbles inspirés des réseaux sociaux avec bague dégradée",
     icon: "Sparkles",
     tag: "Stories Bubbles",
+    sector: "beaute",
     settings: {
       title: "Rituels de Soins & Parfumerie",
       subtitle: "Sublimez votre quotidien avec des formules saines et raffinées",

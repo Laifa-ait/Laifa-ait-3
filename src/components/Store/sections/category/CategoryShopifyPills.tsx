@@ -5,6 +5,7 @@ import {
   CategoryCardSize,
   CategoryImagePosition,
   CategoryImageFit,
+  CategoryDeviceViewport,
 } from "../../../../pages/Seller/StoreBuilder/constants/categoryPresetTypes";
 import { getLucideCategoryIcon } from "../../../../pages/Seller/StoreBuilder/constants/categoryCanvaOptions";
 import {
@@ -12,13 +13,18 @@ import {
   resolveCategoryImageClasses,
   handleCategoryImageError,
 } from "./categoryImageHelper";
+import {
+  resolveCategoryGridCols,
+} from "./categoryResponsiveHelper";
 
 interface CategoryShopifyPillsProps {
   categories: CategoryItem[];
   cardRadius: string;
   pillShowImage: boolean;
   columnsDesktop?: number;
+  columnsTablet?: number;
   columnsMobile?: number;
+  previewViewport?: CategoryDeviceViewport;
   showTitle?: boolean;
   showBadge: boolean;
   showItemCount: boolean;
@@ -40,10 +46,11 @@ interface CategoryShopifyPillsProps {
 
 export const CategoryShopifyPills: React.FC<CategoryShopifyPillsProps> = ({
   categories,
-  cardRadius,
   pillShowImage,
   columnsDesktop = 3,
+  columnsTablet = 2,
   columnsMobile = 1,
+  previewViewport = "desktop",
   showTitle = true,
   showBadge,
   showItemCount,
@@ -62,50 +69,45 @@ export const CategoryShopifyPills: React.FC<CategoryShopifyPillsProps> = ({
   onCardClick,
   onEditItem,
 }) => {
-  const pillRadiusClass =
-    cardRadius === "none"
-      ? "rounded-none"
-      : cardRadius === "sm"
-      ? "rounded-xl"
-      : cardRadius === "md"
-      ? "rounded-2xl"
-      : cardRadius === "lg"
-      ? "rounded-3xl"
-      : "rounded-full";
-
-  const avatarRadiusClass =
-    cardRadius === "none"
-      ? "rounded-none"
-      : cardRadius === "sm"
-      ? "rounded-lg"
-      : cardRadius === "md" || cardRadius === "lg"
-      ? "rounded-xl"
-      : "rounded-full";
-
   const isDarkSkin = cardSkin === "dark-glass";
-  const mobilePillCols = columnsMobile === 2 ? "grid-cols-2" : "grid-cols-1";
-  const desktopPillCols =
-    columnsDesktop <= 2
-      ? "@[560px]:grid-cols-2"
-      : columnsDesktop === 4
-      ? "@[560px]:grid-cols-2 @[900px]:grid-cols-4"
-      : "@[560px]:grid-cols-2 @[900px]:grid-cols-3";
+  const isMobileSim = previewViewport === "mobile";
 
-  const thumbDimClass =
-    cardSize === "compact"
-      ? "w-10 h-10 @[560px]:w-11 @[560px]:h-11"
-      : cardSize === "large"
-      ? "w-13 h-13 @[560px]:w-15 @[560px]:h-15"
-      : "w-11 h-11 @[560px]:w-12 @[560px]:h-12";
+  // RÈGLE 2.11 : Dock Capsules -> Pilule complète (border-radius: 9999px), hauteur fixe 72px / 88px / 104px (68px en 1 col. sur Mobile)
+  const gridColsClass = resolveCategoryGridCols(
+    columnsDesktop,
+    columnsMobile,
+    cardSize,
+    previewViewport,
+    columnsTablet,
+    "pills",
+    categories.length
+  );
+
+  const pillHeightClass = isMobileSim
+    ? "h-[68px]"
+    : cardSize === "compact"
+    ? "h-[72px]"
+    : cardSize === "large"
+    ? "h-[104px]"
+    : "h-[88px]";
+
+  const thumbDimClass = isMobileSim
+    ? "w-[52px] h-[52px]"
+    : cardSize === "compact"
+    ? "w-[56px] h-[56px]"
+    : cardSize === "large"
+    ? "w-[80px] h-[80px]"
+    : "w-[68px] h-[68px]";
 
   return (
-    <div className={`grid ${mobilePillCols} ${desktopPillCols} ${gapClass}`}>
+    <div className={`grid ${gridColsClass} ${gapClass}`} data-category-model="pills">
       {categories.map((cat, idx) => {
         const IconComp = getLucideCategoryIcon(cat.iconName);
         const photoUrl = resolveCategoryPhoto(cat, idx);
         const { posClass, fitClass } = resolveCategoryImageClasses(cat, imagePosition, imageFit);
         const countText = getCountLabel(cat);
         const idxLabel = String(idx + 1).padStart(2, "0");
+        const spanClass = "col-span-1";
         const isCardSelected =
           isEditable &&
           selectedSectionId === sectionId &&
@@ -114,22 +116,22 @@ export const CategoryShopifyPills: React.FC<CategoryShopifyPillsProps> = ({
         const skinClasses = isDarkSkin
           ? "bg-slate-950 text-white border-white/15 hover:border-white/35 shadow-sm"
           : cardSkin === "soft-tint"
-          ? "bg-[#F8FAFC] text-slate-900 border-slate-200/90 hover:bg-white hover:border-slate-300 shadow-[0_2px_8px_-3px_rgba(15,23,42,0.04)]"
-          : "bg-white text-slate-900 border-slate-200/90 hover:border-slate-300 shadow-[0_3px_12px_-4px_rgba(15,23,42,0.06)]";
+          ? "bg-[#F8FAFC] text-slate-900 border-slate-200/90 hover:bg-white shadow-2xs"
+          : "bg-white text-slate-900 border-slate-200/95 hover:border-slate-300 shadow-[0_4px_14px_-4px_rgba(15,23,42,0.07)]";
 
         return (
-          <div
+          <article
             key={cat.id || idx}
             onClick={(e) => onCardClick(cat, idx, e)}
-            className={`group relative flex items-center justify-between gap-2.5 p-2 pr-3 border transition-all duration-200 ease-out cursor-pointer select-none ${pillRadiusClass} ${skinClasses} ${hoverCardClass} ${
+            style={{ borderRadius: "9999px" }}
+            className={`group relative flex items-center justify-between gap-3 px-2 pr-3.5 ${pillHeightClass} border transition-all duration-200 ease-out cursor-pointer select-none ${skinClasses} ${spanClass} ${hoverCardClass} ${
               isCardSelected ? "ring-2 ring-[#2563EB] ring-offset-1" : ""
             }`}
           >
-            <div className="flex items-center gap-2.5 @[560px]:gap-3 min-w-0">
+            {/* À gauche : miniature ronde (56px à 80px) */}
+            <div className="flex items-center gap-3 min-w-0">
               {pillShowImage ? (
-                <div
-                  className={`${thumbDimClass} ${avatarRadiusClass} overflow-hidden shrink-0 relative bg-slate-100 ring-1 ring-inset ring-black/[0.06]`}
-                >
+                <div className={`${thumbDimClass} rounded-full overflow-hidden shrink-0 relative bg-slate-100 ring-2 ring-slate-100`}>
                   <img
                     src={photoUrl}
                     alt={cat.name}
@@ -140,70 +142,72 @@ export const CategoryShopifyPills: React.FC<CategoryShopifyPillsProps> = ({
                 </div>
               ) : (
                 <div
-                  className={`${thumbDimClass} ${avatarRadiusClass} flex items-center justify-center shrink-0 transition-colors duration-200 ${
+                  className={`${thumbDimClass} rounded-full flex items-center justify-center shrink-0 transition-colors ${
                     isDarkSkin
                       ? "bg-white/10 text-white group-hover:bg-white group-hover:text-slate-950"
                       : "bg-slate-100 text-slate-700 group-hover:bg-slate-900 group-hover:text-white"
                   }`}
                 >
-                  <IconComp className="w-4 h-4" />
+                  <IconComp className="w-5 h-5" />
                 </div>
               )}
 
-              {showTitle && (
-                <div className="min-w-0 py-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] @[560px]:text-[10px] font-mono font-bold text-slate-400 tabular-nums">
-                      {idxLabel}
-                    </span>
-                    {showBadge && cat.badge && (
-                      <span
-                        className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full text-white shrink-0"
-                        style={{ backgroundColor: cat.badgeColor || primaryColor }}
-                      >
-                        {cat.badge}
-                      </span>
-                    )}
-                  </div>
-                  <span className="font-bold text-xs @[560px]:text-sm tracking-tight leading-tight block truncate mt-0.5">
-                    {cat.name}
+              {/* Au centre : titre/compteur d'articles (ou capsule #01 en mode Sans titre) */}
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono font-bold text-slate-400 tabular-nums">
+                    #{idxLabel}
                   </span>
-                  {showItemCount && countText && (
+                  {showBadge && cat.badge && (
                     <span
-                      className={`text-[10px] @[560px]:text-[11px] font-medium block truncate mt-0.5 ${
-                        isDarkSkin ? "text-slate-400" : "text-slate-500"
-                      }`}
+                      className="text-[9px] font-semibold px-2 py-0.5 rounded-full text-white shrink-0"
+                      style={{ backgroundColor: cat.badgeColor || primaryColor }}
                     >
-                      {countText}
+                      {cat.badge}
                     </span>
                   )}
                 </div>
-              )}
+                {showTitle ? (
+                  <>
+                    <h3 className={`font-bold ${cardSize === "large" ? "text-sm @[768px]:text-base" : "text-xs @[768px]:text-sm"} tracking-tight truncate`}>
+                      {cat.name}
+                    </h3>
+                    {showItemCount && countText && (
+                      <span className={`text-[10px] @[768px]:text-[11px] font-medium block truncate ${isDarkSkin ? "text-slate-400" : "text-slate-500"}`}>
+                        {countText}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-xs font-mono font-semibold text-slate-500 block truncate">
+                    CAPSULE #{idxLabel}
+                  </span>
+                )}
+              </div>
             </div>
 
+            {/* À droite : bouton circulaire fléché */}
             <div className="flex items-center gap-1.5 shrink-0">
-              <div
-                className={`w-6 h-6 @[560px]:w-7 @[560px]:h-7 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 ${
-                  isDarkSkin
-                    ? "bg-white/15 text-white group-hover:bg-white group-hover:text-slate-950"
-                    : "bg-slate-900 text-white group-hover:scale-105"
+              <span
+                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105 ${
+                  isDarkSkin ? "bg-white text-slate-950" : "bg-slate-900 text-white"
                 }`}
               >
-                <ArrowUpRight className="w-3 h-3 @[560px]:w-3.5 @[560px]:h-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </div>
+                <ArrowUpRight className="w-4 h-4" />
+              </span>
 
               {isEditable && (
                 <button
                   type="button"
                   onClick={(e) => onEditItem(idx, e)}
-                  className="w-6 h-6 rounded-full bg-[#023859] text-white flex items-center justify-center opacity-95 @[560px]:opacity-0 @[560px]:group-hover:opacity-100 transition-opacity duration-150 cursor-pointer shadow-xs"
-                  title="Modifier ce rayon"
+                  className="w-6 h-6 rounded-full bg-[#023859] text-white flex items-center justify-center cursor-pointer shadow-xs"
+                  title="Modifier cette capsule"
                 >
                   <Camera className="w-3 h-3" />
                 </button>
               )}
             </div>
-          </div>
+          </article>
         );
       })}
     </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   MoveUp, MoveDown, Eye, EyeOff, GripVertical, Trash2, Copy,
   ChevronRight, ChevronDown, Image as ImageIcon, ShoppingBag,
@@ -24,23 +24,23 @@ interface SectionCardProps {
   onDuplicateSection?: (id: string) => void;
 }
 
-const SECTION_TYPE_MAP: Record<string, { icon: React.ComponentType<{ className?: string }>; label: string; color: string }> = {
-  hero_banner: { icon: ImageIcon, label: "Bannière principale", color: "bg-[#F0F7FA] text-[#023859]" },
-  promo_carousel: { icon: Sparkles, label: "Carrousel promo", color: "bg-amber-50 text-amber-600" },
-  featured_categories: { icon: Grid, label: "Catégories", color: "bg-[#F0F7FA] text-[#023859]" },
-  curated_collections: { icon: Layers, label: "Collections", color: "bg-indigo-50 text-indigo-600" },
-  new_arrivals: { icon: Sparkles, label: "Nouveautés", color: "bg-emerald-50 text-emerald-600" },
-  featured_products: { icon: ShoppingBag, label: "Produits vedettes", color: "bg-[#F0F7FA] text-[#023859]" },
-  best_sellers: { icon: Award, label: "Meilleures ventes", color: "bg-amber-50 text-amber-600" },
-  product_grid: { icon: ShoppingBag, label: "Catalogue complet", color: "bg-[#F0F7FA] text-[#023859]" },
-  brand_story: { icon: BookOpen, label: "Notre Histoire", color: "bg-purple-50 text-purple-600" },
-  showcase_video: { icon: ImageIcon, label: "Vidéo vitrine", color: "bg-violet-50 text-violet-600" },
-  verified_reviews: { icon: ShieldCheck, label: "Avis vérifiés", color: "bg-rose-50 text-rose-600" },
-  delivery_info: { icon: Truck, label: "Livraison", color: "bg-amber-50 text-amber-600" },
-  return_policy: { icon: RotateCcw, label: "Retours & échanges", color: "bg-cyan-50 text-cyan-600" },
-  faq_accordion: { icon: HelpCircle, label: "Questions FAQ", color: "bg-indigo-50 text-indigo-600" },
-  contact_footer: { icon: Phone, label: "Contact boutique", color: "bg-slate-100 text-slate-700" },
-  kinetic_marquee: { icon: Sparkles, label: "Bandeau défilant", color: "bg-teal-50 text-teal-600" },
+const SECTION_TYPE_MAP: Record<string, { icon: React.ComponentType<{ className?: string }>; label: string }> = {
+  hero_banner: { icon: ImageIcon, label: "Bannière principale" },
+  promo_carousel: { icon: Sparkles, label: "Carrousel promo" },
+  featured_categories: { icon: Grid, label: "Catégories" },
+  curated_collections: { icon: Layers, label: "Collections" },
+  new_arrivals: { icon: Sparkles, label: "Nouveautés" },
+  featured_products: { icon: ShoppingBag, label: "Produits vedettes" },
+  best_sellers: { icon: Award, label: "Meilleures ventes" },
+  product_grid: { icon: ShoppingBag, label: "Catalogue" },
+  brand_story: { icon: BookOpen, label: "Notre Histoire" },
+  showcase_video: { icon: ImageIcon, label: "Vidéo vitrine" },
+  verified_reviews: { icon: ShieldCheck, label: "Avis vérifiés" },
+  delivery_info: { icon: Truck, label: "Livraison" },
+  return_policy: { icon: RotateCcw, label: "Retours & échanges" },
+  faq_accordion: { icon: HelpCircle, label: "Questions FAQ" },
+  contact_footer: { icon: Phone, label: "Contact" },
+  kinetic_marquee: { icon: Sparkles, label: "Bandeau défilant" },
 };
 
 export const SectionCard: React.FC<SectionCardProps> = ({
@@ -50,7 +50,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dropPosition, setDropPosition] = useState<"before" | "after" | null>(null);
   const canExpand = hasExpandableSubBlocks(sec.type);
-  const [isExpanded, setIsExpanded] = useState<boolean>(isSelected && canExpand);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   const setIsDraggingSection = useStudioStore((s) => s.setIsDraggingSection);
   const hoverElement = useStudioStore((s) => s.hoverElement);
@@ -58,12 +58,8 @@ export const SectionCard: React.FC<SectionCardProps> = ({
   const selectSection = useStudioStore((s) => s.selectSection);
   const triggerSectionAction = useStudioStore((s) => s.triggerSectionAction);
 
-  useEffect(() => {
-    if (isSelected && canExpand) setIsExpanded(true);
-  }, [isSelected, canExpand]);
-
   const typeConfig = SECTION_TYPE_MAP[sec.type] || {
-    icon: Layout, label: sec.type.replace(/_/g, " "), color: "bg-slate-100 text-slate-600",
+    icon: Layout, label: sec.type.replace(/_/g, " "),
   };
   const SectionIcon = typeConfig.icon;
   const settings = (sec.settings || {}) as Record<string, unknown>;
@@ -123,15 +119,17 @@ export const SectionCard: React.FC<SectionCardProps> = ({
         if (!isNaN(fromIdx) && fromIdx !== idx) onReorder(fromIdx, idx);
       }}
       className={[
-        "relative rounded-xl border bg-white p-2.5 transition-all cursor-pointer select-none",
-        isSelected ? "border-[#023859] bg-[#F0F7FA]/70 ring-1 ring-[#023859]/25 shadow-xs" : "border-[#E5E7EB] hover:border-[#54ACBF] hover:shadow-2xs",
-        !sec.isVisible ? "opacity-60 bg-[#F9FAFB]" : "",
-        isDragging ? "opacity-30 border-dashed border-[#023859]" : "",
+        "group relative rounded-lg border px-2 py-1.5 transition-colors cursor-pointer select-none",
+        isSelected
+          ? "border-slate-900 bg-slate-50"
+          : "border-transparent hover:border-slate-200 hover:bg-slate-50/70",
+        !sec.isVisible ? "opacity-55" : "",
+        isDragging ? "opacity-30 border-dashed border-slate-400" : "",
       ].join(" ")}
       onClick={handleSelectMainSection}
     >
-      {dropPosition === "before" && <div data-testid="drop-indicator-before" className="pointer-events-none absolute -top-1.5 left-2 right-2 h-1 rounded-full bg-[#023859] shadow-xs z-20" />}
-      {dropPosition === "after" && <div data-testid="drop-indicator-after" className="pointer-events-none absolute -bottom-1.5 left-2 right-2 h-1 rounded-full bg-[#023859] shadow-xs z-20" />}
+      {dropPosition === "before" && <div data-testid="drop-indicator-before" className="pointer-events-none absolute -top-1 left-2 right-2 h-0.5 rounded-full bg-slate-900 z-20" />}
+      {dropPosition === "after" && <div data-testid="drop-indicator-after" className="pointer-events-none absolute -bottom-1 left-2 right-2 h-0.5 rounded-full bg-slate-900 z-20" />}
 
       <div className="flex items-center gap-1.5 min-w-0">
         {canExpand ? (
@@ -139,7 +137,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
             type="button"
             title={isExpanded ? "Replier les sous-blocs" : "Déplier les sous-blocs"}
             onClick={(e) => { e.stopPropagation(); setIsExpanded((prev) => !prev); }}
-            className="flex h-6 w-5 items-center justify-center rounded-md text-[#667085] hover:bg-[#F0F7FA] hover:text-[#023859] cursor-pointer shrink-0 transition-colors"
+            className="flex h-5 w-5 items-center justify-center rounded text-slate-400 hover:bg-slate-200/70 hover:text-slate-900 cursor-pointer shrink-0 transition-colors"
           >
             {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
           </button>
@@ -147,37 +145,53 @@ export const SectionCard: React.FC<SectionCardProps> = ({
           <span className="w-2 shrink-0" />
         )}
 
-        <span title={isLocked ? "Section verrouillée" : "Glisser pour réorganiser"} className="hidden md:flex h-7 w-4 items-center justify-center text-[#9CA3AF] hover:text-[#011C40] cursor-grab active:cursor-grabbing shrink-0">
-          <GripVertical className="h-4 w-4" />
+        <span title={isLocked ? "Section verrouillée" : "Glisser pour réorganiser"} className="hidden md:flex h-5 w-3.5 items-center justify-center text-slate-300 group-hover:text-slate-500 cursor-grab active:cursor-grabbing shrink-0">
+          <GripVertical className="h-3.5 w-3.5" />
         </span>
 
-        <div className="h-8 w-8 overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#F7F8FA] shrink-0 flex items-center justify-center">
+        <div className="h-6 w-6 overflow-hidden rounded border border-slate-200 bg-slate-100 shrink-0 flex items-center justify-center text-slate-600">
           {imageUrl ? (
             <img src={imageUrl} alt={sec.title || typeConfig.label} className="h-full w-full object-cover" />
           ) : (
-            <div className={`flex h-full w-full items-center justify-center ${typeConfig.color}`}>
-              <SectionIcon className="h-4 w-4" />
-            </div>
+            <SectionIcon className="h-3.5 w-3.5" />
           )}
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="truncate text-[13px] font-bold text-[#011C40] block">{sec.title || typeConfig.label}</span>
-            {isLocked && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 shrink-0">Verrouillé</span>}
-            {!sec.isVisible && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 shrink-0">Masquée</span>}
-          </div>
-          <span className="block truncate text-[10px] text-[#667085] font-semibold uppercase tracking-wider">
+          <span className="truncate text-[12px] font-medium text-slate-900 block leading-tight">
+            {sec.title || typeConfig.label}
+          </span>
+          <span className="block truncate text-[10.5px] text-slate-500 tabular-nums">
             {idx + 1}. {typeConfig.label}
+            {isLocked ? " · Verrouillé" : !sec.isVisible ? " · Masquée" : ""}
           </span>
         </div>
 
-        <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-          <button type="button" aria-label="Monter la section" title="Monter d'un cran" disabled={idx === 0 || isLocked} onClick={(e) => { e.stopPropagation(); if (idx > 0 && !isLocked) onReorder(idx, idx - 1); }} className="h-7 w-7 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-[#F9FAFB] hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#011C40] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
-            <MoveUp className="h-3.5 w-3.5" />
+        <div
+          className={`flex items-center gap-0.5 shrink-0 transition-opacity ${
+            isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            aria-label="Monter la section"
+            title="Monter"
+            disabled={idx === 0 || isLocked}
+            onClick={(e) => { e.stopPropagation(); if (idx > 0 && !isLocked) onReorder(idx, idx - 1); }}
+            className="h-6 w-6 flex items-center justify-center rounded text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
+          >
+            <MoveUp className="h-3 w-3" />
           </button>
-          <button type="button" aria-label="Descendre la section" title="Descendre d'un cran" disabled={idx === totalSections - 1 || isLocked} onClick={(e) => { e.stopPropagation(); if (idx < totalSections - 1 && !isLocked) onReorder(idx, idx + 1); }} className="h-7 w-7 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-[#F9FAFB] hover:bg-[#F0F7FA] hover:border-[#54ACBF] text-[#011C40] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
-            <MoveDown className="h-3.5 w-3.5" />
+          <button
+            type="button"
+            aria-label="Descendre la section"
+            title="Descendre"
+            disabled={idx === totalSections - 1 || isLocked}
+            onClick={(e) => { e.stopPropagation(); if (idx < totalSections - 1 && !isLocked) onReorder(idx, idx + 1); }}
+            className="h-6 w-6 flex items-center justify-center rounded text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
+          >
+            <MoveDown className="h-3 w-3" />
           </button>
         </div>
       </div>
@@ -186,33 +200,50 @@ export const SectionCard: React.FC<SectionCardProps> = ({
         <SectionSubBlocksTree sec={sec} products={products} onSelectSection={onSelectSection} onUpdateSection={onUpdateSection} />
       )}
 
-      <div className="mt-2 pt-2 border-t border-[#E5E7EB]/70 flex items-center justify-between gap-1" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-1">
-          <button type="button" aria-label={`Monter ${sec.title || typeConfig.label}`} disabled={idx === 0 || isLocked} onClick={(e) => { e.stopPropagation(); if (idx > 0 && !isLocked) onReorder(idx, idx - 1); }} className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] text-[#475467] hover:text-[#023859] disabled:opacity-30 disabled:cursor-not-allowed text-[10px] font-bold transition-colors cursor-pointer">
-            <MoveUp className="h-3 w-3" /><span>Monter</span>
+      {isSelected && (
+        <div className="mt-1.5 pt-1.5 border-t border-slate-200 flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            data-testid={`lock-section-${sec.id}`}
+            title={isLocked ? "Déverrouiller" : "Verrouiller"}
+            onClick={handleToggleLock}
+            className={`h-6 px-2 flex items-center gap-1 rounded text-[11px] font-medium cursor-pointer transition-colors ${
+              isLocked ? "bg-amber-50 text-amber-800" : "text-slate-500 hover:bg-slate-200/70 hover:text-slate-900"
+            }`}
+          >
+            {isLocked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
           </button>
-          <button type="button" aria-label={`Descendre ${sec.title || typeConfig.label}`} disabled={idx === totalSections - 1 || isLocked} onClick={(e) => { e.stopPropagation(); if (idx < totalSections - 1 && !isLocked) onReorder(idx, idx + 1); }} className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] text-[#475467] hover:text-[#023859] disabled:opacity-30 disabled:cursor-not-allowed text-[10px] font-bold transition-colors cursor-pointer">
-            <MoveDown className="h-3 w-3" /><span>Descendre</span>
-          </button>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <button type="button" data-testid={`lock-section-${sec.id}`} title={isLocked ? "Déverrouiller la section" : "Verrouiller la section"} onClick={handleToggleLock} className={`h-7 px-2 flex items-center justify-center rounded-md border text-[11px] font-medium transition-colors cursor-pointer ${isLocked ? "border-amber-300 bg-amber-50 text-amber-800" : "border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#475467]"}`}>
-            {isLocked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
-          </button>
-          <button type="button" title={sec.isVisible ? "Masquer la section" : "Afficher la section"} onClick={(e) => { e.stopPropagation(); onToggleVisibility(sec.id); }} className="h-7 px-2 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0FDF4] hover:border-[#86EFAC] text-[#475467] text-[11px] font-medium transition-colors cursor-pointer">
-            {sec.isVisible ? <Eye className="h-3.5 w-3.5 text-[#16A34A]" /> : <EyeOff className="h-3.5 w-3.5 text-[#9CA3AF]" />}
+          <button
+            type="button"
+            title={sec.isVisible ? "Masquer" : "Afficher"}
+            onClick={(e) => { e.stopPropagation(); onToggleVisibility(sec.id); }}
+            className="h-6 px-2 flex items-center rounded text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 cursor-pointer transition-colors"
+          >
+            {sec.isVisible ? <Eye className="h-3 w-3 text-emerald-600" /> : <EyeOff className="h-3 w-3 text-slate-400" />}
           </button>
           {onDuplicateSection && (
-            <button type="button" title="Dupliquer la section" onClick={(e) => { e.stopPropagation(); onDuplicateSection(sec.id); }} className="h-7 px-2 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F0F7FA] text-[#475467] hover:text-[#023859] transition-colors cursor-pointer">
-              <Copy className="h-3.5 w-3.5" />
+            <button
+              type="button"
+              title="Dupliquer"
+              onClick={(e) => { e.stopPropagation(); onDuplicateSection(sec.id); }}
+              className="h-6 px-2 flex items-center rounded text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 cursor-pointer transition-colors"
+            >
+              <Copy className="h-3 w-3" />
             </button>
           )}
-          <button type="button" disabled={isLocked} data-testid={`delete-section-${sec.id}`} aria-label={isLocked ? "Section verrouillée (suppression désactivée)" : "Supprimer la section"} title={isLocked ? "Section verrouillée — déverrouillez pour supprimer" : "Supprimer la section"} onClick={(e) => { e.stopPropagation(); if (!isLocked) onRequestDelete(sec); }} className="h-7 px-2 flex items-center justify-center rounded-md border border-[#E5E7EB] bg-white hover:bg-[#FEF2F2] hover:border-[#FCA5A5] text-[#DC2626] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
-            <Trash2 className="h-3.5 w-3.5" />
+          <button
+            type="button"
+            disabled={isLocked}
+            data-testid={`delete-section-${sec.id}`}
+            aria-label={isLocked ? "Section verrouillée (suppression désactivée)" : "Supprimer la section"}
+            title={isLocked ? "Section verrouillée" : "Supprimer"}
+            onClick={(e) => { e.stopPropagation(); if (!isLocked) onRequestDelete(sec); }}
+            className="h-6 px-2 flex items-center rounded text-rose-600 hover:bg-rose-50 disabled:opacity-30 cursor-pointer transition-colors"
+          >
+            <Trash2 className="h-3 w-3" />
           </button>
         </div>
-      </div>
+      )}
     </article>
   );
 };

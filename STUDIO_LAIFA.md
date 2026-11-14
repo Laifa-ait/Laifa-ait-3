@@ -161,13 +161,12 @@ export interface CustomPageSection<T extends CustomPageSectionType = CustomPageS
 - **Sécurité IDOR :** La méthode `StoreLayoutService.verifyProductOwnership` vérifie explicitement que chaque ID de produit intégré dans une section de type `featured_products` ou `curated_collections` appartient bel et bien au `sellerId` connecté.
 - **Sécurité des Rôles :** Les routes du Studio utilisent `authorizeSeller` qui valide que l'utilisateur possède le statut vendeur dans Firestore. L'e-mail n'est jamais utilisé comme preuve de privilège (conforme aux règles de sécurité Olmart).
 
-### B. Problèmes de Qualité du Code & Propreté
-1. **Composants trop volumineux :**
-   - `StudioWorkspace.tsx` fait 358 lignes (décollement nécessaire pour respecter la règle des 250 lignes).
-   - `HeroContentEditor.tsx` fait 597 lignes (nécessite un découpage en sous-composants).
-   - `SectionProductFeeds.tsx` fait 504 lignes.
-2. **Absence d'historique Undo/Redo local :**
-   - Si un vendeur commet une erreur de frappe ou supprime un paragraphe dans le Studio, il n'existe pas de raccourci `Ctrl+Z` / `Ctrl+Y` local pour annuler son action avant la sauvegarde.
+### B. Qualité du Code & Remédiations Réalisées
+1. **Refonte Architecturale du Hero Scénographique (< 250 lignes par fichier) :**
+   - `HeroContentEditor.tsx` (226 lignes) et `HeroModelSpecificConfigPanel.tsx` (218 lignes) remplacent l'ancien éditeur monolithique par un panneau structuré en 4 sections claires (Choix du style, Forme & Mesures par appareil `desktop`/`tablet`/`mobile`, Couleurs & Ambiance, Écriture minimaliste & Photo pure).
+   - 5 sous-composants isolés dans `/src/components/Store/sections/hero/` : `HeroFullBleed.tsx`, `HeroSplit.tsx`, `HeroArch.tsx`, `HeroGallery.tsx`, `HeroDiptych.tsx` avec adaptateur rétrocompatible (`normalizeHeroSettings`).
+2. **Undo / Redo local (`Ctrl+Z` / `Ctrl+Y`) :**
+   - Pile d'historique locale à implémenter dans `useSellerStudio.ts` pour annuler instantanément les modifications avant la sauvegarde debouncée.
 
 ---
 
@@ -199,9 +198,8 @@ Après inspection approfondie du code source complet (`src/`, `server.ts`, `pack
    - *Objectif :* Conserver les modifications dans `localStorage` si le réseau coupe et synchroniser dès le retour de la connexion.
 
 ### Priorité 2 : Ergonomie Visuelle & Responsive Editing
-1. **Découpage des fichiers volumineux (> 250 lignes) :**
-   - *Fichiers :* `HeroContentEditor.tsx`, `SectionProductFeeds.tsx`, `CategoryCanvaStyleControls.tsx`.
-   - *Objectif :* Diviser en sous-composants modulaires pour respecter scrupuleusement la règle d'architecture Olmart (< 250 lignes par fichier).
+1. **Système Hero Scénographique Minimaliste (5 Styles Isolés) :** ✅ **TERMINÉ**
+   - *Fichiers :* `HeroFullBleed.tsx`, `HeroSplit.tsx`, `HeroArch.tsx`, `HeroGallery.tsx`, `HeroDiptych.tsx`, `heroResponsiveHelper.ts`.
 2. **Glisser-déposer fluide des sections (Drag & Drop) :**
    - *Fichiers :* `SectionTreePanel.tsx`.
    - *Objectif :* Remplacer les boutons monter/descendre par un système de glisser-déposer intuitif.
@@ -235,10 +233,10 @@ STATE_HOOK: "/src/pages/Seller/StoreBuilder/hooks/useSellerStudio.ts"
 
 REAL_STATE:
   - "Studio fonctionnel de création de boutiques e-commerce pour la marketplace Olmart."
+  - "Système Hero Scénographique à 5 composants architecturaux isolés et mesures responsives par appareil."
   - "Sauvegarde automatique debouncée (1.5s) dans Firestore doc 'store_layouts/{sellerId}'."
   - "Système de publication transactionnel avec gestion d'historique et rollback de version."
   - "Sécurité IDOR stricte vérifiée sur l'appartenance des produits."
-  - "Intégration Shopify : ABSENTE (aucun OAuth Shopify, aucun moteur Liquid existant)."
 
 MANDATORY_RULES_FOR_NEXT_AI:
   - "Ne dépasser sous aucun prétexte 250 lignes par fichier source."

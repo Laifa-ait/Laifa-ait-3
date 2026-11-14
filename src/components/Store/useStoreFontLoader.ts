@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import type { CustomPageTheme } from "../../domains/seller/customPage.types";
+import { readableTextColor } from "./sections/themeColorUtils";
 
 const GOOGLE_FONT_SPEC_MAP: Record<string, string> = {
   "Plus Jakarta Sans": "Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400",
@@ -12,6 +13,7 @@ const GOOGLE_FONT_SPEC_MAP: Record<string, string> = {
   Lora: "Lora:ital,wght@0,400;0,600;0,700;1,400",
   "Space Grotesk": "Space+Grotesk:wght@400;500;600;700",
   Fraunces: "Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,400",
+  "Bodoni Moda": "Bodoni+Moda:ital,opsz,wght@0,6..96,600;0,6..96,700;1,6..96,400",
 };
 
 export function extractGoogleFontFamilies(theme?: CustomPageTheme | null): string[] {
@@ -97,9 +99,14 @@ export function buildStoreThemeCssVariables(
   const accent = theme.accentColor || primary;
   const canvas = isDarkMode ? "#0F172A" : theme.canvasColor || "#FAF6F0";
   const surface = isDarkMode ? "#1E293B" : theme.surfaceColor || "#FFFFFF";
-  const textColor = isDarkMode ? "#F8FAFC" : (rawTheme.textColor as string) || secondary;
-  const borderColor = isDarkMode ? "#334155" : (rawTheme.borderColor as string) || "#E4E7EC";
-  const buttonColor = (rawTheme.buttonColor as string) || primary;
+  const textColor = isDarkMode ? "#F8FAFC" : theme.textColor || secondary;
+  const mutedTextColor = isDarkMode ? "#94A3B8" : theme.mutedTextColor || "#64748B";
+  const borderColor = isDarkMode ? "#334155" : theme.borderColor || "#E4E7EC";
+  const buttonColor = theme.buttonColor || primary;
+  const buttonTextColor = theme.buttonTextColor || readableTextColor(buttonColor);
+  const badgeBgColor = theme.accentBadgeColor || accent || primary;
+  const badgeTextColor = theme.badgeTextColor || readableTextColor(badgeBgColor);
+  const priceColor = theme.priceColor || secondary;
   const headingFont = resolveHeadingFontStack(theme);
   const bodyFont = resolveBodyFontStack(theme);
   const radiusPx = typeof theme.borderRadiusPx === "number" ? theme.borderRadiusPx : 16;
@@ -124,8 +131,13 @@ export function buildStoreThemeCssVariables(
     "--store-canvas": canvas,
     "--store-surface": surface,
     "--store-text": textColor,
+    "--store-muted-text": mutedTextColor,
     "--store-border": borderColor,
     "--store-btn-bg": buttonColor,
+    "--store-btn-text": buttonTextColor,
+    "--store-badge-bg": badgeBgColor,
+    "--store-badge-text": badgeTextColor,
+    "--store-price": priceColor,
     "--store-btn-height": buttonHeightPx,
     "--store-border-radius": `${radiusPx}px`,
     "--store-spacing-y": `${spacingYPx}px`,

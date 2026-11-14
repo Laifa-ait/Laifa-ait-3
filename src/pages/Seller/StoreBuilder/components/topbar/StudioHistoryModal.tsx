@@ -18,40 +18,48 @@ export const StudioHistoryModal: React.FC<StudioHistoryModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-      <div className="bg-white text-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-[#F0F7FA] text-[#023859] flex items-center justify-center">
-              <History className="w-4 h-4" />
-            </div>
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="bg-white text-slate-900 rounded-xl max-w-md w-full border border-slate-200 shadow-xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+        data-testid="studio-history-modal"
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+          <div className="flex items-center gap-2.5">
+            <History className="w-4 h-4 text-slate-700" />
             <div>
-              <h3 className="text-sm font-bold text-[#011C40]">Historique des versions</h3>
-              <p className="text-[11px] text-slate-500">Restaurer un état publié précédemment</p>
+              <h3 className="text-[14px] font-semibold text-slate-900">Historique des versions</h3>
+              <p className="text-[11.5px] text-slate-500">Restaurer un état publié précédemment</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            aria-label="Fermer"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+
+        <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
           {historyList.length === 0 ? (
-            <p className="text-xs text-slate-500 text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            <p className="text-[12px] text-slate-500 text-center py-8 px-5">
               Aucune version publiée pour le moment. Publiez votre boutique pour créer un point de restauration.
             </p>
           ) : (
             historyList.map((entry) => (
               <div
                 key={entry.versionNumber}
-                className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex justify-between items-center text-xs hover:border-[#54ACBF] transition-all"
+                className="px-5 py-3 flex justify-between items-center gap-3 hover:bg-slate-50 transition-colors"
               >
-                <div>
-                  <span className="font-bold text-[#023859] block">Version #{entry.versionNumber}</span>
-                  <span className="text-slate-600 text-[11px]">{entry.changeSummary || "Mise à jour standard"}</span>
+                <div className="min-w-0">
+                  <span className="font-semibold text-[12.5px] text-slate-900 block tabular-nums">
+                    Version {entry.versionNumber}
+                  </span>
+                  <span className="text-slate-500 text-[11.5px] block truncate">
+                    {entry.changeSummary || "Mise à jour boutique"}
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -59,7 +67,7 @@ export const StudioHistoryModal: React.FC<StudioHistoryModalProps> = ({
                     onRollback(entry.versionNumber);
                     onClose();
                   }}
-                  className="px-3 py-1.5 bg-white hover:bg-[#023859] hover:text-white rounded-xl font-bold text-[#011C40] border border-slate-200 shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
+                  className="h-8 px-3 bg-white hover:bg-slate-900 hover:text-white rounded-lg text-[11.5px] font-medium text-slate-700 border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
                   <RotateCcw className="w-3 h-3" />
                   <span>Restaurer</span>
@@ -68,13 +76,16 @@ export const StudioHistoryModal: React.FC<StudioHistoryModalProps> = ({
             ))
           )}
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
-        >
-          Fermer
-        </button>
+
+        <div className="px-5 py-3 border-t border-slate-200 bg-slate-50 flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-8 px-3.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-medium text-[12px] rounded-lg transition-colors cursor-pointer"
+          >
+            Fermer
+          </button>
+        </div>
       </div>
     </div>
   );

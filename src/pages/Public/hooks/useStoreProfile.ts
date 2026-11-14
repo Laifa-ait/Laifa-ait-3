@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { db } from "../../../lib/firebase";
@@ -12,10 +12,13 @@ import { PublicStoreInfo } from "../StoreProfile";
 import { PublicShopResponse } from "../../../domains/seller/shop.types";
 import { StoreLayoutVersion } from "../../../domains/seller/customPage.types";
 import { buildFiveActsHomeLayout } from "../../Seller/StoreBuilder/constants/fiveActsLayoutPreset";
+import { getStoredVipToken, verifyAndStoreVipAccess } from "./storeProfileVipHelper";
 
 export function useStoreProfile() {
   const { sellerId } = useParams();
   const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
   const { t, i18n } = useTranslation();
   const currentLang = i18n.language || "fr";
   const isRTL = currentLang === "ar";
@@ -113,6 +116,9 @@ export function useStoreProfile() {
   const [trustMetrics, setTrustMetrics] = useState<unknown | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isVipLocked, setIsVipLocked] = useState(false);
+  const [vipError, setVipError] = useState<string | null>(null);
+  const [vipSubmitting, setVipSubmitting] = useState(false);
   const [errorType, setErrorType] = useState<"notFound" | "serverError" | null>(null);
   const [productsError, setProductsError] = useState(false);
   const [reloadTrigger, setReloadTrigger] = useState(0);
@@ -285,7 +291,16 @@ export function useStoreProfile() {
         let initialProductsFromShop: Product[] | null = null;
 
         try {
-          const res = await apiGet<PublicShopResponse & { products?: Product[] }>(`/api/v1/public/shops/${encodeURIComponent(sellerId)}`);
+          const storedToken = getStoredVipToken(sellerId);
+          const urlParams = new URLSearchParams(window.location.search);
+          const isPreviewDraft = urlParams.get("preview") === "draft";
+          const queryParts: string[] = [];
+          if (storedToken) queryParts.push(`vipToken=${encodeURIComponent(storedToken)}`);
+          if (isPreviewDraft) queryParts.push("preview=draft");
+          const querySuffix = queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
+          const res = await apiGet<PublicShopResponse & { products?: Product[]; isVipLocked?: boolean }>(
+            `/api/v1/public/shops/${encodeURIComponent(sellerId)}${querySuffix}`
+          );
           
           if (!isSubscribed) return;
 
@@ -294,6 +309,7 @@ export function useStoreProfile() {
               canonicalSlug?: string;
               redirectToSlug?: string;
               hasPaidStudioSubscription?: boolean;
+              isVipLocked?: boolean;
               publishedLayout?: StoreLayoutVersion | null;
               activeCoupons?: unknown[];
               trustMetrics?: unknown;
@@ -301,12 +317,21 @@ export function useStoreProfile() {
 
             const currentPathPrefix = window.location.pathname.startsWith("/shop/") ? "/shop" : "/store";
             if (shop.redirectToSlug) {
-              navigate(`${currentPathPrefix}/${shop.redirectToSlug}`, { replace: true });
+              navigateRef.current(`${currentPathPrefix}/${shop.redirectToSlug}${window.location.search}`, { replace: true });
               return;
             }
 
             fetchedShop = shop;
             setStoreInfo(shop);
+            const locked = Boolean(res.isVipLocked || shop.isVipLocked);
+            setIsVipLocked(locked);
+
+            if (locked) {
+              setPublishedLayout(null);
+              setProducts([]);
+              setTotalCount(0);
+              return;
+            }
 
             const validStudioLayout: StoreLayoutVersion =
               shop.publishedLayout &&
@@ -370,6 +395,8 @@ export function useStoreProfile() {
         // Load seller products using the resolved seller UID (never the slug)
         if (fetchedShop && isSubscribed) {
           const resolvedSellerId = fetchedShop.sellerId || fetchedShop.id || sellerId;
+          const storedToken = getStoredVipToken(sellerId) || getStoredVipToken(resolvedSellerId);
+          const vipQuery = storedToken ? `?vipToken=${encodeURIComponent(storedToken)}` : "";
 
           if (initialProductsFromShop && initialProductsFromShop.length > 0) {
             setProducts(initialProductsFromShop);
@@ -378,7 +405,7 @@ export function useStoreProfile() {
           } else {
             try {
               const prodRes = await apiGet<{ success: boolean; products: Product[]; count?: number }>(
-                `/api/v1/public/shops/${encodeURIComponent(resolvedSellerId)}/products`
+                `/api/v1/public/shops/${encodeURIComponent(resolvedSellerId)}/products${vipQuery}`
               );
               if (isSubscribed && prodRes && Array.isArray(prodRes.products)) {
                 setProducts(prodRes.products);
@@ -396,13 +423,13 @@ export function useStoreProfile() {
                 const productsSnap = await getDocs(productsQuery);
 
                 if (isSubscribed) {
-                  const hiddenStatuses = new Set(['draft', 'rejected', 'suspended', 'archived', 'pending_deletion']);
+                  const publishableStatuses = new Set(['active', 'approved', 'published']);
                   const prods = productsSnap.docs
                     .map(docSnap => ({
                       id: docSnap.id,
                       ...docSnap.data()
                     }) as Product)
-                    .filter(p => !hiddenStatuses.has(String(p.status || '').toLowerCase().trim()));
+                    .filter(p => publishableStatuses.has(String(p.status || '').toLowerCase().trim()));
                   
                   setProducts(prods);
                   setTotalCount(prods.length);
@@ -429,7 +456,7 @@ export function useStoreProfile() {
     return () => {
       isSubscribed = false;
     };
-  }, [sellerId, reloadTrigger, isRTL, navigate]);
+  }, [sellerId, reloadTrigger, isRTL]);
 
   const resolvedTargetSellerId = storeInfo?.sellerId || storeInfo?.id || sellerId;
 
@@ -537,6 +564,20 @@ export function useStoreProfile() {
     }
   };
 
+  const submitVipPassword = async (password: string) => {
+    if (!sellerId || !password.trim()) return;
+    setVipSubmitting(true);
+    setVipError(null);
+    const res = await verifyAndStoreVipAccess(sellerId, password, [storeInfo?.sellerId, storeInfo?.shopSlug]);
+    setVipSubmitting(false);
+    if (res.granted) {
+      setIsVipLocked(false);
+      reloadStore();
+    } else {
+      setVipError(res.error || "Code d'accès VIP invalide.");
+    }
+  };
+
   return {
     sellerId,
     navigate,
@@ -549,6 +590,10 @@ export function useStoreProfile() {
     trustMetrics,
     products,
     loading,
+    isVipLocked,
+    vipError,
+    vipSubmitting,
+    submitVipPassword,
     errorType,
     productsError,
     reloadStore,

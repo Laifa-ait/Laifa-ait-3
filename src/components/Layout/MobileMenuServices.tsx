@@ -16,55 +16,50 @@ export const MobileMenuServices: React.FC<MobileMenuServicesProps> = ({
   const services = [
     {
       id: "auto",
-      title: "Olma Auto",
-      subtitle: "Motors & Véhicules",
+      title: t("mobile_menu.service_auto_title", "Olma Auto"),
+      subtitle: t("mobile_menu.service_auto_sub", "Motors & Véhicules"),
       icon: Car,
       path: "/auto",
-      badge: "Motors DZ",
       iconColor: "text-orange-600",
       iconBg: "bg-orange-500/10",
       borderColor: "hover:border-orange-200",
     },
     {
       id: "brico",
-      title: "Olma Brico",
-      subtitle: "Artisans & Travaux",
+      title: t("mobile_menu.service_brico_title", "Olma Brico"),
+      subtitle: t("mobile_menu.service_brico_sub", "Artisans & Travaux"),
       icon: Wrench,
       path: "/bricolage",
-      badge: "Artisans",
       iconColor: "text-amber-600",
       iconBg: "bg-amber-500/10",
       borderColor: "hover:border-amber-200",
     },
     {
       id: "immo",
-      title: "Olma Immo",
-      subtitle: "Location & Vente",
+      title: t("mobile_menu.service_immo_title", "Olma Immo"),
+      subtitle: t("mobile_menu.service_immo_sub", "Location & Vente"),
       icon: Building2,
       path: "/immo",
-      badge: "Immobilier",
       iconColor: "text-emerald-600",
       iconBg: "bg-emerald-500/10",
       borderColor: "hover:border-emerald-200",
     },
     {
       id: "shops",
-      title: "Boutiques",
-      subtitle: "Marques & Stores",
+      title: t("mobile_menu.service_shops_title", "Boutiques"),
+      subtitle: t("mobile_menu.service_shops_sub", "Marques & Stores"),
       icon: Store,
       path: "/shops",
-      badge: "Officiel",
       iconColor: "text-blue-600",
       iconBg: "bg-blue-500/10",
       borderColor: "hover:border-blue-200",
     },
     {
       id: "comparator",
-      title: "Comparateur",
-      subtitle: "Prix & Produits",
+      title: t("mobile_menu.service_comp_title", "Comparateur"),
+      subtitle: t("mobile_menu.service_comp_sub", "Prix & Produits"),
       icon: Scale,
       path: "/compare",
-      badge: "Top Prix",
       iconColor: "text-purple-600",
       iconBg: "bg-purple-500/10",
       borderColor: "hover:border-purple-200",
@@ -75,10 +70,10 @@ export const MobileMenuServices: React.FC<MobileMenuServicesProps> = ({
     <div className="bg-zinc-50/70 p-3 rounded-2xl border border-zinc-200/80 shadow-2xs space-y-2.5">
       <div className="flex items-center justify-between px-1">
         <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
-          {t("Univers & Services Olmart")}
+          {t("mobile_menu.services_heading", "Univers & Services Olmart")}
         </span>
         <span className="text-[10px] font-semibold text-zinc-500">
-          69 Wilayas
+          {t("mobile_menu.wilayas_count", "69 Wilayas")}
         </span>
       </div>
 
@@ -123,7 +118,7 @@ export const MobileMenuServices: React.FC<MobileMenuServicesProps> = ({
           className="flex items-center gap-2 p-2 rounded-lg bg-white hover:bg-zinc-50 text-zinc-700 text-xs font-medium transition-all border border-zinc-200/60 cursor-pointer active:scale-98"
         >
           <Truck className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-          <span className="truncate">{t("Tarifs Livraison")}</span>
+          <span className="truncate">{t("mobile_menu.shipping_rates", "Tarifs Livraison")}</span>
         </button>
 
         <button
@@ -135,7 +130,7 @@ export const MobileMenuServices: React.FC<MobileMenuServicesProps> = ({
           className="flex items-center gap-2 p-2 rounded-lg bg-white hover:bg-zinc-50 text-zinc-700 text-xs font-medium transition-all border border-zinc-200/60 cursor-pointer active:scale-98"
         >
           <Headphones className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-          <span className="truncate">{t("Support & Aide")}</span>
+          <span className="truncate">{t("mobile_menu.support_help", "Support & Aide")}</span>
         </button>
       </div>
     </div>

@@ -2,56 +2,24 @@ import React from "react";
 import { Route, Navigate } from "react-router-dom";
 import { AppGuard } from "../components/AppGuard";
 import { ROLES } from "../constants/roles";
+import { lazyWithRetry } from "../utils/lazyWithRetry";
 
-const SellerDashboardLayout = React.lazy(() =>
-  import("../pages/Seller/SellerDashboardLayout").then((m) => ({ default: m.SellerDashboardLayout }))
-);
-const SellerOverview = React.lazy(() =>
-  import("../pages/Seller/Overview").then((m) => ({ default: m.Overview }))
-);
-const SellerAnalytics = React.lazy(() =>
-  import("../pages/Seller/SellerAnalytics").then((m) => ({ default: m.SellerAnalytics }))
-);
-const Catalog = React.lazy(() =>
-  import("../pages/Seller/Catalog").then((m) => ({ default: m.Catalog }))
-);
-const SellerOrders = React.lazy(() =>
-  import("../pages/Seller/Orders").then((m) => ({ default: m.Orders }))
-);
-const SellerShipping = React.lazy(() =>
-  import("../pages/Seller/SellerShipping").then((m) => ({ default: m.SellerShipping }))
-);
-const ReturnManagement = React.lazy(() =>
-  import("../pages/Seller/ReturnManagement").then((m) => ({ default: m.ReturnManagement }))
-);
-const Verification = React.lazy(() =>
-  import("../pages/Seller/Verification").then((m) => ({ default: m.Verification }))
-);
-const ShopSettings = React.lazy(() =>
-  import("../pages/Seller/ShopSettings").then((m) => ({ default: m.ShopSettings }))
-);
-const SellerDisputes = React.lazy(() =>
-  import("../pages/Seller/Disputes").then((m) => ({ default: m.SellerDisputes }))
-);
-const SellerSupport = React.lazy(() =>
-  import("../pages/Seller/Support").then((m) => ({ default: m.Support }))
-);
-const SellerReviews = React.lazy(() =>
-  import("../pages/Seller/Reviews").then((m) => ({ default: m.SellerReviews }))
-);
-const SellerSponsorships = React.lazy(() =>
-  import("../pages/Seller/MarketingCenter").then((m) => ({ default: m.MarketingCenter }))
-);
-const MarketingCenter = React.lazy(() =>
-  import("../pages/Seller/MarketingCenter").then((m) => ({ default: m.MarketingCenter }))
-);
-const SellerCoupons = React.lazy(() =>
-  import("../pages/Seller/SellerCoupons").then((m) => ({ default: m.SellerCoupons }))
-);
-
-const StoreBuilderGate = React.lazy(() =>
-  import("../pages/Seller/StoreBuilderGate").then((m) => ({ default: m.StoreBuilderGate }))
-);
+const SellerDashboardLayout = lazyWithRetry(() => import("../pages/Seller/SellerDashboardLayout"), "SellerDashboardLayout");
+const SellerOverview = lazyWithRetry(() => import("../pages/Seller/Overview"), "Overview");
+const SellerAnalytics = lazyWithRetry(() => import("../pages/Seller/SellerAnalytics"), "SellerAnalytics");
+const Catalog = lazyWithRetry(() => import("../pages/Seller/Catalog"), "Catalog");
+const SellerOrders = lazyWithRetry(() => import("../pages/Seller/Orders"), "Orders");
+const SellerShipping = lazyWithRetry(() => import("../pages/Seller/SellerShipping"), "SellerShipping");
+const ReturnManagement = lazyWithRetry(() => import("../pages/Seller/ReturnManagement"), "ReturnManagement");
+const Verification = lazyWithRetry(() => import("../pages/Seller/Verification"), "Verification");
+const ShopSettings = lazyWithRetry(() => import("../pages/Seller/ShopSettings"), "ShopSettings");
+const SellerDisputes = lazyWithRetry(() => import("../pages/Seller/Disputes"), "SellerDisputes");
+const SellerSupport = lazyWithRetry(() => import("../pages/Seller/Support"), "Support");
+const SellerReviews = lazyWithRetry(() => import("../pages/Seller/Reviews"), "SellerReviews");
+const SellerSponsorships = lazyWithRetry(() => import("../pages/Seller/MarketingCenter"), "MarketingCenter");
+const MarketingCenter = lazyWithRetry(() => import("../pages/Seller/MarketingCenter"), "MarketingCenter");
+const SellerCoupons = lazyWithRetry(() => import("../pages/Seller/SellerCoupons"), "SellerCoupons");
+const StoreBuilderGate = lazyWithRetry(() => import("../pages/Seller/StoreBuilderGate"), "StoreBuilderGate");
 
 export const renderSellerRoutes = () => (
   <>

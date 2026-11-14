@@ -76,8 +76,9 @@ export const KineticMarqueeSection: React.FC<KineticMarqueeSectionProps> = ({
 
   const durationSec = speed === "slow" ? 36 : speed === "fast" ? 13 : 22;
   const bgColor = styles.backgroundColor || theme.secondaryColor || "#011C40";
-  const textColor = styles.textColor || "#FFFFFF";
-  const accentColor = theme.accentColor || theme.primaryColor || "#F59E0B";
+  const textColor = styles.headingColor || styles.textColor || "#FFFFFF";
+  const secondaryTextColor = styles.subtitleColor || styles.kickerColor || theme.accentColor || theme.primaryColor || "#F59E0B";
+  const glyphColor = styles.iconColor || secondaryTextColor;
 
   const letterSpacingEm =
     typeof styles.letterSpacing === "number"
@@ -91,7 +92,7 @@ export const KineticMarqueeSection: React.FC<KineticMarqueeSectionProps> = ({
   return (
     <div
       onClick={isEditable ? onSelect : undefined}
-      style={buildSectionContainerStyle(styles, bgColor, textColor)}
+      style={buildSectionContainerStyle(styles, bgColor, textColor, theme)}
       className={`relative overflow-hidden transition-all select-none ${resolveBorderRadiusClass(
         styles.borderRadius,
       )} ${resolveShadowClass(styles.shadow)} ${
@@ -165,7 +166,7 @@ export const KineticMarqueeSection: React.FC<KineticMarqueeSectionProps> = ({
                   {textFr}
                 </span>
 
-                {renderSeparatorGlyph(separator, accentColor)}
+                {renderSeparatorGlyph(separator, glyphColor)}
 
                 {showBilingual && (
                   <>
@@ -176,15 +177,15 @@ export const KineticMarqueeSection: React.FC<KineticMarqueeSectionProps> = ({
                         fontFamily: "'Amiri', 'Reem Kufi', Georgia, serif",
                         ...(isHollow
                           ? {
-                              WebkitTextStroke: `1px ${accentColor}`,
+                              WebkitTextStroke: `1px ${secondaryTextColor}`,
                               color: "transparent",
                             }
-                          : { color: accentColor }),
+                          : { color: secondaryTextColor }),
                       }}
                     >
                       {textAr}
                     </span>
-                    {renderSeparatorGlyph(separator, textColor)}
+                    {renderSeparatorGlyph(separator, glyphColor)}
                   </>
                 )}
               </div>
@@ -193,7 +194,7 @@ export const KineticMarqueeSection: React.FC<KineticMarqueeSectionProps> = ({
         </div>
       </div>
 
-      <SectionDividerRenderer divider={styles.divider} theme={theme} />
+      <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
     </div>
   );
 };

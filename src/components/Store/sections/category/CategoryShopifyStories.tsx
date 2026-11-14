@@ -2,21 +2,29 @@ import React from "react";
 import { ArrowUpRight, Camera } from "lucide-react";
 import {
   CategoryItem,
+  CategoryCardSize,
   CategoryImagePosition,
   CategoryImageFit,
+  CategoryDeviceViewport,
 } from "../../../../pages/Seller/StoreBuilder/constants/categoryPresetTypes";
 import {
   resolveCategoryPhoto,
   resolveCategoryImageClasses,
   handleCategoryImageError,
 } from "./categoryImageHelper";
+import {
+  resolveCategoryGridCols,
+} from "./categoryResponsiveHelper";
 
 interface CategoryShopifyStoriesProps {
   categories: CategoryItem[];
   bubbleSize: string;
   bubbleRing: string;
   columnsDesktop: number;
+  columnsTablet?: number;
   columnsMobile: number;
+  cardSize?: CategoryCardSize;
+  previewViewport?: CategoryDeviceViewport;
   gapClass: string;
   hoverImgClass?: string;
   hoverCardClass?: string;
@@ -42,7 +50,10 @@ export const CategoryShopifyStories: React.FC<CategoryShopifyStoriesProps> = ({
   bubbleSize,
   bubbleRing,
   columnsDesktop,
+  columnsTablet,
   columnsMobile,
+  cardSize = "balanced",
+  previewViewport = "desktop",
   gapClass,
   hoverImgClass = "",
   hoverCardClass = "",
@@ -62,78 +73,103 @@ export const CategoryShopifyStories: React.FC<CategoryShopifyStoriesProps> = ({
   onCardClick,
   onEditItem,
 }) => {
-  const sizeDimClass =
-    columnsMobile === 1
-      ? "w-24 h-24 @[560px]:w-24 @[560px]:h-24 @[900px]:w-28 @[900px]:h-28"
-      : bubbleSize === "sm"
-      ? "w-16 h-16 @[560px]:w-20 @[560px]:h-20 @[900px]:w-22 @[900px]:h-22"
-      : bubbleSize === "lg"
-      ? "w-20 h-20 @[560px]:w-24 @[560px]:h-24 @[900px]:w-28 @[900px]:h-28"
-      : "w-18 h-18 @[560px]:w-22 @[560px]:h-22 @[900px]:w-26 @[900px]:h-26";
+  const effectiveScale =
+    cardSize === "compact" || bubbleSize === "sm"
+      ? "compact"
+      : cardSize === "large" || bubbleSize === "lg"
+      ? "large"
+      : "balanced";
+
+  // RÈGLE 2.10 : Diamètre du cercle : 110px (Compacte) / 145px (Équilibrée) / 180px (Grande) sur PC ; 100px en grille 2 col. sur Mobile
+  const circleDiameterPx =
+    previewViewport === "mobile"
+      ? 100
+      : previewViewport === "tablet"
+      ? effectiveScale === "compact"
+        ? 110
+        : effectiveScale === "large"
+        ? 155
+        : 132
+      : effectiveScale === "compact"
+      ? 110
+      : effectiveScale === "large"
+      ? 180
+      : 145;
+
+  const overlapPx = Math.round(circleDiameterPx * 0.4);
 
   const ringStyleClass =
     bubbleRing === "none"
-      ? "p-1 bg-white border border-slate-200/90 group-hover:border-slate-400 shadow-xs"
+      ? "p-1 bg-white border border-amber-300/80 shadow-sm"
       : bubbleRing === "solid"
-      ? "p-1 bg-white border-2 border-slate-900 shadow-xs"
-      : "p-[2.5px] @[560px]:p-[3px] bg-gradient-to-tr from-[#023859] via-[#54ACBF] to-amber-300 shadow-sm";
+      ? "p-1 bg-white border-2 border-slate-900 shadow-sm"
+      : "p-[3px] bg-gradient-to-tr from-[#023859] via-[#54ACBF] to-amber-300 shadow-md";
 
-  const mobileCols = columnsMobile === 1 ? "grid-cols-1" : "grid-cols-2";
-  const responsiveCols =
-    columnsDesktop <= 2
-      ? `${mobileCols} @[560px]:grid-cols-2`
-      : columnsDesktop === 3
-      ? `${mobileCols} @[560px]:grid-cols-3`
-      : `${mobileCols} @[560px]:grid-cols-3 @[900px]:grid-cols-4`;
+  const responsiveCols = resolveCategoryGridCols(
+    columnsDesktop,
+    columnsMobile,
+    cardSize,
+    previewViewport,
+    columnsTablet,
+    "bubbles",
+    categories.length
+  );
 
   const isDarkSkin = cardSkin === "dark-glass";
 
   return (
-    <div className={`grid ${responsiveCols} ${gapClass} py-1`}>
+    <div className={`grid ${responsiveCols} ${gapClass} py-2`} data-category-model="bubbles">
       {categories.map((cat, idx) => {
         const photoUrl = resolveCategoryPhoto(cat, idx);
         const { posClass, fitClass } = resolveCategoryImageClasses(cat, imagePosition, imageFit);
         const countText = getCountLabel(cat);
         const idxLabel = String(idx + 1).padStart(2, "0");
+        const spanClass = "col-span-1";
         const isCardSelected =
           isEditable &&
           selectedSectionId === sectionId &&
           selectedSubElement === `category-items:${idx}`;
 
+        const podiumSurfaceClass = isDarkSkin
+          ? "bg-slate-950 border border-white/20 text-white shadow-md"
+          : cardSkin === "soft-tint"
+          ? "bg-[#F8FAFC] border border-slate-200/90 text-slate-900 shadow-xs"
+          : "bg-white border border-stone-200/95 text-slate-900 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.1)]";
+
         return (
-          <div
+          <article
             key={cat.id || idx}
             onClick={(e) => onCardClick(cat, idx, e)}
-            className={`group relative flex flex-col items-center text-center cursor-pointer select-none p-2.5 @[560px]:p-3.5 rounded-2xl border transition-all duration-200 ease-out ${
-              isDarkSkin
-                ? "bg-slate-950 border-white/15 text-white hover:border-white/30"
-                : cardSkin === "soft-tint"
-                ? "bg-[#F8FAFC] border-slate-200/85 hover:bg-white hover:border-slate-300 shadow-[0_2px_10px_-3px_rgba(15,23,42,0.04)]"
-                : "bg-white border-slate-200/85 hover:border-slate-300 shadow-[0_3px_14px_-4px_rgba(15,23,42,0.06)]"
-            } ${hoverCardClass} ${isCardSelected ? "ring-2 ring-[#2563EB]" : ""}`}
+            className={`group relative flex flex-col items-center text-center cursor-pointer select-none ${spanClass} ${hoverCardClass} ${
+              isCardSelected ? "ring-2 ring-[#2563EB] rounded-2xl" : ""
+            }`}
           >
-            <span className="absolute top-2 left-2 @[560px]:top-2.5 @[560px]:left-2.5 text-[9px] @[560px]:text-[10px] font-mono font-bold text-slate-400 tabular-nums">
-              {idxLabel}
-            </span>
-
-            <div className={`relative ${showTitle ? "mb-2 @[560px]:mb-3 mt-1" : "my-1"}`}>
+            {/* Médaillon circulaire avec double anneau « bague luxe » chevauchant le socle de 40% */}
+            <div
+              style={{
+                width: `${circleDiameterPx}px`,
+                height: `${circleDiameterPx}px`,
+                marginBottom: `-${overlapPx}px`,
+              }}
+              className="relative z-10 shrink-0"
+            >
               <div
-                className={`rounded-full transition-transform duration-200 ease-out group-hover:scale-[1.03] ${sizeDimClass} ${ringStyleClass}`}
+                className={`w-full h-full aspect-square rounded-full transition-transform duration-300 ease-out group-hover:scale-105 ${ringStyleClass}`}
               >
-                <div className="w-full h-full rounded-full overflow-hidden bg-slate-100 relative flex items-center justify-center ring-2 ring-white">
+                <div className="w-full h-full rounded-full overflow-hidden bg-slate-100 relative ring-2 ring-white">
                   <img
                     src={photoUrl}
                     alt={cat.name}
                     referrerPolicy="no-referrer"
                     onError={(e) => handleCategoryImageError(e, idx)}
-                    className={`w-full h-full ${posClass} ${fitClass} transition-transform duration-300 ease-out ${hoverImgClass}`}
+                    className={`w-full h-full ${posClass} ${fitClass} transition-transform duration-500 ease-out ${hoverImgClass}`}
                   />
                 </div>
               </div>
 
               {showBadge && cat.badge && (
                 <span
-                  className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 z-10 px-2 py-0.5 rounded-full text-[9px] font-semibold text-white shadow-xs whitespace-nowrap border border-white"
+                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-20 px-2 py-0.5 rounded-full text-[9px] font-semibold text-white shadow-xs whitespace-nowrap border border-white"
                   style={{ backgroundColor: cat.badgeColor || primaryColor }}
                 >
                   {cat.badge}
@@ -144,40 +180,39 @@ export const CategoryShopifyStories: React.FC<CategoryShopifyStoriesProps> = ({
                 <button
                   type="button"
                   onClick={(e) => onEditItem(idx, e)}
-                  className="absolute -top-1 -right-1 z-20 w-5 h-5 @[560px]:w-6 @[560px]:h-6 rounded-full bg-[#023859] hover:bg-[#011C40] text-white shadow-xs flex items-center justify-center opacity-95 @[560px]:opacity-0 @[560px]:group-hover:opacity-100 transition-opacity duration-150 cursor-pointer border-2 border-white"
-                  title="Modifier la photo et le nom de ce rayon"
+                  className="absolute top-0 right-0 z-20 w-6 h-6 rounded-full bg-[#023859] text-white shadow-xs flex items-center justify-center cursor-pointer border-2 border-white"
+                  title="Modifier ce médaillon"
                 >
-                  <Camera className="w-2.5 h-2.5 @[560px]:w-3 @[560px]:h-3" />
+                  <Camera className="w-3 h-3" />
                 </button>
               )}
             </div>
 
-            {showTitle && (
-              <div className="w-full flex flex-col items-center">
-                <h3
-                  className="font-bold text-xs @[560px]:text-sm tracking-tight leading-snug line-clamp-1 px-0.5"
-                  style={{ color: isDarkSkin ? "#FFFFFF" : textColor }}
-                >
-                  {cat.name}
-                </h3>
-
-                {showItemCount && countText ? (
-                  <span
-                    className={`text-[10px] @[560px]:text-[11px] font-medium mt-0.5 line-clamp-1 ${
-                      isDarkSkin ? "text-slate-400" : "text-slate-500"
-                    }`}
+            {/* Socle rectangulaire arrondi en dessous (podium) — Toujours visible même en mode Sans titre */}
+            <div
+              style={{ paddingTop: `${overlapPx + 10}px` }}
+              className={`w-full rounded-2xl px-3 pb-3 transition-colors ${podiumSurfaceClass}`}
+            >
+              {showTitle ? (
+                <div className="w-full flex flex-col items-center">
+                  <h3
+                    className={`font-bold ${effectiveScale === "large" ? "text-sm @[768px]:text-base" : "text-xs @[768px]:text-sm"} tracking-tight leading-snug line-clamp-1`}
+                    style={{ color: isDarkSkin ? "#FFFFFF" : textColor }}
                   >
-                    {countText}
+                    {cat.name}
+                  </h3>
+                  <span className={`text-[10px] font-medium mt-0.5 line-clamp-1 ${isDarkSkin ? "text-slate-400" : "text-slate-500"}`}>
+                    {showItemCount && countText ? countText : `PODIUM #${idxLabel}`}
                   </span>
-                ) : (
-                  <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-slate-400 group-hover:text-slate-900 mt-0.5 transition-colors">
-                    <span>Découvrir</span>
-                    <ArrowUpRight className="w-2.5 h-2.5 @[560px]:w-3 @[560px]:h-3" />
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
+                </div>
+              ) : (
+                <div className="w-full flex items-center justify-between px-1">
+                  <span className="text-[10px] font-mono font-bold text-slate-400">PODIUM #{idxLabel}</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 text-slate-500" />
+                </div>
+              )}
+            </div>
+          </article>
         );
       })}
     </div>

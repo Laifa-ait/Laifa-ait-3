@@ -1,21 +1,33 @@
 import React from "react";
 import * as Sentry from "@sentry/react";
 import { logReactErrorBoundary } from "../utils/errorAgent";
+import { isDynamicChunkLoadError, triggerStaleChunkReload } from "../utils/lazyWithRetry";
 
 export class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
-  { hasError: boolean; error: Error | null }
+  { hasError: boolean; error: Error | null; isReloadingChunk: boolean }
 > {
   constructor(props: { children: React.ReactNode }) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, isReloadingChunk: false };
   }
 
   static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
+    if (isDynamicChunkLoadError(error)) {
+      const reloading = triggerStaleChunkReload();
+      if (reloading) {
+        return { hasError: true, error, isReloadingChunk: true };
+      }
+    }
+    return { hasError: true, error, isReloadingChunk: false };
   }
 
   override componentDidCatch(error: Error, info: React.ErrorInfo) {
+    if (isDynamicChunkLoadError(error)) {
+      if (triggerStaleChunkReload() || this.state.isReloadingChunk) {
+        return;
+      }
+    }
     console.error("ErrorBoundary caught an error:", error, info);
     logReactErrorBoundary(error, { componentStack: info.componentStack });
     Sentry.captureException(error, { extra: { componentStack: info.componentStack } });
@@ -23,6 +35,13 @@ export class ErrorBoundary extends React.Component<
 
   override render() {
     if (this.state.hasError) {
+      if (this.state.isReloadingChunk) {
+        return (
+          <div className="flex flex-col items-center justify-center min-h-screen bg-white text-zinc-900 p-6 font-sans">
+            <div className="w-8 h-8 border-4 border-zinc-200 border-t-amber-500 rounded-full animate-spin" />
+          </div>
+        );
+      }
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-transparent text-zinc-900 p-6 font-sans">
           <div className="bg-white border border-zinc-200 rounded-2xl p-8 max-w-md w-full shadow-lg text-center space-y-6">
@@ -32,7 +51,7 @@ export class ErrorBoundary extends React.Component<
             <div className="space-y-2">
               <h1 className="text-2xl font-sans font-bold">Une erreur est survenue</h1>
               <p className="text-zinc-500 text-sm leading-relaxed">
-                L'application a rencontré un problème technique. Nos équipes ont été alertées et travaillent sur sa résolution.
+                L&apos;application a rencontré un problème technique. Nos équipes ont été alertées et travaillent sur sa résolution.
               </p>
               {this.state.error && (
                 <p className="text-xs font-mono text-red-500 bg-red-50 p-3 rounded-lg overflow-x-auto max-h-24">
