@@ -25,7 +25,10 @@ const cartItemSchema = z.object({
   name: z.string().optional(),
   price: z.number().nullable().optional(),
   promoPrice: z.number().nullable().optional(),
-  sellerId: z.string().optional()
+  priceSeen: z.number().nullable().optional(),
+  sellerId: z.string().optional(),
+  negotiationConversationId: z.string().min(1).max(128).optional(),
+  negotiationOfferId: z.string().min(1).max(128).optional(),
 });
 
 // 3. Address Validation Schema
@@ -48,6 +51,8 @@ export const placeOrderSchema = z.object({
   shippingAddress: shippingAddressSchema,
   deliveryMethod: z.enum(["domicile", "stopdesk"]),
   couponCode: z.string().nullable().optional(),
+  negotiationConversationId: z.string().min(1).max(128).optional(),
+  negotiationOfferId: z.string().min(1).max(128).optional(),
   idempotencyKey: z
     .string()
     .regex(/^[a-zA-Z0-9_-]{16,128}$/, "Format de clé d'idempotence invalide (16 à 128 caractères alphanumériques).")

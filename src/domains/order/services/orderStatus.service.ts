@@ -216,12 +216,21 @@ export class OrderStatusService {
         }
 
         if (tStatus === "delivered" && cStatus !== "delivered") {
-          const sellerRevenue = Math.max(0, Number(data.total ?? data.sellerEarned ?? 0));
+          const netMerchandise = Math.max(
+            0,
+            Number(data.subtotal || data.total || 0) - Number(data.discountAmount || 0)
+          );
+          const rate =
+            typeof data.commissionRateApplied === "number" && data.commissionRateApplied > 0
+              ? data.commissionRateApplied
+              : 0.10;
+          const commissionAmount = Math.round(netMerchandise * rate);
+          const sellerEarned = Math.max(0, netMerchandise - commissionAmount);
 
-          updatePayload.commissionRateApplied = 0;
-          updatePayload.commissionAmount = 0;
-          updatePayload.sellerEarned = sellerRevenue;
-          updatePayload.payoutAmount = sellerRevenue;
+          updatePayload.commissionRateApplied = rate;
+          updatePayload.commissionAmount = commissionAmount;
+          updatePayload.sellerEarned = sellerEarned;
+          updatePayload.payoutAmount = sellerEarned;
           updatePayload.paymentStatus = "paid";
 
           if (deliveryPhoto) {
@@ -259,7 +268,7 @@ export class OrderStatusService {
             userId: data.userId,
             title: {
               fr: "Mise à jour de votre livraison Olmart",
-              ar: "تحديث حالة التوصيل في أولmarth",
+              ar: "تحديث حالة التوصيل في أولمارت",
               en: "Olmart Delivery Update",
             },
             message: {
@@ -267,18 +276,6 @@ export class OrderStatusService {
               ar: `قام البائع بتحديث حالة طلبك #${id.substring(0, 8).toUpperCase()} : ${translatedStatus.ar}`,
               en: `The seller updated your order #${id.substring(0, 8).toUpperCase()} : ${translatedStatus.en}`,
             },
-            type: "order_status",
-            orderId: id,
-            read: false,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-
-          const notifLegacyRef = db.collection("notifications").doc();
-          t.set(notifLegacyRef, {
-            recipientId: data.userId,
-            userId: data.userId,
-            title: `Livraison Olmart : ${translatedStatus.fr}`,
-            message: `Votre commande #${id.substring(0, 8).toUpperCase()} est désormais en statut : ${translatedStatus.fr}.`,
             type: "order_status",
             orderId: id,
             read: false,

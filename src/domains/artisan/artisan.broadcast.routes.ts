@@ -45,7 +45,7 @@ artisanBroadcastRouter.post(
       const cleanPhone = String(clientPhone).replace(/\s+/g, "");
       if (!/^(0[567][0-9]{8}|\+213[567][0-9]{8})$/.test(cleanPhone)) {
         return res.status(400).json({
-          error: "Numéro de téléphone algérien invalide. Ex: 0550123456 ou 0660123456",
+          error: "Numéro de téléphone algérien invalide (10 chiffres commençant par 05, 06 ou 07).",
         });
       }
 
@@ -140,11 +140,16 @@ artisanBroadcastRouter.get(
  */
 artisanBroadcastRouter.patch(
   "/artisans/broadcasts/:id/status",
-  optionalAuthenticateToken,
+  authenticateToken,
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
+      const callerUid = req.user?.uid;
+
+      if (!callerUid) {
+        return res.status(401).json({ error: "Authentification requise" });
+      }
 
       if (!id || !/^[a-zA-Z0-9_-]{3,128}$/.test(id)) {
         return res.status(400).json({ error: "Identifiant d'annonce invalide" });
@@ -154,9 +159,16 @@ artisanBroadcastRouter.patch(
         return res.status(400).json({ error: "Statut invalide" });
       }
 
-      const result = await ArtisanServiceLayer.updateJobBroadcastStatus(id, status);
+      const isAdmin = Boolean(
+        req.user?.admin === true ||
+          req.user?.adminValidated === true ||
+          req.user?.role === "admin" ||
+          req.user?.role === "superadmin"
+      );
+
+      const result = await ArtisanServiceLayer.updateJobBroadcastStatus(id, status, callerUid, isAdmin);
       if (!result.success) {
-        return res.status(400).json({ error: result.error || "Impossible de mettre à jour le statut" });
+        return res.status(result.statusCode || 400).json({ error: result.error || "Impossible de mettre à jour le statut" });
       }
 
       return res.json({ success: true, message: "Statut mis à jour avec succès" });

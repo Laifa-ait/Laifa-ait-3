@@ -102,9 +102,9 @@ authGuestConversionRouter.post("/convert-guest", loginLimiter, authenticateToken
           throw new Error("GUEST_TOKEN_INVALID");
         }
 
-        // Step B: Query orders and order masters
-        const ordersSnap = await db.collection("orders").where("userId", "==", guestUserId).get();
-        const mastersSnap = await db.collection("order_masters").where("userId", "==", guestUserId).get();
+        // Step B: Query orders and order masters atomically inside transaction
+        const ordersSnap = await t.get(db.collection("orders").where("userId", "==", guestUserId));
+        const mastersSnap = await t.get(db.collection("order_masters").where("userId", "==", guestUserId));
 
         // Step C: Atomically invalidate token and reassign orders
         t.update(tokenRef, {

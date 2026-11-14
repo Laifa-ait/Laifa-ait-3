@@ -325,7 +325,7 @@ describe("OLMART — Two-Factor Authentication Session Verification & Security T
 
     expect(mockStatus).toHaveBeenCalledWith(500);
     expect(mockJson).toHaveBeenCalledWith({
-      error: "Erreur vérification 2FA: Firestore connection timeout",
+      error: "Erreur interne lors de la vérification de la double authentification.",
     });
     expect(mockNext).not.toHaveBeenCalled();
     mockCollection.mockRestore();

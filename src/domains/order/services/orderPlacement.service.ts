@@ -8,9 +8,17 @@ import { OrderEmailSubOrder } from "./orderEmailNotifier";
 
 import { traceTransactionExecution } from "../../../utils/transactionTrace";
 import { isSellerSellable, SellerSellableCheckInput } from "../../user/user.status";
+import { ConversationDocument } from "../../../types/messaging";
 
 export interface PlaceOrderInput {
-  cart: Array<{ id: string; quantity: number; selectedVariant?: string; priceSeen?: number }>;
+  cart: Array<{
+    id: string;
+    quantity: number;
+    selectedVariant?: string;
+    priceSeen?: number;
+    negotiationConversationId?: string;
+    negotiationOfferId?: string;
+  }>;
   shippingAddress: {
     name?: string;
     fullName?: string;
@@ -24,6 +32,8 @@ export interface PlaceOrderInput {
   couponCode?: string;
   deliveryMethod?: string;
   idempotencyKey?: string;
+  negotiationConversationId?: string;
+  negotiationOfferId?: string;
   userId: string;
   isGuest: boolean;
   guestRecoveryToken: string | null;
@@ -41,7 +51,7 @@ export interface PlaceOrderResult {
   emailAlerts: { sellerId: string; message: string }[];
   sellerIdsSet: Set<string>;
   internalNotificationsToCreate: { ref: firestore.DocumentReference; data: Record<string, unknown> }[];
-  pushQueueToCreate: { ref: firestore.DocumentReference; data: Record<string, unknown> }[];
+  pushAlertsToSend: { recipientId: string; title: string; body: string; productId: string }[];
 }
 
 interface CachedShippingSettings {
@@ -96,6 +106,8 @@ export class OrderPlacementService {
       couponCode,
       deliveryMethod,
       idempotencyKey,
+      negotiationConversationId: rootNegotiationConvId,
+      negotiationOfferId: rootNegotiationOfferId,
       userId,
       isGuest,
       guestTokenHash,
@@ -137,7 +149,7 @@ export class OrderPlacementService {
     const sellerRefs = sellerIdsArray.map((sId) => db.collection("users").doc(sId));
 
     const internalNotificationsToCreate: { ref: firestore.DocumentReference; data: Record<string, unknown> }[] = [];
-    const pushQueueToCreate: { ref: firestore.DocumentReference; data: Record<string, unknown> }[] = [];
+    const pushAlertsToSend: { recipientId: string; title: string; body: string; productId: string }[] = [];
 
     const result = await orderBreaker.execute(
       () =>
@@ -145,7 +157,7 @@ export class OrderPlacementService {
           db.runTransaction(async (t: firestore.Transaction) => {
             emailAlerts.length = 0;
             internalNotificationsToCreate.length = 0;
-            pushQueueToCreate.length = 0;
+            pushAlertsToSend.length = 0;
 
           let couponDoc: firestore.QueryDocumentSnapshot | null = null;
           let idempotencyDocRef: firestore.DocumentReference | null = null;
@@ -212,17 +224,21 @@ export class OrderPlacementService {
           });
 
           const productDocs: {
+            cartIndex: number;
             cartItem: {
               id: string;
               quantity: number;
               selectedVariant?: string;
               priceSeen?: number;
+              negotiationConversationId?: string;
+              negotiationOfferId?: string;
             };
             productSnap: firestore.DocumentSnapshot;
             productRef: firestore.DocumentReference;
           }[] = [];
 
-          for (const cartItem of cart) {
+          for (let cartIndex = 0; cartIndex < cart.length; cartIndex++) {
+            const cartItem = cart[cartIndex];
             if (
               !cartItem.id ||
               !cartItem.quantity ||
@@ -234,7 +250,7 @@ export class OrderPlacementService {
             }
             const snap = productSnaps.get(cartItem.id)!;
             const ref = productRefs.get(cartItem.id)!;
-            productDocs.push({ cartItem, productSnap: snap, productRef: ref });
+            productDocs.push({ cartIndex, cartItem, productSnap: snap, productRef: ref });
           }
 
           if (couponCode) {
@@ -247,6 +263,120 @@ export class OrderPlacementService {
             }
           }
 
+          // PHASE 1 (cont.): Read any referenced negotiation conversations BEFORE writes
+          const uniqueConvIds = new Set<string>();
+          if (rootNegotiationConvId) {
+            uniqueConvIds.add(rootNegotiationConvId);
+          }
+          for (const { cartItem } of productDocs) {
+            if (cartItem.negotiationConversationId) {
+              uniqueConvIds.add(cartItem.negotiationConversationId);
+            }
+          }
+
+          const convSnapsMap = new Map<string, { ref: firestore.DocumentReference; snap: firestore.DocumentSnapshot }>();
+          if (uniqueConvIds.size > 0) {
+            if (isGuest) {
+              throw new Error("Authentification requise pour utiliser une offre négociée.");
+            }
+            const convIdList = Array.from(uniqueConvIds);
+            const convRefs = convIdList.map((cId) => db.collection("conversations").doc(cId));
+            const convSnaps = await t.getAll(...convRefs);
+            convIdList.forEach((cId, idx) => {
+              convSnapsMap.set(cId, { ref: convRefs[idx], snap: convSnaps[idx] });
+            });
+          }
+
+          const parentOrderId = db.collection("orders").doc().id;
+          const negotiatedPriceByCartIndex = new Map<number, number>();
+          const negotiationsToMarkUsed = new Map<string, { ref: firestore.DocumentReference; data: Record<string, unknown> }>();
+          const nowIso = new Date().toISOString();
+
+          if (rootNegotiationConvId && !rootNegotiationOfferId) {
+            throw new Error("Identifiant d'offre négociée manquant.");
+          }
+
+          for (const { cartIndex, cartItem, productSnap } of productDocs) {
+            const explicitConvId = cartItem.negotiationConversationId;
+            const explicitOfferId = cartItem.negotiationOfferId;
+            if (explicitConvId && !explicitOfferId) {
+              throw new Error("Identifiant d'offre négociée manquant pour l'article.");
+            }
+
+            let targetConvId: string | undefined = explicitConvId;
+            let targetOfferId: string | undefined = explicitOfferId;
+
+            if (!targetConvId && rootNegotiationConvId && rootNegotiationOfferId) {
+              const rootEntry = convSnapsMap.get(rootNegotiationConvId);
+              const rootData = rootEntry?.snap.data() as ConversationDocument | undefined;
+              const rootProductId = rootData?.context?.productId;
+              if (rootProductId) {
+                if (rootProductId === cartItem.id) {
+                  targetConvId = rootNegotiationConvId;
+                  targetOfferId = rootNegotiationOfferId;
+                }
+              } else if (productDocs.length === 1) {
+                targetConvId = rootNegotiationConvId;
+                targetOfferId = rootNegotiationOfferId;
+              }
+            }
+
+            if (!targetConvId || !targetOfferId) continue;
+
+            const convEntry = convSnapsMap.get(targetConvId);
+            if (!convEntry || !convEntry.snap.exists) {
+              throw new Error("Conversation de négociation introuvable.");
+            }
+            const convData = convEntry.snap.data() as ConversationDocument;
+            if (convData.isBlocked) {
+              throw new Error("La conversation de négociation est bloquée.");
+            }
+            if (!Array.isArray(convData.participants) || !convData.participants.includes(userId)) {
+              throw new Error("Accès non autorisé à cette offre négociée.");
+            }
+
+            const prodSellerId = String(productSnap.data()?.sellerId || "");
+            if (prodSellerId && !convData.participants.includes(prodSellerId)) {
+              throw new Error("Le vendeur du produit ne correspond pas à l'offre négociée.");
+            }
+            if (convData.context?.productId && convData.context.productId !== cartItem.id) {
+              throw new Error("L'offre négociée ne correspond pas à ce produit.");
+            }
+
+            const activeOffer = convData.activeNegotiation;
+            if (!activeOffer || activeOffer.offerId !== targetOfferId) {
+              throw new Error("Offre négociée introuvable ou remplacée.");
+            }
+            if (activeOffer.status !== "ACCEPTED") {
+              throw new Error(`L'offre négociée n'est pas valide (statut: ${activeOffer.status}).`);
+            }
+            const expiresMs = new Date(activeOffer.expiresAt).getTime();
+            if (!Number.isFinite(expiresMs) || expiresMs <= Date.now()) {
+              throw new Error("L'offre négociée a expiré.");
+            }
+            if (!Number.isFinite(activeOffer.amountDZD) || activeOffer.amountDZD <= 0) {
+              throw new Error("Montant de l'offre négociée invalide.");
+            }
+
+            negotiatedPriceByCartIndex.set(cartIndex, Number(activeOffer.amountDZD));
+            negotiationsToMarkUsed.set(targetConvId, {
+              ref: convEntry.ref,
+              data: {
+                activeNegotiation: {
+                  ...activeOffer,
+                  status: "USED",
+                  usedAt: nowIso,
+                  usedOrderId: parentOrderId,
+                },
+                updatedAt: nowIso,
+              },
+            });
+          }
+
+          if (rootNegotiationConvId && negotiatedPriceByCartIndex.size === 0) {
+            throw new Error("L'offre négociée ne correspond à aucun article du panier.");
+          }
+
           let subtotal = 0;
           const orderItems: Record<string, unknown>[] = [];
           const productInMemoryStates = new Map<string, Record<string, unknown>>();
@@ -255,7 +385,7 @@ export class OrderPlacementService {
             productInMemoryStates.set(pId, JSON.parse(JSON.stringify(snap.data())));
           }
 
-          for (const { cartItem, productSnap } of productDocs) {
+          for (const { cartIndex, cartItem, productSnap } of productDocs) {
             const productId = productSnap.id;
             const productData = productInMemoryStates.get(productId)!;
 
@@ -265,7 +395,11 @@ export class OrderPlacementService {
               );
             }
 
-            const targetPrice = resolveProductPrice(productData, cartItem.selectedVariant);
+            const negotiatedPrice = negotiatedPriceByCartIndex.get(cartIndex);
+            const targetPrice =
+              negotiatedPrice !== undefined
+                ? negotiatedPrice
+                : resolveProductPrice(productData, cartItem.selectedVariant);
             let availableStock = Number(productData.stock) || 0;
 
             let variantInfo: { name: string; stock: number; priceOverride?: number | string; priceDiff?: number | string } | null = null;
@@ -401,17 +535,11 @@ export class OrderPlacementService {
                 },
               });
 
-              const pushRef = db.collection("push_queue").doc();
-              pushQueueToCreate.push({
-                ref: pushRef,
-                data: {
-                  userId: finalData.sellerId,
-                  title: "⚠️ Stock Critique",
-                  body: alertMessage,
-                  type: "inventory",
-                  status: "pending",
-                  createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                },
+              pushAlertsToSend.push({
+                recipientId: String(finalData.sellerId),
+                title: "⚠️ Stock Critique",
+                body: alertMessage,
+                productId: pId,
               });
             }
           }
@@ -451,9 +579,10 @@ export class OrderPlacementService {
               throw new Error(usageCheck.error || "Limite d'utilisation du code promo atteinte.");
             }
 
-            const itemsForCoupon: ProductItemForCoupon[] = productDocs.map(({ cartItem, productSnap }) => {
+            const itemsForCoupon: ProductItemForCoupon[] = productDocs.map(({ cartIndex, cartItem, productSnap }) => {
               const pData = productInMemoryStates.get(productSnap.id)!;
-              const targetP = resolveProductPrice(pData, cartItem.selectedVariant);
+              const negotiatedP = negotiatedPriceByCartIndex.get(cartIndex);
+              const targetP = negotiatedP !== undefined ? negotiatedP : resolveProductPrice(pData, cartItem.selectedVariant);
               return {
                 productId: productSnap.id,
                 sellerId: String(pData.sellerId || ""),
@@ -495,7 +624,6 @@ export class OrderPlacementService {
             sellerGroups.get(sId)!.push(item);
           }
 
-          const parentOrderId = db.collection("orders").doc().id;
           const subOrdersToCreate: { ref: firestore.DocumentReference; data: Record<string, unknown> }[] = [];
           let totalShipping = 0;
 
@@ -533,9 +661,11 @@ export class OrderPlacementService {
             let sellerSubtotal = 0;
             const sellerOrderItems: Record<string, unknown>[] = [];
 
-            for (const { cartItem, productSnap } of groupItems) {
+            for (const { cartIndex, cartItem, productSnap } of groupItems) {
               const productData = productSnap.data() || {};
-              const targetPrice = resolveProductPrice(productData, cartItem.selectedVariant);
+              const negotiatedP = negotiatedPriceByCartIndex.get(cartIndex);
+              const targetPrice =
+                negotiatedP !== undefined ? negotiatedP : resolveProductPrice(productData, cartItem.selectedVariant);
 
               sellerSubtotal += targetPrice * cartItem.quantity;
               sellerOrderItems.push({
@@ -586,12 +716,13 @@ export class OrderPlacementService {
 
             const sellerDiscount = discountBreakdownMap[sellerId] || 0;
             const sellerCashbackApp = 0;
-            const sellerGrandTotal =
-              Math.max(0, sellerSubtotal - sellerDiscount - sellerCashbackApp) + sellerShippingCost;
+            const netMerchandise = Math.max(0, sellerSubtotal - sellerDiscount - sellerCashbackApp);
+            const sellerGrandTotal = netMerchandise + sellerShippingCost;
 
-            const commissionRate = 0;
-            const commissionAmount = 0;
-            const sellerEarned = sellerGrandTotal;
+            const commissionRate =
+              typeof shop?.commissionRate === "number" && shop.commissionRate > 0 ? shop.commissionRate : 0.10;
+            const commissionAmount = Math.round(netMerchandise * commissionRate);
+            const sellerEarned = Math.max(0, netMerchandise - commissionAmount);
 
             const subOrderRef = db.collection("orders").doc();
             const subOrderData = {
@@ -655,6 +786,10 @@ export class OrderPlacementService {
 
           for (const req of stockUpdates) {
             t.update(req.ref, req.update);
+          }
+
+          for (const negUpdate of negotiationsToMarkUsed.values()) {
+            t.update(negUpdate.ref, negUpdate.data);
           }
 
           if (couponDoc) {
@@ -738,7 +873,7 @@ export class OrderPlacementService {
       emailAlerts,
       sellerIdsSet,
       internalNotificationsToCreate,
-      pushQueueToCreate,
+      pushAlertsToSend,
     };
   }
 }

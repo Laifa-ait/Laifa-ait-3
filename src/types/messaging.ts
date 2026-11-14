@@ -20,7 +20,8 @@ export type NegotiationStatus =
   | 'REJECTED'
   | 'COUNTERED'
   | 'EXPIRED'
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'USED';
 
 export type ConversationParticipantRole =
   | 'buyer'
@@ -53,6 +54,8 @@ export interface NegotiationOfferPayload {
   terms?: string;
   createdAt: string; // ISO string
   resolvedAt?: string; // ISO string
+  usedAt?: string; // ISO string
+  usedOrderId?: string;
 }
 
 export interface ConversationContext {

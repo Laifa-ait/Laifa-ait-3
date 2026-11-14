@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { SupportTicket, SupportMessage } from "../../../pages/Admin/Support";
 import { AppTimestamp, normalizeTimestamp } from "../../../utils/date";
 import { LazyRichTextEditor } from "../../ui/LazyRichTextEditor";
+import { sanitizeHTML } from "../../../utils/sanitization";
 
 const CANNED_RESPONSES = [
   "Bonjour, nous avons bien reçu votre demande et notre équipe l'analyse.",
@@ -167,7 +168,7 @@ export const SupportChatViewport: React.FC<SupportChatViewportProps> = ({
                     className={`text-xs font-medium leading-relaxed break-words ${
                       m.isInternal ? "text-amber-900" : "text-zinc-800"
                     }`}
-                    dangerouslySetInnerHTML={{ __html: m.text }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHTML(m.text || "") }}
                   />
                   {m.createdAt && (
                     <div className="mt-2.5 flex items-center justify-end gap-1.5 text-[9px] font-sans font-bold uppercase text-zinc-400 tabular-nums">

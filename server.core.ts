@@ -208,10 +208,11 @@ process.on("uncaughtException", (error: Error) => {
 
 if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
   const attemptBoot = async (retries = 12, delayMs = 1000): Promise<void> => {
-    const rawSecret = (process.env.CSRF_SECRET || "").trim();
-    if (rawSecret.length < 32 || WEAK_CSRF_SECRETS.has(rawSecret.toLowerCase())) {
-      const seed = process.env.K_SERVICE || process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || "olmart-production-service";
-      process.env.CSRF_SECRET = crypto.createHmac("sha256", "olmart-cloud-run-csrf-identity-v1").update(seed).digest("hex");
+    if (process.env.NODE_ENV !== "production") {
+      const rawSecret = (process.env.CSRF_SECRET || "").trim();
+      if (rawSecret.length < 32 || WEAK_CSRF_SECRETS.has(rawSecret.toLowerCase())) {
+        process.env.CSRF_SECRET = crypto.randomBytes(32).toString("hex");
+      }
     }
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {

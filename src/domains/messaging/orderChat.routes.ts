@@ -99,11 +99,20 @@ router.post("/api/v1/messages/send", authenticateToken, chatLimiter, async (req:
           }
         }
         await userRef.update(updates);
-        await db.collection("notifications").add({
-          userId: senderId,
-          title: "Avertissement de sécurité : Message modéré",
-          message: "Votre message a été modéré pour partage de coordonnées externes. Vos violations répétées peuvent entraîner la restriction de visibilité de votre boutique.",
+        await db.collection("user_notifications").add({
+          recipientId: senderId,
+          title: {
+            fr: "Avertissement de sécurité : Message modéré",
+            ar: "تحذير أمني: تم تعديل الرسالة",
+            en: "Security warning: Message moderated",
+          },
+          message: {
+            fr: "Votre message a été modéré pour partage de coordonnées externes. Vos violations répétées peuvent entraîner la restriction de visibilité de votre boutique.",
+            ar: "تم حجب جزء من رسالتك لمشاركة بيانات اتصال خارجية. قد يؤدي تكرار المخالفات إلى تقييد ظهور متجرك.",
+            en: "Your message was moderated for sharing external contact information. Repeated violations may restrict your store visibility.",
+          },
           type: "ALERT",
+          orderId: cleanOrderId,
           read: false,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });

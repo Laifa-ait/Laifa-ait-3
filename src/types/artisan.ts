@@ -171,7 +171,7 @@ export interface ArtisanJobBroadcast {
   id: string;
   clientId: string;
   clientName: string;
-  clientPhone: string;
+  clientPhone?: string;
   clientEmail?: string;
   tradeId: string;
   tradeName: string;

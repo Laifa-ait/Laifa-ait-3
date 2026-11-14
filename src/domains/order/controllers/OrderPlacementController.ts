@@ -22,7 +22,16 @@ router.post(
   optionalAuthenticateToken,
   validateRequest(placeOrderSchema),
   async (req: AuthenticatedRequest, res: Response) => {
-    const { cart, shippingAddress, billingAddress, couponCode, deliveryMethod, idempotencyKey } = req.body;
+    const {
+      cart,
+      shippingAddress,
+      billingAddress,
+      couponCode,
+      deliveryMethod,
+      idempotencyKey,
+      negotiationConversationId,
+      negotiationOfferId,
+    } = req.body;
     const isGuest = !req.user;
 
     // Deterministic guest fingerprint based on validated recipient details (phone + name + wilaya)
@@ -120,6 +129,8 @@ router.post(
         couponCode,
         deliveryMethod,
         idempotencyKey,
+        negotiationConversationId,
+        negotiationOfferId,
         userId,
         isGuest,
         guestRecoveryToken,
@@ -178,7 +189,9 @@ router.post(
         rawMessage.includes("disponible à l'achat") ||
         rawMessage.includes("Stock insuffisant") ||
         rawMessage.includes("Conflit") ||
-        rawMessage.includes("mis à jour");
+        rawMessage.includes("mis à jour") ||
+        rawMessage.includes("négoci") ||
+        rawMessage.includes("expir");
 
       if (isKnownDomainError) {
         return res.status(400).json({ error: rawMessage });

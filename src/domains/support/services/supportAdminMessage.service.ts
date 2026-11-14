@@ -6,6 +6,7 @@ import {
   type PostMessageDTO
 } from "../types/support.types";
 import { validateSecureFilePath } from "../utils/supportValidation";
+import { sanitizeHTML, sanitizePlainText } from "../../../utils/sanitization";
 
 export class SupportAdminMessageService {
   /**
@@ -127,10 +128,13 @@ export class SupportAdminMessageService {
         };
       }
 
+      const cleanText = text ? sanitizeHTML(text.trim()) : "";
+      const previewText = cleanText ? sanitizePlainText(cleanText) : "";
+
       const messageData: Record<string, unknown> = {
         ticketId,
         userId: adminUid,
-        text: text || "",
+        text: cleanText,
         sender: "admin",
         isInternal: !!isInternal,
         createdAt: new Date().toISOString(),
@@ -141,7 +145,7 @@ export class SupportAdminMessageService {
 
       if (!isInternal) {
         transaction.update(ticketRef, {
-          lastMessage: attachmentId ? "Pièce jointe envoyée" : (text || ""),
+          lastMessage: attachmentId ? "Pièce jointe envoyée" : previewText,
           lastMessageAt: new Date().toISOString()
         });
       }

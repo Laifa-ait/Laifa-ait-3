@@ -142,13 +142,27 @@ realEstateMutationsRouter.put(
         }
       });
 
+      const hasSubstantialChange = ['title', 'description', 'price', 'images'].some(
+        (field) => field in sanitizedUpdates
+      );
+
+      const nextStatus =
+        !isServerAdmin && hasSubstantialChange
+          ? 'pending'
+          : existingProperty.status;
+      const nextModerationStatus =
+        !isServerAdmin && hasSubstantialChange
+          ? 'pending'
+          : existingProperty.moderationStatus;
+
       const updatedPayload: StoredProperty = {
         ...existingProperty,
         ...sanitizedUpdates,
         id,
         ownerId: existingProperty.ownerId,
         isLegalVerified: existingProperty.isLegalVerified ?? false,
-        status: existingProperty.status,
+        status: nextStatus,
+        ...(nextModerationStatus ? { moderationStatus: nextModerationStatus } : {}),
         updatedAt: new Date().toISOString(),
       };
 

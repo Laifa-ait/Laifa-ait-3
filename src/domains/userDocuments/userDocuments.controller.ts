@@ -25,10 +25,21 @@ const RecordDocumentSchema = z.object({
   fileName: z.string().min(1).max(255),
   fileSize: z.number().int().positive().max(30 * 1024 * 1024),
   mimeType: z.string().min(1).max(100),
-  downloadUrl: z.string().url().refine(
-    (url) => url.startsWith("https://"),
-    "L'URL de téléchargement doit utiliser le protocole HTTPS sécurisé"
-  ),
+  downloadUrl: z.string().url().refine((rawUrl) => {
+    try {
+      const parsed = new URL(rawUrl);
+      if (parsed.protocol !== "https:") return false;
+      const bucketName = (process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || "").trim().toLowerCase();
+      const hostname = parsed.hostname.toLowerCase();
+      return (
+        hostname === "firebasestorage.googleapis.com" ||
+        hostname === "storage.googleapis.com" ||
+        (Boolean(bucketName) && hostname === bucketName)
+      );
+    } catch {
+      return false;
+    }
+  }, "L'URL de téléchargement doit provenir du domaine officiel Firebase/Google Cloud Storage en HTTPS"),
   storagePath: z.string().min(1).max(500),
   description: z.string().max(1000).optional(),
 });
@@ -120,8 +131,16 @@ userDocumentsRouter.post(
         }
       }
     } catch (storageErr) {
-      safeLogger.warn("[UserDocuments] ⚠️ Impossible de vérifier physiquement le fichier sur Storage (mode secours)", {
-        err: storageErr instanceof Error ? storageErr.message : String(storageErr),
+      const errMsg = storageErr instanceof Error ? storageErr.message : String(storageErr);
+      if (process.env.NODE_ENV === "production") {
+        safeLogger.error("[UserDocuments] ❌ Échec vérification Cloud Storage en production (Fail-Closed)", { err: errMsg });
+        return res.status(503).json({
+          success: false,
+          error: "Impossible de vérifier l'intégrité du fichier sur le stockage sécurisé.",
+        });
+      }
+      safeLogger.warn("[UserDocuments] ⚠️ Impossible de vérifier physiquement le fichier sur Storage (hors production)", {
+        err: errMsg,
       });
     }
 

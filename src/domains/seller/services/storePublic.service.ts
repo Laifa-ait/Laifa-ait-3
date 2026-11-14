@@ -115,7 +115,7 @@ export class StorePublicService {
           flashSaleActive: Boolean(d.flashSaleActive),
           category: String(d.category || "Général"), subcategory: String(d.subcategory || d.subCategory || ""),
           image: resolveProductPrimaryImage(d, ""), images: resolveProductImagesList(d),
-          stock: typeof d.stock === "number" ? d.stock : 10, rating: typeof d.rating === "number" ? d.rating : 5,
+          stock: typeof d.stock === "number" ? d.stock : 10, rating: typeof d.rating === "number" ? d.rating : 0,
           salesCount: typeof d.salesCount === "number" ? d.salesCount : 0,
           colors: Array.isArray(d.colors) ? (d.colors as string[]) : [],
           sizes: Array.isArray(d.sizes) ? (d.sizes as string[]) : [],
@@ -195,11 +195,19 @@ export class StorePublicService {
 
     const validReviews = (reviewsSnap.docs || []).filter((d) => {
       const r = d.data() || {};
-      return typeof r.rating === "number" && Boolean(r.productId || r.buyerId || r.userId || r.orderId);
+      const status = typeof r.status === "string" ? r.status.toLowerCase() : "";
+      const isModeratedApproved = ["approved", "replied", "active"].includes(status);
+      const hasValidRating = typeof r.rating === "number" && Number.isFinite(r.rating) && r.rating >= 1 && r.rating <= 5;
+      return isModeratedApproved && hasValidRating && Boolean(r.productId || r.buyerId || r.userId || r.orderId);
     });
-    const ratingSum = validReviews.reduce((acc, d) => acc + (Number(d.data().rating) || 5), 0);
+    const ratingSum = validReviews.reduce((acc, d) => acc + Number(d.data().rating), 0);
     const reviewsCount = validReviews.length > 0 ? validReviews.length : whitelistedShopDto.reviewsCount;
-    const ratingAverage = validReviews.length > 0 ? Number((ratingSum / validReviews.length).toFixed(1)) : (whitelistedShopDto.rating ?? 5.0);
+    const ratingAverage =
+      validReviews.length > 0
+        ? Number((ratingSum / validReviews.length).toFixed(1))
+        : whitelistedShopDto.reviewsCount > 0 && typeof whitelistedShopDto.rating === "number"
+        ? whitelistedShopDto.rating
+        : 0;
     const baseMetrics = {
       ratingAverage, reviewsCount,
       avgPreparationTime: storeConfig.avgPreparationTime || whitelistedShopDto.avgPreparationTime || "24h - 48h",

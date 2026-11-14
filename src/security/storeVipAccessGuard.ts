@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { getCsrfSecret } from "../middlewares/csrf";
 import type { CustomPageSection, StoreConfig, StoreCustomPageItem } from "../domains/seller/customPage.types";
 
 /**
@@ -68,13 +69,31 @@ export function evaluatePaidStudioSubscription(
 /**
  * A12 — Protection VIP par mot de passe de bout en bout (Tokens HMAC liés à la boutique + Anti-Bruteforce).
  */
-const VIP_HMAC_SECRET = process.env.STUDIO_VIP_TOKEN_SECRET || process.env.FIREBASE_PROJECT_ID || "olmart-vip-storefront-hmac-key-v1";
+function getVipHmacSecret(): string {
+  const configured = (process.env.STUDIO_VIP_TOKEN_SECRET || "").trim();
+  if (configured.length >= 32) {
+    return configured;
+  }
+  if (process.env.NODE_ENV === "production" && !process.env.CSRF_SECRET) {
+    throw new Error("STUDIO_VIP_TOKEN_SECRET or CSRF_SECRET is required in production");
+  }
+  return configured || getCsrfSecret();
+}
+
 const DEFAULT_VIP_TTL_MS = 2 * 60 * 60 * 1000;
 const MAX_VIP_ATTEMPTS = 5;
 const VIP_LOCKOUT_WINDOW_MS = 10 * 60 * 1000;
 
 interface VipAttemptRecord { count: number; firstAttemptAt: number; }
 const vipAttemptStore = new Map<string, VipAttemptRecord>();
+
+function purgeExpiredVipAttempts(now: number): void {
+  for (const [k, rec] of vipAttemptStore.entries()) {
+    if (now - rec.firstAttemptAt > VIP_LOCKOUT_WINDOW_MS) {
+      vipAttemptStore.delete(k);
+    }
+  }
+}
 
 function getStorePasswordSecret(config: StoreConfig | null | undefined): string {
   if (!config?.storeStatus) return "";
@@ -100,7 +119,7 @@ export function issueStoreVipAccessToken(
   const expiresAt = Date.now() + Math.max(1000, ttlMs);
   const pwdFp = computePasswordFingerprint(secret);
   const payload = `${sellerId}:${expiresAt}:${pwdFp}`;
-  const sig = crypto.createHmac("sha256", VIP_HMAC_SECRET).update(payload, "utf8").digest("hex");
+  const sig = crypto.createHmac("sha256", getVipHmacSecret()).update(payload, "utf8").digest("hex");
   const token = Buffer.from(`${payload}:${sig}`, "utf8").toString("base64url");
   return { token, expiresAt };
 }
@@ -125,7 +144,7 @@ export function verifyStoreVipAccessToken(
     if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) return false;
     if (tokenPwdFp !== computePasswordFingerprint(secret)) return false;
     const payload = `${tokenSellerId}:${expStr}:${tokenPwdFp}`;
-    const expectedSig = crypto.createHmac("sha256", VIP_HMAC_SECRET).update(payload, "utf8").digest("hex");
+    const expectedSig = crypto.createHmac("sha256", getVipHmacSecret()).update(payload, "utf8").digest("hex");
     const a = Buffer.from(providedSig, "utf8");
     const b = Buffer.from(expectedSig, "utf8");
     return a.length === b.length && crypto.timingSafeEqual(a, b);
@@ -137,6 +156,7 @@ export function verifyStoreVipAccessToken(
 export function checkAndRecordVipAttempt(clientKey: string, sellerId: string): { allowed: boolean; retryAfterSec: number } {
   const key = `${sellerId}::${clientKey || "anon"}`;
   const now = Date.now();
+  purgeExpiredVipAttempts(now);
   const existing = vipAttemptStore.get(key);
   if (!existing || now - existing.firstAttemptAt > VIP_LOCKOUT_WINDOW_MS) {
     vipAttemptStore.set(key, { count: 1, firstAttemptAt: now });

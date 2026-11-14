@@ -24,7 +24,9 @@ router.get("/api/v1/seller/orders", authenticateToken, authorizeSeller, async (r
       return res.status(401).json({ error: "Authentification requise" });
     }
     const uid = req.user.uid;
-    const snap = await db.collection("orders").where("sellerIds", "array-contains", uid).get();
+    const requestedLimit = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 250;
+    const safeLimit = Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, 250) : 250;
+    const snap = await db.collection("orders").where("sellerIds", "array-contains", uid).limit(safeLimit).get();
     const orders = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     orders.sort((a: TimedDocument, b: TimedDocument) => getTimestamp(b) - getTimestamp(a));
     return res.json({ orders });

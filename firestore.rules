@@ -661,14 +661,22 @@ service cloud.firestore {
       ));
       allow create: if isSignedIn() && (
         isAdmin() ||
-        (('ownerId' in incoming() && incoming().ownerId == request.auth.uid) ||
-         ('userId' in incoming() && incoming().userId == request.auth.uid))
+        (
+          (('ownerId' in incoming() && incoming().ownerId == request.auth.uid) ||
+           ('userId' in incoming() && incoming().userId == request.auth.uid)) &&
+          (!('status' in incoming()) || incoming().status in ['pending', 'draft']) &&
+          (!('isLegalVerified' in incoming()) || incoming().isLegalVerified == false) &&
+          (!('moderationStatus' in incoming()) || incoming().moderationStatus == 'pending')
+        )
       );
       allow update: if isAdmin() || (
         isSignedIn() &&
         (existing().ownerId == request.auth.uid || ('userId' in existing() && existing().userId == request.auth.uid)) &&
         (!('ownerId' in incoming()) || !('ownerId' in existing()) || incoming().ownerId == existing().ownerId) &&
-        (!('userId' in incoming()) || !('userId' in existing()) || incoming().userId == existing().userId)
+        (!('userId' in incoming()) || !('userId' in existing()) || incoming().userId == existing().userId) &&
+        !incoming().diff(existing()).affectedKeys().hasAny([
+          'status', 'isLegalVerified', 'moderationStatus', 'ownerId', 'viewsCount', 'contactClicks'
+        ])
       );
       allow delete: if isAdmin() || (isSignedIn() && (existing().ownerId == request.auth.uid || ('userId' in existing() && existing().userId == request.auth.uid)));
     }
@@ -753,8 +761,41 @@ service cloud.firestore {
 
     match /sellers/{sellerId} {
       allow read: if true;
-      allow create: if isSignedIn() && (isAdmin() || sellerId == request.auth.uid);
-      allow update: if isSignedIn() && (isAdmin() || sellerId == request.auth.uid);
+      allow create: if isSignedIn() && (
+        isAdmin() || (
+          sellerId == request.auth.uid &&
+          !incoming().keys().hasAny([
+            'isVerified', 'verified', 'status', 'trustScore', 'sellerTrustScore',
+            'commissionRate', 'role', 'roles', 'isAdmin', 'customClaims', 'permissions',
+            'badge', 'rating', 'reviewsCount', 'balance', 'soldes', 'kycStatus', 'kyc', 'verification'
+          ]) &&
+          incoming().keys().hasOnly([
+            'ownerId', 'sellerId', 'shopName', 'storeName', 'displayName',
+            'shopDescription', 'description', 'logoUrl', 'photoURL', 'avatarUrl',
+            'bannerUrl', 'coverUrl', 'coverImage', 'wilaya', 'wilayaCode', 'commune',
+            'category', 'categories', 'slogan', 'avgPreparationTime', 'returnPolicy',
+            'legalStatus', 'deliverySettings', 'openingHours', 'slug', 'shopSlug',
+            'theme', 'createdAt', 'updatedAt'
+          ])
+        )
+      );
+      allow update: if isSignedIn() && (
+        isAdmin() || (
+          sellerId == request.auth.uid &&
+          !incoming().diff(existing()).affectedKeys().hasAny([
+            'isVerified', 'verified', 'status', 'trustScore', 'sellerTrustScore',
+            'commissionRate', 'role', 'roles', 'isAdmin', 'customClaims', 'permissions',
+            'badge', 'rating', 'reviewsCount', 'balance', 'soldes', 'kycStatus', 'kyc', 'verification'
+          ]) &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'shopName', 'storeName', 'displayName', 'shopDescription', 'description',
+            'logoUrl', 'photoURL', 'avatarUrl', 'bannerUrl', 'coverUrl', 'coverImage',
+            'wilaya', 'wilayaCode', 'commune', 'category', 'categories', 'slogan',
+            'avgPreparationTime', 'returnPolicy', 'legalStatus', 'deliverySettings',
+            'openingHours', 'slug', 'shopSlug', 'theme', 'updatedAt'
+          ])
+        )
+      );
       allow delete: if isAdmin();
     }
 
@@ -808,6 +849,24 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /sponsored_campaigns/{campaignId} {
+      allow read: if (('status' in resource.data) && resource.data.status == 'active') ||
+        isAdmin() ||
+        (isSignedIn() && resource.data.sellerId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+
+    match /sponsored_analytics_events/{eventId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /seller_promo_campaigns/{campaignId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.sellerId == request.auth.uid);
+      allow create: if isAdmin() || (isSeller() && incoming().sellerId == request.auth.uid);
+      allow update: if isAdmin() || (isSignedIn() && resource.data.sellerId == request.auth.uid && incoming().sellerId == request.auth.uid);
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.sellerId == request.auth.uid);
+    }
+
     match /checkout_audits/{id} {
       allow read: if isAdmin();
       allow create: if isAdmin() || (isSignedIn() && incoming().userId == request.auth.uid);
@@ -852,6 +911,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /olma_univers_apps/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /olma_univers_waitlist/{id} {
       allow create: if true;
       allow read, update, delete: if isAdmin();
@@ -880,14 +944,33 @@ service cloud.firestore {
     }
 
     match /disputeAttachments/{id} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid ||
+        (
+          'disputeId' in resource.data &&
+          exists(/databases/$(database)/documents/disputes/$(resource.data.disputeId)) &&
+          (
+            get(/databases/$(database)/documents/disputes/$(resource.data.disputeId)).data.buyerId == request.auth.uid ||
+            get(/databases/$(database)/documents/disputes/$(resource.data.disputeId)).data.sellerId == request.auth.uid
+          )
+        )
+      );
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
       allow update, delete: if isAdmin();
     }
 
     match /supportAttachments/{id} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid ||
+        (
+          'ticketId' in resource.data &&
+          exists(/databases/$(database)/documents/supportTickets/$(resource.data.ticketId)) &&
+          get(/databases/$(database)/documents/supportTickets/$(resource.data.ticketId)).data.userId == request.auth.uid
+        )
+      );
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
       allow update, delete: if isAdmin();
     }
 
@@ -1007,6 +1090,55 @@ service cloud.firestore {
     match /store_slugs/{slug} {
       allow read: if true;
       allow write: if false;
+    }
+
+    // =========================================================================
+    // 26. ARTISANS ACTIFS (Collections alignées avec le domaine artisan)
+    // =========================================================================
+    match /artisan_trades/{tradeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /artisan_profiles/{artisanId} {
+      allow read: if (('status' in resource.data) && resource.data.status == 'approved') ||
+        isAdmin() ||
+        (isSignedIn() && (artisanId == request.auth.uid || resource.data.userId == request.auth.uid));
+      allow create: if isSignedIn() && (
+        isAdmin() || (
+          (artisanId == request.auth.uid || ('userId' in incoming() && incoming().userId == request.auth.uid)) &&
+          (!('status' in incoming()) || incoming().status == 'pending')
+        )
+      );
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        (artisanId == request.auth.uid || existing().userId == request.auth.uid) &&
+        !incoming().diff(existing()).affectedKeys().hasAny([
+          'status', 'verifiedAt', 'rating', 'reviewCount', 'completedJobsCount', 'userId'
+        ])
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /artisan_job_broadcasts/{broadcastId} {
+      allow read: if true;
+      allow create: if isSignedIn() && (!('clientId' in incoming()) || incoming().clientId == request.auth.uid);
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        existing().clientId == request.auth.uid &&
+        !incoming().diff(existing()).affectedKeys().hasAny(['clientId'])
+      );
+      allow delete: if isAdmin() || (isSignedIn() && existing().clientId == request.auth.uid);
+    }
+
+    match /artisan_reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isSignedIn() && (
+        ('clientId' in incoming() && incoming().clientId == request.auth.uid) ||
+        ('reviewerId' in incoming() && incoming().reviewerId == request.auth.uid) ||
+        ('userId' in incoming() && incoming().userId == request.auth.uid)
+      );
+      allow update, delete: if isAdmin();
     }
 
   }

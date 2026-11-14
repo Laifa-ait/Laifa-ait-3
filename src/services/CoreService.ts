@@ -47,6 +47,7 @@ export class CoreService {
   }
 
   static async ensureInitialProductsSeeded(): Promise<void> {
+    if (process.env.NODE_ENV === "production") return;
     if (CoreService.initialProductsChecked) return;
     CoreService.initialProductsChecked = true;
     try {
@@ -66,8 +67,8 @@ export class CoreService {
           promoPrice: 125000,
           category: "Maison & Déco",
           description: "Un canapé moderne inspiré par les paysages de l'Atlas. Tissu premium et confort absolu.",
-          image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80",
-          images: ["https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80"],
+          image: "/images/placeholders/product.svg",
+          images: ["/images/placeholders/product.svg"],
           wilaya: "Alger",
           stock: 15,
           rating: 4.8,
@@ -75,7 +76,7 @@ export class CoreService {
           sellerId: "admin_seed",
           sellerName: "Boutique Officielle Olmart",
           status: "active",
-          media: [{ url: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80", type: "image" }],
+          media: [{ url: "/images/placeholders/product.svg", type: "image" }],
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
@@ -85,8 +86,8 @@ export class CoreService {
           flashPrice: 38000,
           category: "Électroménager",
           description: "Performances professionnelles pour votre cuisine.",
-          image: "https://images.unsplash.com/photo-1517256064527-09c53b2d0bc6?auto=format&fit=crop&w=800&q=80",
-          images: ["https://images.unsplash.com/photo-1517256064527-09c53b2d0bc6?auto=format&fit=crop&w=800&q=80"],
+          image: "/images/placeholders/product.svg",
+          images: ["/images/placeholders/product.svg"],
           wilaya: "Oran",
           stock: 15,
           rating: 4.6,
@@ -94,7 +95,7 @@ export class CoreService {
           sellerId: "admin_seed",
           sellerName: "Boutique Officielle Olmart",
           status: "active",
-          media: [{ url: "https://images.unsplash.com/photo-1517256064527-09c53b2d0bc6?auto=format&fit=crop&w=800&q=80", type: "image" }],
+          media: [{ url: "/images/placeholders/product.svg", type: "image" }],
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
@@ -118,7 +119,9 @@ export class CoreService {
     const startTime = Date.now();
     const emptySnap = { docs: [] as FirestoreDocSnapshot[] };
     try {
-      await CoreService.ensureInitialProductsSeeded();
+      if (process.env.NODE_ENV !== "production") {
+        await CoreService.ensureInitialProductsSeeded();
+      }
 
       const [productsSnap, categoriesSnap, sectionsSnap, bannersSnap, tagsSnap, sellersSnap] = await Promise.all([
         withFirestoreDeadline(

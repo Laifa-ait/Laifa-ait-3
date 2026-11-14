@@ -70,13 +70,13 @@ realEstateBookingCreateRouter.post(
           throw new Error('PROPERTY_NOT_AVAILABLE');
         }
 
-        const existingBookingsQuery = await db!
+        const bookingsQuery = db!
           .collection('real_estate_bookings')
           .where('propertyId', '==', propertyId)
-          .where('status', 'in', ['confirmed', 'pending'])
-          .get();
+          .where('status', 'in', ['confirmed', 'pending']);
+        const existingBookingsSnap = await transaction.get(bookingsQuery);
 
-        const hasOverlap = existingBookingsQuery.docs.some((doc) => {
+        const hasOverlap = existingBookingsSnap.docs.some((doc) => {
           const b = doc.data() as BookingShort;
           return b.startDate < endDate && b.endDate > startDate;
         });
@@ -122,6 +122,7 @@ realEstateBookingCreateRouter.post(
 
         const newBookingRef = db!.collection('real_estate_bookings').doc(bookingId);
         transaction.set(newBookingRef, booking);
+        transaction.update(propRef, { lastBookedAt: now });
 
         return booking;
       }));

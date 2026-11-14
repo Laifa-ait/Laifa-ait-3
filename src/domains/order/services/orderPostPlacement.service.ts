@@ -5,6 +5,7 @@ import { TrendingSearchesService } from "../../../services/TrendingSearchesServi
 import { sendLowStockEmail, sendOrderConfirmationEmails, OrderEmailSubOrder } from "./orderEmailNotifier";
 import { PlaceOrderResult } from "./orderPlacement.service";
 import { incrementActiveTasks, decrementActiveTasks } from "../../../utils/telemetry";
+import { PushNotificationService } from "../../notifications/services/PushNotificationService";
 
 interface PostPlacementParams {
   result: PlaceOrderResult;
@@ -16,20 +17,31 @@ export class OrderPostPlacementService {
   static dispatchPostPlacementTasks(params: PostPlacementParams): void {
     const { result, shippingEmail, shippingFullName } = params;
 
-    // 1. Commit batch notifications
-    if (result.internalNotificationsToCreate.length > 0 || result.pushQueueToCreate.length > 0) {
+    // 1. Commit batch internal notifications & send real FCM push alerts
+    if (result.internalNotificationsToCreate.length > 0 || result.pushAlertsToSend.length > 0) {
       setImmediate(async () => {
         try {
-          const batch = db.batch();
-          for (const notif of result.internalNotificationsToCreate) {
-            batch.set(notif.ref, notif.data);
+          if (result.internalNotificationsToCreate.length > 0) {
+            const batch = db.batch();
+            for (const notif of result.internalNotificationsToCreate) {
+              batch.set(notif.ref, notif.data);
+            }
+            await batch.commit();
           }
-          for (const push of result.pushQueueToCreate) {
-            batch.set(push.ref, push.data);
+          if (result.pushAlertsToSend.length > 0) {
+            await Promise.all(
+              result.pushAlertsToSend.map((alert) =>
+                PushNotificationService.sendInventoryAlertPush(
+                  alert.recipientId,
+                  alert.title,
+                  alert.body,
+                  alert.productId
+                )
+              )
+            );
           }
-          await batch.commit();
         } catch (err) {
-          safeLogger.error("Failed to commit post-transaction notifications batch", {
+          safeLogger.error("Failed to dispatch post-transaction notifications", {
             err: err instanceof Error ? err.message : String(err),
           });
         }

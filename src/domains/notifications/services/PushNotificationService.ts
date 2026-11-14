@@ -329,4 +329,72 @@ export class PushNotificationService {
       safeLogger.error("[PushNotificationService] ❌ Failed to send negotiation push", { err: errorMsg });
     }
   }
+
+  /**
+   * Triggers a real FCM push notification for seller inventory low-stock alerts.
+   */
+  public static async sendInventoryAlertPush(
+    recipientId: string,
+    title: string,
+    body: string,
+    productId?: string
+  ): Promise<void> {
+    try {
+      if (!db || !recipientId) return;
+
+      const tokensSnap = await db
+        .collection("users")
+        .doc(recipientId)
+        .collection("pushTokens")
+        .get();
+
+      if (tokensSnap.empty) return;
+
+      const tokens: string[] = [];
+      const tokenDocIds: string[] = [];
+      tokensSnap.docs.forEach((doc) => {
+        const data = doc.data();
+        if (data && typeof data.token === "string" && data.token) {
+          tokens.push(data.token);
+          tokenDocIds.push(doc.id);
+        }
+      });
+
+      if (tokens.length === 0 || typeof admin.messaging !== "function") return;
+
+      const response = await admin.messaging().sendEachForMulticast({
+        notification: { title, body },
+        data: {
+          type: "LOW_STOCK_ALERT",
+          ...(productId ? { productId } : {}),
+        },
+        tokens,
+      });
+
+      if (response.failureCount > 0) {
+        response.responses.forEach((res, idx) => {
+          if (!res.success && res.error) {
+            const code = res.error.code;
+            if (
+              code === "messaging/invalid-registration-token" ||
+              code === "messaging/registration-token-not-registered"
+            ) {
+              const invalidDocId = tokenDocIds[idx];
+              if (invalidDocId) {
+                db.collection("users")
+                  .doc(recipientId)
+                  .collection("pushTokens")
+                  .doc(invalidDocId)
+                  .delete()
+                  .catch(() => {});
+              }
+            }
+          }
+        });
+      }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      safeLogger.warn("[PushNotificationService] Failed to send inventory alert push", { err: errorMsg });
+    }
+  }
 }

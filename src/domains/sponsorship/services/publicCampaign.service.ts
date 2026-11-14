@@ -97,6 +97,24 @@ export class PublicCampaignService {
       return hashA - hashB || a.id.localeCompare(b.id);
     });
 
+    const uniqueProductIds = Array.from(
+      new Set(eligibleCampaigns.map((c) => c.productId).filter((id): id is string => Boolean(id)))
+    );
+    const productMap = new Map<string, Product>();
+
+    if (uniqueProductIds.length > 0) {
+      for (let i = 0; i < uniqueProductIds.length; i += 100) {
+        const chunkIds = uniqueProductIds.slice(i, i + 100);
+        const refs = chunkIds.map((id) => db.collection("products").doc(id));
+        const snaps = await db.getAll(...refs);
+        snaps.forEach((doc) => {
+          if (doc.exists) {
+            productMap.set(doc.id, { id: doc.id, ...(doc.data() as Omit<Product, "id">) } as Product);
+          }
+        });
+      }
+    }
+
     const results: PublicSponsoredProductDTO[] = [];
     const sellerCountMap = new Map<string, number>();
 
@@ -107,12 +125,10 @@ export class PublicCampaignService {
         continue;
       }
 
-      const productDoc = await db.collection("products").doc(campaign.productId).get();
-      if (!productDoc.exists) {
+      const product = productMap.get(campaign.productId);
+      if (!product) {
         continue;
       }
-
-      const product = productDoc.data() as Product;
 
       if (product.sellerId !== campaign.sellerId) {
         continue;

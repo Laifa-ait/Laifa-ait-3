@@ -50,6 +50,7 @@ export const executeProductPublisherJob = async (): Promise<number> => {
     
     const snapshot = await db.collection("products")
       .where("publishAt", "<=", now)
+      .limit(200)
       .get();
 
     if (snapshot.empty) {

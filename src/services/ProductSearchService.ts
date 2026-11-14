@@ -61,23 +61,45 @@ async function refreshMemoryIndex(): Promise<void> {
   if (isRefreshingCache) return;
   isRefreshingCache = true;
   try {
-    const [prodSnap, profilesSnap] = await Promise.all([
-      withFirestoreDeadline(
-        () => db.collection("products").where("status", "==", PRODUCT_STATUSES.ACTIVE).limit(500).get(),
+    const PAGE_SIZE = 500;
+    const MAX_PAGES = 5; // Up to 2500 active products indexed per cycle
+    const accumulatedProducts: SearchableProduct[] = [];
+    let lastDoc: admin.firestore.QueryDocumentSnapshot | null = null;
+
+    const profilesPromise = withFirestoreDeadline(
+      () => db.collection("publicProfiles").limit(500).get().catch(() => null),
+      null,
+      1500,
+      "search_profiles_index"
+    );
+
+    for (let pageIdx = 0; pageIdx < MAX_PAGES; pageIdx++) {
+      const pageSnap = await withFirestoreDeadline(
+        () => {
+          let q = db.collection("products").where("status", "==", PRODUCT_STATUSES.ACTIVE).limit(PAGE_SIZE);
+          if (lastDoc && typeof q.startAfter === "function") {
+            q = q.startAfter(lastDoc);
+          }
+          return q.get();
+        },
         null,
         2000,
         "search_products_index"
-      ),
-      withFirestoreDeadline(
-        () => db.collection("publicProfiles").limit(200).get().catch(() => null),
-        null,
-        1500,
-        "search_profiles_index"
-      ),
-    ]);
+      );
 
-    if (prodSnap) {
-      cachedProducts = prodSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as SearchableProduct[];
+      if (!pageSnap || pageSnap.docs.length === 0) break;
+      for (const doc of pageSnap.docs) {
+        accumulatedProducts.push({ id: doc.id, ...doc.data() } as SearchableProduct);
+      }
+      if (pageSnap.docs.length < PAGE_SIZE) break;
+      lastDoc = pageSnap.docs[pageSnap.docs.length - 1];
+      if (!lastDoc || typeof db.collection("products").limit(1).startAfter !== "function") break;
+    }
+
+    const profilesSnap = await profilesPromise;
+
+    if (accumulatedProducts.length > 0) {
+      cachedProducts = accumulatedProducts;
       cachedFuse = buildFuseIndex(cachedProducts);
     }
     if (profilesSnap) {

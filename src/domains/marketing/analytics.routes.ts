@@ -1,13 +1,46 @@
 import { Router, Request, Response } from "express";
+import { z } from "zod";
 import { db, admin } from "../../config/firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 import { safeLogger } from "../../utils/logger";
 
 export const analyticsRouter = Router();
 
+const MAX_EVENTS_PER_BATCH = 50;
+const MAX_PAYLOAD_BYTES = 32 * 1024;
+
+const AnalyticsEventSchema = z
+  .object({
+    name: z.string().min(1).max(64).optional(),
+    type: z.string().min(1).max(64).optional(),
+    eventName: z.string().min(1).max(64).optional(),
+    path: z.string().max(256).optional(),
+    page: z.string().max(256).optional(),
+    category: z.string().max(100).optional(),
+    productId: z.string().max(128).optional(),
+    sellerId: z.string().max(128).optional(),
+    campaignId: z.string().max(128).optional(),
+    sessionId: z.string().max(128).optional(),
+    userId: z.string().max(128).optional(),
+    clientTimestamp: z.union([z.number(), z.string().max(64)]).optional(),
+    metadata: z
+      .record(z.string().max(64), z.union([z.string().max(256), z.number(), z.boolean(), z.null()]))
+      .optional(),
+  })
+  .strict()
+  .refine((e) => Boolean(e.name || e.type || e.eventName || e.path || e.page), {
+    message: "Événement analytics invalide : identifiant d'événement requis.",
+  });
+
+const SponsorshipTrackSchema = z.object({
+  productId: z.string().min(1).max(128),
+  campaignId: z.string().min(1).max(128).optional(),
+  action: z.enum(["impression", "click"]),
+});
+
 interface AnalyticsPayload {
-  events?: Record<string, unknown>[];
-  event?: Record<string, unknown>;
+  events?: unknown[];
+  event?: unknown;
 }
 
 export const isBillingOrQuotaError = (err: unknown): boolean => {
@@ -39,9 +72,14 @@ export const getTargetDb = () => {
 // POST analytics track
 analyticsRouter.post("/api/v1/analytics/track", async (req: Request, res: Response) => {
   try {
+    const payloadSize = Buffer.byteLength(JSON.stringify(req.body || {}), "utf8");
+    if (payloadSize > MAX_PAYLOAD_BYTES) {
+      return res.status(413).json({ success: false, error: "Charge utile analytics trop volumineuse." });
+    }
+
     const body = (req.body || {}) as AnalyticsPayload;
     const rawEvents = Array.isArray(req.body)
-      ? (req.body as Record<string, unknown>[])
+      ? req.body
       : Array.isArray(body.events)
       ? body.events
       : body.event
@@ -52,11 +90,24 @@ analyticsRouter.post("/api/v1/analytics/track", async (req: Request, res: Respon
       return res.status(200).json({ ok: true, success: true, count: 0 });
     }
 
+    if (rawEvents.length > MAX_EVENTS_PER_BATCH) {
+      return res.status(400).json({ success: false, error: `Maximum ${MAX_EVENTS_PER_BATCH} événements par lot.` });
+    }
+
+    const validatedEvents: Array<z.infer<typeof AnalyticsEventSchema>> = [];
+    for (const raw of rawEvents) {
+      const parsed = AnalyticsEventSchema.safeParse(raw);
+      if (!parsed.success) {
+        return res.status(400).json({ success: false, error: "Format d'événement analytics invalide." });
+      }
+      validatedEvents.push(parsed.data);
+    }
+
     const firestoreDb = getTargetDb();
     if (firestoreDb) {
       try {
         const batch = firestoreDb.batch();
-        rawEvents.slice(0, 50).forEach((evt: Record<string, unknown>) => {
+        validatedEvents.forEach((evt) => {
           const ref = firestoreDb.collection("analytics_events").doc();
           batch.set(ref, {
             ...evt,
@@ -75,7 +126,7 @@ analyticsRouter.post("/api/v1/analytics/track", async (req: Request, res: Respon
       }
     }
 
-    return res.status(200).json({ ok: true, success: true, count: rawEvents.length });
+    return res.status(200).json({ ok: true, success: true, count: validatedEvents.length });
   } catch (error: unknown) {
     if (isBillingOrQuotaError(error)) {
       safeLogger.debug("[Analytics] Track payload deferred: project billing restriction");
@@ -91,26 +142,40 @@ analyticsRouter.post("/api/v1/analytics/track", async (req: Request, res: Respon
 // POST sponsorship analytics track
 analyticsRouter.post("/api/v1/sponsorship/analytics/track", async (req: Request, res: Response) => {
   try {
-    const { productId, action } = req.body;
-    if (!productId || !["impression", "click"].includes(action)) {
-      return res.status(400).json({ error: "productId and valid action required" });
+    const parsed = SponsorshipTrackSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, error: "productId and valid action required" });
     }
+    const { productId, campaignId, action } = parsed.data;
 
     const firestoreDb = getTargetDb();
     if (firestoreDb) {
-      const snap = await firestoreDb.collection("sponsorship_requests")
-        .where("productId", "==", productId)
-        .where("status", "==", "approved")
-        .limit(1)
-        .get();
+      const fieldToIncrement = action === "impression" ? "impressions" : "clicks";
+      if (campaignId) {
+        const campaignRef = firestoreDb.collection("sponsored_campaigns").doc(campaignId);
+        const campaignDoc = await campaignRef.get();
+        if (campaignDoc.exists && campaignDoc.data()?.productId === productId && campaignDoc.data()?.status === "active") {
+          await campaignRef.update({
+            [fieldToIncrement]: admin.firestore.FieldValue.increment(1),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      } else {
+        const snap = await firestoreDb
+          .collection("sponsored_campaigns")
+          .where("productId", "==", productId)
+          .where("moderationStatus", "==", "approved")
+          .where("status", "==", "active")
+          .limit(1)
+          .get();
 
-      if (!snap.empty) {
-        const docRef = snap.docs[0].ref;
-        const fieldToIncrement = action === "impression" ? "impressionsCount" : "clicksCount";
-        await docRef.update({
-          [fieldToIncrement]: admin.firestore.FieldValue.increment(1),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
+        if (!snap.empty) {
+          const docRef = snap.docs[0].ref;
+          await docRef.update({
+            [fieldToIncrement]: admin.firestore.FieldValue.increment(1),
+            updatedAt: new Date().toISOString(),
+          });
+        }
       }
     }
 

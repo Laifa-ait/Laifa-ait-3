@@ -89,6 +89,7 @@ router.post(
   "/admin/translate-fictive",
   authenticateToken,
   authorizeAdmin,
+  aiLimiter,
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const count = await AiService.fixFictiveTranslations(req.user?.uid);
@@ -104,6 +105,7 @@ router.post(
   "/admin/translate-ui",
   authenticateToken,
   authorizeAdmin,
+  aiLimiter,
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const frContent = await LocaleStorageService.getMergedLocale("fr");

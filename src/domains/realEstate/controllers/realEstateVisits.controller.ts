@@ -125,9 +125,17 @@ realEstateVisitsRouter.put(
 
       const isOwner = visitData.ownerId === callerUid;
       const isVisitor = visitData.visitorId === callerUid;
+      const isServerAdmin = req.user?.role === 'admin' || req.user?.role === 'superadmin';
 
-      if (!isOwner && !isVisitor && req.user?.role !== 'admin') {
+      if (!isOwner && !isVisitor && !isServerAdmin) {
         return res.status(403).json({ success: false, error: 'Accès refusé. Vous n\'êtes pas autorisé à modifier cette visite.' });
+      }
+
+      if (isVisitor && !isOwner && !isServerAdmin && status !== 'cancelled') {
+        return res.status(403).json({
+          success: false,
+          error: 'Le visiteur peut uniquement annuler sa demande de visite.',
+        });
       }
 
       await visitRef.update({

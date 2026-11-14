@@ -89,7 +89,7 @@ router.get(["/api/v1/public/stores/:slugOrId", "/api/v1/public/shops/:slugOrId"]
         avgPreparationTime: cfg.avgPreparationTime || dto.avgPreparationTime,
         legalStatus: cfg.legalStatus || dto.legalStatus,
         followersCount: dto.followersCount || storefrontData.trustMetrics.followersCount,
-        rating: dto.rating ?? storefrontData.trustMetrics.ratingAverage,
+        rating: (dto.reviewsCount > 0 ? dto.rating : null) ?? storefrontData.trustMetrics.ratingAverage,
         reviewsCount: dto.reviewsCount || storefrontData.trustMetrics.reviewsCount,
         theme: cfg.theme, seo: cfg.seo, collectionPageConfig: cfg.collectionPageConfig, customPages: cfg.customPages,
         announcementBar: cfg.announcementBar, headerConfig: cfg.headerConfig, commerceConfig: cfg.commerceConfig,

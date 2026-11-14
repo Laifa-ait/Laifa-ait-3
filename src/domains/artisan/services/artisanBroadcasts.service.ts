@@ -92,10 +92,35 @@ export class ArtisanBroadcastsService {
         .limit(filters.limit || 50)
         .get();
 
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<ArtisanJobBroadcast, "id">),
-      }));
+      const maskClientName = (fullName: unknown): string => {
+        const cleaned = String(fullName || "Client Olmart").trim();
+        const parts = cleaned.split(/\s+/).filter(Boolean);
+        if (parts.length <= 1) return parts[0] || "Client";
+        return `${parts[0]} ${parts[1][0]?.toUpperCase() || ""}.`;
+      };
+
+      return snapshot.docs.map((doc) => {
+        const d = doc.data() as Partial<ArtisanJobBroadcast>;
+        return {
+          id: doc.id,
+          clientId: d.clientId || "",
+          clientName: maskClientName(d.clientName),
+          tradeId: d.tradeId || "",
+          tradeName: d.tradeName || "",
+          categoryPreset: d.categoryPreset,
+          title: d.title || "",
+          description: d.description || "",
+          wilaya: d.wilaya || "",
+          wilayaCode: d.wilayaCode,
+          commune: d.commune || "",
+          urgency: d.urgency || "standard",
+          estimatedBudget: d.estimatedBudget,
+          status: d.status || "open",
+          repliesCount: d.repliesCount ?? 0,
+          createdAt: d.createdAt || "",
+          updatedAt: d.updatedAt || "",
+        };
+      });
     } catch (error) {
       safeLogger.error("[ArtisanBroadcastsService] listBroadcasts error", {
         error: error instanceof Error ? error.message : String(error),
@@ -131,25 +156,40 @@ export class ArtisanBroadcastsService {
   }
 
   /**
-   * Update broadcast status (e.g. mark fulfilled, contacted, or increment replies)
+   * Update broadcast status with strict IDOR ownership or admin enforcement
    */
   static async updateStatus(
     broadcastId: string,
-    status: ArtisanJobBroadcast["status"]
-  ): Promise<{ success: boolean; error?: string }> {
-    if (!db) return { success: false, error: "Base de données non disponible" };
+    status: ArtisanJobBroadcast["status"],
+    callerUid?: string,
+    isAdmin = false
+  ): Promise<{ success: boolean; statusCode?: number; error?: string }> {
+    if (!db) return { success: false, statusCode: 503, error: "Base de données non disponible" };
+    if (!callerUid) return { success: false, statusCode: 401, error: "Authentification requise" };
 
     try {
-      await db.collection(BROADCASTS_COLLECTION).doc(broadcastId).update({
-        status,
-        updatedAt: new Date().toISOString(),
+      const docRef = db.collection(BROADCASTS_COLLECTION).doc(broadcastId);
+      const result = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(docRef);
+        if (!snap.exists) {
+          return { success: false, statusCode: 404, error: "Annonce introuvable" };
+        }
+        const data = snap.data() as Partial<ArtisanJobBroadcast>;
+        if (!isAdmin && data.clientId !== callerUid) {
+          return { success: false, statusCode: 403, error: "Accès refusé. Vous ne pouvez modifier que vos propres annonces." };
+        }
+        tx.update(docRef, {
+          status,
+          updatedAt: new Date().toISOString(),
+        });
+        return { success: true, statusCode: 200 };
       });
-      return { success: true };
+      return result;
     } catch (error) {
       safeLogger.error("[ArtisanBroadcastsService] updateStatus error", {
         error: error instanceof Error ? error.message : String(error),
       });
-      return { success: false, error: "Impossible de modifier le statut de l'annonce" };
+      return { success: false, statusCode: 500, error: "Impossible de modifier le statut de l'annonce" };
     }
   }
 }

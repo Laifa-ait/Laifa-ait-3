@@ -270,11 +270,15 @@ export class WorkspaceService {
         scopes: ['https://www.googleapis.com/auth/drive.file']
       });
     } else {
-      safeLogger.warn("Pas de GOOGLE_SERVICE_ACCOUNT_KEY. Le fichier n'est pas envoyé sur Drive (Mode Démo).");
+      if (process.env.NODE_ENV === "production") {
+        safeLogger.error("[WorkspaceService] ❌ GOOGLE_SERVICE_ACCOUNT_KEY manquant en production pour uploadSystemKyc.");
+        throw new WorkspaceBusinessError(503, "Service d'archivage KYC indisponible (configuration serveur manquante).");
+      }
+      safeLogger.warn("Pas de GOOGLE_SERVICE_ACCOUNT_KEY (hors production). Le fichier n'est pas envoyé sur Drive.");
       return {
         file: {
           webViewLink: `https://drive.google.com/demo-link-kyc/${encodeURIComponent(sellerId)}`,
-          id: `mock-id-${Date.now()}`
+          id: `dev-local-${Date.now()}`
         },
         demoMode: true
       };

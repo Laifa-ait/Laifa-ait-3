@@ -38,7 +38,7 @@ async function recalculateProductStatsInsideTransaction(
   targetReviewPatch?: Partial<ReviewDocument>,
   isDelete = false
 ): Promise<void> {
-  const reviewsQuery = db.collection("reviews").where("productId", "==", productId);
+  const reviewsQuery = db.collection("reviews").where("productId", "==", productId).limit(500);
   const reviewsSnap = await t.get(reviewsQuery);
 
   let totalRatingSum = 0;
@@ -290,7 +290,7 @@ export class FirebaseReviewRepository implements IReviewRepository {
     flaggedCount: number;
     avgRating: number;
   }> {
-    const snap = await db.collection("reviews").get();
+    const snap = await db.collection("reviews").limit(500).get();
     const allDocs = snap.docs;
 
     let flaggedCount = 0;

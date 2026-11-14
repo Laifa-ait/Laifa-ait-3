@@ -239,6 +239,6 @@ export const require2FA = async (req: AuthenticatedRequest, res: Response, next:
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error);
     safeLogger.error("require2FA middleware error", { err: errMsg });
-    return res.status(500).json({ error: `Erreur vérification 2FA: ${errMsg}` });
+    return res.status(500).json({ error: "Erreur interne lors de la vérification de la double authentification." });
   }
 };

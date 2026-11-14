@@ -6,6 +6,7 @@ import {
   type PostMessageDTO
 } from "../types/support.types";
 import { validateSecureFilePath } from "../utils/supportValidation";
+import { sanitizeHTML, sanitizePlainText } from "../../../utils/sanitization";
 
 export class SupportClientMessageService {
   /**
@@ -147,10 +148,13 @@ export class SupportClientMessageService {
         };
       }
 
+      const cleanText = text ? sanitizeHTML(text.trim()) : "";
+      const previewText = cleanText ? sanitizePlainText(cleanText) : "";
+
       const messageData: Record<string, unknown> = {
         ticketId,
         userId: uid,
-        text: text || "",
+        text: cleanText,
         sender: "client",
         createdAt: new Date().toISOString(),
         ...attachmentInfo
@@ -159,7 +163,7 @@ export class SupportClientMessageService {
       transaction.create(messageRef, messageData);
 
       transaction.update(ticketRef, {
-        lastMessage: attachmentId ? "Pièce jointe envoyée" : (text || ""),
+        lastMessage: attachmentId ? "Pièce jointe envoyée" : previewText,
         lastMessageAt: new Date().toISOString()
       });
 

@@ -21,7 +21,7 @@ const SEED_PARTS: Omit<AutoPartDto, "id" | "createdAt">[] = [
       { brand: "Audi", model: "A3 8V", yearStart: 2013, yearEnd: 2019, engineType: "2.0 TDI", isCertified: true },
     ],
     description: "Moteur importé d'Europe avec carnet de suivi. Faible kilométrage (98 000 km certifié). Test compression OK.",
-    images: ["https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=800&q=80"],
+    images: ["/images/placeholders/product.svg"],
     isJunkYard: false,
     sellerId: "seller_moteur_dz",
     sellerName: "Auto Pièces Express Alger",
@@ -40,7 +40,7 @@ const SEED_PARTS: Omit<AutoPartDto, "id" | "createdAt">[] = [
       { brand: "Volkswagen", model: "Golf 7.5", yearStart: 2017, yearEnd: 2020, isCertified: true },
     ],
     description: "Paire de phares avant d'origine Valeo en parfait état. Aucune fixation cassée ni micro-rayure. Prêt à monter.",
-    images: ["https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=800&q=80"],
+    images: ["/images/placeholders/product.svg"],
     isJunkYard: false,
     sellerId: "seller_optique_oran",
     sellerName: "Wahran Auto Éclairage",
@@ -59,7 +59,7 @@ const SEED_PARTS: Omit<AutoPartDto, "id" | "createdAt">[] = [
       { brand: "Peugeot", model: "208", yearStart: 2015, yearEnd: 2019, isCertified: true },
     ],
     description: "Casse auto Sétif : 208 accidentée arrière. Mécanique 1.6 HDi 92ch intacte (75 000 km), intérieur cuir comme neuf, train avant complet.",
-    images: ["https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=800&q=80"],
+    images: ["/images/placeholders/product.svg"],
     isJunkYard: true,
     sellerId: "casse_setif_pro",
     sellerName: "Casse Moderne des Hauts Plateaux",
@@ -74,7 +74,7 @@ export class AutoPartsService {
   }
 
   private async ensureSeed() {
-    if (this.isOfflineTestMode() || !db) return;
+    if (process.env.NODE_ENV === "production" || this.isOfflineTestMode() || !db) return;
     try {
       const snap = await db.collection("auto_parts").limit(1).get();
       if (snap.empty) {
@@ -84,7 +84,6 @@ export class AutoPartsService {
           batch.set(ref, {
             ...part,
             createdAt: new Date().toISOString(),
-            sellerPhoneFull: "0550123456",
           });
         }
         await batch.commit();
@@ -96,12 +95,16 @@ export class AutoPartsService {
   }
 
   async listParts(filters: AutoPartFilterParams): Promise<{ items: AutoPartDto[]; total: number }> {
-    await this.ensureSeed();
-    if (this.isOfflineTestMode() || !db) {
-      return {
-        items: SEED_PARTS.map((p, i) => ({ ...p, id: `seed_${i}`, createdAt: new Date().toISOString() })),
-        total: SEED_PARTS.length,
-      };
+    if (process.env.NODE_ENV !== "production") {
+      await this.ensureSeed();
+      if (this.isOfflineTestMode() || !db) {
+        return {
+          items: SEED_PARTS.map((p, i) => ({ ...p, id: `seed_${i}`, createdAt: new Date().toISOString() })),
+          total: SEED_PARTS.length,
+        };
+      }
+    } else if (!db) {
+      return { items: [], total: 0 };
     }
 
     try {
@@ -191,17 +194,17 @@ export class AutoPartsService {
     };
   }
 
-  async revealPartContact(id: string): Promise<{ phone: string; whatsapp: string } | null> {
+  async revealPartContact(id: string): Promise<{ sellerId: string; sellerName: string; internalMessagingUrl: string; phone: string; whatsapp: string } | null> {
     if (!db) return null;
     const doc = await db.collection("auto_parts").doc(id).get();
     if (!doc.exists) return null;
     const data = doc.data()!;
-    const phone = data.sellerPhoneFull || "0550000000";
-    const cleanPhone = phone.replace(/\D/g, "");
-    const wa = cleanPhone.startsWith("0") ? `213${cleanPhone.slice(1)}` : cleanPhone;
     return {
-      phone,
-      whatsapp: `https://wa.me/${wa}?text=${encodeURIComponent(`Bonjour, je vous contacte concernant votre pièce Olma Auto : ${data.title}`)}`,
+      sellerId: String(data.sellerId || ""),
+      sellerName: String(data.sellerName || "Vendeur Olmart"),
+      internalMessagingUrl: `/messages?recipientId=${encodeURIComponent(String(data.sellerId || ""))}&ref=${encodeURIComponent(id)}`,
+      phone: "",
+      whatsapp: "",
     };
   }
 
