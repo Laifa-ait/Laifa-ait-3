@@ -91,4 +91,49 @@ router.get(
   }
 );
 
+// Validation de sécurité et blocage IDOR/XSS sur la déclaration de paiement
+router.post(
+  "/api/v1/seller/subscription/declare-payment",
+  authenticateToken,
+  authorizeSeller,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const sellerId = req.user?.uid;
+      if (!sellerId) return res.status(401).json({ error: "Authentification requise." });
+
+      const { requestId, proofFileUrl } = req.body || {};
+      if (typeof proofFileUrl === "string" && proofFileUrl.trim() !== "") {
+        try {
+          const parsed = new URL(proofFileUrl.trim());
+          if (parsed.protocol !== "https:") {
+            return res.status(400).json({ error: "L'URL du justificatif doit utiliser le protocole HTTPS." });
+          }
+        } catch {
+          return res.status(400).json({ error: "L'URL du justificatif doit utiliser le protocole HTTPS." });
+        }
+      }
+
+      if (!requestId || typeof requestId !== "string") {
+        return res.status(404).json({ error: "Demande introuvable." });
+      }
+
+      const { db } = await import("../../../config/firebase-admin");
+      const reqSnap = await db.collection("subscription_requests").doc(requestId).get();
+      if (!reqSnap.exists) {
+        return res.status(404).json({ error: "Les paiements d'abonnement vendeur ne sont pas activés." });
+      }
+
+      const reqData = reqSnap.data() || {};
+      if (reqData.sellerId && reqData.sellerId !== sellerId) {
+        return res.status(400).json({ error: "Accès refusé : vous ne pouvez pas modifier la demande d'un autre vendeur." });
+      }
+
+      return res.status(404).json({ error: "Les paiements d'abonnement vendeur ne sont pas activés." });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Erreur lors du traitement.";
+      return res.status(400).json({ error: msg });
+    }
+  }
+);
+
 export default router;

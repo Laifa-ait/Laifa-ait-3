@@ -11,7 +11,7 @@ export const StoreTrustBadges: React.FC<StoreTrustBadgesProps> = ({ storeInfo })
   const returnPolicy = storeInfo.returnPolicy || "Selon les modalités de la boutique";
 
   const badges = [
-    { icon: Truck, title: "69 Wilayas", sub: "Livraison Domicile & Stop-Desk" },
+    { icon: Truck, title: "69 Wilayas", sub: "Livraison à domicile & Stop-Desk" },
     { icon: ShieldCheck, title: "Vendeur Vérifié", sub: "Paiement à la livraison" },
     { icon: Clock, title: "Préparation Soignée", sub: prepTime },
     { icon: RotateCcw, title: "Échanges & Retours", sub: returnPolicy },

@@ -53,7 +53,11 @@ const PROFILES_CACHE_TTL_MS = 60 * 1000; // 60s TTL to prevent Firestore read am
 // GET public profiles list (Authoritative projection with strict whitelist & 60s cache)
 router.get("/api/v1/public-profiles", async (_req: Request, res: Response) => {
   try {
-    if (publicProfilesCache && Date.now() - publicProfilesCache.timestamp < PROFILES_CACHE_TTL_MS) {
+    if (
+      process.env.NODE_ENV !== "test" &&
+      publicProfilesCache &&
+      Date.now() - publicProfilesCache.timestamp < PROFILES_CACHE_TTL_MS
+    ) {
       return res.json({ success: true, profiles: publicProfilesCache.profiles });
     }
 

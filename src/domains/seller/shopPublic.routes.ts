@@ -70,17 +70,27 @@ router.get(["/api/v1/public/stores/:slugOrId", "/api/v1/public/shops/:slugOrId"]
     const previewDraft = req.query?.preview === "draft";
     const storefrontData = await StorePublicService.resolveAndGetStorefront(slugOrId, vipToken, { previewDraft });
     const cfg = redactStoreConfigForPublic(storefrontData.storeConfig);
+    const dto = storefrontData.whitelistedShopDto;
     return res.json({
       success: true,
       isVipLocked: Boolean(storefrontData.isVipLocked),
       shop: {
+        ...dto,
         id: storefrontData.sellerId, sellerId: storefrontData.sellerId, canonicalSlug: storefrontData.canonicalSlug,
         redirectToSlug: storefrontData.redirectToSlug, hasPaidStudioSubscription: storefrontData.hasPaidStudioSubscription,
-        isVipLocked: Boolean(storefrontData.isVipLocked), shopName: cfg.shopName, shopSlug: cfg.shopSlug,
-        shopDescription: cfg.shopDescription, wilaya: cfg.wilaya, commune: cfg.commune, logoUrl: cfg.logoUrl,
-        bannerUrl: cfg.bannerUrl, brandStory: cfg.brandStory, returnPolicy: cfg.returnPolicy,
-        avgPreparationTime: cfg.avgPreparationTime, legalStatus: cfg.legalStatus,
-        followersCount: storefrontData.trustMetrics.followersCount, rating: storefrontData.trustMetrics.ratingAverage,
+        isVipLocked: Boolean(storefrontData.isVipLocked),
+        shopName: cfg.shopName || dto.shopName, shopSlug: cfg.shopSlug,
+        shopDescription: cfg.shopDescription || dto.shopDescription,
+        description: dto.description || cfg.shopDescription,
+        wilaya: cfg.wilaya || dto.wilaya, commune: cfg.commune || dto.commune,
+        logoUrl: cfg.logoUrl || dto.logoUrl, bannerUrl: cfg.bannerUrl || dto.bannerUrl,
+        brandStory: cfg.brandStory,
+        returnPolicy: cfg.returnPolicy || dto.returnPolicy,
+        avgPreparationTime: cfg.avgPreparationTime || dto.avgPreparationTime,
+        legalStatus: cfg.legalStatus || dto.legalStatus,
+        followersCount: dto.followersCount || storefrontData.trustMetrics.followersCount,
+        rating: dto.rating ?? storefrontData.trustMetrics.ratingAverage,
+        reviewsCount: dto.reviewsCount || storefrontData.trustMetrics.reviewsCount,
         theme: cfg.theme, seo: cfg.seo, collectionPageConfig: cfg.collectionPageConfig, customPages: cfg.customPages,
         announcementBar: cfg.announcementBar, headerConfig: cfg.headerConfig, commerceConfig: cfg.commerceConfig,
         storeStatus: cfg.storeStatus, pixelsConfig: cfg.pixelsConfig, publishedLayout: storefrontData.publishedLayout,
@@ -94,7 +104,10 @@ router.get(["/api/v1/public/stores/:slugOrId", "/api/v1/public/shops/:slugOrId"]
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Erreur lors de la récupération de la boutique";
     safeLogger.error("Error fetching single public shop", { slugOrId, err: msg });
-    return res.status(404).json({ success: false, error: msg });
+    if (msg === "Boutique introuvable" || msg === "Boutique non disponible" || msg.includes("indisponible")) {
+      return res.status(404).json({ success: false, error: msg });
+    }
+    return res.status(500).json({ success: false, error: "Erreur lors de la récupération de la boutique" });
   }
 });
 

@@ -101,15 +101,22 @@ export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({
           )}
         </div>
 
-        <span
-          style={{
-            color: "var(--store-secondary, #18181B)",
-            fontFamily: "var(--store-font-heading, inherit)",
-          }}
-          className="text-sm sm:text-base font-extrabold tracking-tight truncate"
-        >
-          {shopName}
-        </span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            style={{
+              color: "var(--store-secondary, #18181B)",
+              fontFamily: "var(--store-font-heading, inherit)",
+            }}
+            className="text-sm sm:text-base font-extrabold tracking-tight truncate"
+          >
+            {shopName}
+          </span>
+          {storeInfo.wilaya && (
+            <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/5 opacity-75 shrink-0">
+              {storeInfo.wilaya}
+            </span>
+          )}
+        </div>
 
         <div className="flex items-center gap-2 shrink-0">
           {(isOwner || isDraftPreview) && (

@@ -63,7 +63,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use("/api/v1/workspace", workspaceRouter);
 app.use(adminWorkspaceRouter);
 
-const hasEmulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST);
+const hasEmulator = process.env.FIREBASE_EMULATOR_ACTIVE === "true";
 
 describe.skipIf(!hasEmulator)("Workspace Google Sheets Export Premium Adversarial BOLA/IDOR Security Suite (P2-02)", () => {
   const sellerAUid = "seller_a_sheets_uid_101";

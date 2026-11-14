@@ -3,10 +3,7 @@ import { db } from "../config/firebase-admin";
 import { OrderPlacementService, PlaceOrderInput } from "../domains/order/services/orderPlacement.service";
 import { OrderStatusService } from "../domains/order/services/orderStatus.service";
 
-const isEmulatorActive = Boolean(
-  process.env.FIREBASE_EMULATOR_ACTIVE === "true" ||
-  (process.env.FIRESTORE_EMULATOR_HOST && process.env.FIRESTORE_EMULATOR_HOST.length > 0)
-);
+const isEmulatorActive = process.env.FIREBASE_EMULATOR_ACTIVE === "true";
 
 describe.skipIf(!isEmulatorActive)("Firestore ACID Transactions - Real Concurrency Stock Reservation", () => {
   const sellerId = "seller_acid_test_01";

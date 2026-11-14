@@ -51,27 +51,11 @@ jobs:
       - name: TypeScript Typecheck
         run: npm run typecheck
 
-      - name: Run Core Security, Domains & Unit Test Suite
+      - name: Run Full Security, Domains & Unit Test Suite (162 Files - Zero Bypass)
         run: |
-          ALLOW_TESTS_WITHOUT_EMULATOR=true npx vitest run \
-            src/tests/format.test.ts \
-            src/tests/sanitization.test.ts \
-            src/tests/validation.test.ts \
-            src/tests/validateIdParam.test.ts \
-            src/tests/paymentWebhooks.test.ts \
-            src/tests/firestoreRulesCoherence.test.ts \
-            src/tests/Checkout.test.ts \
-            src/tests/artisanService.test.ts \
-            src/tests/sellerStudioBackend.test.ts \
-            src/tests/aiService.test.ts \
-            src/tests/aiRoutes.test.ts \
-            src/tests/adversarialHardeningAudit.test.ts \
-            src/tests/auto*.test.* \
-            src/tests/olma*.test.* \
-            src/tests/realEstate*.test.* \
-            src/tests/studio*.test.* \
-            src/tests/serverBootstrapAndViteResilience.test.ts \
-            src/tests/categoryHarmonization.test.ts
+          ALLOW_TESTS_WITHOUT_EMULATOR=true npx vitest run --maxWorkers=2 --fileParallelism=true src/tests/[A-i]*.test.*
+          ALLOW_TESTS_WITHOUT_EMULATOR=true npx vitest run --maxWorkers=2 --fileParallelism=true src/tests/[j-r]*.test.*
+          ALLOW_TESTS_WITHOUT_EMULATOR=true npx vitest run --maxWorkers=2 --fileParallelism=true src/tests/[s-z]*.test.*
 
       - name: Upload Test Coverage Report
         if: ${{ always() }}

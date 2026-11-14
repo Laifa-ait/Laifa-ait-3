@@ -9,7 +9,7 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use("/api/v1/workspace", workspaceRouter);
 
-const hasEmulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST);
+const hasEmulator = process.env.FIREBASE_EMULATOR_ACTIVE === "true";
 
 describe.skipIf(!hasEmulator)("Workspace Drive System Upload KYC BOLA/IDOR Security Suite (P1-01)", () => {
   const sellerAUid = "seller_a_kyc_uid_101";

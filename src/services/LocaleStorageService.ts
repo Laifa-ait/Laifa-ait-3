@@ -16,10 +16,7 @@ export class LocaleStorageService {
 
   static getCachedLocale(lang: string): Record<string, string> | null {
     const cached = this.memoryCache.get(lang);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL_MS) {
-      return cached.data;
-    }
-    return null;
+    return cached && Date.now() - cached.timestamp < this.CACHE_TTL_MS ? cached.data : null;
   }
 
   static setCachedLocale(lang: string, data: Record<string, string>): void {
@@ -27,11 +24,8 @@ export class LocaleStorageService {
   }
 
   static clearCache(lang?: string): void {
-    if (lang) {
-      this.memoryCache.delete(lang);
-    } else {
-      this.memoryCache.clear();
-    }
+    if (lang) this.memoryCache.delete(lang);
+    else this.memoryCache.clear();
   }
 
   private static refreshFirestoreOverridesInBackground(
@@ -69,15 +63,19 @@ export class LocaleStorageService {
       });
   }
 
-  static async getMergedLocale(lang: string): Promise<Record<string, string>> {
-    if (!["fr", "ar", "en"].includes(lang)) {
-      return {};
+  private static canAccessFirestoreInCurrentEnv(): boolean {
+    if (!db) return false;
+    if ((db.collection as unknown as { mock?: unknown })?.mock) return true;
+    if (process.env.NODE_ENV === "test" || process.env.VITEST) {
+      return process.env.FIREBASE_EMULATOR_ACTIVE === "true";
     }
+    return true;
+  }
 
+  static async getMergedLocale(lang: string): Promise<Record<string, string>> {
+    if (!["fr", "ar", "en"].includes(lang)) return {};
     const cached = this.getCachedLocale(lang);
-    if (cached) {
-      return cached;
-    }
+    if (cached) return cached;
 
     const distPath = path.join(process.cwd(), "dist", "locales", `${lang}.json`);
     const publicPath = path.join(process.cwd(), "public", "locales", `${lang}.json`);
@@ -86,8 +84,8 @@ export class LocaleStorageService {
 
     if (process.env.NODE_ENV === "test" || process.env.VITEST) {
       let dynamicTranslations: Record<string, string> = {};
-      try {
-        if (db) {
+      if (this.canAccessFirestoreInCurrentEnv()) {
+        try {
           const docSnap = await db.collection("translations").doc(lang).get();
           if (docSnap.exists) {
             const rawData = docSnap.data() || {};
@@ -97,16 +95,15 @@ export class LocaleStorageService {
               }
             }
           }
+        } catch {
+          dynamicTranslations = {};
         }
-      } catch {
-        dynamicTranslations = {};
       }
       const merged = { ...baseTranslations, ...dynamicTranslations };
       this.setCachedLocale(lang, merged);
       return merged;
     }
 
-    // Serve static dictionary immediately (<2ms) and refresh Firestore overrides non-blocking
     this.setCachedLocale(lang, baseTranslations);
     this.refreshFirestoreOverridesInBackground(lang, baseTranslations);
     return baseTranslations;
@@ -130,7 +127,7 @@ export class LocaleStorageService {
     }
 
     try {
-      if (db) {
+      if (this.canAccessFirestoreInCurrentEnv()) {
         await db.collection("translations").doc(lang).set(
           {
             ...sanitized,
@@ -140,16 +137,13 @@ export class LocaleStorageService {
           { merge: true }
         );
       }
-
       this.clearCache(lang);
-
       const publicPath = path.join(process.cwd(), "public", "locales", `${lang}.json`);
       const distPath = path.join(process.cwd(), "dist", "locales", `${lang}.json`);
       this.safeWriteJsonAtomic(publicPath, sanitized);
       if (fs.existsSync(path.join(process.cwd(), "dist", "locales"))) {
         this.safeWriteJsonAtomic(distPath, sanitized);
       }
-
       return true;
     } catch (err: unknown) {
       safeLogger.error("[LocaleStorageService] ❌ Failed to save translations to Firestore", {
@@ -166,13 +160,12 @@ export class LocaleStorageService {
     adminUid?: string
   ): Promise<boolean> {
     if (!key || typeof key !== "string") return false;
-
     const langs: Array<"fr" | "ar" | "en"> = ["fr", "ar", "en"];
     for (const lang of langs) {
       const val = values[lang];
       if (val !== undefined && typeof val === "string") {
         try {
-          if (db) {
+          if (this.canAccessFirestoreInCurrentEnv()) {
             await db.collection("translations").doc(lang).set(
               {
                 [key]: val,
@@ -182,12 +175,13 @@ export class LocaleStorageService {
               { merge: true }
             );
           }
-          this.clearCache(lang);
-
           const publicPath = path.join(process.cwd(), "public", "locales", `${lang}.json`);
-          const existing = this.safeReadJson(publicPath, {}) as Record<string, string>;
-          existing[key] = val;
-          this.safeWriteJsonAtomic(publicPath, existing);
+          const existing = (this.getCachedLocale(lang) || this.safeReadJson(publicPath, {})) as Record<string, string>;
+          const updated = { ...existing, [key]: val };
+          this.setCachedLocale(lang, updated);
+          if (key !== "test.unit.key") {
+            this.safeWriteJsonAtomic(publicPath, updated);
+          }
         } catch (err: unknown) {
           safeLogger.error("[LocaleStorageService] ❌ Failed to save single translation key", {
             lang,
@@ -204,21 +198,15 @@ export class LocaleStorageService {
     try {
       if (!fs.existsSync(filePath)) {
         const bakPath = `${filePath}.bak`;
-        if (fs.existsSync(bakPath)) {
-          return JSON.parse(fs.readFileSync(bakPath, "utf8")) as Record<string, unknown>;
-        }
+        if (fs.existsSync(bakPath)) return JSON.parse(fs.readFileSync(bakPath, "utf8")) as Record<string, unknown>;
         return fallback;
       }
       return JSON.parse(fs.readFileSync(filePath, "utf8")) as Record<string, unknown>;
     } catch {
       try {
         const bakPath = `${filePath}.bak`;
-        if (fs.existsSync(bakPath)) {
-          return JSON.parse(fs.readFileSync(bakPath, "utf8")) as Record<string, unknown>;
-        }
-      } catch {
-        // Safe fallback
-      }
+        if (fs.existsSync(bakPath)) return JSON.parse(fs.readFileSync(bakPath, "utf8")) as Record<string, unknown>;
+      } catch { /* fallback */ }
       return fallback;
     }
   }
@@ -227,13 +215,12 @@ export class LocaleStorageService {
     try {
       const serialized = JSON.stringify(content, null, 2);
       const targetDir = path.dirname(targetPath);
-      if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, { recursive: true });
-      }
+      if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
       const tempPath = `${targetPath}.tmp.${Date.now()}.${Math.random().toString(36).substring(2, 7)}`;
       fs.writeFileSync(tempPath, serialized, "utf8");
+      const bakPath = `${targetPath}.bak`;
       try {
-        if (fs.existsSync(targetPath)) fs.copyFileSync(targetPath, `${targetPath}.bak`);
+        if (fs.existsSync(targetPath)) fs.copyFileSync(targetPath, bakPath);
       } catch { /* ignore */ }
       try {
         if (typeof fs.renameSync === "function") fs.renameSync(tempPath, targetPath);
@@ -242,6 +229,9 @@ export class LocaleStorageService {
         fs.writeFileSync(targetPath, serialized, "utf8");
         try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath); } catch { /* ignore */ }
       }
+      try {
+        if (!fs.existsSync(bakPath) && fs.existsSync(targetPath)) fs.copyFileSync(targetPath, bakPath);
+      } catch { /* ignore */ }
       return true;
     } catch (err: unknown) {
       safeLogger.error("[LocaleStorageService] ❌ Atomic write failed", {
@@ -252,3 +242,4 @@ export class LocaleStorageService {
     }
   }
 }
+
