@@ -7,6 +7,7 @@ import {
 } from "../../domains/seller/customPage.types";
 import { useOptionalCart } from "../../context/CartContext";
 import { useOptionalUI } from "../../context/UIContext";
+import { readableTextColor } from "./sections/themeColorUtils";
 
 interface StoreCustomHeaderBarProps {
   storeConfig?: SellerStoreConfig | null;
@@ -51,6 +52,10 @@ export const StoreCustomHeaderBar: React.FC<StoreCustomHeaderBarProps> = ({
   const secondaryColor = theme.secondaryColor || "var(--store-secondary, #18181B)";
   const surfaceColor = theme.surfaceColor || "var(--store-surface, #FFFFFF)";
   const canvasColor = theme.canvasColor || "var(--store-canvas, #FAF6F0)";
+  const buttonBg = theme.buttonColor || primaryColor;
+  const buttonText = theme.buttonTextColor || readableTextColor(buttonBg);
+  const announcementBg = announcement?.bgColor || primaryColor;
+  const announcementText = announcement?.textColor || readableTextColor(announcementBg);
 
   const itemCount = cartContext?.cart
     ? cartContext.cart.reduce((acc, item) => acc + (item.quantity || 1), 0)
@@ -127,10 +132,11 @@ export const StoreCustomHeaderBar: React.FC<StoreCustomHeaderBarProps> = ({
 
       {(announcement?.enabled ?? true) && !announcementDismissed && (
         <div
+          data-testid="header-announcement-bar"
           className="px-4 py-2 text-[11.5px] font-bold text-center tracking-wide flex items-center justify-center gap-2 relative"
           style={{
-            backgroundColor: announcement?.bgColor || primaryColor,
-            color: announcement?.textColor || "#FFFFFF",
+            backgroundColor: announcementBg,
+            color: announcementText,
           }}
         >
           <span>
@@ -166,8 +172,8 @@ export const StoreCustomHeaderBar: React.FC<StoreCustomHeaderBarProps> = ({
             />
           ) : (
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold shadow-2xs"
-              style={{ backgroundColor: primaryColor }}
+              className="w-9 h-9 rounded-xl flex items-center justify-center font-bold shadow-2xs"
+              style={{ backgroundColor: primaryColor, color: readableTextColor(primaryColor) }}
             >
               <Store className="w-4 h-4" />
             </div>
@@ -230,16 +236,26 @@ export const StoreCustomHeaderBar: React.FC<StoreCustomHeaderBarProps> = ({
           )}
           <button
             type="button"
+            data-testid="header-cart-btn"
             onClick={(e) => {
               if (!isEditable) {
                 e.stopPropagation();
                 uiContext?.setIsCartOpen(true);
               }
             }}
-            className="h-8 px-2.5 rounded-lg text-white text-[11.5px] font-bold flex items-center gap-1.5 cursor-pointer"
+            className="h-8 px-2.5 rounded-lg text-[11.5px] font-bold flex items-center gap-1.5 cursor-pointer"
             style={{
-              backgroundColor: primaryColor,
-              borderRadius: theme.borderRadiusPx ? `${Math.min(14, theme.borderRadiusPx)}px` : "8px",
+              backgroundColor: theme.buttonStyle === "outline" ? "transparent" : buttonBg,
+              color: theme.buttonStyle === "outline" ? buttonBg : buttonText,
+              border: theme.buttonStyle === "outline" ? `1.5px solid ${buttonBg}` : undefined,
+              borderRadius:
+                theme.buttonStyle === "pill"
+                  ? "999px"
+                  : theme.buttonStyle === "sharp"
+                    ? "0px"
+                    : theme.borderRadiusPx
+                      ? `${Math.min(14, theme.borderRadiusPx)}px`
+                      : "8px",
             }}
           >
             <ShoppingBag className="w-3.5 h-3.5" />

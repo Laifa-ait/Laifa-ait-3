@@ -33,12 +33,12 @@ service firebase.storage {
 
     // Strict regex validation for file names: blocks path traversal, XSS scripts, null bytes
     function isValidSafeFileName(fileName) {
-      return fileName.matches('^[a-zA-Z0-9_\\-.]{1,120}\\.(jpg|jpeg|png|webp|gif|pdf|docx|mp4|webm)$');
+      return fileName.matches('^[a-zA-Z0-9_\\-.]{1,120}\\.(jpg|jpeg|png|webp|avif|gif|pdf|docx|mp4|webm)$');
     }
 
     // Strict regex validation for user-prefixed file names: requires userId_ followed by safe characters
     function isValidUserPrefixedFileName(userId, fileName) {
-      return fileName.startsWith(userId) && fileName.matches('^' + userId + '_[a-zA-Z0-9_\\-.]{1,120}\\.(jpg|jpeg|png|webp|gif|pdf|docx|mp4|webm)$');
+      return fileName.startsWith(userId) && fileName.matches('^' + userId + '_[a-zA-Z0-9_\\-.]{1,120}\\.(jpg|jpeg|png|webp|avif|gif|pdf|docx|mp4|webm)$');
     }
 
     // Helper to check if user owns the support ticket or is admin (metadata first to avoid document read bottlenecks)
@@ -165,14 +165,24 @@ service firebase.storage {
     }
 
     // -------------------------------------------------------------------------
-    // SHOP ASSETS (Banners, Logos)
+    // SHOP ASSETS (Banners, Logos, Studio Gallery Images & Videos)
     // -------------------------------------------------------------------------
     match /shops/{sellerId}/{fileName} {
       allow read: if true;
-      allow write: if isLoggedIn() && (isAdmin() || request.auth.uid == sellerId) 
+      allow write: if isLoggedIn() && (isAdmin() || request.auth.uid == sellerId)
         && isValidSafeFileName(fileName)
-        && request.resource.size < 5 * 1024 * 1024 
-        && request.resource.contentType.matches('image/.*');
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp|avif)');
+      allow delete: if isLoggedIn() && (isAdmin() || request.auth.uid == sellerId);
+    }
+
+    match /shops/{sellerId}/videos/{fileName} {
+      allow read: if true;
+      allow write: if isLoggedIn() && (isAdmin() || request.auth.uid == sellerId)
+        && isValidSafeFileName(fileName)
+        && request.resource.size <= 25 * 1024 * 1024
+        && request.resource.contentType.matches('video/(mp4|webm)');
+      allow delete: if isLoggedIn() && (isAdmin() || request.auth.uid == sellerId);
     }
 
     // -------------------------------------------------------------------------

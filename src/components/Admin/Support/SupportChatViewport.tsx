@@ -201,23 +201,12 @@ export const SupportChatViewport: React.FC<SupportChatViewportProps> = ({
               ))}
             </select>
             <label className="min-h-[36px] flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-500 hover:text-zinc-900">
-              <input
-                type="checkbox"
-                checked={isInternal}
-                onChange={(e) => setIsInternal(e.target.checked)}
-                className="accent-amber-500 w-4 h-4"
-              />
+              <input type="checkbox" checked={isInternal} onChange={(e) => setIsInternal(e.target.checked)} className="accent-amber-500 w-4 h-4" />
               {t("Note interne (Invisible pour le client)")}
             </label>
           </div>
           <div className={`border rounded-2xl overflow-hidden ${isInternal ? "border-amber-300 bg-amber-50" : "border-zinc-200"}`}>
-            <LazyRichTextEditor
-              theme="snow"
-              value={newMessage}
-              onChange={setNewMessage}
-              placeholder={isInternal ? "Écrire une note interne..." : "Écrire votre réponse..."}
-              className="border-none"
-            />
+            <LazyRichTextEditor theme="snow" value={newMessage} onChange={setNewMessage} placeholder={isInternal ? "Écrire une note interne..." : "Écrire votre réponse..."} className="border-none" />
           </div>
           <div className="flex items-center justify-between mt-3 gap-2">
             <div className="flex items-center gap-2">

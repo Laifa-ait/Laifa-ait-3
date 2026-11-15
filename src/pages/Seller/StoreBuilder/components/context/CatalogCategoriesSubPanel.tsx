@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Plus, Trash2, Sparkles } from "lucide-react";
+import { Plus, Trash2, Sparkles, AlertTriangle } from "lucide-react";
+import { Product } from "../../../../../domains/product/product.types";
 import {
   CategoryItem,
   CustomPageSection,
@@ -7,10 +8,15 @@ import {
   FeaturedCategoriesSettings,
   StoreThemeSector,
 } from "../../../../../domains/seller/customPage.types";
+import {
+  resolveCategoryAssignedProducts,
+  slugifyCategoryValue,
+} from "../../../../../domains/seller/studioCatalogResolver";
 import { getSectorPresetCategories } from "../../constants/sectorCoherenceDefaults";
 
 interface CatalogCategoriesSubPanelProps {
   categoriesSection?: CustomPageSection;
+  products?: Product[];
   activeSector?: StoreThemeSector;
   onUpdateSection: (id: string, updatedData: Partial<CustomPageSection>) => void;
   onAddSection: (
@@ -22,6 +28,7 @@ interface CatalogCategoriesSubPanelProps {
 
 export const CatalogCategoriesSubPanel: React.FC<CatalogCategoriesSubPanelProps> = ({
   categoriesSection,
+  products = [],
   activeSector = "mode",
   onUpdateSection,
   onAddSection,
@@ -41,14 +48,7 @@ export const CatalogCategoriesSubPanel: React.FC<CatalogCategoriesSubPanelProps>
     const cleanName = newCatName.trim();
     if (!cleanName) return;
 
-    const slug =
-      cleanName
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "") || `cat-${Date.now()}`;
-
+    const slug = slugifyCategoryValue(cleanName) || `cat-${Date.now()}`;
     const sectorDefaults = getSectorPresetCategories(activeSector);
     const fallbackImg =
       sectorDefaults[categoriesList.length % Math.max(1, sectorDefaults.length)]?.imageUrl;
@@ -59,6 +59,8 @@ export const CatalogCategoriesSubPanel: React.FC<CatalogCategoriesSubPanelProps>
       subtitle: newCatSubtitle.trim() || "Collection dédiée",
       slug,
       imageUrl: newCatImage.trim() || fallbackImg,
+      selectionMode: "auto",
+      categoryFilter: cleanName,
     };
 
     const nextCategories = [...categoriesList, newCat];
@@ -186,37 +188,53 @@ export const CatalogCategoriesSubPanel: React.FC<CatalogCategoriesSubPanelProps>
         <span className="text-[11px] font-bold text-[#667085] uppercase tracking-wider block">
           Rayons actifs sur la vitrine ({categoriesList.length})
         </span>
-        {categoriesList.map((cat) => (
-          <div
-            key={cat.id}
-            className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl border border-[#E5E7EB] bg-white"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              {cat.imageUrl ? (
-                <img
-                  src={cat.imageUrl}
-                  alt={cat.name}
-                  className="w-9 h-9 rounded-lg object-cover border border-[#E5E7EB] shrink-0"
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-lg bg-[#023859]/10 text-[#023859] flex items-center justify-center font-bold text-xs shrink-0">
-                  {cat.name.slice(0, 2).toUpperCase()}
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-[#17191C] truncate">{cat.name}</p>
-                <p className="text-[10px] text-[#667085] truncate">{cat.subtitle || `/${cat.slug}`}</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleRemoveCategory(cat.id)}
-              className="p-1.5 rounded-lg text-[#98A2B3] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+        {categoriesList.map((cat) => {
+          const resolved = products.length > 0 ? resolveCategoryAssignedProducts(cat, products) : null;
+          const activeCount = resolved ? resolved.items.length : (cat.itemCount ?? 0);
+          return (
+            <div
+              key={cat.id}
+              className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl border border-[#E5E7EB] bg-white"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ))}
+              <div className="flex items-center gap-2.5 min-w-0">
+                {cat.imageUrl ? (
+                  <img
+                    src={cat.imageUrl}
+                    alt={cat.name}
+                    className="w-9 h-9 rounded-lg object-cover border border-[#E5E7EB] shrink-0"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-lg bg-[#023859]/10 text-[#023859] flex items-center justify-center font-bold text-xs shrink-0">
+                    {cat.name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#17191C] truncate">{cat.name}</p>
+                  <div className="flex items-center gap-1.5 text-[10px] text-[#667085] truncate">
+                    <span>{cat.subtitle || `/${cat.slug}`}</span>
+                    {products.length > 0 && (
+                      <span
+                        className={`inline-flex items-center gap-0.5 font-semibold ${
+                          activeCount === 0 ? "text-amber-700" : "text-emerald-700"
+                        }`}
+                      >
+                        {activeCount === 0 && <AlertTriangle className="w-2.5 h-2.5" />}
+                        {activeCount} actif(s)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleRemoveCategory(cat.id)}
+                className="p-1.5 rounded-lg text-[#98A2B3] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

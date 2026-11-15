@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Product } from "../../../../../domains/product/product.types";
 import {
@@ -8,6 +8,7 @@ import {
   SellerStoreConfig,
   StoreThemeSector,
 } from "../../../../../domains/seller/customPage.types";
+import { isCatalogProductPubliclyActive } from "../../../../../domains/seller/studioCatalogResolver";
 import { CollectionPageCustomizer } from "./CollectionPageCustomizer";
 import { CatalogCategoriesSubPanel } from "./CatalogCategoriesSubPanel";
 import { CatalogProductsSubPanel } from "./CatalogProductsSubPanel";
@@ -51,7 +52,10 @@ export const CatalogInspectorPanel: React.FC<CatalogInspectorPanelProps> = ({
   onSaveConfig,
 }) => {
   const [subTab, setSubTab] = useState<"products" | "categories" | "page-design">("products");
-  const productFeedSections = sections.filter((s) => FEED_TYPES.includes(s.type));
+  const productFeedSections = useMemo(
+    () => sections.filter((s) => FEED_TYPES.includes(s.type)),
+    [sections]
+  );
   const [selectedFeedId, setSelectedFeedId] = useState<string>(
     () => productFeedSections[0]?.id || ""
   );
@@ -60,11 +64,30 @@ export const CatalogInspectorPanel: React.FC<CatalogInspectorPanelProps> = ({
     productFeedSections.find((s) => s.id === selectedFeedId) || productFeedSections[0];
   const categoriesSection = sections.find((s) => s.type === "featured_categories");
 
-  const featuredProductIds: string[] = Array.isArray(
-    (activeFeedSection?.settings as FeaturedProductsSettings | undefined)?.productIds
-  )
-    ? (activeFeedSection?.settings as FeaturedProductsSettings).productIds
-    : [];
+  const featuredProductIds: string[] = useMemo(() => {
+    const ids = (activeFeedSection?.settings as FeaturedProductsSettings | undefined)?.productIds;
+    return Array.isArray(ids) ? ids : [];
+  }, [activeFeedSection]);
+
+  const activeIdsSet = useMemo(
+    () => new Set(products.filter(isCatalogProductPubliclyActive).map((p) => p.id)),
+    [products]
+  );
+
+  const invalidFeaturedIds = useMemo(
+    () => featuredProductIds.filter((id) => !activeIdsSet.has(id)),
+    [featuredProductIds, activeIdsSet]
+  );
+
+  const handlePurgeInvalidFeatured = () => {
+    if (!activeFeedSection) return;
+    onUpdateSection(activeFeedSection.id, {
+      settings: {
+        ...(activeFeedSection.settings as Record<string, unknown>),
+        productIds: featuredProductIds.filter((id) => activeIdsSet.has(id)),
+      } as CustomPageSection["settings"],
+    });
+  };
 
   const handleToggleFeaturedProduct = (productId: string) => {
     const exists = featuredProductIds.includes(productId);
@@ -76,6 +99,7 @@ export const CatalogInspectorPanel: React.FC<CatalogInspectorPanelProps> = ({
       onUpdateSection(activeFeedSection.id, {
         settings: {
           ...(activeFeedSection.settings as Record<string, unknown>),
+          selectionMode: nextIds.length > 0 ? "manual" : "auto",
           productIds: nextIds,
         } as CustomPageSection["settings"],
       });
@@ -85,6 +109,7 @@ export const CatalogInspectorPanel: React.FC<CatalogInspectorPanelProps> = ({
         {
           title: "Nos Produits Vedettes",
           subtitle: "Sélection officielle de la boutique",
+          selectionMode: "manual",
           productIds: [productId],
           layout: "grid",
         },
@@ -166,6 +191,7 @@ export const CatalogInspectorPanel: React.FC<CatalogInspectorPanelProps> = ({
         ) : subTab === "categories" ? (
           <CatalogCategoriesSubPanel
             categoriesSection={categoriesSection}
+            products={products}
             activeSector={activeSector || storeConfig?.theme?.sector || "mode"}
             onUpdateSection={onUpdateSection}
             onAddSection={onAddSection}
@@ -181,7 +207,9 @@ export const CatalogInspectorPanel: React.FC<CatalogInspectorPanelProps> = ({
             selectedFeedId={selectedFeedId}
             onSelectFeedId={setSelectedFeedId}
             featuredProductIds={featuredProductIds}
+            invalidFeaturedIds={invalidFeaturedIds}
             onToggleFeaturedProduct={handleToggleFeaturedProduct}
+            onPurgeInvalidFeatured={handlePurgeInvalidFeatured}
           />
         )}
       </div>

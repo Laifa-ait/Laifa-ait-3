@@ -369,6 +369,9 @@ const categoryItemSchema = z
     itemCount: z.union([z.number(), z.string(), z.null()]).optional().transform((v) => (v === null ? undefined : v)),
     colSpan: z.union([z.literal(1), z.literal(2), z.null()]).optional().transform((v) => (v === null ? undefined : v)),
     accentColor: optStr(40),
+    selectionMode: z.enum(["manual", "auto"]).nullable().optional().transform((v) => v ?? undefined),
+    productIds: z.array(z.string()).max(60).optional(),
+    categoryFilter: optStr(120),
   })
   .passthrough();
 
@@ -471,6 +474,7 @@ const curatedCollectionItemSchema = z
     title: z.string().max(120).default("Collection"),
     imageUrl: optionalSafeMediaUrl,
     productIds: z.array(z.string()).max(50).default([]),
+    categoryFilter: optStr(120),
   })
   .passthrough();
 
@@ -502,6 +506,8 @@ const productFeedSchema = (type: "new_arrivals" | "best_sellers" | "product_grid
         ...productCardDesignSchemaFields,
         title: optStr(160),
         subtitle: optStr(300),
+        selectionMode: z.enum(["manual", "auto"]).nullable().optional().transform((v) => v ?? undefined),
+        productIds: z.array(z.string()).max(48).optional(),
         maxItems: z.number().int().min(1).max(48).nullable().optional().transform((v) => v ?? 8),
         layout: z.enum(["grid", "carousel", "vertical"]).nullable().optional().transform((v) => v || "grid"),
         filterCategoryId: optStr(120),
@@ -523,7 +529,10 @@ const featuredProductsSchema = z.object({
       ...productCardDesignSchemaFields,
       title: optStr(160),
       subtitle: optStr(300),
+      selectionMode: z.enum(["manual", "auto"]).nullable().optional().transform((v) => v ?? undefined),
       productIds: z.array(z.string()).max(48).default([]),
+      filterCategoryId: optStr(120),
+      maxItems: z.number().int().min(1).max(48).nullable().optional().transform((v) => v ?? undefined),
       layout: z.enum(["grid", "carousel", "vertical"]).nullable().optional().transform((v) => v || "grid"),
     })
     .passthrough(),
@@ -780,10 +789,18 @@ const collectionPageConfigSchema = z
 const mediaGalleryItemSchema = z
   .object({
     id: z.string().min(1).max(200),
-    url: safeMediaUrl,
+    url: safeMediaUrl.refine(
+      (val) => !(val.startsWith("data:image/") && !val.startsWith("data:image/svg+xml") && val.length > 4096),
+      "Le stockage Base64 volumineux est interdit dans la médiathèque ; utilisez un import Storage."
+    ),
     type: z.enum(["image", "video"]),
     name: optStr(200),
+    folder: z.enum(["images", "logos", "banners", "collections", "videos"]).optional(),
+    width: z.number().int().positive().max(12000).nullable().optional().transform((v) => v ?? undefined),
+    height: z.number().int().positive().max(12000).nullable().optional().transform((v) => v ?? undefined),
+    mimeType: optStr(100),
     sizeBytes: z.number().nonnegative().nullable().optional().transform((v) => v ?? undefined),
+    storagePath: optStr(300),
     uploadedAt: z.string().max(100),
   })
   .passthrough();

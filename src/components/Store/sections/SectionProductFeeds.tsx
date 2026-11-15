@@ -1,8 +1,7 @@
-import React, { useRef } from "react";
-import {
-  CustomPageSection, CustomPageTheme, ProductFeedSettings, FeaturedProductsSettings,
-} from "../../../domains/seller/customPage.types";
+import React, { useMemo, useRef } from "react";
+import { CustomPageSection, CustomPageTheme, ProductFeedSettings, FeaturedProductsSettings } from "../../../domains/seller/customPage.types";
 import { Product } from "../../../domains/product/product.types";
+import { resolveProductFeedItems } from "../../../domains/seller/studioCatalogResolver";
 import {
   buildSectionContainerStyle, resolveBorderRadiusClass, resolveContainerWidthClass,
   resolveShadowClass, resolveAnimationClass, SectionDividerRenderer,
@@ -28,21 +27,23 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
   section, theme, products, isEditable, isSelected, onSelect,
 }) => {
   const carouselRef = useRef<HTMLDivElement | null>(null);
-  const settings = (section.settings || {}) as ProductFeedSettings & FeaturedProductsSettings;
+  const settings = useMemo(
+    () => (section.settings || {}) as ProductFeedSettings & FeaturedProductsSettings,
+    [section.settings]
+  );
   const styles = section.styles || {};
 
   const selectSection = useStudioStore((s) => s.selectSection);
   const setActiveInspectorTab = useStudioStore((s) => s.setActiveInspectorTab);
 
-  let displayProducts: Product[] = [];
-  if (Array.isArray(settings.productIds) && settings.productIds.length > 0) {
-    const byId = new Map(products.map((p) => [p.id, p]));
-    displayProducts = settings.productIds.map((id) => byId.get(id)).filter((p): p is Product => Boolean(p));
-    if (displayProducts.length === 0) displayProducts = products.slice(0, 8);
-  } else {
-    const filtered = settings.filterCategoryId ? products.filter((p) => p.category === settings.filterCategoryId) : products;
-    displayProducts = filtered.slice(0, settings.maxItems || 8);
-  }
+  const feedResult = useMemo(
+    () => resolveProductFeedItems(section.type, settings, products),
+    [section.type, settings, products]
+  );
+
+  const displayProducts = feedResult.items;
+  const invalidIdsCount = feedResult.missingProductIds.length + feedResult.inactiveProductIds.length;
+  const manualIdsCount = Array.isArray(settings.productIds) ? settings.productIds.length : 0;
 
   const layoutMode = settings.layout || "grid";
   const isListLayout = layoutMode === "vertical" || layoutMode === "list";
@@ -65,7 +66,7 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
   const triggerDesignFocus = (e: React.MouseEvent, focusTarget: string) => {
     if (!isEditable) return;
     e.stopPropagation();
-    if (onSelect) onSelect();
+    onSelect?.();
     setActiveInspectorTab("content");
     selectSection(section.id, focusTarget);
   };
@@ -83,31 +84,15 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
 
   const renderCard = (prod: Product) => (
     <SectionProductItemCard
-      key={prod.id}
-      product={prod}
-      layoutMode={layoutMode}
-      cardStyle={cardStyle}
-      aspectRatio={aspectRatio}
-      imagePosition={imagePosition}
-      imageFit={imageFit}
-      accentColor={accentColor}
-      cardBgColor={styles.cardBgColor}
-      cardTextColor={styles.cardTextColor}
-      cardBorderColor={styles.cardBorderColor}
-      priceColor={styles.priceColor}
-      badgeBgColor={styles.badgeBgColor}
-      badgeTextColor={styles.badgeTextColor}
-      cardMaterial={styles.cardMaterial}
-      frameShape={styles.frameShape}
-      showCategory={settings.showCategory !== false}
-      showStockBadge={settings.showStockBadge !== false}
-      showQuickWishlist={settings.showWishlistButton !== false}
-      showStockProgressBar={Boolean(settings.showStockProgress)}
-      showCompareAtPrice={settings.showCompareAtPrice !== false}
-      showStarRating={settings.showRatingStars !== false}
-      theme={theme}
-      isEditable={isEditable}
-      triggerDesignFocus={triggerDesignFocus}
+      key={prod.id} product={prod} layoutMode={layoutMode} cardStyle={cardStyle} aspectRatio={aspectRatio}
+      imagePosition={imagePosition} imageFit={imageFit} accentColor={accentColor}
+      cardBgColor={styles.cardBgColor} cardTextColor={styles.cardTextColor} cardBorderColor={styles.cardBorderColor}
+      priceColor={styles.priceColor} badgeBgColor={styles.badgeBgColor} badgeTextColor={styles.badgeTextColor}
+      cardMaterial={styles.cardMaterial} frameShape={styles.frameShape}
+      showCategory={settings.showCategory !== false} showStockBadge={settings.showStockBadge !== false}
+      showQuickWishlist={settings.showWishlistButton !== false} showStockProgressBar={Boolean(settings.showStockProgress)}
+      showCompareAtPrice={settings.showCompareAtPrice !== false} showStarRating={settings.showRatingStars !== false}
+      theme={theme} isEditable={isEditable} triggerDesignFocus={triggerDesignFocus}
     />
   );
 
@@ -118,22 +103,20 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
       className={`relative py-4 @3xl:py-6 transition-all select-none ${resolveBorderRadiusClass(styles.borderRadius)} ${resolveShadowClass(styles.shadow)} ${resolveAnimationClass(styles.animation)}`}
     >
       {isEditable && isSelected && (
-        <div
-          className="mb-4 flex flex-wrap items-center justify-between gap-2 bg-[#F8FBFC] text-[#011C40] px-3 py-2 rounded-xl border border-slate-200/90 select-none"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 bg-[#F8FBFC] text-[#011C40] px-3 py-2 rounded-xl border border-slate-200/90 select-none" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center gap-1.5 text-xs font-bold text-[#011C40]">
             <Sparkles className="w-3.5 h-3.5 text-[#023859]" />
             <span>{isListLayout ? "Liste Bandeaux" : layoutMode === "carousel" ? "Carrousel Produits" : "Grille Produits"} ({displayProducts.length})</span>
+            <span className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-[10px] font-semibold text-slate-600">
+              {feedResult.effectiveMode === "manual" ? "Manuel" : "Règle dynamique"}
+            </span>
           </div>
           <div className="flex items-center gap-1.5">
             <button type="button" onClick={(e) => triggerDesignFocus(e, "selection")} className="h-7 px-2.5 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors">
-              <Grid className="w-3 h-3" />
-              <span>Sélecteur Produits</span>
+              <Grid className="w-3 h-3" /><span>Sélecteur Produits</span>
             </button>
             <button type="button" onClick={(e) => triggerDesignFocus(e, "countdown")} className="h-7 px-2.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors">
-              <Sliders className="w-3 h-3 text-[#26658C]" />
-              <span>Chrono Offre</span>
+              <Sliders className="w-3 h-3 text-[#26658C]" /><span>Chrono Offre</span>
             </button>
           </div>
         </div>
@@ -143,39 +126,24 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
         {settings.showCountdown && (
           <div onClick={(e) => triggerDesignFocus(e, "countdown")}>
             <LiveCountdownBanner
-              label={settings.countdownLabel}
-              subtitle={settings.countdownSubtitle}
-              endDate={settings.countdownEndDate}
-              countdownStyle={settings.countdownStyle}
-              bannerBgColor={settings.countdownBgColor || styles.badgeBgColor}
+              label={settings.countdownLabel} subtitle={settings.countdownSubtitle} endDate={settings.countdownEndDate}
+              countdownStyle={settings.countdownStyle} bannerBgColor={settings.countdownBgColor || styles.badgeBgColor}
               bannerTextColor={settings.countdownTextColor || styles.badgeTextColor}
-              accentColor={settings.countdownAccentColor || accentColor}
-              themePrimaryColor={theme.primaryColor}
+              accentColor={settings.countdownAccentColor || accentColor} themePrimaryColor={theme.primaryColor}
             />
           </div>
         )}
 
         {(settings.title || section.title || settings.subtitle) && (
           <div className="mb-7 flex items-end justify-between gap-4 border-b border-black/[0.06] pb-4" style={{ borderColor: styles.sectionBorderColor || undefined }}>
-            <div
-              onClick={(e) => isEditable && triggerDesignFocus(e, "title")}
-              className={`min-w-0 flex-1 ${isEditable ? "cursor-pointer rounded px-1 hover:ring-1 hover:ring-[#26658C]" : ""}`}
-            >
-              <span
-                data-testid="product-feed-kicker"
-                className="block text-[10px] @md:text-[11px] font-bold uppercase tracking-[0.28em] mb-1.5"
-                style={{ color: kickerColor }}
-              >
+            <div onClick={(e) => isEditable && triggerDesignFocus(e, "title")} className={`min-w-0 flex-1 ${isEditable ? "cursor-pointer rounded px-1 hover:ring-1 hover:ring-[#26658C]" : ""}`}>
+              <span data-testid="product-feed-kicker" className="block text-[10px] @md:text-[11px] font-bold uppercase tracking-[0.28em] mb-1.5" style={{ color: kickerColor }}>
                 {overtitleLabel}
               </span>
               {(settings.title || section.title) && (
                 <EditorialHeading
-                  as="h3"
-                  text={String(settings.title || section.title)}
-                  theme={theme}
-                  sectionStyles={styles}
-                  accentColorOverride={kickerColor}
-                  isEditable={isEditable}
+                  as="h3" text={String(settings.title || section.title)} theme={theme} sectionStyles={styles}
+                  accentColorOverride={kickerColor} isEditable={isEditable}
                   editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
                   className="text-xl @md:text-2xl @3xl:text-3xl font-extrabold tracking-tight leading-snug"
                   style={{ color: headingColor }}
@@ -183,30 +151,59 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
               )}
               {settings.subtitle && (
                 <CanvasInlineText
-                  as="p"
-                  value={settings.subtitle}
-                  isEditable={isEditable}
+                  as="p" value={settings.subtitle} isEditable={isEditable}
                   editConfig={{ sectionId: section.id, settingKey: "subtitle" }}
-                  style={{ color: subtitleColor }}
-                  className="text-xs @md:text-sm opacity-80 max-w-xl mt-1.5 leading-relaxed"
+                  style={{ color: subtitleColor }} className="text-xs @md:text-sm opacity-80 max-w-xl mt-1.5 leading-relaxed"
                 />
               )}
             </div>
 
             {layoutMode === "carousel" && (
               <div className="flex items-center gap-1.5 shrink-0 pb-1">
-                <button type="button" onClick={(e) => scrollCarousel("left", e)} className="w-8 h-8 rounded-full border border-black/10 bg-white/80 flex items-center justify-center text-zinc-700 shadow-2xs hover:bg-white cursor-pointer" title="Précédent">
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button type="button" onClick={(e) => scrollCarousel("right", e)} className="w-8 h-8 rounded-full border border-black/10 bg-white/80 flex items-center justify-center text-zinc-700 shadow-2xs hover:bg-white cursor-pointer" title="Suivant">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+                <button type="button" onClick={(e) => scrollCarousel("left", e)} className="w-8 h-8 rounded-full border border-black/10 bg-white/80 flex items-center justify-center text-zinc-700 shadow-2xs hover:bg-white cursor-pointer" title="Précédent"><ChevronLeft className="w-4 h-4" /></button>
+                <button type="button" onClick={(e) => scrollCarousel("right", e)} className="w-8 h-8 rounded-full border border-black/10 bg-white/80 flex items-center justify-center text-zinc-700 shadow-2xs hover:bg-white cursor-pointer" title="Suivant"><ChevronRight className="w-4 h-4" /></button>
               </div>
             )}
           </div>
         )}
 
-        {layoutMode === "carousel" ? (
+        {isEditable && feedResult.effectiveMode === "manual" && invalidIdsCount > 0 && (
+          <div data-testid="product-feed-missing-ids-notice" className="mb-4 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium flex items-center justify-between gap-2">
+            <span>
+              {feedResult.missingProductIds.length > 0 && `${feedResult.missingProductIds.length} produit(s) supprimé(s)`}
+              {feedResult.missingProductIds.length > 0 && feedResult.inactiveProductIds.length > 0 ? " et " : ""}
+              {feedResult.inactiveProductIds.length > 0 && `${feedResult.inactiveProductIds.length} produit(s) inactif(s)`} dans cette sélection.
+            </span>
+            <button type="button" onClick={(e) => triggerDesignFocus(e, "selection")} className="px-2.5 py-1 rounded bg-amber-900 text-white text-[11px] font-bold shrink-0 cursor-pointer">
+              Nettoyer
+            </button>
+          </div>
+        )}
+
+        {isEditable && section.type === "best_sellers" && feedResult.effectiveMode === "auto" && displayProducts.length > 0 && !feedResult.hasRealSalesData && (
+          <div data-testid="best-sellers-no-sales-notice" className="mb-4 px-3 py-2 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium flex items-center justify-between gap-2">
+            <span>Aucune vente enregistrée sur ces produits — le classement réel s&apos;activera dès vos premières commandes.</span>
+          </div>
+        )}
+
+        {displayProducts.length === 0 ? (
+          <div data-testid="product-feed-empty-state" className="p-8 text-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 space-y-2">
+            <p className="text-xs @md:text-sm font-semibold text-slate-700">
+              {feedResult.effectiveMode === "manual" && manualIdsCount > 0
+                ? "Les produits sélectionnés ne sont plus disponibles ou actifs."
+                : feedResult.obsoleteCategoryFilter
+                ? `Aucun produit actif dans la catégorie « ${settings.filterCategoryId} » (filtre obsolète ou rayon vide).`
+                : settings.filterCategoryId
+                ? `Aucun produit actif dans la catégorie « ${settings.filterCategoryId} ».`
+                : "Aucun produit actif à afficher dans cette section."}
+            </p>
+            {isEditable && (
+              <button type="button" onClick={(e) => triggerDesignFocus(e, "selection")} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#023859] text-white text-xs font-bold cursor-pointer">
+                <Grid className="w-3.5 h-3.5" /><span>Configurer les produits</span>
+              </button>
+            )}
+          </div>
+        ) : layoutMode === "carousel" ? (
           <div ref={carouselRef} className="flex overflow-x-auto snap-x snap-mandatory gap-4 @3xl:gap-5 pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden scroll-smooth">
             {displayProducts.map((prod) => (
               <div key={prod.id} className="w-[46%] min-w-[160px] @md:w-56 @3xl:w-64 shrink-0 snap-start">{renderCard(prod)}</div>

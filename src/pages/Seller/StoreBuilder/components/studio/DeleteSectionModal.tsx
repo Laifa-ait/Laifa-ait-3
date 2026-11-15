@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle, X } from "lucide-react";
 import { CustomPageSection } from "../../../../../domains/seller/customPage.types";
 
@@ -15,8 +16,9 @@ export const DeleteSectionModal: React.FC<DeleteSectionModalProps> = ({
 }) => {
   if (!section) return null;
 
-  return (
+  const modalContent = (
     <div
+      data-testid="delete-section-modal"
       className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs"
       onClick={onClose}
     >
@@ -36,6 +38,7 @@ export const DeleteSectionModal: React.FC<DeleteSectionModalProps> = ({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Fermer la confirmation"
             className="p-1 text-[#667085] hover:text-[#17191C] rounded-lg cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -51,13 +54,14 @@ export const DeleteSectionModal: React.FC<DeleteSectionModalProps> = ({
             de votre page ?
           </p>
           <p className="text-[13px] text-[#667085] bg-[#F7F8FA] p-3 rounded-[8px] border border-[#E5E7EB]">
-            ⚠️ Cette action est définitive. Tous les réglages de contenu et de style de ce bloc seront effacés.
+            Les réglages de contenu et de style de ce bloc seront retirés de la page. Vous pourrez toutefois annuler cette action via le bouton Annuler (Ctrl+Z).
           </p>
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-2">
           <button
             type="button"
+            data-testid="cancel-delete-section-btn"
             onClick={onClose}
             className="h-[40px] px-4 rounded-[8px] border border-[#E5E7EB] bg-[#FFFFFF] hover:bg-[#F7F8FA] text-[#17191C] text-[13px] font-semibold cursor-pointer"
           >
@@ -65,6 +69,7 @@ export const DeleteSectionModal: React.FC<DeleteSectionModalProps> = ({
           </button>
           <button
             type="button"
+            data-testid="confirm-delete-section-btn"
             onClick={() => {
               onConfirm(section.id);
               onClose();
@@ -77,4 +82,9 @@ export const DeleteSectionModal: React.FC<DeleteSectionModalProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document !== "undefined" && document.body) {
+    return createPortal(modalContent, document.body);
+  }
+  return modalContent;
 };

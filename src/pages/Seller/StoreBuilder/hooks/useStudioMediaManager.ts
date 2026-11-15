@@ -1,9 +1,17 @@
-import { useCallback } from "react";
-import { deleteObject, ref } from "firebase/storage";
+import { useCallback, useState } from "react";
 import { apiPut } from "../../../../lib/api";
-import { storage } from "../../../../lib/firebase";
-import { uploadFile } from "../../../../services/storage.service";
-import { MediaGalleryItem, StoreConfig } from "../../../../domains/seller/customPage.types";
+import { deleteStorageFile, uploadFileStrictWithProgress } from "../../../../services/storage.service";
+import { MediaFolderCategory, MediaGalleryItem, StoreConfig } from "../../../../domains/seller/customPage.types";
+import {
+  isSystemOrCatalogMedia,
+  optimizeImageFileAndReadDimensions,
+  validateMediaFile,
+} from "../utils/studioMediaValidation";
+
+export interface UploadStudioMediaOptions {
+  folder?: MediaFolderCategory;
+  allowVideo?: boolean;
+}
 
 interface UseStudioMediaManagerProps {
   userId?: string;
@@ -18,41 +26,87 @@ export function useStudioMediaManager({
   setMediaGallery,
   setStoreConfig,
 }: UseStudioMediaManagerProps) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const uploadMedia = useCallback(
-    async (file: File): Promise<MediaGalleryItem> => {
-      if (!userId) throw new Error("Connectez-vous pour importer un média.");
-      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-        throw new Error("Formats acceptés : JPG, PNG, WebP.");
+    async (file: File, options: UploadStudioMediaOptions = {}): Promise<MediaGalleryItem> => {
+      if (!userId) {
+        const msg = "Connectez-vous pour importer un média.";
+        setUploadError(msg);
+        throw new Error(msg);
       }
-      if (file.size > 5 * 1024 * 1024) throw new Error("5 Mo maximum par image.");
+      setIsUploading(true);
+      setUploadProgress(0);
+      setUploadError(null);
 
-      const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-      const safeName = file.name.replace(/[^a-zA-Z0-9_.-]/g, "_").slice(-70).replace(/\.[^.]+$/, "") || "image";
-      const fileName = `studio_${Date.now()}_${safeName}.${extension}`;
-      const storagePath = `shops/${userId}/${fileName}`;
-      const fileRef = ref(storage, storagePath);
-
-      const resolvedUrl = await uploadFile(storagePath, file, { contentType: file.type });
-      const item: MediaGalleryItem = {
-        id: fileName,
-        url: resolvedUrl,
-        type: "image",
-        name: file.name.slice(0, 160),
-        sizeBytes: file.size,
-        uploadedAt: new Date().toISOString(),
-      };
-
-      const nextGallery = [item, ...mediaGallery.filter((e) => e.id !== item.id)].slice(0, 60);
       try {
-        const response = await apiPut<{ success: boolean; data: StoreConfig }>("/api/v1/seller/store/config", {
-          mediaGallery: nextGallery.filter((entry) => entry.id.startsWith("studio_")),
+        const allowVideo = options.allowVideo ?? true;
+        const descriptor = await validateMediaFile(file, { allowVideo });
+
+        let payloadBlob: Blob = file;
+        let finalMime = descriptor.mimeType;
+        let finalExt = descriptor.extension;
+        let width: number | undefined;
+        let height: number | undefined;
+
+        if (descriptor.kind === "image") {
+          const optimized = await optimizeImageFileAndReadDimensions(file);
+          payloadBlob = optimized.blob;
+          finalMime = optimized.mimeType || descriptor.mimeType;
+          width = optimized.width;
+          height = optimized.height;
+          if (finalMime === "image/webp") finalExt = "webp";
+          else if (finalMime === "image/png") finalExt = "png";
+        }
+
+        const safeName =
+          file.name.replace(/[^a-zA-Z0-9_.-]/g, "_").slice(-70).replace(/\.[^.]+$/, "") ||
+          (descriptor.kind === "video" ? "video" : "image");
+        const fileName = `studio_${Date.now()}_${safeName}.${finalExt}`;
+        const storagePath =
+          descriptor.kind === "video" ? `shops/${userId}/videos/${fileName}` : `shops/${userId}/${fileName}`;
+
+        const resolvedUrl = await uploadFileStrictWithProgress(storagePath, payloadBlob, {
+          contentType: finalMime,
+          customMetadata: { sellerId: userId, kind: descriptor.kind },
+          onProgress: (pct) => setUploadProgress(pct),
         });
-        if (response?.data) setStoreConfig(response.data);
-        setMediaGallery(nextGallery);
-        return item;
-      } catch (error) {
-        await deleteObject(fileRef).catch(() => undefined);
-        throw error;
+
+        const item: MediaGalleryItem = {
+          id: fileName,
+          url: resolvedUrl,
+          type: descriptor.kind,
+          name: file.name.slice(0, 160),
+          folder: options.folder || (descriptor.kind === "video" ? "videos" : "images"),
+          width,
+          height,
+          mimeType: finalMime,
+          sizeBytes: payloadBlob.size || file.size,
+          storagePath,
+          uploadedAt: new Date().toISOString(),
+        };
+
+        const nextGallery = [item, ...mediaGallery.filter((e) => e.id !== item.id)].slice(0, 80);
+        try {
+          const response = await apiPut<{ success: boolean; data: StoreConfig }>("/api/v1/seller/store/config", {
+            mediaGallery: nextGallery.filter((entry) => !isSystemOrCatalogMedia(entry.id)),
+          });
+          if (response?.data) setStoreConfig(response.data);
+          setMediaGallery(nextGallery);
+          setUploadProgress(100);
+          return item;
+        } catch (configError) {
+          await deleteStorageFile(storagePath).catch(() => undefined);
+          throw configError;
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Échec de l'import média.";
+        setUploadError(msg);
+        throw err instanceof Error ? err : new Error(msg);
+      } finally {
+        setIsUploading(false);
       }
     },
     [userId, mediaGallery, setMediaGallery, setStoreConfig]
@@ -60,17 +114,22 @@ export function useStudioMediaManager({
 
   const deleteMedia = useCallback(
     async (id: string) => {
-      if (!userId || !id.startsWith("studio_")) return;
+      if (!userId || isSystemOrCatalogMedia(id)) return;
       const item = mediaGallery.find((entry) => entry.id === id);
       const nextGallery = mediaGallery.filter((entry) => entry.id !== id);
       await apiPut("/api/v1/seller/store/config", {
-        mediaGallery: nextGallery.filter((entry) => entry.id.startsWith("studio_")),
+        mediaGallery: nextGallery.filter((entry) => !isSystemOrCatalogMedia(entry.id)),
       });
       setMediaGallery(nextGallery);
-      if (item) await deleteObject(ref(storage, `shops/${userId}/${id}`)).catch(() => undefined);
+      const targetPath =
+        item?.storagePath ||
+        (item?.type === "video" ? `shops/${userId}/videos/${id}` : `shops/${userId}/${id}`);
+      if (targetPath && (id.startsWith("studio_") || Boolean(item?.storagePath))) {
+        await deleteStorageFile(targetPath).catch(() => undefined);
+      }
     },
     [userId, mediaGallery, setMediaGallery]
   );
 
-  return { uploadMedia, deleteMedia };
+  return { uploadMedia, deleteMedia, isUploading, uploadProgress, uploadError };
 }

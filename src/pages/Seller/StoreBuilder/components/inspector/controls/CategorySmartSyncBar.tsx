@@ -1,6 +1,12 @@
 import React from "react";
 import { RefreshCw, AlertTriangle, CheckCircle2, Sparkles } from "lucide-react";
 import { Product } from "../../../../../../domains/product/product.types";
+import {
+  doesProductMatchCategoryFilter,
+  isCatalogProductPubliclyActive,
+  resolveCategoryAssignedProducts,
+  slugifyCategoryValue,
+} from "../../../../../../domains/seller/studioCatalogResolver";
 import { CategoryItem } from "../../../constants/categoryPresets";
 
 export const QUICK_CATEGORY_BADGES = [
@@ -14,43 +20,25 @@ export const QUICK_CATEGORY_BADGES = [
 export type QuickCategoryBadge = (typeof QUICK_CATEGORY_BADGES)[number];
 
 export function slugifyCategoryName(raw: string, fallbackIndex = 1): string {
-  const cleaned = raw
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-  return cleaned || `rayon-${fallbackIndex}`;
+  return slugifyCategoryValue(raw) || `rayon-${fallbackIndex}`;
 }
 
 export function isProductActiveForStore(product: Product): boolean {
-  const status = String(product.status || "active").toLowerCase();
-  return status !== "archived" && status !== "draft" && status !== "rejected";
+  return isCatalogProductPubliclyActive(product);
 }
 
 export function countMatchingProductsForCategory(
   cat: CategoryItem,
   products: Product[]
 ): number {
-  const activeProducts = products.filter(isProductActiveForStore);
-  if (Array.isArray(cat.productIds) && cat.productIds.length > 0) {
-    const selectedSet = new Set(cat.productIds);
-    return activeProducts.filter((p) => selectedSet.has(p.id)).length;
-  }
-
-  const targetName = (cat.categoryFilter || cat.name || "").trim().toLowerCase();
-  if (!targetName) return 0;
-
-  return activeProducts.filter(
-    (p) => (p.category || "").trim().toLowerCase() === targetName
-  ).length;
+  return resolveCategoryAssignedProducts(cat, products).items.length;
 }
 
 export function syncCategoriesFromProducts(
   products: Product[],
   existingCategories: CategoryItem[] = []
 ): CategoryItem[] {
-  const activeProducts = products.filter(isProductActiveForStore);
+  const activeProducts = products.filter(isCatalogProductPubliclyActive);
   const grouped = new Map<
     string,
     { displayName: string; items: Product[]; firstImage: string }
@@ -64,9 +52,7 @@ export function syncCategoriesFromProducts(
     const existingGroup = grouped.get(key);
     if (existingGroup) {
       existingGroup.items.push(prod);
-      if (!existingGroup.firstImage && firstImg) {
-        existingGroup.firstImage = firstImg;
-      }
+      if (!existingGroup.firstImage && firstImg) existingGroup.firstImage = firstImg;
     } else {
       grouped.set(key, {
         displayName: rawCat,
@@ -79,13 +65,13 @@ export function syncCategoriesFromProducts(
   const synced: CategoryItem[] = [];
   let index = 0;
 
-  for (const [key, group] of grouped.entries()) {
+  for (const [, group] of grouped.entries()) {
     index += 1;
     const slug = slugifyCategoryName(group.displayName, index);
     const matchedExisting = existingCategories.find(
       (c) =>
-        (c.categoryFilter || c.name || "").trim().toLowerCase() === key ||
-        c.slug === slug
+        c.slug === slug ||
+        doesProductMatchCategoryFilter(group.items[0], c.categoryFilter || c.name || "")
     );
 
     const count = group.items.length;
@@ -134,7 +120,8 @@ export const CategorySmartSyncBar: React.FC<CategorySmartSyncBarProps> = ({
   products,
   onSyncCategories,
 }) => {
-  const activeProducts = products.filter(isProductActiveForStore);
+  const [confirmingSync, setConfirmingSync] = React.useState(false);
+  const activeProducts = products.filter(isCatalogProductPubliclyActive);
   const distinctProductCategories = Array.from(
     new Set(
       activeProducts
@@ -147,9 +134,17 @@ export const CategorySmartSyncBar: React.FC<CategorySmartSyncBarProps> = ({
     (cat) => countMatchingProductsForCategory(cat, products) === 0
   ).length;
 
+  const executeSync = () => {
+    onSyncCategories(syncCategoriesFromProducts(products, categories));
+    setConfirmingSync(false);
+  };
+
   const handleSyncClick = () => {
-    const nextCategories = syncCategoriesFromProducts(products, categories);
-    onSyncCategories(nextCategories);
+    if (categories.length > 0) {
+      setConfirmingSync(true);
+      return;
+    }
+    executeSync();
   };
 
   return (
@@ -163,7 +158,7 @@ export const CategorySmartSyncBar: React.FC<CategorySmartSyncBarProps> = ({
           <p className="text-[11px] text-slate-600 mt-0.5 leading-snug">
             {distinctProductCategories.length > 0
               ? `${distinctProductCategories.length} rayon(s) détecté(s) dans vos ${activeProducts.length} produit(s) actif(s).`
-              : "Ajoutez des produits avec une catégorie pour synchroniser automatiquement."}
+              : "Ajoutez des produits actifs avec une catégorie pour synchroniser automatiquement."}
           </p>
         </div>
 
@@ -176,9 +171,7 @@ export const CategorySmartSyncBar: React.FC<CategorySmartSyncBarProps> = ({
             {emptyCategoriesCount > 0 ? (
               <>
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                <span>
-                  {emptyCategoriesCount} vide{emptyCategoriesCount > 1 ? "s" : ""}
-                </span>
+                <span>{emptyCategoriesCount} vide{emptyCategoriesCount > 1 ? "s" : ""}</span>
               </>
             ) : (
               <>
@@ -190,15 +183,42 @@ export const CategorySmartSyncBar: React.FC<CategorySmartSyncBarProps> = ({
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={handleSyncClick}
-        disabled={distinctProductCategories.length === 0}
-        className="w-full h-9 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-40 cursor-pointer"
-      >
-        <RefreshCw className="w-3.5 h-3.5" />
-        <span>Synchroniser depuis mes produits ({distinctProductCategories.length})</span>
-      </button>
+      {confirmingSync ? (
+        <div data-testid="category-sync-confirm-bar" className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 space-y-2">
+          <p className="text-[11px] font-medium text-amber-900">
+            Synchroniser avec vos produits ? Vos rayons existants ({categories.length}) seront mis à jour avec les catégories actives du catalogue.
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              data-testid="category-sync-confirm-btn"
+              onClick={executeSync}
+              className="flex-1 h-7 rounded bg-slate-900 text-white text-[11px] font-bold cursor-pointer"
+            >
+              Confirmer la synchronisation
+            </button>
+            <button
+              type="button"
+              data-testid="category-sync-cancel-btn"
+              onClick={() => setConfirmingSync(false)}
+              className="h-7 px-2.5 rounded border border-slate-300 bg-white text-slate-700 text-[11px] font-semibold cursor-pointer"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          data-testid="category-sync-trigger-btn"
+          onClick={handleSyncClick}
+          disabled={distinctProductCategories.length === 0}
+          className="w-full h-9 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-40 cursor-pointer"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>Synchroniser depuis mes produits ({distinctProductCategories.length})</span>
+        </button>
+      )}
     </div>
   );
 };

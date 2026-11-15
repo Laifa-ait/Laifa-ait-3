@@ -1,4 +1,11 @@
-import { ref, uploadBytes, getDownloadURL, uploadBytesResumable, UploadTaskSnapshot } from "firebase/storage";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  uploadBytesResumable,
+  deleteObject,
+  UploadTaskSnapshot,
+} from "firebase/storage";
 import { storage } from "../lib/firebase";
 
 /**
@@ -148,6 +155,70 @@ export function uploadFileWithProgress(
     return () => {
       cancelled = true;
     };
+  }
+}
+
+function mapStorageErrorToFrench(err: unknown): Error {
+  const code = typeof err === "object" && err !== null && "code" in err ? String((err as { code?: unknown }).code) : "";
+  if (code === "storage/unauthorized") {
+    return new Error("Accès refusé au stockage : vérifiez votre connexion vendeur et le format du fichier.");
+  }
+  if (code === "storage/canceled") {
+    return new Error("Import annulé par l'utilisateur.");
+  }
+  if (code === "storage/quota-exceeded") {
+    return new Error("Quota de stockage dépassé. Contactez le support Olmart.");
+  }
+  if (code === "storage/retry-limit-exceeded") {
+    return new Error("Connexion instable : l'envoi du fichier a expiré.");
+  }
+  if (err instanceof Error && err.message) return err;
+  return new Error("Échec de l'envoi vers le stockage sécurisé.");
+}
+
+export function uploadFileStrictWithProgress(
+  path: string,
+  file: Blob | File,
+  options: { contentType?: string; customMetadata?: Record<string, string>; onProgress?: (pct: number) => void } = {}
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      const storageRef = ref(storage, path);
+      const task = uploadBytesResumable(storageRef, file, {
+        contentType: options.contentType,
+        customMetadata: options.customMetadata,
+      });
+      task.on(
+        "state_changed",
+        (snap: UploadTaskSnapshot) => {
+          const pct = snap.totalBytes > 0 ? Math.min(99, Math.round((snap.bytesTransferred / snap.totalBytes) * 100)) : 0;
+          options.onProgress?.(pct);
+        },
+        (err) => reject(mapStorageErrorToFrench(err)),
+        async () => {
+          try {
+            const url = await getDownloadURL(task.snapshot.ref);
+            options.onProgress?.(100);
+            resolve(url);
+          } catch (urlErr) {
+            reject(mapStorageErrorToFrench(urlErr));
+          }
+        }
+      );
+    } catch (err) {
+      reject(mapStorageErrorToFrench(err));
+    }
+  });
+}
+
+export async function deleteStorageFile(path: string): Promise<void> {
+  if (!path.trim()) return;
+  try {
+    await deleteObject(ref(storage, path));
+  } catch (err) {
+    const code = typeof err === "object" && err !== null && "code" in err ? String((err as { code?: unknown }).code) : "";
+    if (code === "storage/object-not-found") return;
+    throw mapStorageErrorToFrench(err);
   }
 }
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Globe, LayoutTemplate } from "lucide-react";
+import { AlertTriangle, Globe, LayoutTemplate } from "lucide-react";
 import {
   CustomPageSection,
   CustomPageTheme,
@@ -23,6 +23,7 @@ interface ThemeAtelierMaterialsTabProps {
   storeConfig?: SellerStoreConfig | null;
   sections?: CustomPageSection[];
   onUpdateTheme: (patch: Partial<CustomPageTheme>) => void;
+  onApplyThemeOnly?: (newTheme: CustomPageTheme) => void;
   onApplyPresetWithFiveActs?: (newSections: CustomPageSection[], newTheme: CustomPageTheme) => void;
 }
 
@@ -31,9 +32,11 @@ export const ThemeAtelierMaterialsTab: React.FC<ThemeAtelierMaterialsTabProps> =
   storeConfig,
   sections = [],
   onUpdateTheme,
+  onApplyThemeOnly,
   onApplyPresetWithFiveActs,
 }) => {
   const [lang, setLang] = useState<"fr" | "ar">("fr");
+  const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const isAr = lang === "ar";
 
   const activeTexture = theme.surfaceTexture || "none";
@@ -41,48 +44,49 @@ export const ThemeAtelierMaterialsTab: React.FC<ThemeAtelierMaterialsTabProps> =
   const activeMaterial = theme.cardMaterial || "solid-matte";
   const activeFrameShape = theme.frameShape || "soft-modern";
 
+  const handlePreviewPreset = (preset: ArtisticStudioPreset) => {
+    onUpdateTheme({ ...preset.theme, presetId: preset.id });
+  };
+
   const handleApplyArtisticPreset = (preset: ArtisticStudioPreset) => {
-    const nextTheme: CustomPageTheme = { ...theme, ...preset.theme };
+    const nextTheme: CustomPageTheme = { ...theme, ...preset.theme, presetId: preset.id };
     onUpdateTheme(nextTheme);
-
-    if (onApplyPresetWithFiveActs) {
-      const hasFiveActs =
-        sections.some((s) => s.type === "hero_banner") &&
-        sections.some((s) => s.type === "kinetic_marquee") &&
-        sections.some((s) => s.type === "featured_categories");
-
-      if (!hasFiveActs || sections.length === 0) {
-        const generated = buildFiveActsHomeLayout(
-          storeConfig?.shopName || "Notre Maison",
-          storeConfig?.shopDescription,
-          storeConfig?.bannerUrl,
-          [],
-          preset.heroLayout,
-          preset.theme.sector
-        );
-        onApplyPresetWithFiveActs(generated, nextTheme);
-      } else {
-        const updatedSections = sections.map((sec) =>
-          sec.type === "hero_banner"
-            ? { ...sec, settings: { ...sec.settings, heroLayout: preset.heroLayout } }
-            : sec
-        );
-        onApplyPresetWithFiveActs(updatedSections as CustomPageSection[], nextTheme);
-      }
+    if (onApplyThemeOnly) {
+      onApplyThemeOnly(nextTheme);
     }
   };
 
-  const handleRegenerateFiveActs = () => {
+  const executeRegenerateFiveActs = () => {
     if (!onApplyPresetWithFiveActs) return;
+    const existingHero = sections.find((s) => s.type === "hero_banner");
+    const existingHeroImage = String((existingHero?.settings as Record<string, unknown> | undefined)?.imageUrl || "");
+    const existingProductIds = Array.from(
+      new Set(
+        sections.flatMap((s) =>
+          Array.isArray((s.settings as Record<string, unknown> | undefined)?.productIds)
+            ? ((s.settings as Record<string, unknown>).productIds as string[])
+            : []
+        )
+      )
+    );
     const generated = buildFiveActsHomeLayout(
       storeConfig?.shopName || "Notre Maison",
       storeConfig?.shopDescription,
-      storeConfig?.bannerUrl,
-      [],
+      existingHeroImage || storeConfig?.bannerUrl,
+      existingProductIds,
       "editorial-split",
       theme.sector || "artisanat"
     );
+    setConfirmRegenerate(false);
     onApplyPresetWithFiveActs(generated, theme);
+  };
+
+  const handleRequestRegenerateFiveActs = () => {
+    if (sections.length > 0) {
+      setConfirmRegenerate(true);
+      return;
+    }
+    executeRegenerateFiveActs();
   };
 
   return (
@@ -90,7 +94,7 @@ export const ThemeAtelierMaterialsTab: React.FC<ThemeAtelierMaterialsTabProps> =
       <div className="pb-3 border-b border-slate-200 space-y-2.5">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[12px] font-semibold text-slate-900">
-            {isAr ? "الهويات البصرية" : "Directions artistiques (9)"}
+            {isAr ? "الهويات البصرية (14)" : "Directions artistiques (14)"}
           </span>
           <button
             type="button"
@@ -102,24 +106,60 @@ export const ThemeAtelierMaterialsTab: React.FC<ThemeAtelierMaterialsTabProps> =
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={handleRegenerateFiveActs}
-          className="w-full h-8 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[11.5px] font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-        >
-          <LayoutTemplate className="w-3.5 h-3.5" />
-          <span>
-            {isAr
-              ? "إعادة توليد واجهة المتجر (5 فصول)"
-              : "Réinitialiser la vitrine d'accueil (5 sections)"}
-          </span>
-        </button>
+        <p className="text-[10.5px] text-slate-500 leading-snug">
+          Choisir un thème met à jour la palette, les polices et les matières <strong>sans écraser vos textes ni vos produits</strong>.
+        </p>
+
+        {confirmRegenerate ? (
+          <div
+            data-testid="confirm-regenerate-five-acts-banner"
+            className="rounded-xl border border-amber-300 bg-amber-50 p-2.5 space-y-2"
+          >
+            <div className="flex items-start gap-2 text-[11px] font-semibold text-amber-950">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <span>Remplacer la structure actuelle par les 5 sections d&apos;accueil ? Vos produits liés seront conservés.</span>
+            </div>
+            <div className="flex items-center justify-end gap-1.5">
+              <button
+                type="button"
+                data-testid="cancel-regenerate-five-acts-btn"
+                onClick={() => setConfirmRegenerate(false)}
+                className="h-7 px-2.5 rounded-lg border border-slate-200 bg-white text-[10.5px] font-semibold text-slate-700 cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                data-testid="confirm-regenerate-five-acts-btn"
+                onClick={executeRegenerateFiveActs}
+                className="h-7 px-2.5 rounded-lg bg-slate-900 text-white text-[10.5px] font-semibold cursor-pointer"
+              >
+                Confirmer la structure
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            data-testid="regenerate-five-acts-btn"
+            onClick={handleRequestRegenerateFiveActs}
+            className="w-full h-8 px-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <LayoutTemplate className="w-3.5 h-3.5" />
+            <span>
+              {isAr
+                ? "إعادة توليد واجهة المتجر (5 فصول)"
+                : "Générer la structure d'accueil (5 sections)"}
+            </span>
+          </button>
+        )}
       </div>
 
       <ArtisticPresetsList
         theme={theme}
         isAr={isAr}
         onSelectPreset={handleApplyArtisticPreset}
+        onPreviewPreset={handlePreviewPreset}
       />
 
       <div className="space-y-1.5 pt-3 border-t border-slate-200">

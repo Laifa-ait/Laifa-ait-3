@@ -55,10 +55,16 @@ export const StudioCommandPalette: React.FC<StudioCommandPaletteProps> = ({
     { id: "undo", label: "Annuler (Ctrl+Z)", keywords: "annuler undo", icon: Undo2, run: () => onUndo?.(), disabled: !canUndo },
     { id: "redo", label: "Rétablir (Ctrl+Y)", keywords: "retablir redo", icon: Redo2, run: () => onRedo?.(), disabled: !canRedo },
     { id: "audit", label: "Audit qualité & SEO", keywords: "audit qualite contraste seo", icon: Sparkles, run: onOpenAuditModal },
+    { id: "identity", label: "Identité & Charte de marque", keywords: "identite nom slogan logo marque", icon: Sparkles, run: () => onSelectNavMode?.("identity") },
     { id: "theme", label: "Thème, couleurs & polices", keywords: "theme couleurs polices design", icon: Palette, run: () => onSelectNavMode?.("theme") },
+    { id: "atelier", label: "Atelier & Matières créatives", keywords: "atelier matieres effets", icon: Palette, run: () => onSelectNavMode?.("atelier") },
+    { id: "sections", label: "Structure & Sections de page", keywords: "sections structure blocs accueil", icon: Layers, run: () => onSelectNavMode?.("sections") },
+    { id: "catalog", label: "Catalogue produits", keywords: "catalogue produits articles stock", icon: Layers, run: () => onSelectNavMode?.("catalog") },
+    { id: "media", label: "Médiathèque & Images", keywords: "medias images photos bannières", icon: LayoutTemplate, run: () => onSelectNavMode?.("media") },
     { id: "header", label: "En-tête & navigation", keywords: "entete header logo menu", icon: LayoutTemplate, run: () => onSelectNavMode?.("header") },
-    { id: "settings", label: "Livraison, SEO & pixels", keywords: "reglages parametres seo pixels", icon: Settings, run: () => onSelectNavMode?.("settings") },
     { id: "pages", label: "Pages personnalisées", keywords: "pages politiques livraison", icon: FileText, run: () => onSelectNavMode?.("pages") },
+    { id: "settings", label: "Livraison, SEO & pixels", keywords: "reglages parametres seo pixels", icon: Settings, run: () => onSelectNavMode?.("settings") },
+    { id: "launchpad", label: "Check-list de lancement", keywords: "launchpad checklist guide etapes", icon: Sparkles, run: () => onSelectNavMode?.("launchpad") },
   ], [onPublish, onUndo, onRedo, canUndo, canRedo, onOpenAuditModal, onSelectNavMode]);
 
   const filteredActions = useMemo(() => {
@@ -78,12 +84,13 @@ export const StudioCommandPalette: React.FC<StudioCommandPaletteProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-start justify-center pt-14 sm:pt-20 p-4 select-none" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-start justify-center pt-14 sm:pt-20 p-4 select-none" data-testid="studio-command-palette" onClick={onClose}>
       <div className="w-full max-w-xl bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[82vh]" onClick={(e) => e.stopPropagation()}>
         <div className="px-4 py-3 border-b border-slate-200 flex items-center gap-3">
           <Search className="w-4 h-4 text-slate-400 shrink-0" />
           <input
             type="text"
+            data-testid="command-palette-search-input"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Tapez une commande ou une section..."

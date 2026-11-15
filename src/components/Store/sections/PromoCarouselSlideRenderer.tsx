@@ -13,6 +13,13 @@ import {
   resolveSectionButtonInlineStyle,
   resolveSectionImageFilterCss,
 } from "./sectionStyleHelper";
+import { ELEGANT_HERO_FALLBACK_IMG } from "./hero/HeroMinimalTextAndGuides";
+
+function handleSlideImageError(e: React.SyntheticEvent<HTMLImageElement>): void {
+  if (e.currentTarget.dataset.fb) return;
+  e.currentTarget.dataset.fb = "1";
+  e.currentTarget.src = ELEGANT_HERO_FALLBACK_IMG;
+}
 
 interface PromoCarouselSlideRendererProps {
   slide: PromoSlide;
@@ -122,7 +129,7 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
         </div>
         <div className={`@md:col-span-7 relative ${heightClass} bg-slate-900 overflow-hidden`}>
           {slide.imageUrl && (
-            <img src={slide.imageUrl} alt={slide.title || "Offre"} style={{ filter: imgFilter }} className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
+            <img src={slide.imageUrl} alt={slide.title || "Offre"} onError={handleSlideImageError} style={{ filter: imgFilter }} className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
           )}
         </div>
       </div>
@@ -133,7 +140,7 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
     return (
       <div onClick={isEditable ? onFocusSlide : undefined} className={`grid grid-cols-1 @md:grid-cols-12 gap-3 p-3 bg-slate-950 ${heightClass}`}>
         <div className="@md:col-span-9 relative rounded-2xl overflow-hidden bg-slate-900 h-full">
-          {slide.imageUrl && <img src={slide.imageUrl} alt={slide.title || "Lookbook"} style={{ filter: imgFilter }} className="w-full h-full object-cover" />}
+          {slide.imageUrl && <img src={slide.imageUrl} alt={slide.title || "Lookbook"} onError={handleSlideImageError} style={{ filter: imgFilter }} className="w-full h-full object-cover" />}
           <div
             className={`absolute inset-0 p-6 @sm:p-8 pb-16 flex flex-col ${globalPosition.flexContainerClass}`}
             style={{ background: `linear-gradient(to top, rgba(2,6,23,${Math.max(0.75, alpha)}), rgba(2,6,23,${alpha * 0.35}), transparent)` }}
@@ -167,15 +174,9 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
             </div>
           </div>
         </div>
-        <div
-          onClick={(e) => {
-            e.stopPropagation();
-            onNextSlide?.();
-          }}
-          className="hidden @md:flex @md:col-span-3 relative rounded-2xl overflow-hidden bg-slate-900 h-full cursor-pointer group border border-white/10"
-        >
+        <div onClick={(e) => { e.stopPropagation(); onNextSlide?.(); }} className="hidden @md:flex @md:col-span-3 relative rounded-2xl overflow-hidden bg-slate-900 h-full cursor-pointer group border border-white/10">
           {(nextSlide?.imageUrl || slide.imageUrl) && (
-            <img src={nextSlide?.imageUrl || slide.imageUrl} alt="" style={{ filter: imgFilter }} className="w-full h-full object-cover opacity-65 group-hover:opacity-90 group-hover:scale-105 transition-all duration-500" />
+            <img src={nextSlide?.imageUrl || slide.imageUrl} alt="" onError={handleSlideImageError} style={{ filter: imgFilter }} className="w-full h-full object-cover opacity-65 group-hover:opacity-90 group-hover:scale-105 transition-all duration-500" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-4 flex flex-col justify-end">
             <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400 font-bold">Suivant →</span>
@@ -191,20 +192,15 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
 
   return (
     <div onClick={isEditable ? onFocusSlide : undefined} className={`relative ${heightClass} w-full bg-slate-950 overflow-hidden`}>
-      {slide.imageUrl && <img src={slide.imageUrl} alt={slide.title || "Promotion"} style={{ filter: imgFilter }} className="w-full h-full object-cover transition-all duration-700" />}
+      {slide.imageUrl && <img src={slide.imageUrl} alt={slide.title || "Promotion"} onError={handleSlideImageError} style={{ filter: imgFilter }} className="w-full h-full object-cover transition-all duration-700" />}
       {isSpotlight && (slide.highlightPrice || slide.badge) && (
         <div style={{ backgroundColor: styles.badgeBgColor || "#FBBF24", color: styles.badgeTextColor || "#020617" }} className="absolute top-4 right-4 z-10 px-3.5 py-2 rounded-2xl font-black text-xs @sm:text-sm shadow-xl flex items-center gap-1.5 border-2 border-white">
-          <Sparkles className="w-4 h-4 shrink-0" />
-          <span>{slide.highlightPrice || slide.badge}</span>
+          <Sparkles className="w-4 h-4 shrink-0" /><span>{slide.highlightPrice || slide.badge}</span>
         </div>
       )}
       <div
         className={`absolute inset-0 p-5 @sm:p-8 @md:p-10 pb-16 @sm:pb-16 flex flex-col ${globalPosition.flexContainerClass}`}
-        style={{
-          background: isGlass
-            ? `rgba(2, 6, 23, ${alpha * 0.45})`
-            : `linear-gradient(to top, rgba(2, 6, 23, ${Math.max(0.78, alpha + 0.25)}) 0%, rgba(2, 6, 23, ${alpha}) 55%, rgba(2, 6, 23, ${alpha * 0.25}) 100%)`,
-        }}
+        style={{ background: isGlass ? `rgba(2, 6, 23, ${alpha * 0.45})` : `linear-gradient(to top, rgba(2, 6, 23, ${Math.max(0.78, alpha + 0.25)}) 0%, rgba(2, 6, 23, ${alpha}) 55%, rgba(2, 6, 23, ${alpha * 0.25}) 100%)` }}
       >
         <div
           style={isGlass ? { backgroundColor: styles.cardBgColor || "rgba(2,6,23,0.7)", borderColor: styles.cardBorderColor || "rgba(255,255,255,0.2)" } : undefined}
@@ -214,39 +210,25 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
             <div>
               <span
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] @sm:text-[11px] font-extrabold uppercase tracking-wider shadow-xs"
-                style={{
-                  backgroundColor: styles.badgeBgColor || (isSpotlight ? accentColor : "rgba(255,255,255,0.16)"),
-                  color: badgeTextColor,
-                  border: "1px solid rgba(255,255,255,0.28)",
-                }}
+                style={{ backgroundColor: styles.badgeBgColor || (isSpotlight ? accentColor : "rgba(255,255,255,0.16)"), color: badgeTextColor, border: "1px solid rgba(255,255,255,0.28)" }}
               >
-                <Sparkles className="w-3 h-3" />
-                <span>{slide.badge}</span>
+                <Sparkles className="w-3 h-3" /><span>{slide.badge}</span>
               </span>
             </div>
           )}
           {slide.title && (
             <EditorialHeading
-              as="h2"
-              text={slide.title}
-              theme={theme}
-              sectionStyles={styles}
-              accentColorOverride={styles.kickerColor || accentColor}
-              className="font-black text-xl @sm:text-3xl @md:text-4xl tracking-tight leading-tight drop-shadow-sm"
-              style={{ color: headingColor }}
+              as="h2" text={slide.title} theme={theme} sectionStyles={styles} accentColorOverride={styles.kickerColor || accentColor}
+              className="font-black text-xl @sm:text-3xl @md:text-4xl tracking-tight leading-tight drop-shadow-sm" style={{ color: headingColor }}
             />
           )}
           {slide.subtitle && (
-            <p className="text-xs @sm:text-sm @md:text-base leading-relaxed max-w-xl line-clamp-2 @sm:line-clamp-3" style={{ color: subtitleColor }}>
-              {slide.subtitle}
-            </p>
+            <p className="text-xs @sm:text-sm @md:text-base leading-relaxed max-w-xl line-clamp-2 @sm:line-clamp-3" style={{ color: subtitleColor }}>{slide.subtitle}</p>
           )}
           <div className="pt-1.5 flex flex-wrap items-center gap-2.5">
             {renderActionCta()}
             {!isSpotlight && slide.highlightPrice && (
-              <span style={{ color: priceColor }} className="px-3.5 py-2 rounded-xl bg-white/15 backdrop-blur-md border border-white/25 text-xs font-extrabold">
-                {slide.highlightPrice}
-              </span>
+              <span style={{ color: priceColor }} className="px-3.5 py-2 rounded-xl bg-white/15 backdrop-blur-md border border-white/25 text-xs font-extrabold">{slide.highlightPrice}</span>
             )}
           </div>
         </div>

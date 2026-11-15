@@ -72,3 +72,52 @@ export function stripHardcodedSectionColors(sections: CustomPageSection[]): Cust
     };
   });
 }
+
+const SECTION_STYLE_COLOR_KEYS = [
+  "backgroundColor",
+  "textColor",
+  "headingColor",
+  "subtitleColor",
+  "kickerColor",
+  "cardBgColor",
+  "cardTextColor",
+  "cardBorderColor",
+  "priceColor",
+  "badgeBgColor",
+  "badgeTextColor",
+  "iconColor",
+  "dividerColor",
+  "sectionBorderColor",
+  "buttonBgColor",
+  "buttonTextColor",
+  "buttonBorderColor",
+] as const;
+
+const SECTION_SETTING_COLOR_KEYS = [
+  "ctaBgColor",
+  "ctaTextColor",
+  "ctaBorderColor",
+  "badgeBgColor",
+  "badgeTextColor",
+  "cardAccentColor",
+  "bannerBgColor",
+  "bannerBgGradient",
+  "bannerBorderColor",
+  "titleColor",
+  "subtitleColor",
+] as const;
+
+export function countSectionsWithColorOverrides(sections: CustomPageSection[]): number {
+  return sections.filter((sec) => {
+    const rawStyles = (sec.styles || {}) as Record<string, unknown>;
+    const rawSettings = (sec.settings || {}) as Record<string, unknown>;
+    const hasStyleOverride = SECTION_STYLE_COLOR_KEYS.some(
+      (k) => typeof rawStyles[k] === "string" && String(rawStyles[k]).trim().length > 0
+    );
+    const hasSettingOverride = SECTION_SETTING_COLOR_KEYS.some(
+      (k) => typeof rawSettings[k] === "string" && String(rawSettings[k]).trim().length > 0
+    );
+    return hasStyleOverride || hasSettingOverride;
+  }).length;
+}
+

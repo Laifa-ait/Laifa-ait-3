@@ -1,6 +1,10 @@
 import React from "react";
-import { Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Sparkles, Wand2 } from "lucide-react";
 import { CustomPageTheme, StoreThemeSector } from "../../../../../domains/seller/customPage.types";
+import {
+  auditThemeContrastPairs,
+  buildAutoFixedThemeColors,
+} from "../../../../../components/Store/sections/themeColorUtils";
 import { ARTISTIC_STUDIO_PRESETS } from "../../constants/artisticStudioPresets";
 
 interface ThemeColorPaletteTabProps {
@@ -29,10 +33,11 @@ export const ThemeColorPaletteTab: React.FC<ThemeColorPaletteTabProps> = ({
   onUpdateTheme,
   onErrorChange,
 }) => {
-  const rawTheme = theme as unknown as Record<string, string | undefined>;
+  const contrastPairs = auditThemeContrastPairs(theme);
+  const failingPairs = contrastPairs.filter((p) => !p.passes);
 
   const colorControl = (label: string, field: ThemeColorKey, defaultVal: string) => {
-    const color = rawTheme[field] || defaultVal;
+    const color = theme[field] || defaultVal;
     const pickerColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color) ? color : defaultVal;
 
     return (
@@ -74,6 +79,53 @@ export const ThemeColorPaletteTab: React.FC<ThemeColorPaletteTabProps> = ({
 
   return (
     <div className="space-y-4" data-testid="theme-color-palette-tab">
+      <div
+        data-testid="theme-contrast-checker"
+        className={`rounded-2xl border p-3 space-y-2 ${
+          failingPairs.length > 0 ? "border-amber-300 bg-amber-50/80" : "border-emerald-200 bg-emerald-50/60"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            {failingPairs.length > 0 ? (
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            )}
+            <span className="text-[11px] font-bold text-slate-900">
+              {failingPairs.length > 0
+                ? `${failingPairs.length} contraste${failingPairs.length > 1 ? "s" : ""} faible${failingPairs.length > 1 ? "s" : ""} détecté${failingPairs.length > 1 ? "s" : ""}`
+                : "Lisibilité WCAG vérifiée (4/4)"}
+            </span>
+          </div>
+          {failingPairs.length > 0 && (
+            <button
+              type="button"
+              data-testid="auto-fix-contrast-btn"
+              onClick={() => onUpdateTheme(buildAutoFixedThemeColors(theme))}
+              className="inline-flex items-center gap-1 h-6 px-2 rounded-lg bg-slate-900 text-white text-[10px] font-bold cursor-pointer"
+            >
+              <Wand2 className="w-3 h-3" />
+              <span>Ajuster les contrastes</span>
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {contrastPairs.map((pair) => (
+            <div
+              key={pair.id}
+              data-testid={`contrast-pair-${pair.id}`}
+              className="flex items-center justify-between gap-1.5 rounded-lg border border-black/10 bg-white px-2 py-1 text-[10px]"
+            >
+              <span className="font-medium text-slate-700 truncate">{pair.label}</span>
+              <span className={`font-mono font-bold shrink-0 ${pair.passes ? "text-emerald-700" : "text-rose-600"}`}>
+                {pair.ratio}:1
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="space-y-1.5">
         <label className="text-[11.5px] font-extrabold text-zinc-800">Secteur d&apos;activité &amp; Univers</label>
         <select
@@ -93,7 +145,6 @@ export const ThemeColorPaletteTab: React.FC<ThemeColorPaletteTabProps> = ({
         </select>
       </div>
 
-      {/* Harmonies Chromatique 1-Clic issues des 9 Thèmes */}
       <div className="p-2.5 rounded-2xl border border-slate-200 bg-slate-50 space-y-2">
         <span className="text-[10.5px] font-black uppercase tracking-wider text-zinc-700 flex items-center gap-1">
           <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Harmonies Chromatiques (Application 1-Clic)
@@ -108,6 +159,7 @@ export const ThemeColorPaletteTab: React.FC<ThemeColorPaletteTabProps> = ({
                 data-testid={`quick-harmony-${preset.id}`}
                 onClick={() =>
                   onUpdateTheme({
+                    presetId: preset.id,
                     canvasColor: pt.canvasColor,
                     surfaceColor: pt.surfaceColor,
                     borderColor: pt.borderColor,
@@ -139,7 +191,6 @@ export const ThemeColorPaletteTab: React.FC<ThemeColorPaletteTabProps> = ({
         </div>
       </div>
 
-      {/* Groupe 1 : Fonds, Cartes & Bordures */}
       <div className="space-y-2 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
         <h4 className="text-[10.5px] font-black uppercase tracking-wider text-zinc-800">
           1. Fonds, Cartes &amp; Bordures (60% / 30%)
@@ -151,7 +202,6 @@ export const ThemeColorPaletteTab: React.FC<ThemeColorPaletteTabProps> = ({
         </div>
       </div>
 
-      {/* Groupe 2 : Titres, Textes & Prix */}
       <div className="space-y-2 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
         <h4 className="text-[10.5px] font-black uppercase tracking-wider text-zinc-800">
           2. Titres, Paragraphes &amp; Prix (DA)
@@ -164,7 +214,6 @@ export const ThemeColorPaletteTab: React.FC<ThemeColorPaletteTabProps> = ({
         </div>
       </div>
 
-      {/* Groupe 3 : Marque, Boutons & Badges */}
       <div className="space-y-2 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
         <h4 className="text-[10.5px] font-black uppercase tracking-wider text-zinc-800">
           3. Marque, Boutons CTA &amp; Badges (10%)

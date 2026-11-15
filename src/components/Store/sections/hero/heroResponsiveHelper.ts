@@ -1,9 +1,5 @@
 import {
-  HeroArchShapeId,
-  HeroBannerSettings,
-  HeroDeviceMeasureConfig,
-  HeroLayoutModelId,
-  HeroTextPosition9,
+  CustomPageTheme, HeroArchShapeId, HeroBannerSettings, HeroDeviceMeasureConfig, HeroLayoutModelId, HeroTextPosition9,
 } from "../../../../domains/seller/customPage.types";
 
 export interface ResolvedHeroDeviceProfile {
@@ -12,9 +8,13 @@ export interface ResolvedHeroDeviceProfile {
   hasCustomLayout: boolean;
   activeImageSrc: string;
   secondaryImageSrc: string;
+  tertiaryImageSrc: string;
+  hasSecondaryImage: boolean;
   activeFocalPoint: string;
   focalX: number;
   focalY: number;
+  secondaryFocalX: number;
+  secondaryFocalY: number;
   zoom: number;
   minHeightPx: number;
   compactVisualHeightPx: number;
@@ -42,6 +42,14 @@ export interface HeroContrastDiagnostics {
   suggestedPatch: Partial<HeroBannerSettings>;
 }
 
+export interface HeroTextDensityDiagnostics {
+  isDense: boolean;
+  titleLength: number;
+  subtitleLength: number;
+  badgeLength: number;
+  warnings: string[];
+}
+
 const STYLE_MAP: Record<string, HeroLayoutModelId> = {
   "cinema-full": "cinema-full", "full-bleed": "cinema-full", "glass-dock": "cinema-full",
   "editorial-split": "editorial-split", "split": "editorial-split", "product-spotlight": "editorial-split", "flash-offer": "editorial-split",
@@ -50,44 +58,52 @@ const STYLE_MAP: Record<string, HeroLayoutModelId> = {
   "bento-hero": "bento-hero", "diptych": "bento-hero",
 };
 
+export function clampFocalCoord(val: unknown, fallback = 50): number {
+  const num = typeof val === "number" && Number.isFinite(val) ? val : fallback;
+  return Math.min(100, Math.max(0, Math.round(num)));
+}
+
+export function clampHeroZoom(val: unknown, fallback = 1): number {
+  const num = typeof val === "number" && Number.isFinite(val) ? val : fallback;
+  return Math.min(1.6, Math.max(1, Number(num.toFixed(2))));
+}
+
 export function normalizeHeroLayoutModelId(val: unknown): HeroLayoutModelId | null {
-  if (typeof val !== "string" || !val || val === "inherit") return null;
-  return STYLE_MAP[val] || null;
+  return typeof val === "string" && val && val !== "inherit" ? STYLE_MAP[val] || null : null;
 }
 
 export function parseFocalString(pos?: string): { x: number; y: number } {
-  if (!pos) return { x: 50, y: 50 };
-  const matches = pos.match(/(\d+(?:\.\d+)?)%/g);
-  if (matches && matches.length >= 2) {
-    return { x: Math.min(100, Math.max(0, Number.parseFloat(matches[0]))), y: Math.min(100, Math.max(0, Number.parseFloat(matches[1]))) };
-  }
-  return { x: 50, y: 50 };
+  const matches = pos ? pos.match(/(-?\d+(?:\.\d+)?)%/g) : null;
+  return matches && matches.length >= 2
+    ? { x: clampFocalCoord(Number.parseFloat(matches[0]), 50), y: clampFocalCoord(Number.parseFloat(matches[1]), 50) }
+    : { x: 50, y: 50 };
 }
 
 export function normalizeHeroSettingsAdapter(raw?: Partial<HeroBannerSettings>): HeroBannerSettings {
   const s = raw || {};
   const layout = normalizeHeroLayoutModelId(s.heroLayout) || "editorial-split";
-  const ratioRaw = s.splitProportion || (s.splitRatio === "60-40" ? "60-40" : "50-50");
+  const ratioRaw = s.splitProportion || (s.splitRatio === "60-40" ? "60-40" : s.splitRatio === "70-30" ? "70-30" : "50-50");
   return {
     ...s,
     title: sanitizeHeroTitle(s.title, s.spotlightProductTitle),
     subtitle: s.subtitle !== undefined ? s.subtitle : "",
-    imageUrl: s.imageUrl || s.backgroundImage || "",
-    secondaryImageUrl: s.secondaryImageUrl || s.bentoTopCardImage || "",
+    imageUrl: (s.imageUrl || s.backgroundImage || "").trim(),
+    secondaryImageUrl: (s.secondaryImageUrl || s.bentoTopCardImage || "").trim(),
+    tertiaryImageUrl: (s.tertiaryImageUrl || s.bentoBottomCardImage || "").trim(),
     ctaText: s.ctaText !== undefined ? s.ctaText : "Découvrir la collection",
     ctaLink: s.ctaLink || "#catalog",
     heroLayout: layout,
     containerMode: s.containerMode || (layout === "cinema-full" || s.fullTopWidth ? "full" : "contained"),
     splitProportion: ratioRaw === "70-30" || ratioRaw === "60-40" ? ratioRaw : "50-50",
     archShape: s.archShape || "roman-arch",
-    diptychGapPx: typeof s.diptychGapPx === "number" ? s.diptychGapPx : 16,
-    innerPaddingPx: typeof s.innerPaddingPx === "number" ? s.innerPaddingPx : layout === "atelier-collage" ? 28 : 24,
-    borderRadiusPx: typeof s.borderRadiusPx === "number" ? s.borderRadiusPx : layout === "cinema-full" ? 0 : 24,
+    diptychGapPx: typeof s.diptychGapPx === "number" ? Math.min(48, Math.max(8, s.diptychGapPx)) : 16,
+    innerPaddingPx: typeof s.innerPaddingPx === "number" ? Math.min(64, Math.max(12, s.innerPaddingPx)) : layout === "atelier-collage" ? 28 : 24,
+    borderRadiusPx: typeof s.borderRadiusPx === "number" ? Math.min(80, Math.max(0, s.borderRadiusPx)) : layout === "cinema-full" ? 0 : 24,
     textPosition9: s.textPosition9 || "center-left",
     textAlignment: s.textAlignment || "left",
     textBoxMaxWidth: s.textBoxMaxWidth || 480,
     textVerticalGap: s.textVerticalGap || 16,
-    overlayOpacity: typeof s.overlayOpacity === "number" ? s.overlayOpacity : 0,
+    overlayOpacity: typeof s.overlayOpacity === "number" ? Math.min(80, Math.max(0, s.overlayOpacity)) : 0,
     ctaButtonSize: s.ctaButtonSize || "md",
     ctaTargetType: s.ctaTargetType || "catalog",
   };
@@ -95,14 +111,7 @@ export function normalizeHeroSettingsAdapter(raw?: Partial<HeroBannerSettings>):
 
 export function sanitizeHeroTitle(rawTitle?: string, fallbackProductTitle?: string): string {
   const source = rawTitle !== undefined ? rawTitle : fallbackProductTitle || "";
-  if (!source || !source.trim()) return "";
-  const stripped = source.replace(/[*_{}]/g, "").replace(/\s+/g, " ").trim();
-  if (/Savoir-Faire\s+Authentique/i.test(stripped) || /Patrimoine\s*&\s*Métiers/i.test(stripped)) {
-    const matchStore = stripped.match(/^L'Univers\s+(.+?)\s*[—-]\s*Savoir-Faire/i);
-    if (matchStore && matchStore[1]) return fallbackProductTitle ? `${matchStore[1].trim()} — ${fallbackProductTitle}` : matchStore[1].trim();
-    return fallbackProductTitle || "";
-  }
-  return stripped;
+  return source && source.trim() ? source.replace(/[*_{}]/g, "").replace(/\s+/g, " ").trim() : "";
 }
 
 export function sanitizeHeroBadge(rawBadge?: string, fallbackCategory?: string): string {
@@ -145,7 +154,6 @@ export function resolveHeroDeviceProfile(rawSettings: HeroBannerSettings, previe
   const baseLayout: HeroLayoutModelId = normalizeHeroLayoutModelId(settings.heroLayout) || "editorial-split";
   let heroLayout: HeroLayoutModelId = normalizeHeroLayoutModelId(devCfg.styleId) || baseLayout;
   let hasCustomLayout = Boolean(devCfg.styleId && devCfg.styleId !== baseLayout);
-
   if (previewViewport === "tablet" && !devCfg.styleId) {
     const tabLayout = normalizeHeroLayoutModelId(settings.heroLayoutTablet);
     if (tabLayout) { heroLayout = tabLayout; hasCustomLayout = tabLayout !== baseLayout; }
@@ -153,29 +161,25 @@ export function resolveHeroDeviceProfile(rawSettings: HeroBannerSettings, previe
     const mobLayout = normalizeHeroLayoutModelId(settings.heroLayoutMobile);
     if (mobLayout) { heroLayout = mobLayout; hasCustomLayout = mobLayout !== baseLayout; }
   }
-
   const desktopImg = settings.imageUrl || settings.backgroundImage || "";
   const tabletImg = settings.tabletImageUrl || desktopImg;
   const mobileImg = settings.mobileImageUrl || settings.backgroundImageMobile || tabletImg;
   const activeImageSrc = previewViewport === "mobile" ? mobileImg : previewViewport === "tablet" ? tabletImg : desktopImg;
-  const secondaryImageSrc = settings.secondaryImageUrl || settings.bentoTopCardImage || activeImageSrc;
-
+  const secondaryImageSrc = (settings.secondaryImageUrl || settings.bentoTopCardImage || "").trim();
+  const tertiaryImageSrc = (settings.tertiaryImageUrl || settings.bentoBottomCardImage || "").trim();
   const rawFocalStr = previewViewport === "mobile"
     ? settings.imagePositionMobile || settings.backgroundPositionMobile || "50% 50%"
     : previewViewport === "tablet"
       ? settings.imagePositionTablet || settings.backgroundPositionTablet || settings.imagePositionDesktop || "50% 50%"
       : settings.imagePositionDesktop || settings.backgroundPosition || "50% 50%";
-
   const parsedFocal = parseFocalString(rawFocalStr);
-  const focalX = typeof devCfg.focalX === "number" ? devCfg.focalX : parsedFocal.x;
-  const focalY = typeof devCfg.focalY === "number" ? devCfg.focalY : parsedFocal.y;
+  const focalX = clampFocalCoord(devCfg.focalX, parsedFocal.x);
+  const focalY = clampFocalCoord(devCfg.focalY, parsedFocal.y);
   const rawZoom = previewViewport === "mobile" ? settings.imageZoomMobile : previewViewport === "tablet" ? settings.imageZoomTablet : settings.imageZoomDesktop;
-  const zoom = typeof devCfg.zoom === "number" ? devCfg.zoom : typeof rawZoom === "number" ? rawZoom : 1;
-
+  const zoom = clampHeroZoom(devCfg.zoom ?? rawZoom, 1);
   const dToken = settings.bannerHeightDesktop || "md";
   let minHeightPx = ({ sm: 380, md: 480, lg: 560, xl: 660 } as Record<string, number>)[dToken] || 480;
   let compactVisualHeightPx = ({ sm: 220, md: 260, lg: 300, xl: 320 } as Record<string, number>)[dToken] || 260;
-
   if (previewViewport === "tablet") {
     const tToken = settings.bannerHeightTablet && settings.bannerHeightTablet !== "inherit" ? settings.bannerHeightTablet : "md";
     minHeightPx = ({ sm: 320, md: 400, lg: 480 } as Record<string, number>)[tToken] || 400;
@@ -185,17 +189,17 @@ export function resolveHeroDeviceProfile(rawSettings: HeroBannerSettings, previe
     minHeightPx = ({ sm: 260, md: 320, lg: 400 } as Record<string, number>)[mToken] || 320;
     compactVisualHeightPx = ({ sm: 170, md: 195, lg: 215 } as Record<string, number>)[mToken] || 195;
   }
-
   let titleSizeToken: "sm" | "md" | "lg" | "xl" = devCfg.titleSize || settings.titleSizeDesktop || "lg";
   if (!devCfg.titleSize) {
     if (previewViewport === "tablet" && settings.titleSizeTablet && settings.titleSizeTablet !== "inherit") titleSizeToken = settings.titleSizeTablet;
     else if (previewViewport === "mobile") titleSizeToken = settings.titleSizeMobile || "md";
   }
-
   return {
-    viewport: previewViewport, heroLayout, hasCustomLayout, activeImageSrc, secondaryImageSrc,
-    activeFocalPoint: `${focalX}% ${focalY}%`, focalX, focalY, zoom, minHeightPx, compactVisualHeightPx,
-    heightPx: typeof devCfg.heightPx === "number" ? devCfg.heightPx : minHeightPx,
+    viewport: previewViewport, heroLayout, hasCustomLayout, activeImageSrc, secondaryImageSrc, tertiaryImageSrc,
+    hasSecondaryImage: Boolean(secondaryImageSrc),
+    activeFocalPoint: `${focalX}% ${focalY}%`, focalX, focalY, secondaryFocalX: 50, secondaryFocalY: 50, zoom,
+    minHeightPx, compactVisualHeightPx,
+    heightPx: typeof devCfg.heightPx === "number" ? Math.min(820, Math.max(240, devCfg.heightPx)) : minHeightPx,
     innerPaddingPx: typeof devCfg.innerPaddingPx === "number" ? devCfg.innerPaddingPx : (settings.innerPaddingPx ?? 24),
     borderRadiusPx: typeof devCfg.borderRadiusPx === "number" ? devCfg.borderRadiusPx : (settings.borderRadiusPx ?? (heroLayout === "cinema-full" ? 0 : 24)),
     textPosition9: devCfg.textPosition9 || settings.textPosition9 || "center-left",
@@ -220,10 +224,43 @@ export function resolveHeroTitleClasses(settings: HeroBannerSettings, titleSizeT
   return `${fontClass} ${weightClass} ${sizeClass}`;
 }
 
-export function computeHeroContrastDiagnostics(settings: HeroBannerSettings): HeroContrastDiagnostics {
+function relLuminance(hex: string): number {
+  const clean = hex.replace("#", "").trim();
+  const full = clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean.slice(0, 6);
+  const num = Number.parseInt(full, 16);
+  if (Number.isNaN(num)) return 0.5;
+  const chan = (v: number) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+  return 0.2126 * chan((num >> 16) & 255) + 0.7152 * chan((num >> 8) & 255) + 0.0722 * chan(num & 255);
+}
+
+export function computeHeroContrastDiagnostics(settings: HeroBannerSettings, theme?: CustomPageTheme): HeroContrastDiagnostics {
   const overlayOpacity = typeof settings.overlayOpacity === "number" ? settings.overlayOpacity : 0;
   if (overlayOpacity > 45) {
     return { ratio: 2.5, level: "LOW", warningMessage: `Le voile (${overlayOpacity}%) assombrit la photographie. Réduisez-le pour préserver la pureté visuelle.`, suggestedPatch: { overlayOpacity: 0, textShadow: "none" } };
   }
+  const layout = normalizeHeroLayoutModelId(settings.heroLayout) || "editorial-split";
+  const bgHex = settings.bannerBgColor || theme?.surfaceColor || theme?.canvasColor || "#FAF6F0";
+  const titleHex = settings.titleColor || (layout === "cinema-full" ? "#FFFFFF" : theme?.secondaryColor || "#111827");
+  if (layout !== "cinema-full" && bgHex.startsWith("#") && titleHex.startsWith("#")) {
+    const l1 = relLuminance(bgHex);
+    const l2 = relLuminance(titleHex);
+    const ratio = Number(((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)).toFixed(2));
+    if (ratio < 4.5) {
+      const safeColor = l1 > 0.5 ? "#111827" : "#FFFFFF";
+      return { ratio, level: "LOW", warningMessage: `Contraste texte/fond faible (${ratio}:1 < 4.5:1 WCAG AA).`, suggestedPatch: { titleColor: safeColor, subtitleColor: l1 > 0.5 ? "#3F3F46" : "#E4E4E7" } };
+    }
+    return { ratio, level: ratio >= 7 ? "AAA" : "AA", warningMessage: null, suggestedPatch: {} };
+  }
   return { ratio: 9.5, level: "AAA", warningMessage: null, suggestedPatch: {} };
+}
+
+export function computeHeroTextDensityDiagnostics(settings: HeroBannerSettings): HeroTextDensityDiagnostics {
+  const titleLength = (settings.title || "").trim().length;
+  const subtitleLength = (settings.subtitle || "").trim().length;
+  const badgeLength = (settings.badgeText || "").trim().length;
+  const warnings: string[] = [];
+  if (titleLength > 65) warnings.push(`Titre long (${titleLength}/65 car. recommandés)`);
+  if (subtitleLength > 140) warnings.push(`Phrase longue (${subtitleLength}/140 car. recommandés)`);
+  if (badgeLength > 28) warnings.push(`Badge long (${badgeLength}/28 car. recommandés)`);
+  return { isDense: warnings.length > 0, titleLength, subtitleLength, badgeLength, warnings };
 }

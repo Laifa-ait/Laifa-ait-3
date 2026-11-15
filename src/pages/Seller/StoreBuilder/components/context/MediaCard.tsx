@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { MediaGalleryItem } from "../../../../../domains/seller/customPage.types";
-import { Copy, Check, Link2 } from "lucide-react";
+import { AlertCircle, Check, Copy, Film, Link2 } from "lucide-react";
 
 interface MediaCardProps {
   item: MediaGalleryItem;
@@ -19,6 +19,8 @@ export const MediaCard: React.FC<MediaCardProps> = ({
   onSelect,
   onCopy,
 }) => {
+  const [hasBrokenPreview, setHasBrokenPreview] = useState(false);
+
   return (
     <div
       onClick={onSelect}
@@ -29,12 +31,38 @@ export const MediaCard: React.FC<MediaCardProps> = ({
           : "border-[#E5E7EB] hover:border-[#D0D5DD]"
       }`}
     >
-      <div className="aspect-square bg-[#F9FAFB] overflow-hidden relative">
-        <img
-          src={item.url}
-          alt={item.name || "Média vitrine"}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-        />
+      <div className="aspect-square bg-[#F9FAFB] overflow-hidden relative flex items-center justify-center">
+        {hasBrokenPreview ? (
+          <div
+            data-testid={`media-broken-fallback-${item.id}`}
+            className="w-full h-full flex flex-col items-center justify-center gap-1 p-2 text-center bg-rose-50 text-rose-700"
+          >
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <span className="text-[10px] font-bold leading-tight">Image introuvable</span>
+          </div>
+        ) : item.type === "video" ? (
+          <>
+            <video
+              src={item.url}
+              muted
+              playsInline
+              preload="metadata"
+              onError={() => setHasBrokenPreview(true)}
+              className="w-full h-full object-cover"
+            />
+            <span className="absolute top-1.5 right-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-slate-900/85 text-white text-[9px] font-bold uppercase">
+              <Film className="w-2.5 h-2.5" />
+              Vidéo
+            </span>
+          </>
+        ) : (
+          <img
+            src={item.url}
+            alt={item.name || "Média vitrine"}
+            onError={() => setHasBrokenPreview(true)}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+          />
+        )}
         {inUseCount > 0 && (
           <span
             data-testid={`media-in-use-badge-${item.id}`}
@@ -52,10 +80,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
         )}
       </div>
       <div className="p-2 flex items-center justify-between bg-[#FFFFFF] text-[12px]">
-        <span
-          className="truncate text-[#17191C] font-semibold text-[11px]"
-          title={item.name || item.url}
-        >
+        <span className="truncate text-[#17191C] font-semibold text-[11px]" title={item.name || item.url}>
           {item.name || "Visuel"}
         </span>
         <button
@@ -64,14 +89,10 @@ export const MediaCard: React.FC<MediaCardProps> = ({
             e.stopPropagation();
             onCopy(item.url);
           }}
-          className="p-1 rounded text-[#667085] hover:text-[#023859] transition-colors"
+          className="p-1 rounded text-[#667085] hover:text-[#023859] transition-colors cursor-pointer"
           title="Copier le lien"
         >
-          {isCopied ? (
-            <Check className="w-3.5 h-3.5 text-[#16A34A]" />
-          ) : (
-            <Copy className="w-3.5 h-3.5" />
-          )}
+          {isCopied ? <Check className="w-3.5 h-3.5 text-[#16A34A]" /> : <Copy className="w-3.5 h-3.5" />}
         </button>
       </div>
     </div>

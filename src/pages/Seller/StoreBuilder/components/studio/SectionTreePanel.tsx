@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Plus, Layers, Phone, ChevronRight, Search } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, Layers, Phone, ChevronRight, Search, SlidersHorizontal } from "lucide-react";
 import {
   CustomPageSection, CustomPageSectionType, SellerStoreConfig, StoreThemeSector,
 } from "../../../../../domains/seller/customPage.types";
@@ -9,6 +9,7 @@ import { SectionCard } from "./SectionCard";
 import { DeleteSectionModal } from "./DeleteSectionModal";
 import { StudioSidebar } from "./StudioSidebar";
 import { StudioNavMode } from "./studio.types";
+import { STUDIO_JOURNEY_STEPS } from "./studioSidebarSteps";
 import { useStudioStore } from "../../store/useStudioStore";
 
 interface SectionTreePanelProps {
@@ -44,6 +45,23 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
   const studioExperienceMode = useStudioStore((s) => s.studioExperienceMode);
   const activeStudioStep = useStudioStore((s) => s.activeStudioStep);
 
+  useEffect(() => {
+    const handleRequestDelete = (e: Event) => {
+      const secId = (e as CustomEvent<{ sectionId?: string }>).detail?.sectionId;
+      if (!secId) return;
+      const found = sections.find((s) => s.id === secId);
+      if (found) setDeletingSection(found);
+    };
+    const handleOpenAddModal = () => setIsAddModalOpen(true);
+
+    window.addEventListener("studio:request-delete-section", handleRequestDelete);
+    window.addEventListener("studio:open-add-section-modal", handleOpenAddModal);
+    return () => {
+      window.removeEventListener("studio:request-delete-section", handleRequestDelete);
+      window.removeEventListener("studio:open-add-section-modal", handleOpenAddModal);
+    };
+  }, [sections]);
+
   const showSectionsTree =
     studioExperienceMode === "expert" || activeStudioStep === 3 || navMode === "sections";
 
@@ -62,6 +80,7 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
     .filter(({ sec }) => sec.type === "contact_footer" || sec.type === "return_policy");
 
   const resolvedSector: StoreThemeSector = activeSector || storeConfig?.theme?.sector || "mode";
+  const currentStepMeta = STUDIO_JOURNEY_STEPS.find((s) => s.step === activeStudioStep) || STUDIO_JOURNEY_STEPS[0];
 
   const handleAddContactFooter = () => {
     const wilaya = (storeConfig?.wilaya || "").trim();
@@ -84,41 +103,57 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
   return (
     <div className="w-full h-full bg-white border-r border-slate-200 flex flex-col shrink-0 overflow-hidden min-h-0 select-none">
       {onSelectNavMode && (
-        <div className="hidden sm:block border-b border-slate-200">
-          <StudioSidebar
-            navMode={navMode}
-            onSelectNavMode={onSelectNavMode}
-            onSaveDraft={onSaveDraft}
-          />
+        <div className="hidden md:block border-b border-slate-200">
+          <StudioSidebar navMode={navMode} onSelectNavMode={onSelectNavMode} onSaveDraft={onSaveDraft} />
         </div>
       )}
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
         {!showSectionsTree ? (
-          <div className="px-1 py-2 space-y-1 text-left">
-            <span className="text-[11.5px] font-medium text-slate-900 block">
-              Configuration de l&apos;étape {activeStudioStep}
-            </span>
-            <p className="text-[11.5px] text-slate-500 leading-relaxed">
-              Complétez les réglages dans l&apos;inspecteur à droite, puis enregistrez pour passer à l&apos;étape{" "}
-              {Math.min(4, activeStudioStep + 1)}.
-            </p>
+          <div className="px-2 py-3 space-y-3 text-left rounded-lg border border-slate-200 bg-slate-50/60">
+            <div className="space-y-1">
+              <span className="text-[12px] font-semibold text-slate-900 block">
+                Configuration de l&apos;étape {activeStudioStep} · {currentStepMeta.title}
+              </span>
+              <p className="text-[11.5px] text-slate-500 leading-relaxed">
+                Complétez les réglages dans l&apos;inspecteur, puis enregistrez pour débloquer l&apos;étape{" "}
+                {Math.min(4, activeStudioStep + 1)}.
+              </p>
+            </div>
+            {onSelectNavMode && (
+              <div className="flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  data-testid="tree-open-active-step-settings-btn"
+                  onClick={() => onSelectNavMode(currentStepMeta.defaultNav)}
+                  className="w-full h-8 px-2.5 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-[11.5px] font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  <span>Ouvrir les réglages ({currentStepMeta.title})</span>
+                </button>
+                <button
+                  type="button"
+                  data-testid="tree-show-sections-btn"
+                  onClick={() => onSelectNavMode("sections")}
+                  className="w-full h-8 px-2.5 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-[11.5px] font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Afficher les sections ({bodySections.length})</span>
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <>
             {onSelectNavMode && (
               <div className="pb-2 border-b border-slate-200 space-y-1">
-                <span className="block text-[10.5px] font-medium text-slate-400 px-1">
-                  En-tête de boutique
-                </span>
+                <span className="block text-[10.5px] font-medium text-slate-400 px-1">En-tête de boutique</span>
                 <button
                   type="button"
                   data-testid="tree-header-quick-btn"
                   onClick={() => onSelectNavMode("header")}
                   className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md border text-[11.5px] font-medium transition-colors cursor-pointer ${
-                    navMode === "header"
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                    navMode === "header" ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
                   }`}
                 >
                   <span className="truncate">Barre d&apos;annonce &amp; Menu</span>
@@ -134,6 +169,7 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
               </div>
               <button
                 type="button"
+                data-testid="tree-add-section-btn"
                 onClick={() => setIsAddModalOpen(true)}
                 className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-slate-200 bg-white hover:bg-slate-900 text-[11.5px] font-medium text-slate-700 hover:text-white transition-colors cursor-pointer whitespace-nowrap shrink-0"
               >
@@ -174,16 +210,10 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
               <div className="space-y-1">
                 {filteredBodySections.map(({ sec, idx }) => (
                   <SectionCard
-                    key={sec.id}
-                    sec={sec}
-                    idx={idx}
-                    totalSections={sections.length}
-                    isSelected={sec.id === selectedSectionId}
-                    products={products}
-                    onSelectSection={onSelectSection}
-                    onUpdateSection={onUpdateSection}
-                    onReorder={onReorder}
-                    onToggleVisibility={onToggleVisibility}
+                    key={sec.id} sec={sec} idx={idx} totalSections={sections.length}
+                    isSelected={sec.id === selectedSectionId} products={products}
+                    onSelectSection={onSelectSection} onUpdateSection={onUpdateSection}
+                    onReorder={onReorder} onToggleVisibility={onToggleVisibility}
                     onRequestDelete={(targetSec) => setDeletingSection(targetSec)}
                     onDuplicateSection={onDuplicateSection}
                   />
@@ -192,21 +222,13 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
             )}
 
             <div className="pt-2.5 border-t border-slate-200 space-y-1">
-              <span className="block text-[10.5px] font-medium text-slate-400 px-1">
-                Pied de page
-              </span>
+              <span className="block text-[10.5px] font-medium text-slate-400 px-1">Pied de page</span>
               {footerSections.map(({ sec, idx }) => (
                 <SectionCard
-                  key={sec.id}
-                  sec={sec}
-                  idx={idx}
-                  totalSections={sections.length}
-                  isSelected={sec.id === selectedSectionId}
-                  products={products}
-                  onSelectSection={onSelectSection}
-                  onUpdateSection={onUpdateSection}
-                  onReorder={onReorder}
-                  onToggleVisibility={onToggleVisibility}
+                  key={sec.id} sec={sec} idx={idx} totalSections={sections.length}
+                  isSelected={sec.id === selectedSectionId} products={products}
+                  onSelectSection={onSelectSection} onUpdateSection={onUpdateSection}
+                  onReorder={onReorder} onToggleVisibility={onToggleVisibility}
                   onRequestDelete={(targetSec) => setDeletingSection(targetSec)}
                   onDuplicateSection={onDuplicateSection}
                 />
@@ -229,18 +251,8 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
         )}
       </div>
 
-      <DeleteSectionModal
-        section={deletingSection}
-        onClose={() => setDeletingSection(null)}
-        onConfirm={onDeleteSection}
-      />
-
-      <AddSectionModal
-        isOpen={isAddModalOpen}
-        activeSector={resolvedSector}
-        onClose={() => setIsAddModalOpen(false)}
-        onAddSection={onAddSection}
-      />
+      <DeleteSectionModal section={deletingSection} onClose={() => setDeletingSection(null)} onConfirm={onDeleteSection} />
+      <AddSectionModal isOpen={isAddModalOpen} activeSector={resolvedSector} onClose={() => setIsAddModalOpen(false)} onAddSection={onAddSection} />
     </div>
   );
 };

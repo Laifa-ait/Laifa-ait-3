@@ -1,5 +1,5 @@
 import React from "react";
-import { UploadCloud, Menu, ArrowLeft, Undo2, Redo2, AlertCircle, Loader2, Check } from "lucide-react";
+import { UploadCloud, Menu, ArrowLeft, Undo2, Redo2, AlertCircle, Loader2, Check, Clock, WifiOff } from "lucide-react";
 import { SaveStatus } from "../../hooks/useStudioSaveManager";
 
 interface MobileStudioHeaderProps {
@@ -10,6 +10,7 @@ interface MobileStudioHeaderProps {
   canRedo?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
+  onSaveDraft?: () => unknown | Promise<unknown>;
   onPublish: () => void;
   onOpenMenu?: () => void;
   onExitStudio?: () => void;
@@ -23,6 +24,7 @@ export const MobileStudioHeader: React.FC<MobileStudioHeaderProps> = ({
   canRedo = false,
   onUndo,
   onRedo,
+  onSaveDraft,
   onPublish,
   onOpenMenu,
   onExitStudio,
@@ -33,6 +35,51 @@ export const MobileStudioHeader: React.FC<MobileStudioHeaderProps> = ({
     } else if (typeof window !== "undefined") {
       window.location.assign("/dashboard/seller");
     }
+  };
+
+  const renderMobileSaveStatus = () => {
+    if (saveStatus === "saving" || saveStatus === "retrying") {
+      return (
+        <span data-testid="mobile-save-status-saving" className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 shrink-0">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" aria-label="Enregistrement" />
+        </span>
+      );
+    }
+    if (saveStatus === "unsaved") {
+      return (
+        <button
+          type="button"
+          data-testid="mobile-save-status-unsaved"
+          onClick={() => { void onSaveDraft?.(); }}
+          title="Modifications non enregistrées — appuyer pour sauvegarder"
+          aria-label="Modifications non enregistrées"
+          className="h-7 px-2 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-medium inline-flex items-center gap-1 cursor-pointer shrink-0"
+        >
+          <Clock className="w-3.5 h-3.5 shrink-0" />
+          <span>Non enregistré</span>
+        </button>
+      );
+    }
+    if (saveStatus === "error" || saveStatus === "conflict" || saveStatus === "offline") {
+      return (
+        <button
+          type="button"
+          data-testid="mobile-save-status-error"
+          onClick={() => { void onSaveDraft?.(); }}
+          title="Erreur de sauvegarde — appuyer pour réessayer"
+          aria-label="Erreur sauvegarde"
+          className="h-7 px-2 rounded-md bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer shrink-0"
+        >
+          {saveStatus === "offline" ? <WifiOff className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
+          <span>{saveStatus === "conflict" ? "Conflit" : saveStatus === "offline" ? "Hors ligne" : "Erreur"}</span>
+        </button>
+      );
+    }
+    return (
+      <span data-testid="mobile-save-status-saved" className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 shrink-0" title="Sauvegardé">
+        <Check className="w-4 h-4 text-emerald-600" aria-label="Sauvegardé" />
+      </span>
+    );
   };
 
   return (
@@ -87,20 +134,14 @@ export const MobileStudioHeader: React.FC<MobileStudioHeaderProps> = ({
         </div>
 
         {shopName && (
-          <span className="text-[12px] font-semibold text-slate-900 truncate hidden xs:inline">
+          <span className="text-[12px] font-semibold text-slate-900 truncate hidden sm:inline">
             {shopName}
           </span>
         )}
       </div>
 
       <div className="flex items-center gap-1.5 shrink-0">
-        {saveStatus === "saving" || saveStatus === "retrying" ? (
-          <Loader2 className="w-4 h-4 text-amber-600 animate-spin" aria-label="Enregistrement" />
-        ) : saveStatus === "error" || saveStatus === "conflict" || saveStatus === "offline" ? (
-          <AlertCircle className="w-4 h-4 text-rose-600" aria-label="Erreur sauvegarde" />
-        ) : (
-          <Check className="w-4 h-4 text-emerald-600" aria-label="Sauvegardé" />
-        )}
+        {renderMobileSaveStatus()}
 
         <button
           type="button"

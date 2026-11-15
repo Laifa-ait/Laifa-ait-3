@@ -1,5 +1,7 @@
 import React, { useRef } from "react";
 import { CustomPageSection, CustomPageTheme } from "../../../domains/seller/customPage.types";
+import { Product } from "../../../domains/product/product.types";
+import { resolveCategoryAssignedProducts } from "../../../domains/seller/studioCatalogResolver";
 import {
   CategoryItem,
   CategoryCardRadius,
@@ -35,6 +37,7 @@ import { EditorialHeading } from "../EditorialHeading";
 interface SectionFeaturedCategoriesProps {
   section: CustomPageSection<"featured_categories">;
   theme: CustomPageTheme;
+  products?: Product[];
   isEditable?: boolean;
   isSelected?: boolean;
   onSelect?: () => void;
@@ -52,6 +55,7 @@ const ASPECT_CLASS_MAP: Record<string, string> = {
 export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps> = ({
   section,
   theme,
+  products,
   isEditable,
   isSelected,
   onSelect,
@@ -116,6 +120,10 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
 
   const resolveOriginalIndex = (visibleIdx: number) => indexedVisible[visibleIdx]?.origIdx ?? visibleIdx;
   const getCountLabel = (cat: CategoryItem) => {
+    if (Array.isArray(products)) {
+      const liveCount = resolveCategoryAssignedProducts(cat, products).items.length;
+      return `${liveCount} article${liveCount > 1 ? "s" : ""}`;
+    }
     if (Array.isArray(cat.productIds) && cat.productIds.length > 0) return `${cat.productIds.length} article${cat.productIds.length > 1 ? "s" : ""}`;
     if (cat.itemCount !== undefined && cat.itemCount !== "") return `${cat.itemCount} articles`;
     return cat.subtitle || "";

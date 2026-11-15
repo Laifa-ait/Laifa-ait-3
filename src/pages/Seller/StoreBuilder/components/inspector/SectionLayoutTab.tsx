@@ -155,58 +155,62 @@ export const SectionLayoutTab: React.FC<SectionLayoutTabProps> = ({
         </div>
       )}
 
-      <div className="space-y-2 pt-3 border-t border-slate-200">
-        <label className="text-[11.5px] font-semibold text-slate-900 block">
-          Position &amp; alignement du contenu
-        </label>
-        <div className="grid grid-cols-3 gap-1.5">
-          {([{ id: "left", label: "Gauche" }, { id: "center", label: "Centre" }, { id: "right", label: "Droite" }] as const).map((align) => (
-            <button
-              key={align.id}
-              type="button"
-              onClick={() => {
-                const nextPos = buildContentPosition(align.id, resolvedPos.vertical);
-                onSettingsChange({
-                  textAlignment: align.id,
-                  contentPosition: nextPos,
-                  ...(sectionType === "hero_banner" ? { textPosition9: nextPos } : {}),
-                });
-              }}
-              className={`h-8 rounded-lg border text-[11px] font-medium cursor-pointer ${
-                resolvedPos.horizontal === align.id
-                  ? "border-slate-900 bg-slate-50 text-slate-900 font-semibold"
-                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {align.label}
-            </button>
-          ))}
-        </div>
+      {sectionType !== "kinetic_marquee" && (
+        <div className="space-y-2 pt-3 border-t border-slate-200" data-testid="layout-alignment-control">
+          <label className="text-[11.5px] font-semibold text-slate-900 block">
+            Position &amp; alignement du contenu
+          </label>
+          <div className="grid grid-cols-3 gap-1.5">
+            {([{ id: "left", label: "Gauche" }, { id: "center", label: "Centre" }, { id: "right", label: "Droite" }] as const).map((align) => (
+              <button
+                key={align.id}
+                type="button"
+                onClick={() => {
+                  const nextPos = buildContentPosition(align.id, resolvedPos.vertical);
+                  onSettingsChange({
+                    textAlignment: align.id,
+                    contentPosition: nextPos,
+                    ...(sectionType === "hero_banner" ? { textPosition9: nextPos } : {}),
+                  });
+                }}
+                className={`h-8 rounded-lg border text-[11px] font-medium cursor-pointer ${
+                  resolvedPos.horizontal === align.id
+                    ? "border-slate-900 bg-slate-50 text-slate-900 font-semibold"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                {align.label}
+              </button>
+            ))}
+          </div>
 
-        <div className="grid grid-cols-3 gap-1.5">
-          {([{ id: "top", label: "Haut" }, { id: "center", label: "Milieu" }, { id: "bottom", label: "Bas" }] as const).map((vAlign) => (
-            <button
-              key={vAlign.id}
-              type="button"
-              onClick={() => {
-                const nextPos = buildContentPosition(resolvedPos.horizontal, vAlign.id);
-                onSettingsChange({
-                  verticalAlignment: vAlign.id,
-                  contentPosition: nextPos,
-                  ...(sectionType === "hero_banner" ? { textPosition9: nextPos } : {}),
-                });
-              }}
-              className={`h-8 rounded-lg border text-[11px] font-medium cursor-pointer ${
-                resolvedPos.vertical === vAlign.id
-                  ? "border-slate-900 bg-slate-50 text-slate-900 font-semibold"
-                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {vAlign.label}
-            </button>
-          ))}
+          {(!sectionType || sectionType === "hero_banner" || sectionType === "promo_carousel") && (
+            <div className="grid grid-cols-3 gap-1.5" data-testid="layout-vertical-alignment-control">
+              {([{ id: "top", label: "Haut" }, { id: "center", label: "Milieu" }, { id: "bottom", label: "Bas" }] as const).map((vAlign) => (
+                <button
+                  key={vAlign.id}
+                  type="button"
+                  onClick={() => {
+                    const nextPos = buildContentPosition(resolvedPos.horizontal, vAlign.id);
+                    onSettingsChange({
+                      verticalAlignment: vAlign.id,
+                      contentPosition: nextPos,
+                      ...(sectionType === "hero_banner" ? { textPosition9: nextPos } : {}),
+                    });
+                  }}
+                  className={`h-8 rounded-lg border text-[11px] font-medium cursor-pointer ${
+                    resolvedPos.vertical === vAlign.id
+                      ? "border-slate-900 bg-slate-50 text-slate-900 font-semibold"
+                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {vAlign.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       <div className="space-y-1.5 pt-3 border-t border-slate-200">
         <label className="text-[11.5px] font-semibold text-slate-900 block">Séparateur de section</label>

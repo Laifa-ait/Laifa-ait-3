@@ -101,6 +101,7 @@ export const EditorialHeading: React.FC<EditorialHeadingProps> = ({
 
   const combinedStyle: React.CSSProperties = {
     fontFamily: headingFont,
+    ...(typeof theme?.headingFontWeight === "number" ? { fontWeight: theme.headingFontWeight } : {}),
     ...(dynamicFontSize ? { fontSize: dynamicFontSize } : {}),
     ...style,
     ...(typeof letterSpacingEm === "number" && !isArabicText ? { letterSpacing: `${letterSpacingEm}em` } : {}),

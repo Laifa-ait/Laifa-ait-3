@@ -35,13 +35,13 @@ export function useCanvasPreviewEvents({
       const detail =
         (
           event as CustomEvent<{
-            viewMode?: "home" | "category" | "collection" | "custom-page";
+            viewMode?: "home" | "category" | "collection" | "custom-page" | "about";
             categorySlug?: string;
             categoryItem?: CategoryItem;
             customPage?: StoreCustomPageItem;
           }>
         ).detail || {};
-      if (detail.viewMode === "home") {
+      if (detail.viewMode === "home" || detail.viewMode === "about") {
         setCanvasViewMode("home");
         setActiveCategorySlug(null);
         setActiveCategoryOverride?.(null);

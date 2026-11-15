@@ -4,6 +4,8 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { useSellerStudio } from "../pages/Seller/StoreBuilder/hooks/useSellerStudio";
 import { useStudioStore } from "../pages/Seller/StoreBuilder/store/useStudioStore";
+import { useStudioGuidedNavigation } from "../pages/Seller/StoreBuilder/hooks/useStudioGuidedNavigation";
+import { StudioRecoveryAndConflictBar } from "../pages/Seller/StoreBuilder/components/studio/StudioRecoveryAndConflictBar";
 import * as apiModule from "../lib/api";
 
 vi.mock("../context/AuthContext", () => ({
@@ -174,5 +176,113 @@ describe("Phase 1 Engine Integration — useSellerStudio & useStudioStore", () =
 
     expect(apiModule.apiPost).not.toHaveBeenCalled();
     expect(result.current.saveStatus).toBe("conflict");
+  });
+
+  it("should allow resolving conflict via forceOverwriteDraft or rollbackVersion with expectedRevision", async () => {
+    vi.mocked(apiModule.apiPut).mockResolvedValueOnce({
+      success: true,
+      data: { draftRevision: 6 },
+    });
+    vi.mocked(apiModule.apiPost).mockResolvedValueOnce({
+      success: true,
+      data: { draftRevision: 7 },
+    });
+
+    const { result } = renderHook(() => useSellerStudio());
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await result.current.forceOverwriteDraft();
+    });
+    expect(apiModule.apiPut).toHaveBeenCalledWith(
+      "/api/v1/seller/studio/layout/draft",
+      expect.objectContaining({ expectedRevision: 4, forceOverwrite: true })
+    );
+
+    await act(async () => {
+      await result.current.rollbackVersion(1);
+    });
+    expect(apiModule.apiPost).toHaveBeenCalledWith("/api/v1/seller/studio/layout/rollback", {
+      versionNumber: 1,
+      expectedRevision: 6,
+    });
+  });
+
+  it("should render StudioRecoveryAndConflictBar for local backup and conflict resolution", async () => {
+    const onRestore = vi.fn();
+    const onDismiss = vi.fn();
+    const onReload = vi.fn();
+    const onForce = vi.fn();
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        React.createElement(StudioRecoveryAndConflictBar, {
+          saveStatus: "saved",
+          recoverableBackup: {
+            revision: 3,
+            updatedAt: Date.now(),
+            sections: initialDraftSections as never,
+          },
+          onRestoreBackup: onRestore,
+          onDismissBackup: onDismiss,
+        })
+      );
+    });
+    const restoreBtn = container.querySelector('[data-testid="studio-restore-backup-btn"]') as HTMLButtonElement;
+    expect(restoreBtn).not.toBeNull();
+    act(() => restoreBtn.click());
+    expect(onRestore).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      root.render(
+        React.createElement(StudioRecoveryAndConflictBar, {
+          saveStatus: "conflict",
+          onReloadServerVersion: onReload,
+          onForceOverwriteDraft: onForce,
+        })
+      );
+    });
+    const forceBtn = container.querySelector('[data-testid="studio-conflict-overwrite-btn"]') as HTMLButtonElement;
+    expect(forceBtn).not.toBeNull();
+    await act(async () => {
+      forceBtn.click();
+    });
+    expect(onForce).toHaveBeenCalledTimes(1);
+  });
+
+  it("should gate guided step progression on unified save success (blocking step unlock on failure)", async () => {
+    useStudioStore.setState({
+      studioExperienceMode: "guided",
+      activeStudioStep: 1,
+      unlockedStudioStep: 1,
+      completedStudioSteps: [],
+    });
+    const onSelectNavMode = vi.fn();
+    let shouldSucceed = false;
+    const unifiedSave = vi.fn(async () => (shouldSucceed ? 2 : false));
+
+    const { result } = renderHook(() =>
+      useStudioGuidedNavigation({ onSelectNavMode, onSaveDraft: unifiedSave })
+    );
+
+    await act(async () => {
+      const ok = await result.current.handleSaveAndAdvance();
+      expect(ok).toBe(false);
+    });
+    expect(useStudioStore.getState().activeStudioStep).toBe(1);
+    expect(result.current.saveStepError).toBeTruthy();
+
+    shouldSucceed = true;
+    await act(async () => {
+      const ok = await result.current.handleSaveAndAdvance();
+      expect(ok).toBe(true);
+    });
+    expect(useStudioStore.getState().activeStudioStep).toBe(2);
+    expect(useStudioStore.getState().completedStudioSteps).toContain(1);
   });
 });

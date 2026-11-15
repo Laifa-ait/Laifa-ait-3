@@ -10,6 +10,7 @@ import {
   CustomPageSectionType,
   CustomPageTheme,
   SellerStoreConfig,
+  MediaFolderCategory,
   MediaGalleryItem,
 } from "../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../domains/product/product.types";
@@ -43,8 +44,12 @@ interface StudioColumnsLayoutProps {
   selectedSection: CustomPageSection | null;
   mediaGallery: MediaGalleryItem[];
   handleSelectMediaUrl: (url: string) => void;
-  onUploadMedia?: (file: File) => Promise<MediaGalleryItem>;
+  onReplaceMediaUrl?: (oldUrl: string, newUrl: string) => Promise<number>;
+  onUploadMedia?: (file: File, options?: { folder?: MediaFolderCategory; allowVideo?: boolean }) => Promise<MediaGalleryItem>;
   onDeleteMedia?: (id: string) => Promise<void>;
+  isMediaUploading?: boolean;
+  mediaUploadProgress?: number;
+  mediaUploadError?: string | null;
   updateSection: (id: string, updatedData: Partial<CustomPageSection>) => void;
   handleSaveTheme: (theme: CustomPageTheme) => Promise<void>;
   setLiveThemeOverride: (theme: CustomPageTheme | null) => void;
@@ -84,8 +89,12 @@ export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
   selectedSection,
   mediaGallery,
   handleSelectMediaUrl,
+  onReplaceMediaUrl,
   onUploadMedia,
   onDeleteMedia,
+  isMediaUploading,
+  mediaUploadProgress,
+  mediaUploadError,
   updateSection,
   handleSaveTheme,
   setLiveThemeOverride,
@@ -161,6 +170,11 @@ export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
         <PropertiesInspector
           navMode={navMode}
           onSelectNavMode={onSelectNavMode}
+          onReturnToCanvas={() => setMobileColumn("canvas")}
+          onSelectSection={(id) => {
+            setSelectedSectionId(id);
+            setNavMode("sections");
+          }}
           selectedSection={selectedSection}
           sections={sections}
           products={products}
@@ -171,8 +185,12 @@ export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
           currentTheme={currentTheme}
           mediaGallery={mediaGallery}
           onSelectMediaUrl={handleSelectMediaUrl}
+          onReplaceMediaUrl={onReplaceMediaUrl}
           onUploadMedia={onUploadMedia}
           onDeleteMedia={onDeleteMedia}
+          isMediaUploading={isMediaUploading}
+          mediaUploadProgress={mediaUploadProgress}
+          mediaUploadError={mediaUploadError}
           onUpdateSection={updateSection}
           onAddSection={addSection}
           onSaveTheme={handleSaveTheme}

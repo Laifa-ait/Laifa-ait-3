@@ -144,22 +144,25 @@ export const InfoContentEditor: React.FC<InfoContentEditorProps> = ({
         )}
         {activeStep === 2 && (
           <div className="space-y-2">
+            <p className="text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-slate-200">
+              Seuls les avis réels et vérifiables doivent être publiés. Aucun avis fictif n&apos;est affiché sur la boutique.
+            </p>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#011C40]">Témoignages ({customReviews.length})</span>
-              <button type="button" onClick={() => onSettingsChange("customReviews", [...customReviews, { author: "Client Vérifié (Alger)", rating: 5, comment: "Excellent produit et livraison rapide !" }])} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#023859] text-white text-[11px] font-bold cursor-pointer">
+              <span className="text-xs font-bold text-[#011C40]">Témoignages vérifiés ({customReviews.length})</span>
+              <button type="button" data-testid="add-verified-review-btn" onClick={() => onSettingsChange("customReviews", [...customReviews, { author: "", rating: 5, comment: "" }])} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#023859] text-white text-[11px] font-bold cursor-pointer">
                 <Plus className="w-3 h-3" /><span>Ajouter</span>
               </button>
             </div>
             {customReviews.map((rev, idx) => (
               <div key={idx} className="p-2 bg-white rounded-lg border border-slate-200 space-y-1.5">
                 <div className="flex gap-1.5">
-                  <input value={rev.author} onChange={(e) => { const next = [...customReviews]; next[idx] = { ...next[idx], author: e.target.value }; onSettingsChange("customReviews", next); }} placeholder="Nom & Wilaya" className={inputClass} />
+                  <input value={rev.author} onChange={(e) => { const next = [...customReviews]; next[idx] = { ...next[idx], author: e.target.value }; onSettingsChange("customReviews", next); }} placeholder="Prénom & Wilaya du client réel" className={inputClass} />
                   <select value={rev.rating || 5} onChange={(e) => { const next = [...customReviews]; next[idx] = { ...next[idx], rating: Number(e.target.value) }; onSettingsChange("customReviews", next); }} className="h-9 rounded-lg border border-[#E4E7EC] px-2 text-xs font-bold text-amber-600 bg-white">
                     {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} ★</option>)}
                   </select>
                   <button type="button" onClick={() => onSettingsChange("customReviews", customReviews.filter((_, i) => i !== idx))} className="px-2 rounded border border-rose-200 text-rose-600 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
                 </div>
-                <textarea rows={2} value={rev.comment} onChange={(e) => { const next = [...customReviews]; next[idx] = { ...next[idx], comment: e.target.value }; onSettingsChange("customReviews", next); }} placeholder="Commentaire du client" className="w-full rounded-lg border border-[#E4E7EC] p-2 text-xs focus:border-[#023859] focus:outline-none" />
+                <textarea rows={2} value={rev.comment} onChange={(e) => { const next = [...customReviews]; next[idx] = { ...next[idx], comment: e.target.value }; onSettingsChange("customReviews", next); }} placeholder="Retour authentique du client" className="w-full rounded-lg border border-[#E4E7EC] p-2 text-xs focus:border-[#023859] focus:outline-none" />
               </div>
             ))}
           </div>

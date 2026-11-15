@@ -120,5 +120,14 @@ export interface PublicStorefrontProductDTO {
   storeName: string;
   wilaya: string;
   status: string;
+  onSale?: boolean;
+  viewsCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  stats?: {
+    reviewCount: number;
+    averageRating: number;
+    totalRatingSum: number;
+  };
 }
 

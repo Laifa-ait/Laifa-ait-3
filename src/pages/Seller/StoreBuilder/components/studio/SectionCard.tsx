@@ -9,6 +9,7 @@ import { CustomPageSection } from "../../../../../domains/seller/customPage.type
 import { Product } from "../../../../../domains/product/product.types";
 import { useStudioStore } from "../../store/useStudioStore";
 import { SectionSubBlocksTree, hasExpandableSubBlocks } from "./SectionSubBlocksTree";
+import { getSectionCompletenessStatus } from "../../hooks/studioSectionMutations";
 
 interface SectionCardProps {
   sec: CustomPageSection;
@@ -58,13 +59,12 @@ export const SectionCard: React.FC<SectionCardProps> = ({
   const selectSection = useStudioStore((s) => s.selectSection);
   const triggerSectionAction = useStudioStore((s) => s.triggerSectionAction);
 
-  const typeConfig = SECTION_TYPE_MAP[sec.type] || {
-    icon: Layout, label: sec.type.replace(/_/g, " "),
-  };
+  const typeConfig = SECTION_TYPE_MAP[sec.type] || { icon: Layout, label: sec.type.replace(/_/g, " ") };
   const SectionIcon = typeConfig.icon;
   const settings = (sec.settings || {}) as Record<string, unknown>;
   const imageUrl = (settings.imageUrl || settings.bannerUrl) as string | undefined;
   const isLocked = Boolean(settings.isLocked);
+  const completeness = getSectionCompletenessStatus(sec, products);
 
   const handleToggleLock = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -164,6 +164,11 @@ export const SectionCard: React.FC<SectionCardProps> = ({
           <span className="block truncate text-[10.5px] text-slate-500 tabular-nums">
             {idx + 1}. {typeConfig.label}
             {isLocked ? " · Verrouillé" : !sec.isVisible ? " · Masquée" : ""}
+            {completeness.isEmpty && (
+              <span data-testid={`section-empty-badge-${sec.id}`} className="ml-1 text-amber-700 font-semibold">
+                · {completeness.reason}
+              </span>
+            )}
           </span>
         </div>
 

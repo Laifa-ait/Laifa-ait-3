@@ -20,7 +20,8 @@ export const ArtisanBroadcastItemCard: React.FC<ArtisanBroadcastItemCardProps> =
   isRegisteredTrade,
   onStatusChange: _onStatusChange,
 }) => {
-  const cleanPhone = broadcast.clientPhone.replace(/\D/g, '');
+  const rawPhone = (broadcast.clientPhone || '').trim();
+  const cleanPhone = rawPhone.replace(/\D/g, '');
   const waPhone = cleanPhone.startsWith('0') ? `213${cleanPhone.slice(1)}` : cleanPhone;
 
   const getUrgencyConfig = (urgency: string) => {
@@ -110,25 +111,31 @@ export const ArtisanBroadcastItemCard: React.FC<ArtisanBroadcastItemCardProps> =
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <a
-            href={`tel:${broadcast.clientPhone}`}
-            className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all"
-          >
-            <Phone className="w-3.5 h-3.5" />
-            <span>Appeler {broadcast.clientPhone}</span>
-          </a>
+        {rawPhone ? (
+          <div className="flex items-center gap-2">
+            <a
+              href={`tel:${rawPhone}`}
+              className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all"
+            >
+              <Phone className="w-3.5 h-3.5" />
+              <span>Appeler {rawPhone}</span>
+            </a>
 
-          <a
-            href={`https://wa.me/${waPhone}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-2xs transition-colors flex items-center justify-center"
-            title="Contacter sur WhatsApp"
-          >
-            <MessageCircle className="w-4 h-4" />
-          </a>
-        </div>
+            {waPhone && (
+              <a
+                href={`https://wa.me/${waPhone}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-2xs transition-colors flex items-center justify-center"
+                title="Contacter sur WhatsApp"
+              >
+                <MessageCircle className="w-4 h-4" />
+              </a>
+            )}
+          </div>
+        ) : (
+          <span className="text-[11px] font-medium text-slate-400">Coordonnées sur demande</span>
+        )}
       </div>
     </div>
   );

@@ -125,15 +125,7 @@ export const SectionResponsiveTab: React.FC<SectionResponsiveTabProps> = ({
           const Icon = dev.icon;
           const isAct = activeDevice === dev.id;
           return (
-            <button
-              key={dev.id}
-              type="button"
-              data-testid={`responsive-device-${dev.id}`}
-              onClick={() => handleSelectDevice(dev.id)}
-              className={`py-2 px-2 rounded-lg flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer ${
-                isAct ? "bg-white text-[#023859] shadow-2xs font-bold border border-slate-200/80" : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
+            <button key={dev.id} type="button" data-testid={`responsive-device-${dev.id}`} onClick={() => handleSelectDevice(dev.id)} className={`py-2 px-2 rounded-lg flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer ${isAct ? "bg-white text-[#023859] shadow-2xs font-bold border border-slate-200/80" : "text-slate-600 hover:text-slate-900"}`}>
               <Icon className="w-4 h-4" />
               <span className="text-[11px] leading-tight">{dev.label}</span>
               <span className="text-[9px] opacity-75">{dev.sub}</span>
@@ -149,14 +141,8 @@ export const SectionResponsiveTab: React.FC<SectionResponsiveTabProps> = ({
             : `Modifiez uniquement ${activeDevice === "mobile" ? "Mobile" : "Tablette"} sans écraser Desktop.`}
         </span>
         {activeDevice !== "desktop" && hasAnyOverride && (
-          <button
-            type="button"
-            data-testid={`reset-overrides-${activeDevice}`}
-            onClick={() => clearDeviceOverrides(activeDevice)}
-            className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-200 text-[#023859] font-bold hover:bg-slate-50 cursor-pointer"
-          >
-            <RotateCcw className="w-3 h-3" />
-            <span>Réinitialiser</span>
+          <button type="button" data-testid={`reset-overrides-${activeDevice}`} onClick={() => clearDeviceOverrides(activeDevice)} className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-200 text-[#023859] font-bold hover:bg-slate-50 cursor-pointer">
+            <RotateCcw className="w-3 h-3" /><span>Réinitialiser</span>
           </button>
         )}
       </div>
@@ -166,19 +152,11 @@ export const SectionResponsiveTab: React.FC<SectionResponsiveTabProps> = ({
           <span className="text-[12px] font-semibold text-[#011C40]">Taille du Titre</span>
           <div className="flex items-center gap-1.5">
             {renderSourceBadge("titleFontSizePx")}
-            <span className="font-mono text-xs font-bold text-[#023859]" data-testid="resolved-title-size">
-              {resolved.titleFontSizePx}px
-            </span>
+            <span className="font-mono text-xs font-bold text-[#023859]" data-testid="resolved-title-size">{resolved.titleFontSizePx}px</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <input
-            type="range" min={18} max={64} step={1}
-            data-testid="responsive-title-size-slider"
-            value={resolved.titleFontSizePx}
-            onChange={(e) => updateDeviceOverride({ titleFontSizePx: Number(e.target.value) })}
-            className="flex-1 accent-[#023859] cursor-pointer"
-          />
+          <input type="range" min={18} max={64} step={1} data-testid="responsive-title-size-slider" value={resolved.titleFontSizePx} onChange={(e) => updateDeviceOverride({ titleFontSizePx: Number(e.target.value) })} className="flex-1 accent-[#023859] cursor-pointer" />
           {activeDevice !== "desktop" && currentDeviceOverrides.titleFontSizePx !== undefined && (
             <button type="button" title="Revenir à l'héritage" onClick={() => updateDeviceOverride({ titleFontSizePx: undefined })} className="p-1 rounded border border-slate-200 text-slate-500 hover:text-[#023859] cursor-pointer">
               <RotateCcw className="w-3 h-3" />
@@ -209,17 +187,35 @@ export const SectionResponsiveTab: React.FC<SectionResponsiveTabProps> = ({
         <input type="range" min={8} max={120} step={4} data-testid="responsive-padding-y-slider" value={resolved.paddingY} onChange={(e) => updateDeviceOverride({ paddingY: Number(e.target.value) })} className="w-full accent-[#023859] cursor-pointer" />
       </div>
 
-      <div className="space-y-1.5 pt-2 border-t border-slate-200">
-        <div className="flex items-center justify-between">
-          <span className="text-[12px] font-semibold text-[#011C40]">Alignement du Contenu</span>
-          {renderSourceBadge("textAlignment")}
+      {["featured_products", "new_arrivals", "best_sellers", "product_grid", "featured_categories", "curated_collections", "verified_reviews"].includes(syntheticSection.type) && (
+        <div className="space-y-1.5 pt-2 border-t border-slate-200" data-testid="responsive-columns-control">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-semibold text-[#011C40]">Colonnes ({activeDevice})</span>
+            {renderSourceBadge("columns")}
+          </div>
+          <div className="grid grid-cols-4 gap-1.5">
+            {([1, 2, 3, 4] as const).map((cols) => (
+              <button key={cols} type="button" data-testid={`responsive-col-btn-${cols}`} onClick={() => updateDeviceOverride({ columns: cols })} className={`h-8 rounded-lg border text-[11px] font-bold cursor-pointer ${resolved.columns === cols ? "border-[#023859] bg-[#F0F7FA] text-[#023859]" : "border-slate-200 bg-white text-slate-600"}`}>
+                {cols} col.
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-1.5">
-          {([{ id: "left", label: "Gauche" }, { id: "center", label: "Centre" }, { id: "right", label: "Droite" }] as const).map((al) => (
-            <button key={al.id} type="button" onClick={() => updateDeviceOverride({ textAlignment: al.id })} className={`h-8 rounded-lg border text-[11px] font-bold cursor-pointer ${resolved.textAlignment === al.id ? "border-[#023859] bg-[#F0F7FA] text-[#023859]" : "border-slate-200 bg-white text-slate-600"}`}>{al.label}</button>
-          ))}
+      )}
+
+      {syntheticSection.type !== "kinetic_marquee" && (
+        <div className="space-y-1.5 pt-2 border-t border-slate-200">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-semibold text-[#011C40]">Alignement du Contenu</span>
+            {renderSourceBadge("textAlignment")}
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            {([{ id: "left", label: "Gauche" }, { id: "center", label: "Centre" }, { id: "right", label: "Droite" }] as const).map((al) => (
+              <button key={al.id} type="button" onClick={() => updateDeviceOverride({ textAlignment: al.id })} className={`h-8 rounded-lg border text-[11px] font-bold cursor-pointer ${resolved.textAlignment === al.id ? "border-[#023859] bg-[#F0F7FA] text-[#023859]" : "border-slate-200 bg-white text-slate-600"}`}>{al.label}</button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="pt-2 border-t border-slate-200 space-y-2">
         <label className="flex items-center justify-between gap-2 cursor-pointer text-[12px] text-[#011C40] p-2.5 bg-slate-50 hover:bg-[#F0F7FA]/60 rounded-xl border border-slate-200">

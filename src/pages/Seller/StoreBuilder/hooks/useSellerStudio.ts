@@ -3,14 +3,14 @@ import { apiPut, apiPost } from "../../../../lib/api";
 import { useAuth } from "../../../../context/AuthContext";
 import {
   StudioDataResponse, StoreConfig, CustomPageSection, CustomPageTheme,
-  StoreHistoryEntry, MediaGalleryItem, CustomPageSectionType,
+  StoreHistoryEntry, MediaGalleryItem,
 } from "../../../../domains/seller/customPage.types";
 import { Product } from "../../../../domains/product/product.types";
 import { useStudioUndoRedo } from "./useStudioUndoRedo";
 import { useStudioSaveManager } from "./useStudioSaveManager";
 import { useStudioMediaManager } from "./useStudioMediaManager";
 import { useStudioStore } from "../store/useStudioStore";
-import { createDuplicatedStudioSection, createNewStudioSection } from "./studioSectionMutations";
+import { buildSectionMutationHandlers } from "./studioSectionMutations";
 import { CatalogLoadStatus, fetchSellerCatalogSafely, fetchStudioBundle } from "./studioCatalogLoader";
 import { toast } from "react-hot-toast";
 
@@ -41,11 +41,15 @@ export function useSellerStudio() {
   const {
     saveStatus, setSaveStatus, hasUnsavedChanges, saveDraft, triggerAutoSave,
     syncServerDraftRevision, recoverableBackup, checkRecoverableBackup, clearLocalBackup,
+    confirmedServerRevision,
   } = useStudioSaveManager({
     backupKey: currentUser?.uid ? `olmart_studio_unsaved_backup_${currentUser.uid}` : "olmart_studio_unsaved_backup",
   });
 
-  const { uploadMedia, deleteMedia } = useStudioMediaManager({
+  const {
+    uploadMedia, deleteMedia, isUploading: isMediaUploading,
+    uploadProgress: mediaUploadProgress, uploadError: mediaUploadError,
+  } = useStudioMediaManager({
     userId: currentUser?.uid, mediaGallery, setMediaGallery, setStoreConfig,
   });
 
@@ -83,13 +87,18 @@ export function useSellerStudio() {
         const draftSections = studioRes.data.draftLayout?.sections || [];
         syncServerDraftRevision(studioRes.data.draftLayout?.draftRevision ?? 1);
         initialSectionsRef.current = draftSections;
-        if (resetUndoHistory) resetHistory(draftSections, studioRes.data.storeConfig?.theme, "Version restaurée");
-        else setSectionsDirectly(draftSections, studioRes.data.storeConfig?.theme, false);
+        if (resetUndoHistory) {
+          resetHistory(draftSections, studioRes.data.storeConfig?.theme, "Version restaurée");
+          clearLocalBackup();
+          setSaveStatus("saved");
+        } else {
+          setSectionsDirectly(draftSections, studioRes.data.storeConfig?.theme, false);
+          checkRecoverableBackup(studioRes.data.draftLayout?.updatedAt, draftSections);
+        }
         setHistoryList(studioRes.data.historyList || []);
         setMediaGallery(studioRes.data.mediaGallery || []);
         setPublishedLayout(studioRes.data.publishedLayout || null);
         if (draftSections.length > 0) setSelectedSectionId(draftSections[0].id);
-        checkRecoverableBackup(studioRes.data.draftLayout?.updatedAt, draftSections);
       }
 
       if (catalog.ok) {
@@ -109,7 +118,7 @@ export function useSellerStudio() {
     } finally {
       if (reqId === fetchRequestIdRef.current) setLoading(false);
     }
-  }, [checkRecoverableBackup, resetHistory, setSectionsDirectly, setSelectedSectionId, syncServerDraftRevision]);
+  }, [checkRecoverableBackup, clearLocalBackup, resetHistory, setSaveStatus, setSectionsDirectly, setSelectedSectionId, syncServerDraftRevision]);
 
   const reloadCatalog = useCallback(async () => {
     setCatalogStatus("loading");
@@ -150,73 +159,29 @@ export function useSellerStudio() {
 
   const dismissRecoveredBackup = useCallback(() => { clearLocalBackup(); }, [clearLocalBackup]);
 
-  const addSection = (type: CustomPageSectionType, defaultSettings: Record<string, unknown>, defaultTitle?: string) => {
-    const newSection = createNewStudioSection({
-      type, defaultSettings, defaultTitle, activeSector: storeConfig?.theme?.sector,
-      storeWilaya: storeConfig?.wilaya, products, order: sections.length,
-    });
-    pushState([...sections, newSection], undefined, `Ajout section: ${newSection.title || type}`);
-    setSelectedSectionId(newSection.id);
-    toast.success("Nouvelle section ajoutée");
-  };
+  const {
+    addSection, updateSection, reorderSections, deleteSection, toggleVisibility, duplicateSection, replaceSections,
+  } = buildSectionMutationHandlers({
+    sections, selectedSectionId, setSelectedSectionId, pushState,
+    activeSector: storeConfig?.theme?.sector, storeWilaya: storeConfig?.wilaya, products,
+  });
 
-  const updateSection = (sectionId: string, updates: Partial<CustomPageSection>) => {
-    const target = sections.find((s) => s.id === sectionId);
-    const updated = sections.map((sec) => (sec.id === sectionId ? { ...sec, ...updates } : sec));
-    pushState(updated, undefined, `Édition: ${target?.title || target?.type || "Section"}`);
-  };
-
-  const reorderSections = (fromIndex: number, toIndex: number) => {
-    if (toIndex < 0 || toIndex >= sections.length) return;
-    const updated = [...sections];
-    const [moved] = updated.splice(fromIndex, 1);
-    updated.splice(toIndex, 0, moved);
-    pushState(updated.map((sec, idx) => ({ ...sec, order: idx })), undefined, "Réorganisation des sections");
-  };
-
-  const deleteSection = (sectionId: string) => {
-    const target = sections.find((s) => s.id === sectionId);
-    const updated = sections.filter((sec) => sec.id !== sectionId);
-    pushState(updated, undefined, `Suppression: ${target?.title || target?.type || "Section"}`);
-    if (selectedSectionId === sectionId) setSelectedSectionId(updated[0]?.id || null);
-    toast.success("Section supprimée");
-  };
-
-  const toggleVisibility = (sectionId: string) => {
-    const updated = sections.map((sec) => (sec.id === sectionId ? { ...sec, isVisible: !sec.isVisible } : sec));
-    pushState(updated, undefined, "Visibilité section");
-  };
-
-  const duplicateSection = (sectionId: string) => {
-    const targetIdx = sections.findIndex((sec) => sec.id === sectionId);
-    if (targetIdx === -1) return;
-    const original = sections[targetIdx];
-    const copy = createDuplicatedStudioSection(original);
-    const updated = [...sections];
-    updated.splice(targetIdx + 1, 0, copy);
-    pushState(updated.map((sec, idx) => ({ ...sec, order: idx })), undefined, `Duplication: ${original.title || original.type}`);
-    setSelectedSectionId(copy.id);
-    toast.success("Section dupliquée");
-  };
-
-  const replaceSections = (newSections: CustomPageSection[]) => {
-    const normalized = newSections.map((sec, idx) => ({ ...sec, order: idx }));
-    pushState(normalized, undefined, "Application modèle de sections");
-    if (normalized.length > 0) setSelectedSectionId(normalized[0].id);
-    toast.success("Architecture du thème appliquée avec succès !");
-  };
-
-  const saveStoreConfig = async (updatedConfigPayload: Partial<StoreConfig>) => {
+  const saveStoreConfig = async (
+    updatedConfigPayload: Partial<StoreConfig>,
+    options?: { skipUndoPush?: boolean }
+  ) => {
     try {
       setSaveStatus("saving");
-      if (updatedConfigPayload.theme) pushThemeState(updatedConfigPayload.theme, "Palette & Typographie");
+      if (updatedConfigPayload.theme && !options?.skipUndoPush) {
+        pushThemeState(updatedConfigPayload.theme, "Palette & Typographie");
+      }
       const res = await apiPut<{ success: boolean; data: StoreConfig }>("/api/v1/seller/store/config", updatedConfigPayload);
       if (res?.data) setStoreConfig(res.data);
       setSaveStatus("saved");
       toast.success("Paramètres de la boutique mis à jour !");
     } catch (err: unknown) {
       setSaveStatus("error");
-      toast.error(err instanceof Error ? err.message : "Erreur de mise à jour");
+      toast.error(err instanceof Error ? err.message : "Échec de la mise à jour");
       throw err;
     }
   };
@@ -251,7 +216,10 @@ export function useSellerStudio() {
   const rollbackVersion = async (versionNumber: number) => {
     try {
       setSaveStatus("saving");
-      await apiPost("/api/v1/seller/studio/layout/rollback", { versionNumber });
+      await apiPost("/api/v1/seller/studio/layout/rollback", {
+        versionNumber,
+        ...(typeof confirmedServerRevision === "number" ? { expectedRevision: confirmedServerRevision } : {}),
+      });
       setSaveStatus("saved");
       toast.success(`Restauration vers version #${versionNumber} effectuée !`);
       await fetchStudioData(true);
@@ -262,13 +230,15 @@ export function useSellerStudio() {
   };
 
   const saveDraftNow = useCallback(async () => await saveDraft(sections), [saveDraft, sections]);
+  const forceOverwriteDraft = useCallback(async () => await saveDraft(sections, true), [saveDraft, sections]);
 
   return {
     loading, saveStatus, isPublishing, storeConfig, sections, products, catalogStatus, catalogError,
     reloadCatalog, historyList, mediaGallery, publishedLayout, selectedSectionId, setSelectedSectionId,
     hasUnsavedChanges, recoverableBackup, applyRecoveredBackup, dismissRecoveredBackup, addSection,
     updateSection, reorderSections, deleteSection, duplicateSection, toggleVisibility, replaceSections,
-    saveStoreConfig, uploadMedia, deleteMedia, publishStudio, rollbackVersion, saveDraftNow,
+    saveStoreConfig, uploadMedia, deleteMedia, isMediaUploading, mediaUploadProgress, mediaUploadError,
+    publishStudio, rollbackVersion, saveDraftNow, forceOverwriteDraft, confirmedServerRevision,
     triggerAutoSave, refreshData: fetchStudioData, undo, redo, canUndo, canRedo, currentActionLabel,
   };
 }

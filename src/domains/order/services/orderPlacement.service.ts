@@ -289,7 +289,10 @@ export class OrderPlacementService {
 
           const parentOrderId = db.collection("orders").doc().id;
           const negotiatedPriceByCartIndex = new Map<number, number>();
-          const negotiationsToMarkUsed = new Map<string, { ref: firestore.DocumentReference; data: Record<string, unknown> }>();
+          const negotiationsToMarkUsed = new Map<
+            string,
+            { ref: firestore.DocumentReference; data: firestore.UpdateData<firestore.DocumentData> }
+          >();
           const nowIso = new Date().toISOString();
 
           if (rootNegotiationConvId && !rootNegotiationOfferId) {

@@ -1,12 +1,7 @@
 import React from "react";
 import { Compass, Grid, Image as ImageIcon, Link2, Sliders, Sparkles } from "lucide-react";
 import {
-  HeroBannerSettings,
-  HeroDeviceMeasureConfig,
-  HeroImageFilterPreset,
-  HeroLayoutModelId,
-  HeroShadowToken,
-  HeroTextPosition9,
+  HeroBannerSettings, HeroDeviceMeasureConfig, HeroImageFilterPreset, HeroLayoutModelId, HeroShadowToken, HeroTextPosition9,
 } from "../../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../../domains/product/product.types";
 import { ResolvedHeroDeviceProfile } from "../../../../../../components/Store/sections/hero/heroResponsiveHelper";
@@ -32,18 +27,15 @@ const POSITION_9_GRID: Array<{ id: HeroTextPosition9; label: string }> = [
 ];
 
 const IMAGE_FILTER_PRESETS: Array<{ id: HeroImageFilterPreset; label: string }> = [
-  { id: "none", label: "Naturel" },
-  { id: "warm-editorial", label: "Éditorial Chaud" },
-  { id: "vivid-contrast", label: "Contraste Vif" },
-  { id: "bw-art", label: "Noir & Blanc Art" },
-  { id: "soft-matte", label: "Mat Doux" },
-  { id: "golden-film", label: "Film Doré" },
+  { id: "none", label: "Naturel" }, { id: "warm-editorial", label: "Éditorial Chaud" }, { id: "vivid-contrast", label: "Contraste Vif" },
+  { id: "bw-art", label: "Noir & Blanc Art" }, { id: "soft-matte", label: "Mat Doux" }, { id: "golden-film", label: "Film Doré" },
 ];
 
 export const HeroPhotoAndCtaStepPanels: React.FC<HeroPhotoAndCtaStepPanelsProps> = ({
   activeStep, activeModel, deviceTab, profile, settings, products, inputClass, onSettingsChange, onDeviceConfigChange,
 }) => {
   const s = settings as Partial<HeroBannerSettings>;
+  const isDesktop = deviceTab === "desktop";
   const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean))) as string[];
   const defaultCategories = categories.length > 0 ? categories : ["Nouveautés", "Collections", "Essentiels"];
   const imageFieldForDevice = deviceTab === "mobile" ? "mobileImageUrl" : deviceTab === "tablet" ? "tabletImageUrl" : "imageUrl";
@@ -62,6 +54,9 @@ export const HeroPhotoAndCtaStepPanels: React.FC<HeroPhotoAndCtaStepPanelsProps>
 
   const showStep3 = activeStep === "all" || activeStep === 3;
   const showStep4 = activeStep === "all" || activeStep === 4;
+  const titleLen = (s.title || "").trim().length;
+  const subtitleLen = (s.subtitle || "").trim().length;
+  const badgeLen = (s.badgeText || "").trim().length;
 
   return (
     <div className="space-y-4">
@@ -70,54 +65,36 @@ export const HeroPhotoAndCtaStepPanels: React.FC<HeroPhotoAndCtaStepPanelsProps>
           <span className="text-[11px] font-black uppercase tracking-wider text-zinc-800 flex items-center gap-1.5">
             <ImageIcon className="w-3.5 h-3.5 text-zinc-700" /> Étape 3 — Photo, Cadrage, Ombre &amp; Filtres
           </span>
-
           <StudioImagePicker label={`Photographie Principale (${deviceTab.toUpperCase()})`} value={(s[imageFieldForDevice] as string) || s.imageUrl || ""} onChange={(val) => onSettingsChange(imageFieldForDevice, val)} products={products} />
-          {(activeModel === "bento-hero" || activeModel === "cinema-full") && (
-            <StudioImagePicker label={activeModel === "bento-hero" ? "2ème Photographie (Diptyque)" : "2ème Photographie (Swap)"} value={s.secondaryImageUrl || ""} onChange={(val) => onSettingsChange("secondaryImageUrl", val)} products={products} />
+          {(activeModel === "bento-hero" || activeModel === "atelier-collage" || activeModel === "cinema-full") && (
+            <StudioImagePicker label={activeModel === "bento-hero" ? "2ème Photographie (Diptyque)" : activeModel === "atelier-collage" ? "2ème Photographie (Galerie)" : "2ème Photographie (Swap)"} value={s.secondaryImageUrl || ""} onChange={(val) => onSettingsChange("secondaryImageUrl", val)} products={products} />
           )}
-
+          {activeModel === "atelier-collage" && (
+            <StudioImagePicker label="3ème Photographie (Galerie optionnelle)" value={s.tertiaryImageUrl || ""} onChange={(val) => onSettingsChange("tertiaryImageUrl", val)} products={products} />
+          )}
           <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-zinc-200">
             <button type="button" onClick={() => onSettingsChange("imageFit", "cover")} className={`py-1.5 rounded-lg text-[10px] font-bold cursor-pointer ${(s.imageFit || "cover") === "cover" ? "bg-zinc-900 text-white" : "text-zinc-600"}`}>Remplir (cover)</button>
             <button type="button" onClick={() => onSettingsChange("imageFit", "contain")} className={`py-1.5 rounded-lg text-[10px] font-bold cursor-pointer ${s.imageFit === "contain" ? "bg-zinc-900 text-white" : "text-zinc-600"}`}>Afficher entier (contain)</button>
           </div>
-
           <div className="grid grid-cols-3 gap-2 text-[10px] font-bold text-zinc-600 bg-white p-2.5 rounded-xl border border-zinc-200">
-            <label>Focal X ({profile.focalX}%) <input type="range" min={0} max={100} value={profile.focalX} onChange={(e) => handleFocalChange(Number(e.target.value), profile.focalY)} className="w-full accent-zinc-900" /></label>
-            <label>Focal Y ({profile.focalY}%) <input type="range" min={0} max={100} value={profile.focalY} onChange={(e) => handleFocalChange(profile.focalX, Number(e.target.value))} className="w-full accent-zinc-900" /></label>
-            <label>Zoom ({Math.round(profile.zoom * 100)}%) <input type="range" min={100} max={150} step={5} value={Math.round(profile.zoom * 100)} onChange={(e) => handleZoomChange(Number(e.target.value) / 100)} className="w-full accent-zinc-900" /></label>
+            <label>Focal X ({profile.focalX}%) <input type="range" data-testid="hero-focal-x-slider" min={0} max={100} value={profile.focalX} onChange={(e) => handleFocalChange(Number(e.target.value), profile.focalY)} className="w-full accent-zinc-900" /></label>
+            <label>Focal Y ({profile.focalY}%) <input type="range" data-testid="hero-focal-y-slider" min={0} max={100} value={profile.focalY} onChange={(e) => handleFocalChange(profile.focalX, Number(e.target.value))} className="w-full accent-zinc-900" /></label>
+            <label>Zoom ({Math.round(profile.zoom * 100)}%) <input type="range" data-testid="hero-zoom-slider" min={100} max={160} step={5} value={Math.round(profile.zoom * 100)} onChange={(e) => handleZoomChange(Number(e.target.value) / 100)} className="w-full accent-zinc-900" /></label>
           </div>
-
           <div className="p-2.5 rounded-xl bg-white border border-zinc-200 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase text-zinc-700 flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-amber-600" /> Filtre Photographique &amp; Ombre Image
               </span>
-              <button
-                type="button"
-                data-testid="hero-reset-image-filters-btn"
-                onClick={() => onSettingsChange({ imageFilterPreset: "none", imageBrightness: 100, imageContrast: 100, imageSaturation: 100, imageSepia: 0, imageBlurPx: 0, imageShadow: "none" })}
-                className="text-[9.5px] font-bold text-zinc-500 hover:text-zinc-900 underline cursor-pointer"
-              >
-                Réinitialiser
-              </button>
+              <button type="button" data-testid="hero-reset-image-filters-btn" onClick={() => onSettingsChange({ imageFilterPreset: "none", imageBrightness: 100, imageContrast: 100, imageSaturation: 100, imageSepia: 0, imageBlurPx: 0, imageShadow: "none" })} className="text-[9.5px] font-bold text-zinc-500 hover:text-zinc-900 underline cursor-pointer">Réinitialiser</button>
             </div>
-
             <div className="grid grid-cols-3 gap-1">
               {IMAGE_FILTER_PRESETS.map((fp) => (
-                <button
-                  key={fp.id}
-                  type="button"
-                  data-testid={`hero-filter-preset-${fp.id}`}
-                  onClick={() => onSettingsChange("imageFilterPreset", fp.id)}
-                  className={`py-1.5 px-1.5 rounded-lg text-[9.5px] font-bold border cursor-pointer transition-all ${
-                    (s.imageFilterPreset || "none") === fp.id ? "bg-zinc-900 text-white border-zinc-900" : "bg-zinc-50 text-zinc-700 border-zinc-200 hover:bg-zinc-100"
-                  }`}
-                >
+                <button key={fp.id} type="button" data-testid={`hero-filter-preset-${fp.id}`} onClick={() => onSettingsChange("imageFilterPreset", fp.id)} className={`py-1.5 px-1.5 rounded-lg text-[9.5px] font-bold border cursor-pointer transition-all ${(s.imageFilterPreset || "none") === fp.id ? "bg-zinc-900 text-white border-zinc-900" : "bg-zinc-50 text-zinc-700 border-zinc-200 hover:bg-zinc-100"}`}>
                   {fp.label}
                 </button>
               ))}
             </div>
-
             <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-zinc-600">
               <label>Luminosité ({s.imageBrightness ?? 100}%)<input type="range" data-testid="hero-filter-brightness" min={50} max={150} step={5} value={s.imageBrightness ?? 100} onChange={(e) => onSettingsChange("imageBrightness", Number(e.target.value))} className="w-full accent-zinc-900" /></label>
               <label>Contraste ({s.imageContrast ?? 100}%)<input type="range" data-testid="hero-filter-contrast" min={50} max={150} step={5} value={s.imageContrast ?? 100} onChange={(e) => onSettingsChange("imageContrast", Number(e.target.value))} className="w-full accent-zinc-900" /></label>
@@ -130,7 +107,6 @@ export const HeroPhotoAndCtaStepPanels: React.FC<HeroPhotoAndCtaStepPanelsProps>
                 </div>
               </label>
             </div>
-
             <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-100">
               <span className="text-[10px] font-bold text-zinc-600">Ombre portée du cadre photo</span>
               <select data-testid="hero-image-shadow-select" value={s.imageShadow || "none"} onChange={(e) => onSettingsChange("imageShadow", e.target.value as HeroShadowToken)} className="h-7 rounded-lg border border-zinc-200 bg-white px-2 text-[10.5px] font-bold text-zinc-800">
@@ -151,39 +127,38 @@ export const HeroPhotoAndCtaStepPanels: React.FC<HeroPhotoAndCtaStepPanelsProps>
               <Grid className="w-3 h-3" /> <span>Guides</span>
             </button>
           </div>
-
           <div className="grid grid-cols-3 gap-1 bg-white p-1.5 rounded-xl border border-zinc-200">
             {POSITION_9_GRID.map((pos) => (
-              <button key={pos.id} type="button" data-testid={`hero-pos9-${pos.id}`} onClick={() => { onDeviceConfigChange({ textPosition9: pos.id }); onSettingsChange("textPosition9", pos.id); }} className={`py-1.5 px-1 rounded-lg text-[9px] font-bold transition-all cursor-pointer ${profile.textPosition9 === pos.id ? "bg-zinc-900 text-white shadow-2xs" : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"}`}>
+              <button key={pos.id} type="button" data-testid={`hero-pos9-${pos.id}`} onClick={() => { onDeviceConfigChange({ textPosition9: pos.id }); if (isDesktop) onSettingsChange("textPosition9", pos.id); }} className={`py-1.5 px-1 rounded-lg text-[9px] font-bold transition-all cursor-pointer ${profile.textPosition9 === pos.id ? "bg-zinc-900 text-white shadow-2xs" : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"}`}>
                 {pos.label}
               </button>
             ))}
           </div>
-
           <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-zinc-200">
             {(["left", "center", "right"] as const).map((align) => (
-              <button key={align} type="button" onClick={() => { onDeviceConfigChange({ textAlign: align }); onSettingsChange("textAlignment", align); }} className={`py-1 rounded-lg text-[10px] font-bold cursor-pointer ${profile.textAlign === align ? "bg-zinc-900 text-white" : "text-zinc-600"}`}>
+              <button key={align} type="button" onClick={() => { onDeviceConfigChange({ textAlign: align }); if (isDesktop) onSettingsChange("textAlignment", align); }} className={`py-1 rounded-lg text-[10px] font-bold cursor-pointer ${profile.textAlign === align ? "bg-zinc-900 text-white" : "text-zinc-600"}`}>
                 {align === "left" ? "Gauche" : align === "center" ? "Centré" : "Droite"}
               </button>
             ))}
           </div>
-
           <div className="space-y-2 pt-1 border-t border-zinc-200/70">
-            <span className="text-[10px] font-black uppercase text-zinc-700 block">Écriture Minimaliste &amp; Typographie</span>
-            <input value={s.badgeText || ""} onChange={(e) => onSettingsChange({ badgeText: e.target.value, showBadge: Boolean(e.target.value) })} placeholder="Badge optionnel (ex: NOUVELLE COLLECTION)" className={inputClass} />
-            <input value={s.title || ""} onChange={(e) => onSettingsChange("title", e.target.value)} placeholder="1. Le Titre (court, net et impactant)" className={inputClass} />
-            <textarea rows={2} value={s.subtitle || ""} onChange={(e) => onSettingsChange({ subtitle: e.target.value, showSubtitle: true })} placeholder="2. Petite phrase explicative sous le titre..." className={inputClass} />
+            <div className="flex items-center justify-between text-[10px] font-black uppercase text-zinc-700">
+              <span>Écriture &amp; Typographie</span>
+              <span className="font-mono text-[9.5px] font-semibold text-zinc-500">Titre {titleLen}/65 · Phrase {subtitleLen}/140 · Badge {badgeLen}/28</span>
+            </div>
+            <input data-testid="hero-badge-input" value={s.badgeText || ""} onChange={(e) => onSettingsChange({ badgeText: e.target.value, showBadge: Boolean(e.target.value) })} placeholder="Badge optionnel (ex: NOUVELLE COLLECTION)" className={inputClass} />
+            <input data-testid="hero-title-input" value={s.title || ""} onChange={(e) => onSettingsChange("title", e.target.value)} placeholder="1. Le Titre (recommandé ≤ 65 caractères)" className={inputClass} />
+            <textarea data-testid="hero-subtitle-input" rows={2} value={s.subtitle || ""} onChange={(e) => onSettingsChange({ subtitle: e.target.value, showSubtitle: true })} placeholder="2. Petite phrase explicative sous le titre (recommandé ≤ 140 car.)..." className={inputClass} />
             <div className="grid grid-cols-3 gap-1.5">
               <select value={s.titleFontFamily || "sans"} onChange={(e) => onSettingsChange("titleFontFamily", e.target.value)} className={inputClass}><option value="sans">Sans Moderne</option><option value="serif">Serif Prestige</option><option value="display">Display Pur</option></select>
               <select value={profile.titleSizeToken} onChange={(e) => { const val = e.target.value as "sm" | "md" | "lg" | "xl"; onDeviceConfigChange({ titleSize: val }); onSettingsChange(deviceTab === "mobile" ? "titleSizeMobile" : deviceTab === "tablet" ? "titleSizeTablet" : "titleSizeDesktop", val); }} className={inputClass}><option value="sm">Titre Discret</option><option value="md">Titre Moyen</option><option value="lg">Titre Grand</option><option value="xl">Monumental</option></select>
               <select data-testid="hero-text-shadow-select" value={s.textShadow || "none"} onChange={(e) => onSettingsChange("textShadow", e.target.value)} className={inputClass}><option value="none">Ombre Texte: 0</option><option value="soft">Ombre Douce</option><option value="strong">Ombre Forte</option></select>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <select value={String(profile.textBoxMaxWidth)} onChange={(e) => { const v = Number(e.target.value) as 360 | 480 | 620; onDeviceConfigChange({ textBoxMaxWidth: v }); onSettingsChange("textBoxMaxWidth", v); }} className={inputClass}><option value="360">Bloc Compact (360px)</option><option value="480">Bloc Moyen (480px)</option><option value="620">Bloc Large (620px)</option></select>
-              <select value={String(profile.textVerticalGap)} onChange={(e) => { const v = Number(e.target.value) as 8 | 16 | 24; onDeviceConfigChange({ textVerticalGap: v }); onSettingsChange("textVerticalGap", v); }} className={inputClass}><option value="8">Espacement Serré (8px)</option><option value="16">Espacement Équilibré (16px)</option><option value="24">Espacement Aéré (24px)</option></select>
+              <select value={String(profile.textBoxMaxWidth)} onChange={(e) => { const v = Number(e.target.value) as 360 | 480 | 620; onDeviceConfigChange({ textBoxMaxWidth: v }); if (isDesktop) onSettingsChange("textBoxMaxWidth", v); }} className={inputClass}><option value="360">Bloc Compact (360px)</option><option value="480">Bloc Moyen (480px)</option><option value="620">Bloc Large (620px)</option></select>
+              <select value={String(profile.textVerticalGap)} onChange={(e) => { const v = Number(e.target.value) as 8 | 16 | 24; onDeviceConfigChange({ textVerticalGap: v }); if (isDesktop) onSettingsChange("textVerticalGap", v); }} className={inputClass}><option value="8">Espacement Serré (8px)</option><option value="16">Espacement Équilibré (16px)</option><option value="24">Espacement Aéré (24px)</option></select>
             </div>
           </div>
-
           <div className="p-2.5 rounded-xl bg-white border border-zinc-200 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase text-zinc-700 flex items-center gap-1"><Sliders className="w-3.5 h-3.5 text-zinc-800" /> Contrôle Complet du Bouton d&apos;Action</span>
@@ -215,7 +190,6 @@ export const HeroPhotoAndCtaStepPanels: React.FC<HeroPhotoAndCtaStepPanelsProps>
             {s.ctaTargetType === "product" && (
               <select value={s.ctaTargetProductId || s.spotlightProductId || ""} onChange={(e) => onSettingsChange({ ctaTargetProductId: e.target.value, spotlightProductId: e.target.value, ctaLink: `#product-${e.target.value}` })} className={inputClass}><option value="">-- Sélectionner un produit du catalogue --</option>{products.map((p) => <option key={p.id} value={p.id}>{p.name} — {(p.promoPrice || p.price).toLocaleString("fr-DZ")} DA</option>)}</select>
             )}
-
             <div className="pt-2 border-t border-zinc-200/80 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase text-zinc-700">2ème Bouton Secondaire (Optionnel)</span>

@@ -1,10 +1,11 @@
 import { db } from "../../../config/firebase-admin";
 import { StoreConfig, StoreLayoutVersion } from "../customPage.types";
 import { PublicShopDTO, PublicStorefrontProductDTO } from "../shop.types";
-import { buildWhitelistedShopDTO } from "../shopPublic.projection";
+import { buildPublicStorefrontProductDTO, buildWhitelistedShopDTO } from "../shopPublic.projection";
 import { LegacyStoreAdapter } from "./legacyStore.adapter";
 import { USER_STATUSES } from "../../user/user.status";
 import { redactStoreConfigForPublic } from "../../../security/studioCyberSecurity";
+import { serializeTimestampIso } from "../studioCatalogResolver";
 import {
   evaluatePaidStudioSubscription, isPubliclyVisibleProductStatus, isStorePasswordLocked,
   resolveProductImagesList, resolveProductPrimaryImage, verifyStoreVipAccessToken,
@@ -103,26 +104,15 @@ export class StorePublicService {
     for (const snap of snaps) {
       if (!snap || !Array.isArray(snap.docs)) continue;
       for (const doc of snap.docs) {
-        const d = doc.data() || {};
-        if (!isPubliclyVisibleProductStatus(d.status)) continue;
-        const prodName = String(d.name || d.title || "Article");
-        productMap.set(doc.id, {
-          id: doc.id, name: prodName, title: prodName, description: String(d.description || ""),
-          price: Number(d.price) || 0,
-          promoPrice: typeof d.promoPrice === "number" ? d.promoPrice : undefined,
-          originalPrice: typeof d.originalPrice === "number" ? d.originalPrice : undefined,
-          flashPrice: typeof d.flashPrice === "number" ? d.flashPrice : undefined,
-          flashSaleActive: Boolean(d.flashSaleActive),
-          category: String(d.category || "Général"), subcategory: String(d.subcategory || d.subCategory || ""),
-          image: resolveProductPrimaryImage(d, ""), images: resolveProductImagesList(d),
-          stock: typeof d.stock === "number" ? d.stock : 10, rating: typeof d.rating === "number" ? d.rating : 0,
-          salesCount: typeof d.salesCount === "number" ? d.salesCount : 0,
-          colors: Array.isArray(d.colors) ? (d.colors as string[]) : [],
-          sizes: Array.isArray(d.sizes) ? (d.sizes as string[]) : [],
-          variants: Array.isArray(d.variants) ? d.variants : [],
-          sellerId: resolvedId, sellerName: String(d.sellerName || d.storeName || ""),
-          storeName: String(d.storeName || d.sellerName || ""), wilaya: String(d.wilaya || ""), status: "active",
-        });
+        const d = (doc.data() || {}) as Record<string, unknown>;
+        if (d.deletedAt || !isPubliclyVisibleProductStatus(d.status)) continue;
+        productMap.set(
+          doc.id,
+          buildPublicStorefrontProductDTO(
+            doc.id, d, resolvedId, resolveProductImagesList(d), resolveProductPrimaryImage(d, ""),
+            serializeTimestampIso(d.createdAt), serializeTimestampIso(d.updatedAt)
+          )
+        );
       }
     }
 

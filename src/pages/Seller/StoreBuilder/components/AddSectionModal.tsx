@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Search, Plus } from "lucide-react";
 import { CustomPageSectionType, StoreThemeSector } from "../../../../domains/seller/customPage.types";
 import { SECTION_CATALOG, SectionOption } from "../constants/sectionCatalog";
@@ -91,7 +92,7 @@ export const AddSectionModal: React.FC<AddSectionModalProps> = ({
 
   const handleCreateCoherentSection = (type: CustomPageSectionType, baseSettings: Record<string, unknown>, customTitle?: string) => {
     const coherent = buildSectorAwareSectionDefaults(type, baseSettings, selectedSector);
-    onAddSection(type, coherent, customTitle);
+    onAddSection(type, { ...coherent, _sector: selectedSector }, customTitle);
   };
 
   const handleApplyBlueprint = (bpSections: Array<{ type: CustomPageSectionType; title: string }>) => {
@@ -102,7 +103,7 @@ export const AddSectionModal: React.FC<AddSectionModalProps> = ({
     onClose();
   };
 
-  return (
+  const modalNode = (
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 select-none" onClick={onClose}>
       <div className="bg-white text-slate-900 rounded-xl max-w-3xl w-full shadow-2xl border border-slate-200 max-h-[88vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()} data-testid="add-section-modal">
         <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
@@ -194,4 +195,9 @@ export const AddSectionModal: React.FC<AddSectionModalProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document !== "undefined" && document.body) {
+    return createPortal(modalNode, document.body);
+  }
+  return modalNode;
 };

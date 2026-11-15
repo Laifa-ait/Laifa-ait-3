@@ -99,7 +99,9 @@ export function useStudioWorkspaceEvents({
     } else if (action === "toggle-visibility") {
       toggleVisibility(sectionId);
     } else if (action === "delete") {
-      deleteSection(sectionId);
+      window.dispatchEvent(
+        new CustomEvent("studio:request-delete-section", { detail: { sectionId } })
+      );
     }
     clearPendingSectionAction();
   }, [
@@ -115,6 +117,14 @@ export function useStudioWorkspaceEvents({
         setNavMode("pages");
         setMobileColumn("inspector");
       }
+    };
+
+    const selectNavModeHandler = (event: Event) => {
+      const mode = (event as CustomEvent<{ mode?: StudioNavMode }>).detail?.mode;
+      if (!mode) return;
+      setShowRightSidebar(true);
+      setNavMode(mode);
+      setMobileColumn(mode === "sections" ? "tree" : "inspector");
     };
 
     const cmdHandler = () => setIsCommandPaletteOpen(true);
@@ -170,6 +180,9 @@ export function useStudioWorkspaceEvents({
         sectionId?: string;
         tab?: "content" | "style" | "layout" | "responsive" | "advanced";
       }>;
+      if (custom.detail?.sectionId) {
+        useStudioStore.getState().selectSection(custom.detail.sectionId, null);
+      }
       if (custom.detail?.tab) {
         useStudioStore.getState().setActiveInspectorTab(custom.detail.tab);
       }
@@ -179,6 +192,7 @@ export function useStudioWorkspaceEvents({
     };
 
     window.addEventListener("studio:navigate-page", navPageHandler);
+    window.addEventListener("studio:select-nav-mode", selectNavModeHandler);
     window.addEventListener("studio:open-command-palette", cmdHandler);
     window.addEventListener("studio:audit-autofix", autoFixHandler);
     window.addEventListener("studio:patch-section-settings", patchSettingsHandler);
@@ -186,6 +200,7 @@ export function useStudioWorkspaceEvents({
 
     return () => {
       window.removeEventListener("studio:navigate-page", navPageHandler);
+      window.removeEventListener("studio:select-nav-mode", selectNavModeHandler);
       window.removeEventListener("studio:open-command-palette", cmdHandler);
       window.removeEventListener("studio:audit-autofix", autoFixHandler);
       window.removeEventListener("studio:patch-section-settings", patchSettingsHandler);

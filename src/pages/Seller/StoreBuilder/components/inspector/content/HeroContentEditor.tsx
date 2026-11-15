@@ -8,7 +8,7 @@ import {
   HeroSubElement,
 } from "../../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../../domains/product/product.types";
-import { StudioImagePicker } from "./StudioImagePicker";
+import { ShowcaseVideoEditor } from "./ShowcaseVideoEditor";
 import {
   HERO_LAYOUT_MODELS,
   buildSmartHeroFromCatalog,
@@ -18,6 +18,7 @@ import { HeroStep1ShapePanel } from "../hero/HeroStep1ShapePanel";
 import {
   buildAdaptedDeviceConfigFromDesktop,
   computeHeroContrastDiagnostics,
+  computeHeroTextDensityDiagnostics,
   resolveHeroDeviceProfile,
 } from "../../../../../../components/Store/sections/hero/heroResponsiveHelper";
 import { useStudioStore } from "../../../store/useStudioStore";
@@ -78,12 +79,13 @@ export const HeroContentEditor: React.FC<HeroContentEditorProps> = ({
 
   if (sectionType === "showcase_video") {
     return (
-      <div className="space-y-3 pt-1" data-testid="showcase-video-editor">
-        <div><label className={labelClass}>Titre de la section vidéo</label><input value={(settings.title as string) || ""} onChange={(e) => onSettingsChange("title", e.target.value)} className={inputClass} /></div>
-        <div><label className={labelClass}>Sous-titre</label><input value={(settings.subtitle as string) || ""} onChange={(e) => onSettingsChange("subtitle", e.target.value)} className={inputClass} /></div>
-        <div><label className={labelClass}>Lien Vidéo (YouTube ou MP4)</label><input value={(settings.videoUrl as string) || ""} onChange={(e) => onSettingsChange("videoUrl", e.target.value)} className={inputClass} placeholder="https://..." /></div>
-        <StudioImagePicker label="Image de couverture" value={(settings.coverImageUrl as string) || ""} onChange={(val) => onSettingsChange("coverImageUrl", val)} products={products} />
-      </div>
+      <ShowcaseVideoEditor
+        settings={settings}
+        products={products}
+        inputClass={inputClass}
+        labelClass={labelClass}
+        onSettingsChange={onSettingsChange}
+      />
     );
   }
 
@@ -91,20 +93,45 @@ export const HeroContentEditor: React.FC<HeroContentEditorProps> = ({
   const profile = resolveHeroDeviceProfile(typedSettings, deviceTab);
   const activeModel = profile.heroLayout;
   const deviceConfigKey = deviceTab === "mobile" ? "heroMobileConfig" : deviceTab === "tablet" ? "heroTabletConfig" : "heroDesktopConfig";
+  const currentDeviceConfig = (typedSettings[deviceConfigKey] as HeroDeviceMeasureConfig | undefined) || {};
+  const hasCustomDeviceProfile =
+    deviceTab !== "desktop" &&
+    (Object.keys(currentDeviceConfig).length > 0 ||
+      Boolean(deviceTab === "tablet" ? typedSettings.heroLayoutTablet : typedSettings.heroLayoutMobile));
 
   const updateDeviceConfig = (patch: Partial<HeroDeviceMeasureConfig>): void => {
-    const existing = (typedSettings[deviceConfigKey] as HeroDeviceMeasureConfig | undefined) || {};
-    onSettingsChange(deviceConfigKey, { ...existing, ...patch });
+    onSettingsChange(deviceConfigKey, { ...currentDeviceConfig, ...patch });
+  };
+
+  const handleResetDeviceProfile = (): void => {
+    if (deviceTab === "desktop") return;
+    onSettingsChange({
+      [deviceConfigKey]: undefined,
+      ...(deviceTab === "tablet"
+        ? { heroLayoutTablet: undefined, imagePositionTablet: undefined, imageZoomTablet: undefined, titleSizeTablet: undefined }
+        : { heroLayoutMobile: undefined, imagePositionMobile: undefined, imageZoomMobile: undefined, titleSizeMobile: undefined }),
+    });
   };
 
   const handleSelectModel = (modelId: HeroLayoutModelId): void => {
     const preset = HERO_LAYOUT_MODELS.find((m) => m.id === modelId);
     if (deviceTab === "desktop") {
-      onSettingsChange({ ...(preset?.defaultSettings || {}), heroLayout: modelId });
-      updateDeviceConfig({ styleId: modelId });
+      const nonDestructiveDefaults: Record<string, unknown> = {};
+      if (preset?.defaultSettings) {
+        for (const [k, v] of Object.entries(preset.defaultSettings)) {
+          if (settings[k] === undefined) nonDestructiveDefaults[k] = v;
+        }
+      }
+      onSettingsChange({
+        ...nonDestructiveDefaults,
+        heroLayout: modelId,
+        heroDesktopConfig: { ...(typedSettings.heroDesktopConfig || {}), styleId: modelId },
+      });
     } else {
-      onSettingsChange(deviceTab === "tablet" ? "heroLayoutTablet" : "heroLayoutMobile", modelId);
-      updateDeviceConfig({ styleId: modelId });
+      onSettingsChange({
+        [deviceTab === "tablet" ? "heroLayoutTablet" : "heroLayoutMobile"]: modelId,
+        [deviceConfigKey]: { ...currentDeviceConfig, styleId: modelId },
+      });
     }
   };
 
@@ -115,6 +142,7 @@ export const HeroContentEditor: React.FC<HeroContentEditorProps> = ({
   };
 
   const contrastDiag = computeHeroContrastDiagnostics(typedSettings);
+  const densityDiag = computeHeroTextDensityDiagnostics(typedSettings);
 
   return (
     <div className="space-y-3.5 pt-1" data-testid="hero-content-editor">
@@ -151,11 +179,13 @@ export const HeroContentEditor: React.FC<HeroContentEditorProps> = ({
           profile={profile}
           typedSettings={typedSettings}
           pendingAdaptation={pendingAdaptation}
+          hasCustomDeviceProfile={hasCustomDeviceProfile}
           inputClass={inputClass}
           onChangeDeviceTab={(id) => { setDeviceTab(id); setPendingAdaptation(null); }}
           onRequestAdaptation={() => setPendingAdaptation(buildAdaptedDeviceConfigFromDesktop(typedSettings, deviceTab as "tablet" | "mobile"))}
           onConfirmAdaptation={handleConfirmAdaptation}
           onCancelAdaptation={() => setPendingAdaptation(null)}
+          onResetDeviceProfile={handleResetDeviceProfile}
           onSelectModel={handleSelectModel}
           onSettingsChange={onSettingsChange}
           onDeviceConfigChange={updateDeviceConfig}
@@ -163,9 +193,15 @@ export const HeroContentEditor: React.FC<HeroContentEditorProps> = ({
       )}
 
       {contrastDiag.warningMessage && (
-        <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-2">
+        <div data-testid="hero-contrast-warning-box" className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-2">
           <span className="text-[10px] font-bold text-amber-900">{contrastDiag.warningMessage}</span>
-          <button type="button" onClick={() => onSettingsChange(contrastDiag.suggestedPatch as Record<string, unknown>)} className="px-2.5 py-1 rounded-lg bg-amber-900 text-white text-[10px] font-bold shrink-0">Corriger</button>
+          <button type="button" data-testid="hero-contrast-fix-btn" onClick={() => onSettingsChange(contrastDiag.suggestedPatch as Record<string, unknown>)} className="px-2.5 py-1 rounded-lg bg-amber-900 text-white text-[10px] font-bold shrink-0 cursor-pointer">Corriger</button>
+        </div>
+      )}
+
+      {densityDiag.isDense && (
+        <div data-testid="hero-density-warning-box" className="p-2.5 rounded-xl bg-sky-50 border border-sky-200 text-[10px] font-medium text-sky-950">
+          Recommandation éditoriale : {densityDiag.warnings.join(" · ")}. Votre texte est conservé intégralement.
         </div>
       )}
 

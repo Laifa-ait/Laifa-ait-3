@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type {
   CustomPageSection,
   CustomPageTheme,
@@ -11,7 +11,7 @@ import {
   resolveShadowClass,
   SectionDividerRenderer,
 } from "./sectionStyleHelper";
-import { Sparkles } from "lucide-react";
+import { Pause, Play, Sparkles } from "lucide-react";
 
 interface KineticMarqueeSectionProps {
   section: CustomPageSection<"kinetic_marquee">;
@@ -22,30 +22,10 @@ interface KineticMarqueeSectionProps {
 }
 
 function renderSeparatorGlyph(separator: KineticMarqueeSeparator, color: string) {
-  if (separator === "diamond") {
-    return (
-      <span className="inline-flex items-center justify-center mx-4 text-sm" style={{ color }}>
-        ◆
-      </span>
-    );
-  }
-  if (separator === "crescent") {
-    return (
-      <span className="inline-flex items-center justify-center mx-4 text-base" style={{ color }}>
-        ☾
-      </span>
-    );
-  }
-  if (separator === "dot") {
-    return (
-      <span className="inline-flex items-center justify-center mx-4 text-base" style={{ color }}>
-        •
-      </span>
-    );
-  }
+  const glyph = separator === "diamond" ? "◆" : separator === "crescent" ? "☾" : separator === "dot" ? "•" : "✦";
   return (
     <span className="inline-flex items-center justify-center mx-4 text-sm" style={{ color }}>
-      ✦
+      {glyph}
     </span>
   );
 }
@@ -57,16 +37,24 @@ export const KineticMarqueeSection: React.FC<KineticMarqueeSectionProps> = ({
   isSelected,
   onSelect,
 }) => {
+  const [isPaused, setIsPaused] = useState(false);
+  const rawSettings = (section.settings || {}) as unknown as Record<string, unknown>;
   const settings: KineticMarqueeSettings = section.settings || {
     textFr: "FAIT MAIN EN ALGÉRIE • ÉDITION LIMITÉE • LIVRAISON 69 WILAYAS",
   };
   const styles = section.styles || {};
 
-  const textFr =
-    settings.textFr || "FAIT MAIN EN ALGÉRIE • ÉDITION LIMITÉE • LIVRAISON 69 WILAYAS";
+  const hasExplicitEmptyText =
+    "textFr" in rawSettings &&
+    String(rawSettings.textFr || "").trim() === "" &&
+    (!settings.showBilingual || String(rawSettings.textAr || "").trim() === "");
+
+  const textFr = hasExplicitEmptyText
+    ? ""
+    : settings.textFr || "FAIT MAIN EN ALGÉRIE • ÉDITION LIMITÉE • LIVRAISON 69 WILAYAS";
   const textAr =
     settings.textAr || "صنع بحب في الجزائر • إصدار محدود • توصيل لجميع الولايات";
-  const showBilingual = settings.showBilingual !== false && Boolean(textAr);
+  const showBilingual = settings.showBilingual !== false && Boolean(textAr) && !hasExplicitEmptyText;
   const speed = settings.speed || "normal";
   const textStyle = settings.textStyle || "alternating";
   const separator = settings.separator || "star";
@@ -125,74 +113,100 @@ export const KineticMarqueeSection: React.FC<KineticMarqueeSectionProps> = ({
         </div>
       )}
 
-      <div
-        className="py-3 @sm:py-4 overflow-hidden"
-        style={{
-          transform: tiltDeg !== 0 ? `rotate(${tiltDeg}deg) scale(1.02)` : undefined,
-        }}
-      >
+      {hasExplicitEmptyText ? (
         <div
-          className="olmart-kinetic-track flex w-max items-center whitespace-nowrap will-change-transform hover:[animation-play-state:paused]"
+          data-testid="kinetic-marquee-empty-state"
+          className="py-3 px-4 text-center text-xs font-medium opacity-85"
+          style={{ color: textColor }}
+        >
+          {isEditable
+            ? "Texte du bandeau vide — saisissez un message dans l'inspecteur ou masquez cette section."
+            : ""}
+        </div>
+      ) : (
+        <div
+          className="relative py-3 @sm:py-4 overflow-hidden"
           style={{
-            animation: `${
-              direction === "rtl" ? "olmartKineticMarqueeRtl" : "olmartKineticMarqueeLtr"
-            } ${durationSec}s linear infinite`,
+            transform: tiltDeg !== 0 ? `rotate(${tiltDeg}deg) scale(1.02)` : undefined,
           }}
         >
-          {repeatedBlocks.map((idx) => {
-            const isHollow =
-              textStyle === "hollow-stroke" ||
-              (textStyle === "alternating" && idx % 2 === 1);
+          <button
+            type="button"
+            data-testid="kinetic-marquee-pause-btn"
+            aria-label={isPaused ? "Reprendre le défilement" : "Mettre en pause le défilement"}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsPaused((prev) => !prev);
+            }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-black/45 hover:bg-black/70 text-white flex items-center justify-center border border-white/20 cursor-pointer"
+          >
+            {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+          </button>
 
-            const itemStyle: React.CSSProperties = isHollow
-              ? {
-                  WebkitTextStroke: `1.25px ${textColor}`,
-                  color: "transparent",
-                  letterSpacing: `${letterSpacingEm}em`,
-                }
-              : {
-                  color: textColor,
-                  letterSpacing: `${letterSpacingEm}em`,
-                };
+          <div
+            className="olmart-kinetic-track flex w-max items-center whitespace-nowrap will-change-transform hover:[animation-play-state:paused]"
+            style={{
+              animation: `${
+                direction === "rtl" ? "olmartKineticMarqueeRtl" : "olmartKineticMarqueeLtr"
+              } ${durationSec}s linear infinite`,
+              animationPlayState: isPaused ? "paused" : undefined,
+            }}
+          >
+            {repeatedBlocks.map((idx) => {
+              const isHollow =
+                textStyle === "hollow-stroke" ||
+                (textStyle === "alternating" && idx % 2 === 1);
 
-            return (
-              <div key={idx} className="inline-flex items-center">
-                <span
-                  className={`text-base @sm:text-xl @md:text-2xl font-extrabold tracking-wider ${
-                    uppercase ? "uppercase" : ""
-                  }`}
-                  style={itemStyle}
-                >
-                  {textFr}
-                </span>
+              const itemStyle: React.CSSProperties = isHollow
+                ? {
+                    WebkitTextStroke: `1.25px ${textColor}`,
+                    color: "transparent",
+                    letterSpacing: `${letterSpacingEm}em`,
+                  }
+                : {
+                    color: textColor,
+                    letterSpacing: `${letterSpacingEm}em`,
+                  };
 
-                {renderSeparatorGlyph(separator, glyphColor)}
+              return (
+                <div key={idx} className="inline-flex items-center">
+                  <span
+                    className={`text-base @sm:text-xl @md:text-2xl font-extrabold tracking-wider ${
+                      uppercase ? "uppercase" : ""
+                    }`}
+                    style={itemStyle}
+                  >
+                    {textFr}
+                  </span>
 
-                {showBilingual && (
-                  <>
-                    <span
-                      dir="rtl"
-                      className="text-base @sm:text-xl @md:text-2xl font-bold"
-                      style={{
-                        fontFamily: "'Amiri', 'Reem Kufi', Georgia, serif",
-                        ...(isHollow
-                          ? {
-                              WebkitTextStroke: `1px ${secondaryTextColor}`,
-                              color: "transparent",
-                            }
-                          : { color: secondaryTextColor }),
-                      }}
-                    >
-                      {textAr}
-                    </span>
-                    {renderSeparatorGlyph(separator, glyphColor)}
-                  </>
-                )}
-              </div>
-            );
-          })}
+                  {renderSeparatorGlyph(separator, glyphColor)}
+
+                  {showBilingual && (
+                    <>
+                      <span
+                        dir="rtl"
+                        className="text-base @sm:text-xl @md:text-2xl font-bold"
+                        style={{
+                          fontFamily: "'Amiri', 'Reem Kufi', Georgia, serif",
+                          ...(isHollow
+                            ? {
+                                WebkitTextStroke: `1px ${secondaryTextColor}`,
+                                color: "transparent",
+                              }
+                            : { color: secondaryTextColor }),
+                        }}
+                      >
+                        {textAr}
+                      </span>
+                      {renderSeparatorGlyph(separator, glyphColor)}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
     </div>

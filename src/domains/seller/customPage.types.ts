@@ -428,6 +428,7 @@ export interface CategoryItem {
   itemCount?: number | string;
   colSpan?: 1 | 2;
   accentColor?: string;
+  selectionMode?: "manual" | "auto";
   productIds?: string[];
   categoryFilter?: string;
   description?: string;
@@ -460,6 +461,7 @@ export interface CuratedCollectionItem {
   title: string;
   imageUrl?: string;
   productIds: string[];
+  categoryFilter?: string;
 }
 
 export interface CuratedCollectionsSettings {
@@ -512,6 +514,8 @@ export interface ProductCardDesignSettings {
 export interface ProductFeedSettings extends ProductCardDesignSettings {
   title?: string;
   subtitle?: string;
+  selectionMode?: "manual" | "auto";
+  productIds?: string[];
   maxItems?: number;
   layout?: ProductFeedLayoutMode;
   filterCategoryId?: string;
@@ -520,7 +524,10 @@ export interface ProductFeedSettings extends ProductCardDesignSettings {
 export interface FeaturedProductsSettings extends ProductCardDesignSettings {
   title?: string;
   subtitle?: string;
+  selectionMode?: "manual" | "auto";
   productIds: string[];
+  filterCategoryId?: string;
+  maxItems?: number;
   layout?: ProductFeedLayoutMode;
 }
 
@@ -634,6 +641,7 @@ export type StoreThemeSector =
 
 export interface CustomPageTheme {
   sector: StoreThemeSector;
+  presetId?: string;
   primaryColor: string;
   secondaryColor?: string;
   accentColor?: string;
@@ -644,16 +652,20 @@ export interface CustomPageTheme {
   borderColor?: string;
   buttonColor?: string;
   buttonTextColor?: string;
+  buttonStyle?: "solid" | "outline" | "pill" | "sharp";
+  buttonHeightPx?: number;
   priceColor?: string;
   fontFamily: string;
   headingFontFamily?: string;
   bodyFontFamily?: string;
+  headingFontWeight?: number;
   accentBadgeColor?: string;
   badgeTextColor?: string;
   borderRadiusPx?: number;
   spacingYPx?: number;
   titleFontSizePx?: number;
   bodyFontSizePx?: number;
+  cardShadow?: HeroShadowToken;
   surfaceTexture?: ArtisticSurfaceTexture;
   ambientLighting?: ArtisticAmbientLighting;
   cardMaterial?: ArtisticCardMaterial;
@@ -850,7 +862,7 @@ export interface StoreHistoryEntry {
   sectionsCount?: number;
 }
 
-export type MediaFolderCategory = "images" | "logos" | "banners" | "collections";
+export type MediaFolderCategory = "images" | "logos" | "banners" | "collections" | "videos";
 
 export interface MediaGalleryItem {
   id: string;
@@ -862,6 +874,7 @@ export interface MediaGalleryItem {
   height?: number;
   mimeType?: string;
   sizeBytes?: number;
+  storagePath?: string;
   uploadedAt: string;
 }
 

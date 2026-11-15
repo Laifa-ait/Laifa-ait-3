@@ -201,7 +201,7 @@ export const StoreSectionRenderer: React.FC<StoreSectionRendererProps> = ({
         <KineticMarqueeSection section={effectiveSection as CustomPageSection<"kinetic_marquee">} theme={effectiveTheme} isEditable={isEditable} isSelected={isSelected} onSelect={handleSelect} />
       )}
       {section.type === "featured_categories" && (
-        <SectionFeaturedCategories section={effectiveSection as CustomPageSection<"featured_categories">} theme={effectiveTheme} isEditable={isEditable} isSelected={isSelected} onSelect={handleSelect} previewViewport={previewViewport} />
+        <SectionFeaturedCategories section={effectiveSection as CustomPageSection<"featured_categories">} theme={effectiveTheme} products={products} isEditable={isEditable} isSelected={isSelected} onSelect={handleSelect} previewViewport={previewViewport} />
       )}
       {(section.type === "featured_products" || section.type === "new_arrivals" || section.type === "best_sellers" || section.type === "product_grid") && (
         <SectionProductFeeds section={effectiveSection as CustomPageSection<"featured_products" | "new_arrivals" | "best_sellers" | "product_grid">} theme={effectiveTheme} products={products} isEditable={isEditable} isSelected={isSelected} onSelect={handleSelect} previewViewport={previewViewport} />

@@ -103,6 +103,7 @@ export const MobileStudioBar: React.FC<MobileStudioBarProps> = ({
           canRedo={canRedo}
           onUndo={onUndo}
           onRedo={onRedo}
+          onSaveDraft={onSaveDraft}
           onPublish={() => setIsPublishModalOpen(true)}
           onOpenMenu={() => setIsMobileMenuOpen(true)}
           onExitStudio={onExitStudio}

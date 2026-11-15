@@ -4,6 +4,10 @@ import {
   SellerStoreConfig,
 } from "../../../../domains/seller/customPage.types";
 import { Product } from "../../../../domains/product/product.types";
+import {
+  isCatalogProductPubliclyActive,
+  resolveProductFeedItems,
+} from "../../../../domains/seller/studioCatalogResolver";
 
 export type AuditCheckStatus = "pass" | "warn" | "fail";
 export type AuditAutoFixType =
@@ -129,25 +133,29 @@ export function buildStoreQualityReport(params: {
     if (sec.type === "featured_categories") return !Array.isArray(s.categories) || s.categories.length === 0;
     if (sec.type === "faq_accordion") return !Array.isArray(s.items) || s.items.length === 0;
     if (sec.type === "brand_story") return !String(s.bodyText || "").trim();
+    if (sec.type === "featured_products" || sec.type === "new_arrivals" || sec.type === "best_sellers" || sec.type === "product_grid") {
+      const res = resolveProductFeedItems(sec.type, {
+        selectionMode: s.selectionMode === "manual" || s.selectionMode === "auto" ? s.selectionMode : undefined,
+        productIds: Array.isArray(s.productIds) ? (s.productIds as string[]) : undefined,
+        filterCategoryId: typeof s.filterCategoryId === "string" ? s.filterCategoryId : undefined,
+        maxItems: typeof s.maxItems === "number" ? s.maxItems : undefined,
+      }, products);
+      return res.items.length === 0 || res.obsoleteCategoryFilter;
+    }
     return false;
   }).length;
   const emptyCustomPagesCount = (storeConfig?.customPages || []).filter(
     (cp) => (cp.isPublished ?? true) && Array.isArray(cp.sectionIds) && cp.sectionIds.length === 0
   ).length;
-
   const bodySize = theme.bodyFontSizePx ?? 15;
   const mobileStatus: AuditCheckStatus =
     hiddenCriticalOnMobile > 0 || emptyCustomPagesCount > 0 ? "fail" : bodySize < 13 || emptySectionsCount > 0 ? "warn" : "pass";
   if (mobileStatus === "pass") score += 15;
   else if (mobileStatus === "warn") score += 8;
-
-  // 5. Référencement SEO (Boutique & Pages Personnalisées)
   const metaTitle = (storeConfig?.seo?.metaTitle || "").trim();
   const metaDesc = (storeConfig?.seo?.metaDescription || storeConfig?.shopDescription || "").trim();
   const effectiveSlug = (storeConfig?.shopSlug || shopSlug || "").trim();
-  const pagesMissingSeo = (storeConfig?.customPages || []).filter(
-    (cp) => (cp.isPublished ?? true) && !String(cp.seoTitle || cp.title || "").trim()
-  ).length;
+  const pagesMissingSeo = (storeConfig?.customPages || []).filter((cp) => (cp.isPublished ?? true) && !String(cp.seoTitle || cp.title || "").trim()).length;
   const seoStatus: AuditCheckStatus =
     !effectiveSlug || (!metaTitle && metaDesc.length < 20) ? "fail" : metaTitle.length < 10 || metaDesc.length < 40 || pagesMissingSeo > 0 ? "warn" : "pass";
   if (seoStatus === "pass") score += 15;
@@ -158,8 +166,9 @@ export function buildStoreQualityReport(params: {
   const hasCategories = visibleSections.some((s) => s.type === "featured_categories");
   const hasProducts = visibleSections.some((s) => ["featured_products", "product_grid", "best_sellers", "new_arrivals"].includes(s.type));
   const hasTrust = visibleSections.some((s) => ["delivery_info", "verified_reviews", "faq_accordion", "return_policy", "contact_footer"].includes(s.type));
-  const inStockCount = products.filter((p) => (p.stock ?? 0) > 0).length;
-  const outOfStockCount = products.filter((p) => (p.stock ?? 0) <= 0).length;
+  const activeCatalogProducts = products.filter(isCatalogProductPubliclyActive);
+  const inStockCount = activeCatalogProducts.filter((p) => (p.stock ?? 0) > 0).length;
+  const outOfStockCount = activeCatalogProducts.filter((p) => (p.stock ?? 0) <= 0).length;
 
   const missingArchFixes: Array<{ label: string; fixType: AuditAutoFixType }> = [];
   if (!hasHero) missingArchFixes.push({ label: "Ajouter Bannière Hero", fixType: "add-hero" });
@@ -176,7 +185,7 @@ export function buildStoreQualityReport(params: {
   const archStatus: AuditCheckStatus =
     !hasProducts || !hasHero
       ? "fail"
-      : missingArchFixes.length > 0 || (products.length > 0 && inStockCount === 0) || hasIncompleteFooter
+      : missingArchFixes.length > 0 || (activeCatalogProducts.length > 0 && inStockCount === 0) || hasIncompleteFooter
       ? "warn"
       : "pass";
   if (archStatus === "pass") score += 20;

@@ -26,11 +26,12 @@ interface SectionInspectorPanelProps {
   storeConfig?: SellerStoreConfig | null;
   currentTheme?: CustomPageTheme;
   onUpdateSection: (sectionId: string, updates: Partial<CustomPageSection>) => void;
+  onSelectSection?: (sectionId: string) => void;
   onSaveStep?: () => unknown | Promise<unknown>;
 }
 
 export const SectionInspectorPanel: React.FC<SectionInspectorPanelProps> = ({
-  section, sections = [], products, storeConfig, currentTheme, onUpdateSection, onSaveStep,
+  section, sections = [], products, storeConfig, currentTheme, onUpdateSection, onSelectSection, onSaveStep,
 }) => {
   const activeTab = useStudioStore((s) => s.activeInspectorTab);
   const setActiveTab = useStudioStore((s) => s.setActiveInspectorTab);
@@ -44,15 +45,39 @@ export const SectionInspectorPanel: React.FC<SectionInspectorPanelProps> = ({
   }, [selectedSubElement, activeTab, setActiveTab]);
 
   if (!section) {
+    const firstSection = sections[0];
     return (
-      <div className="w-full bg-white p-6 text-center text-[13px] flex flex-col items-center justify-center h-full space-y-2.5 min-w-0 min-h-0">
+      <div className="w-full bg-white p-6 text-center text-[13px] flex flex-col items-center justify-center h-full space-y-3 min-w-0 min-h-0" data-testid="inspector-empty-state">
         <div className="w-10 h-10 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 flex items-center justify-center">
           <Sliders className="w-4 h-4" />
         </div>
         <p className="font-semibold text-[13.5px] text-slate-900">Aucune section sélectionnée</p>
         <p className="text-[12px] text-slate-500 leading-relaxed max-w-xs">
-          Cliquez directement sur une section dans l&apos;aperçu ou dans la liste pour en modifier les propriétés.
+          Cliquez directement sur une section dans l&apos;aperçu ou choisissez une action rapide ci-dessous.
         </p>
+        <div className="flex flex-col gap-2 w-full max-w-[230px] pt-1">
+          {firstSection && (
+            <button
+              type="button"
+              data-testid="inspector-select-first-section-btn"
+              onClick={() => {
+                selectSection(firstSection.id, null);
+                onSelectSection?.(firstSection.id);
+              }}
+              className="w-full py-2 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[12px] font-medium transition-colors cursor-pointer"
+            >
+              Modifier la 1re section
+            </button>
+          )}
+          <button
+            type="button"
+            data-testid="inspector-empty-add-section-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent("studio:open-add-section-modal"))}
+            className="w-full py-2 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[12px] font-medium transition-colors cursor-pointer"
+          >
+            + Ajouter une section
+          </button>
+        </div>
       </div>
     );
   }

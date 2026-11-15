@@ -108,6 +108,7 @@ export const HeroArch: React.FC<HeroArchitecturalStyleProps> = ({
           settings={settings}
           theme={theme}
           profile={profile}
+          isEditable={isEditable}
           activeSubElement={activeSubElement}
           isSubSelected={isSubSelected}
           selectSub={selectSub}

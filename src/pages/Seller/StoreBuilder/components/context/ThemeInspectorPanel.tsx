@@ -27,10 +27,11 @@ interface ThemeInspectorPanelProps {
 
 import {
   DEFAULT_GLOBAL_DESIGN_SYSTEM,
+  countSectionsWithColorOverrides,
   stripHardcodedSectionColors,
 } from "./themeInspectorDefaults";
 
-export { DEFAULT_GLOBAL_DESIGN_SYSTEM, stripHardcodedSectionColors };
+export { DEFAULT_GLOBAL_DESIGN_SYSTEM, countSectionsWithColorOverrides, stripHardcodedSectionColors };
 
 const THEME_TABS = [
   { id: "atelier" as const, label: "Thèmes", icon: Sparkles },
@@ -52,6 +53,7 @@ export const ThemeInspectorPanel: React.FC<ThemeInspectorPanelProps> = ({
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const overrideCount = countSectionsWithColorOverrides(sections);
 
   useEffect(() => setActiveTab(initialTab), [initialTab]);
   useEffect(() => {
@@ -87,18 +89,24 @@ export const ThemeInspectorPanel: React.FC<ThemeInspectorPanelProps> = ({
   };
 
   const handleApplyFullArchetype = async (newSections: CustomPageSection[], newTheme: CustomPageTheme) => {
-    const cleanedSections = stripHardcodedSectionColors(newSections);
     setTheme(newTheme); onThemeChangeLive?.(newTheme);
-    if (onApplyFullArchetype) await onApplyFullArchetype(cleanedSections, newTheme);
-    else { if (onReplaceSections) onReplaceSections(cleanedSections); await onSaveTheme(newTheme); }
+    if (onApplyFullArchetype) await onApplyFullArchetype(newSections, newTheme);
+    else { if (onReplaceSections) onReplaceSections(newSections); await onSaveTheme(newTheme); }
     setSavedSuccess(true); window.setTimeout(() => setSavedSuccess(false), 2500);
   };
 
   const handleApplyThemeOnly = async (newTheme: CustomPageTheme) => {
     setTheme(newTheme); onThemeChangeLive?.(newTheme);
-    if (sections.length > 0 && onReplaceSections) onReplaceSections(stripHardcodedSectionColors(sections));
     await onSaveTheme(newTheme);
     setSavedSuccess(true); window.setTimeout(() => setSavedSuccess(false), 2500);
+  };
+
+  const handleClearSectionOverrides = () => {
+    if (sections.length > 0 && onReplaceSections) {
+      onReplaceSections(stripHardcodedSectionColors(sections));
+      setSavedSuccess(true);
+      window.setTimeout(() => setSavedSuccess(false), 2500);
+    }
   };
 
   const handleUpdateActiveHeroPhoto = (imageUrl: string) => {
@@ -133,6 +141,25 @@ export const ThemeInspectorPanel: React.FC<ThemeInspectorPanelProps> = ({
         </div>
       </div>
 
+      {overrideCount > 0 && onReplaceSections && (
+        <div
+          data-testid="section-overrides-notice"
+          className="border-b border-amber-200 bg-amber-50/80 px-3.5 py-2 flex items-center justify-between gap-2 shrink-0"
+        >
+          <span className="text-[10.5px] font-medium text-amber-900 leading-tight">
+            {overrideCount} section{overrideCount > 1 ? "s ont" : " a"} des couleurs locales personnalisées (conservées).
+          </span>
+          <button
+            type="button"
+            data-testid="clear-section-overrides-btn"
+            onClick={handleClearSectionOverrides}
+            className="shrink-0 h-6 px-2 rounded-md border border-amber-300 bg-white hover:bg-amber-100 text-[10px] font-bold text-amber-900 cursor-pointer"
+          >
+            Harmoniser au thème global
+          </button>
+        </div>
+      )}
+
       <div className="flex border-b border-slate-200 bg-white px-2 shrink-0 gap-1 overflow-x-auto">
         {THEME_TABS.map((tab) => {
           const Icon = tab.icon;
@@ -163,6 +190,7 @@ export const ThemeInspectorPanel: React.FC<ThemeInspectorPanelProps> = ({
             storeConfig={storeConfig}
             sections={sections}
             onUpdateTheme={updateTheme}
+            onApplyThemeOnly={(newTheme) => void handleApplyThemeOnly(newTheme)}
             onApplyPresetWithFiveActs={(newSecs, newTheme) => void handleApplyFullArchetype(newSecs, newTheme)}
           />
         )}

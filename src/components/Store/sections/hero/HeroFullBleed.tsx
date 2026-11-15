@@ -120,6 +120,7 @@ export const HeroFullBleed: React.FC<HeroArchitecturalStyleProps> = ({
             settings={settings}
             theme={theme}
             profile={profile}
+            isEditable={isEditable}
             defaultTitleColor="#FFFFFF"
             defaultSubtitleColor="#F4F4F5"
             defaultCtaBg="#FFFFFF"

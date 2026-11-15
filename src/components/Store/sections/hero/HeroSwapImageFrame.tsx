@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Images } from "lucide-react";
 import { HeroBannerSettings } from "../../../../domains/seller/customPage.types";
+import { useReducedMotion } from "motion/react";
 import { resolveHeroImageFilterCss } from "./heroVisualEffectsHelper";
 
 export function resolveHeroSwapImages(
@@ -59,6 +60,7 @@ export const HeroSwapImageFrame: React.FC<HeroSwapImageFrameProps> = ({
   onClickFrame,
   children,
 }) => {
+  const prefersReducedMotion = useReducedMotion();
   const slides = useMemo(
     () => resolveHeroSwapImages(settings, activeImageSrc, fallbackImage),
     [settings, activeImageSrc, fallbackImage]
@@ -69,16 +71,15 @@ export const HeroSwapImageFrame: React.FC<HeroSwapImageFrameProps> = ({
   const [isPaused, setIsPaused] = useState(false);
 
   const safeIndex = currentIndex < slides.length ? currentIndex : 0;
-  const intervalSec =
-    typeof settings.swapIntervalSec === "number" ? settings.swapIntervalSec : 4;
+  const intervalSec = typeof settings.swapIntervalSec === "number" ? settings.swapIntervalSec : 4;
 
   useEffect(() => {
-    if (!hasMultiSlides || isPaused || intervalSec <= 0) return;
+    if (!hasMultiSlides || isPaused || prefersReducedMotion || intervalSec <= 0) return;
     const timer = window.setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % slides.length);
     }, intervalSec * 1000);
     return () => window.clearInterval(timer);
-  }, [hasMultiSlides, isPaused, intervalSec, slides.length]);
+  }, [hasMultiSlides, isPaused, prefersReducedMotion, intervalSec, slides.length]);
 
   const goPrev = (e: React.MouseEvent): void => {
     e.stopPropagation();
@@ -119,7 +120,7 @@ export const HeroSwapImageFrame: React.FC<HeroSwapImageFrameProps> = ({
           src={currentSrc}
           referrerPolicy="no-referrer"
           alt={altText ? `${altText} (${safeIndex + 1}/${slides.length})` : `Slide ${safeIndex + 1}`}
-          className={`w-full h-full transition-all duration-500 ${
+          className={`w-full h-full transition-all duration-500 motion-reduce:transition-none ${
             isContain ? "object-contain p-2.5 sm:p-4" : "object-cover"
           }`}
           style={{

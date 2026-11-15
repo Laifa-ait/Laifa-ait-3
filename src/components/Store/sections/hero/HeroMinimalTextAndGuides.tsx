@@ -127,6 +127,7 @@ export const HeroMinimalTextBlock: React.FC<{
   settings: HeroBannerSettings;
   theme: CustomPageTheme;
   profile: ResolvedHeroDeviceProfile;
+  isEditable?: boolean;
   defaultTitleColor?: string;
   defaultSubtitleColor?: string;
   defaultCtaBg?: string;
@@ -139,7 +140,7 @@ export const HeroMinimalTextBlock: React.FC<{
   className?: string;
   style?: React.CSSProperties;
 }> = ({
-  settings, theme, profile, defaultTitleColor, defaultSubtitleColor, defaultCtaBg, defaultCtaText,
+  settings, theme, profile, isEditable = false, defaultTitleColor, defaultSubtitleColor, defaultCtaBg, defaultCtaText,
   activeSubElement, isSubSelected, selectSub, getSubRing, handleTextPatch, className = "", style,
 }) => {
   if (settings.hideAllText || settings.bannerLayoutMode === "image-only") return null;
@@ -157,20 +158,24 @@ export const HeroMinimalTextBlock: React.FC<{
   const alignFlex = profile.textAlign === "center" ? "items-center text-center" : profile.textAlign === "right" ? "items-end text-right" : "items-start text-left";
   const titleColor = settings.titleColor || defaultTitleColor || theme.secondaryColor || "var(--store-text, #111827)";
   const subtitleColor = settings.subtitleColor || defaultSubtitleColor || theme.mutedTextColor || "var(--store-muted-text, #52525B)";
-  const badgeBg = settings.badgeBgColor || theme.accentBadgeColor || theme.primaryColor || "var(--store-badge-bg, #B45309)";
-  const badgeText = settings.badgeTextColor || theme.badgeTextColor || "var(--store-badge-text, #FFFFFF)";
-  const ctaBg = settings.ctaBgColor || defaultCtaBg || theme.buttonColor || theme.primaryColor || "var(--store-btn-bg, #111827)";
-  const ctaText = settings.ctaTextColor || defaultCtaText || theme.buttonTextColor || "var(--store-btn-text, #FFFFFF)";
+  const badgeBg = settings.badgeBgColor || theme.accentBadgeColor || theme.primaryColor || "#B45309";
+  const badgeText = settings.badgeTextColor || theme.badgeTextColor || "#FFFFFF";
+  const badgeStyleMode = settings.badgeStyle || "solid";
+  const ctaBg = settings.ctaBgColor || defaultCtaBg || theme.buttonColor || theme.primaryColor || "#111827";
+  const ctaText = settings.ctaTextColor || defaultCtaText || theme.buttonTextColor || "#FFFFFF";
   const secCtaBg = settings.secondaryCtaBgColor || "transparent";
   const secCtaText = settings.secondaryCtaTextColor || titleColor;
+  const secCtaStyle = settings.secondaryCtaStyle || "outline";
   const isOutlineCta = settings.ctaStyle === "outline";
   const isGlassCta = settings.ctaStyle === "glass";
   const ctaRadiusClass = typeof settings.ctaBorderRadiusPx === "number" ? "" : settings.ctaStyle === "pill" ? "rounded-full" : settings.ctaStyle === "sharp" ? "rounded-none" : "rounded-xl";
+  const secRadiusClass = secCtaStyle === "pill" ? "rounded-full" : secCtaStyle === "sharp" ? "rounded-none" : "rounded-xl";
   const ctaSizeClass = settings.ctaButtonSize === "lg" ? "px-7 py-3.5 text-sm font-semibold tracking-wide" : settings.ctaButtonSize === "sm" ? "px-4 py-2 text-xs font-semibold tracking-wide" : "px-5 py-2.5 text-xs sm:text-sm font-semibold tracking-wide";
   const safeHref = resolveSafeHeroCtaHref(settings);
   const safeSecondaryHref = /^(javascript|data|vbscript):/i.test((settings.secondaryCtaLink || "").trim()) ? "#catalog" : (settings.secondaryCtaLink || "#catalog").trim() || "#catalog";
   const textShadowCss = resolveHeroTextShadowCss(settings.textShadow);
   const ctaShadowCss = resolveHeroBoxShadowCss(settings.ctaShadow, ctaBg);
+  const secShadowCss = resolveHeroBoxShadowCss(settings.secondaryCtaShadow, secCtaText);
   const borderWidth = typeof settings.ctaBorderWidthPx === "number" ? settings.ctaBorderWidthPx : isOutlineCta ? 1.5 : isGlassCta ? 1 : 0;
   const borderColor = settings.ctaBorderColor || (isOutlineCta ? ctaBg : "rgba(255,255,255,0.35)");
   const customBtnRadius = typeof settings.ctaBorderRadiusPx === "number" ? `${settings.ctaBorderRadiusPx}px` : undefined;
@@ -182,7 +187,16 @@ export const HeroMinimalTextBlock: React.FC<{
       style={{ maxWidth: `${profile.textBoxMaxWidth}px`, gap: `${profile.textVerticalGap}px`, ...style }}
     >
       {badgeLabel && (
-        <span onClick={(e) => selectSub(e, "badge")} data-testid="hero-badge-pill" className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer ${getSubRing("badge")}`} style={{ backgroundColor: badgeBg, color: badgeText }}>
+        <span
+          onClick={(e) => selectSub(e, "badge")}
+          data-testid="hero-badge-pill"
+          className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer ${getSubRing("badge")}`}
+          style={{
+            backgroundColor: badgeStyleMode === "outline" ? "transparent" : badgeStyleMode === "soft" ? `${badgeBg}20` : badgeBg,
+            color: badgeStyleMode === "outline" || badgeStyleMode === "soft" ? badgeBg : badgeText,
+            border: badgeStyleMode === "outline" ? `1.5px solid ${badgeBg}` : badgeStyleMode === "soft" ? `1px solid ${badgeBg}45` : undefined,
+          }}
+        >
           <CanvasInlineText value={badgeLabel} isSelected={isSubSelected("badge")} onChange={(val) => handleTextPatch("badgeText", val)} />
         </span>
       )}
@@ -203,7 +217,7 @@ export const HeroMinimalTextBlock: React.FC<{
               href={safeHref}
               data-testid="hero-single-cta-btn"
               aria-label={ctaLabel}
-              onClick={(e) => { if (activeSubElement !== undefined) selectSub(e, "ctaPrimary"); }}
+              onClick={(e) => { if (isEditable || activeSubElement !== undefined) { e.preventDefault(); selectSub(e, "ctaPrimary"); } }}
               className={`inline-flex items-center justify-center gap-2 transition-transform duration-200 hover:scale-[1.01] focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none ${isGlassCta ? "backdrop-blur-md" : ""} ${ctaRadiusClass} ${ctaSizeClass} ${getSubRing("ctaPrimary")}`}
               style={{
                 backgroundColor: isOutlineCta ? "transparent" : isGlassCta ? `${ctaBg}CC` : ctaBg,
@@ -222,9 +236,15 @@ export const HeroMinimalTextBlock: React.FC<{
               href={safeSecondaryHref}
               data-testid="hero-secondary-cta-btn"
               aria-label={secondaryCtaLabel}
-              onClick={(e) => { if (activeSubElement !== undefined) selectSub(e, "ctaSecondary"); }}
-              className={`inline-flex items-center justify-center gap-1.5 transition-transform duration-200 hover:scale-[1.01] ${ctaRadiusClass} ${ctaSizeClass} ${getSubRing("ctaSecondary")}`}
-              style={{ backgroundColor: secCtaBg, color: secCtaText, border: `1.5px solid ${secCtaText}`, borderRadius: customBtnRadius }}
+              onClick={(e) => { if (isEditable || activeSubElement !== undefined) { e.preventDefault(); selectSub(e, "ctaSecondary"); } }}
+              className={`inline-flex items-center justify-center gap-1.5 transition-transform duration-200 hover:scale-[1.01] ${secCtaStyle === "glass" ? "backdrop-blur-md" : ""} ${secRadiusClass} ${ctaSizeClass} ${getSubRing("ctaSecondary")}`}
+              style={{
+                backgroundColor: secCtaStyle === "outline" ? "transparent" : secCtaBg,
+                color: secCtaText,
+                border: secCtaStyle === "outline" ? `1.5px solid ${secCtaText}` : "none",
+                borderRadius: customBtnRadius,
+                boxShadow: secShadowCss,
+              }}
             >
               <CanvasInlineText value={secondaryCtaLabel} isSelected={isSubSelected("ctaSecondary")} onChange={(val) => handleTextPatch("secondaryCtaText", val)} />
             </a>

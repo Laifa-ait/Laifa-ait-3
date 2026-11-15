@@ -1,21 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShoppingBag, ArrowUpRight } from "lucide-react";
-import {
-  ArtisticCardMaterial,
-  ArtisticFrameShape,
-  CustomPageTheme,
-} from "../../../domains/seller/customPage.types";
+import { ArtisticCardMaterial, ArtisticFrameShape, CustomPageTheme } from "../../../domains/seller/customPage.types";
 import { Product } from "../../../domains/product/product.types";
-import {
-  WishlistHeartButton,
-  ProductStockProgressBar,
-  ProductStarRating,
-} from "./ProductFeedEcommerceWidgets";
-import {
-  resolveCatalogProductFrameVisuals,
-  resolveEffectiveFrameShape,
-} from "../ArtisticFrameWrapper";
+import { WishlistHeartButton, ProductStockProgressBar, ProductStarRating } from "./ProductFeedEcommerceWidgets";
+import { resolveCatalogProductFrameVisuals, resolveEffectiveFrameShape } from "../ArtisticFrameWrapper";
+import { resolveCardMaterialClasses } from "../ArtisticAtmosphereLayer";
+import { resolveShadowClass } from "./sectionStyleHelper";
+import { isDarkColor, readableTextColor } from "./themeColorUtils";
 
 interface SectionProductItemCardProps {
   product: Product;
@@ -45,81 +37,55 @@ interface SectionProductItemCardProps {
   triggerDesignFocus?: (e: React.MouseEvent, focusTarget: string) => void;
 }
 
-function resolveProductCardStyleTokens(
+function resolveCardTokens(
   cardStyle: string,
-  isHorizontalList: boolean,
-  isArchShape: boolean,
+  isList: boolean,
+  isArch: boolean,
   primaryColor: string,
   cardBgColor?: string,
   cardBorderColor?: string
 ) {
-  const customOuterStyle: React.CSSProperties = {
+  const outerStyle: React.CSSProperties = {
     ...(cardBgColor ? { backgroundColor: cardBgColor } : {}),
     ...(cardBorderColor ? { borderColor: cardBorderColor } : {}),
   };
-
   if (cardStyle === "minimal") {
     return {
       outer: "bg-transparent border-transparent shadow-none p-0 transition-all duration-300 hover:-translate-y-0.5",
-      media: isArchShape ? "rounded-t-[999px] rounded-b-xl" : "rounded-2xl",
-      body: isHorizontalList ? "py-1 pr-1 flex-1" : "pt-3 pb-1 px-0.5",
-      outerStyle: customOuterStyle,
+      media: isArch ? "rounded-t-[999px] rounded-b-xl" : "rounded-2xl",
+      body: isList ? "py-1 pr-1 flex-1" : "pt-3 pb-1 px-0.5",
+      outerStyle,
     };
   }
   if (cardStyle === "bordered") {
     return {
-      outer: `bg-[var(--store-surface,#FFFFFF)] border-2 p-2.5 @sm:p-3 shadow-2xs transition-all duration-300 hover:-translate-y-0.5 ${
-        isArchShape ? "rounded-t-[999px] rounded-b-2xl" : "rounded-2xl"
-      }`,
-      media: `${isArchShape ? "rounded-t-[999px] rounded-b-xl" : "rounded-xl"} ring-1 ring-black/10`,
-      body: isHorizontalList ? "py-1 pr-1 flex-1" : "pt-3 pb-1 px-1",
-      outerStyle: { borderColor: cardBorderColor || `${primaryColor}55`, ...customOuterStyle },
+      outer: `bg-[var(--store-surface,#FFFFFF)] border-2 p-2.5 @sm:p-3 shadow-2xs transition-all duration-300 hover:-translate-y-0.5 ${isArch ? "rounded-t-[999px] rounded-b-2xl" : "rounded-2xl"}`,
+      media: `${isArch ? "rounded-t-[999px] rounded-b-xl" : "rounded-xl"} ring-1 ring-black/10`,
+      body: isList ? "py-1 pr-1 flex-1" : "pt-3 pb-1 px-1",
+      outerStyle: { borderColor: cardBorderColor || `${primaryColor}55`, ...outerStyle },
     };
   }
   if (cardStyle === "elevated") {
     return {
-      outer: `bg-[var(--store-surface,#FFFFFF)] border border-black/[0.04] p-2.5 @sm:p-3 shadow-[0_18px_42px_-8px_rgba(15,23,42,0.16),0_6px_16px_-3px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_24px_50px_-8px_rgba(15,23,42,0.22)] ${
-        isArchShape ? "rounded-t-[999px] rounded-b-2xl" : "rounded-3xl"
-      }`,
-      media: isArchShape ? "rounded-t-[999px] rounded-b-xl" : "rounded-2xl",
-      body: isHorizontalList ? "py-1 pr-2 flex-1" : "pt-3.5 pb-1.5 px-1.5",
-      outerStyle: customOuterStyle,
+      outer: `bg-[var(--store-surface,#FFFFFF)] border border-black/[0.04] p-2.5 @sm:p-3 shadow-[0_18px_42px_-8px_rgba(15,23,42,0.16),0_6px_16px_-3px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_24px_50px_-8px_rgba(15,23,42,0.22)] ${isArch ? "rounded-t-[999px] rounded-b-2xl" : "rounded-3xl"}`,
+      media: isArch ? "rounded-t-[999px] rounded-b-xl" : "rounded-2xl",
+      body: isList ? "py-1 pr-2 flex-1" : "pt-3.5 pb-1.5 px-1.5",
+      outerStyle,
     };
   }
   return {
-    outer: `bg-[var(--store-surface,#FFFFFF)] border border-[var(--store-border,#E4E7EC)] shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 overflow-hidden ${
-      isHorizontalList ? "p-2.5 rounded-2xl" : isArchShape ? "rounded-t-[999px] rounded-b-2xl" : "rounded-2xl"
-    }`,
-    media: isHorizontalList ? "rounded-xl" : isArchShape ? "rounded-t-[999px]" : "rounded-t-2xl rounded-b-none",
-    body: isHorizontalList ? "py-1 pr-2 flex-1" : "p-3 @sm:p-3.5",
-    outerStyle: customOuterStyle,
+    outer: `bg-[var(--store-surface,#FFFFFF)] border border-[var(--store-border,#E4E7EC)] shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 overflow-hidden ${isList ? "p-2.5 rounded-2xl" : isArch ? "rounded-t-[999px] rounded-b-2xl" : "rounded-2xl"}`,
+    media: isList ? "rounded-xl" : isArch ? "rounded-t-[999px]" : "rounded-t-2xl rounded-b-none",
+    body: isList ? "py-1 pr-2 flex-1" : "p-3 @sm:p-3.5",
+    outerStyle,
   };
 }
 
 export const SectionProductItemCard: React.FC<SectionProductItemCardProps> = ({
-  product,
-  layoutMode = "grid",
-  cardStyle = "modern",
-  aspectRatio = "4/5",
-  imagePosition = "center",
-  imageFit = "cover",
-  accentColor,
-  cardBgColor,
-  cardTextColor,
-  cardBorderColor,
-  priceColor,
-  badgeBgColor,
-  badgeTextColor,
-  frameShape,
-  showCategory = true,
-  showStockBadge = true,
-  showQuickWishlist = true,
-  showStockProgressBar = false,
-  showCompareAtPrice = true,
-  showStarRating = true,
-  theme,
-  isEditable,
-  triggerDesignFocus,
+  product, layoutMode = "grid", cardStyle = "modern", aspectRatio = "4/5", imagePosition = "center", imageFit = "cover",
+  accentColor, cardBgColor, cardTextColor, cardBorderColor, priceColor, badgeBgColor, badgeTextColor,
+  cardMaterial, frameShape, showCategory = true, showStockBadge = true, showQuickWishlist = true,
+  showStockProgressBar = false, showCompareAtPrice = true, showStarRating = true, theme, isEditable, triggerDesignFocus,
 }) => {
   const navigate = useNavigate();
   const [imgBroken, setImgBroken] = useState(false);
@@ -127,10 +93,8 @@ export const SectionProductItemCard: React.FC<SectionProductItemCardProps> = ({
   const isHorizontalList = layoutMode === "vertical" || layoutMode === "list";
   const effectiveShape = resolveEffectiveFrameShape(theme, frameShape);
   const frameVisuals = resolveCatalogProductFrameVisuals(effectiveShape, theme.borderRadiusPx);
-
   const aspectClass =
     aspectRatio === "1/1" ? "aspect-square" : aspectRatio === "16/9" ? "aspect-video" : aspectRatio === "4/3" ? "aspect-[4/3]" : aspectRatio === "3/4" ? "aspect-[3/4]" : "aspect-[4/5]";
-
   const posClass = imagePosition === "top" ? "object-top" : imagePosition === "bottom" ? "object-bottom" : "object-center";
   const fitClass = imageFit === "contain" ? "object-contain p-3 bg-zinc-50" : "object-cover";
 
@@ -145,46 +109,39 @@ export const SectionProductItemCard: React.FC<SectionProductItemCardProps> = ({
   const soldCount = Number(product.salesCount || 0);
   const stockCount = typeof product.stock === "number" ? Math.max(0, product.stock) : 1;
   const reviewsCount = Number(product.stats?.reviewCount || 0);
-  const ratingValue = Number(product.stats?.averageRating || product.rating || 5);
+  const ratingValue = Number(product.stats?.averageRating || product.rating || 0);
   const primaryColor = accentColor || theme.accentColor || theme.primaryColor || "var(--store-primary, #B45309)";
   const titleColor = cardTextColor || theme.secondaryColor || "var(--store-secondary, #18181B)";
   const resolvedPriceColor = priceColor || theme.priceColor || titleColor;
   const resolvedBadgeBg = badgeBgColor || theme.accentBadgeColor || primaryColor;
-  const resolvedBadgeText = badgeTextColor || theme.badgeTextColor || "#FFFFFF";
+  const resolvedBadgeText = badgeTextColor || theme.badgeTextColor || readableTextColor(resolvedBadgeBg);
 
   const isArchShape = !isHorizontalList && effectiveShape === "casbah-arch";
   const isPolaroid = !isHorizontalList && effectiveShape === "polaroid-atelier";
-  const styleTokens = resolveProductCardStyleTokens(cardStyle, isHorizontalList, isArchShape, primaryColor, cardBgColor, cardBorderColor);
+  const tokens = resolveCardTokens(cardStyle, isHorizontalList, isArchShape, primaryColor, cardBgColor, cardBorderColor);
+  const materialClass = cardStyle !== "minimal" ? resolveCardMaterialClasses(theme.cardMaterial, cardMaterial, isDarkColor(cardBgColor || theme.surfaceColor)) : "";
+  const themeShadowClass = cardStyle === "modern" && theme.cardShadow ? resolveShadowClass(theme.cardShadow) : "";
 
   const statusPillText =
     stockCount <= 0 ? "Rupture" : showCompareAtPrice !== false && discountPct > 0 ? `-${discountPct}%` : stockCount <= 3 ? `Plus que ${stockCount}` : showStockBadge ? "En stock" : null;
-
   const primaryImgUrl = product.image || product.images?.[0] || "";
 
   return (
     <article
       id={`product-${product.id}`}
       onClick={(e) => (isEditable ? triggerDesignFocus?.(e, "selection") : navigate(`/product/${product.id}`))}
-      style={styleTokens.outerStyle}
+      style={tokens.outerStyle}
       data-testid="section-product-card"
       data-artistic-frame={effectiveShape}
       data-card-style={cardStyle}
-      className={`group relative flex ${isHorizontalList ? "flex-row items-center gap-3.5 @sm:gap-5" : "flex-col h-full"} cursor-pointer select-none ${styleTokens.outer}`}
+      className={`group relative flex ${isHorizontalList ? "flex-row items-center gap-3.5 @sm:gap-5" : "flex-col h-full"} cursor-pointer select-none ${tokens.outer} ${materialClass} ${themeShadowClass}`}
     >
-      <div
-        className={`relative overflow-hidden bg-zinc-100/90 shrink-0 ${
-          isHorizontalList ? `w-28 @sm:w-36 @md:w-40 ${aspectClass} ${styleTokens.media}` : `w-full ${aspectClass} ${styleTokens.media}`
-        }`}
-      >
+      <div className={`relative overflow-hidden bg-zinc-100/90 shrink-0 ${isHorizontalList ? `w-28 @sm:w-36 @md:w-40 ${aspectClass} ${tokens.media}` : `w-full ${aspectClass} ${tokens.media}`}`}>
         {showQuickWishlist !== false && <WishlistHeartButton />}
-
         {primaryImgUrl && !imgBroken ? (
           <img
-            src={primaryImgUrl}
-            alt=""
-            loading="lazy"
-            style={{ filter: "var(--section-image-filter, none)" }}
-            onError={() => setImgBroken(true)}
+            src={primaryImgUrl} alt={product.name || "Produit"} loading="lazy"
+            style={{ filter: "var(--section-image-filter, none)" }} onError={() => setImgBroken(true)}
             className={`w-full h-full transition-transform duration-700 ease-out group-hover:scale-105 ${posClass} ${fitClass}`}
           />
         ) : (
@@ -193,25 +150,19 @@ export const SectionProductItemCard: React.FC<SectionProductItemCardProps> = ({
             <span className="text-[10px] font-medium uppercase tracking-widest">Pièce d&apos;Atelier</span>
           </div>
         )}
-
         {(cardStyle === "bordered" || frameVisuals.showDoubleGalleryBorder) && !isHorizontalList && (
           <div className="pointer-events-none absolute inset-2 border z-10 rounded-lg" style={{ borderColor: cardBorderColor || `${primaryColor}55` }} />
         )}
-
         {showStockBadge && statusPillText && (
           <div className={`pointer-events-none absolute z-20 ${isArchShape ? "bottom-2.5 left-1/2 -translate-x-1/2" : "bottom-2.5 left-2.5"}`}>
-            <span
-              data-testid="product-card-badge"
-              style={{ backgroundColor: stockCount <= 0 ? "#be123c" : resolvedBadgeBg, color: resolvedBadgeText }}
-              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-[0.12em] border border-white/25 shadow-sm whitespace-nowrap"
-            >
+            <span data-testid="product-card-badge" style={{ backgroundColor: stockCount <= 0 ? "#be123c" : resolvedBadgeBg, color: resolvedBadgeText }} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-[0.12em] border border-white/25 shadow-sm whitespace-nowrap">
               {statusPillText}
             </span>
           </div>
         )}
       </div>
 
-      <div className={`flex flex-col justify-between min-w-0 ${styleTokens.body}`}>
+      <div className={`flex flex-col justify-between min-w-0 ${tokens.body}`}>
         <div>
           <div className="flex items-center justify-between gap-2">
             {showCategory ? (
@@ -221,53 +172,33 @@ export const SectionProductItemCard: React.FC<SectionProductItemCardProps> = ({
             ) : <span />}
             {showStarRating && ratingValue > 0 && <ProductStarRating rating={ratingValue} reviewsCount={reviewsCount} />}
           </div>
-          <h4
-            data-testid="product-card-title"
-            className={`${isHorizontalList ? "text-sm @sm:text-base font-bold line-clamp-2" : "text-sm font-semibold line-clamp-1"} leading-snug mt-1 transition-opacity group-hover:opacity-80 ${isPolaroid ? "italic font-serif" : ""}`}
-            style={{ color: titleColor }}
-          >
+          <h4 data-testid="product-card-title" className={`${isHorizontalList ? "text-sm @sm:text-base font-bold line-clamp-2" : "text-sm font-semibold line-clamp-1"} leading-snug mt-1 transition-opacity group-hover:opacity-80 ${isPolaroid ? "italic font-serif" : ""}`} style={{ color: titleColor }}>
             {product.name}
           </h4>
-          {isHorizontalList && product.description && (
-            <p className="text-xs text-zinc-500 line-clamp-1 mt-1 hidden @sm:block">{product.description}</p>
-          )}
+          {isHorizontalList && product.description && <p className="text-xs text-zinc-500 line-clamp-1 mt-1 hidden @sm:block">{product.description}</p>}
           {showStockProgressBar && (
-            <div className="mt-2">
-              <ProductStockProgressBar sold={soldCount} stock={stockCount} accentColor={primaryColor} />
-            </div>
+            <div className="mt-2"><ProductStockProgressBar sold={soldCount} stock={stockCount} accentColor={primaryColor} /></div>
           )}
         </div>
 
         <div className="mt-2.5 flex items-baseline justify-between gap-2 pt-1.5 border-t border-black/[0.04]" style={{ borderColor: cardBorderColor || undefined }}>
           <div className="flex flex-wrap items-baseline gap-1.5 min-w-0">
-            <span
-              data-testid="product-card-price"
-              className="text-sm @sm:text-base font-extrabold tracking-tight tabular-nums whitespace-nowrap"
-              style={{ color: resolvedPriceColor }}
-            >
+            <span data-testid="product-card-price" className="text-sm @sm:text-base font-extrabold tracking-tight tabular-nums whitespace-nowrap" style={{ color: resolvedPriceColor }}>
               {displayPrice.toLocaleString("fr-DZ")} DA
             </span>
             {showCompareAtPrice !== false && comparePrice && comparePrice > displayPrice && (
-              <span className="text-xs text-zinc-400 line-through tabular-nums whitespace-nowrap">
-                {comparePrice.toLocaleString("fr-DZ")} DA
-              </span>
+              <span className="text-xs text-zinc-400 line-through tabular-nums whitespace-nowrap">{comparePrice.toLocaleString("fr-DZ")} DA</span>
             )}
           </div>
           {isHorizontalList ? (
-            <span
-              style={{ color: primaryColor, borderColor: `${primaryColor}35` }}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border bg-slate-50/80 shrink-0"
-            >
-              <span>Découvrir</span>
-              <ArrowUpRight className="w-3 h-3" />
+            <span style={{ color: primaryColor, borderColor: `${primaryColor}35` }} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border bg-slate-50/80 shrink-0">
+              <span>Découvrir</span><ArrowUpRight className="w-3 h-3" />
             </span>
-          ) : (
-            showStockBadge && (
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-zinc-600 shrink-0">
-                <span style={{ backgroundColor: stockCount > 0 ? primaryColor : "#f43f5e" }} className="w-2 h-2 rounded-full" />
-                <span className="hidden @sm:inline">{stockCount > 0 ? "En stock" : "Rupture"}</span>
-              </span>
-            )
+          ) : showStockBadge && (
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-zinc-600 shrink-0">
+              <span style={{ backgroundColor: stockCount > 0 ? primaryColor : "#f43f5e" }} className="w-2 h-2 rounded-full" />
+              <span className="hidden @sm:inline">{stockCount > 0 ? "En stock" : "Rupture"}</span>
+            </span>
           )}
         </div>
       </div>

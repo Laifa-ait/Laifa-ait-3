@@ -167,3 +167,56 @@ export function buildWhitelistedShopDTO(
     badge,
   };
 }
+
+export function buildPublicStorefrontProductDTO(
+  docId: string,
+  d: Record<string, unknown>,
+  resolvedSellerId: string,
+  images: string[],
+  primaryImage: string,
+  createdAtIso?: string,
+  updatedAtIso?: string
+) {
+  const prodName = String(d.name || d.title || "Article");
+  const rawStats = d.stats as { reviewCount?: unknown; averageRating?: unknown; totalRatingSum?: unknown } | undefined;
+  return {
+    id: docId,
+    name: prodName,
+    title: prodName,
+    description: String(d.description || ""),
+    price: Number(d.price) || 0,
+    promoPrice: typeof d.promoPrice === "number" ? d.promoPrice : undefined,
+    originalPrice: typeof d.originalPrice === "number" ? d.originalPrice : undefined,
+    flashPrice: typeof d.flashPrice === "number" ? d.flashPrice : undefined,
+    flashSaleActive: Boolean(d.flashSaleActive),
+    onSale: Boolean(d.onSale),
+    category: String(d.category || "Général"),
+    subcategory: String(d.subcategory || d.subCategory || ""),
+    image: primaryImage,
+    images,
+    stock: typeof d.stock === "number" ? d.stock : 10,
+    rating: typeof d.rating === "number" ? d.rating : 0,
+    salesCount: typeof d.salesCount === "number" ? d.salesCount : 0,
+    viewsCount: typeof d.viewsCount === "number" ? d.viewsCount : 0,
+    colors: Array.isArray(d.colors) ? (d.colors as string[]) : [],
+    sizes: Array.isArray(d.sizes) ? (d.sizes as string[]) : [],
+    variants: Array.isArray(d.variants) ? d.variants : [],
+    sellerId: resolvedSellerId,
+    sellerName: String(d.sellerName || d.storeName || ""),
+    storeName: String(d.storeName || d.sellerName || ""),
+    wilaya: String(d.wilaya || ""),
+    status: "active",
+    ...(createdAtIso ? { createdAt: createdAtIso } : {}),
+    ...(updatedAtIso ? { updatedAt: updatedAtIso } : {}),
+    ...(rawStats && typeof rawStats === "object"
+      ? {
+          stats: {
+            reviewCount: Number(rawStats.reviewCount) || 0,
+            averageRating: Number(rawStats.averageRating) || 0,
+            totalRatingSum: Number(rawStats.totalRatingSum) || 0,
+          },
+        }
+      : {}),
+  };
+}
+

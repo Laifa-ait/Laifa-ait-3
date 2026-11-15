@@ -4,6 +4,7 @@ import {
   resolveHeroBoxShadowCss,
   resolveHeroImageFilterCss,
 } from "./hero/heroVisualEffectsHelper";
+import { readableTextColor } from "./themeColorUtils";
 
 export function resolveSectionPaddingY(
   paddingY?: "sm" | "md" | "lg" | "xl" | number,
@@ -96,13 +97,13 @@ export function resolveSectionButtonInlineStyle(
     styles.buttonBgColor ||
     theme?.buttonColor ||
     theme?.primaryColor ||
-    "var(--store-btn-bg, #18181B)";
+    "#18181B";
   const textColor =
     (settings.buttonTextColor as string) ||
     styles.buttonTextColor ||
     theme?.buttonTextColor ||
-    "var(--store-btn-text, #FFFFFF)";
-  const btnStyle = (settings.buttonStyle as string) || styles.buttonStyle || "solid";
+    readableTextColor(accent);
+  const btnStyle = (settings.buttonStyle as string) || styles.buttonStyle || theme?.buttonStyle || "solid";
   const isOutline = btnStyle === "outline";
   const borderWidth =
     typeof settings.buttonBorderWidthPx === "number"
@@ -122,7 +123,9 @@ export function resolveSectionButtonInlineStyle(
           ? 999
           : btnStyle === "sharp"
             ? 0
-            : undefined;
+            : typeof theme?.borderRadiusPx === "number"
+              ? Math.min(20, theme.borderRadiusPx)
+              : undefined;
   const shadowCss = resolveHeroBoxShadowCss(
     ((settings.buttonShadow as HeroBannerSettings["ctaShadow"]) || styles.buttonShadow) ?? "none",
     accent
@@ -133,6 +136,7 @@ export function resolveSectionButtonInlineStyle(
     color: isOutline ? accent : textColor,
     border: borderWidth > 0 ? `${borderWidth}px solid ${borderColor}` : undefined,
     borderRadius: typeof radiusPx === "number" ? `${radiusPx}px` : undefined,
+    minHeight: typeof theme?.buttonHeightPx === "number" ? `${theme.buttonHeightPx}px` : undefined,
     boxShadow: shadowCss,
   };
 }

@@ -18,6 +18,7 @@ export interface CategoryItem {
   itemCount?: number | string;
   colSpan?: 1 | 2;
   accentColor?: string;
+  selectionMode?: "manual" | "auto";
   productIds?: string[];
   categoryFilter?: string;
   description?: string;

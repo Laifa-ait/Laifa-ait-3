@@ -44,6 +44,9 @@ export const StoreBuilderActive: React.FC<StoreBuilderActiveProps> = () => {
     publishedLayout,
     selectedSectionId,
     setSelectedSectionId,
+    recoverableBackup,
+    applyRecoveredBackup,
+    dismissRecoveredBackup,
     addSection,
     updateSection,
     reorderSections,
@@ -54,9 +57,14 @@ export const StoreBuilderActive: React.FC<StoreBuilderActiveProps> = () => {
     saveStoreConfig,
     uploadMedia,
     deleteMedia,
+    isMediaUploading,
+    mediaUploadProgress,
+    mediaUploadError,
     publishStudio,
     rollbackVersion,
     saveDraftNow,
+    forceOverwriteDraft,
+    refreshData,
     undo,
     redo,
     canUndo,
@@ -95,8 +103,16 @@ export const StoreBuilderActive: React.FC<StoreBuilderActiveProps> = () => {
         mediaGallery={mediaGallery}
         onUploadMedia={uploadMedia}
         onDeleteMedia={deleteMedia}
+        isMediaUploading={isMediaUploading}
+        mediaUploadProgress={mediaUploadProgress}
+        mediaUploadError={mediaUploadError}
         selectedSectionId={selectedSectionId}
         setSelectedSectionId={setSelectedSectionId}
+        recoverableBackup={recoverableBackup}
+        onRestoreBackup={applyRecoveredBackup}
+        onDismissBackup={dismissRecoveredBackup}
+        onReloadServerVersion={() => refreshData(true)}
+        onForceOverwriteDraft={forceOverwriteDraft}
         addSection={addSection}
         updateSection={updateSection}
         reorderSections={reorderSections}

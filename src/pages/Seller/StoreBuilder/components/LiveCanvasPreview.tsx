@@ -167,9 +167,22 @@ export const LiveCanvasPreview: React.FC<LiveCanvasPreviewProps> = ({
                   onBackToHome={() => { setCanvasViewMode("home"); setActiveCategorySlug(null); }}
                 />
               ) : displayedSections.length === 0 ? (
-                <div className="p-16 text-center text-[#667085] space-y-3">
+                <div className="p-14 text-center text-[#667085] space-y-3" data-testid="canvas-empty-state">
                   <Sparkles className="w-8 h-8 text-amber-600 mx-auto" />
-                  <p className="font-bold text-sm text-[#17191C]">Prévisualisation en direct</p>
+                  <p className="font-bold text-sm text-[#17191C]">Votre page ne contient aucune section</p>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    Ajoutez votre première section pour construire l&apos;aperçu de votre vitrine en direct.
+                  </p>
+                  {!isInteractiveMode && (
+                    <button
+                      type="button"
+                      data-testid="canvas-empty-add-section-btn"
+                      onClick={() => window.dispatchEvent(new CustomEvent("studio:open-add-section-modal"))}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      + Ajouter une première section
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col p-2 @sm:p-4" style={{ gap: `${sectionGapPx}px`, paddingTop: `${Math.round(sectionGapPx * 0.5)}px`, paddingBottom: `${Math.round(sectionGapPx * 0.5)}px` }}>

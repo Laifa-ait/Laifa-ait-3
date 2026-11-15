@@ -93,7 +93,6 @@ export function buildStoreThemeCssVariables(
   theme: CustomPageTheme,
   isDarkMode = false
 ): React.CSSProperties & Record<`--${string}`, string> {
-  const rawTheme = theme as unknown as Record<string, unknown>;
   const primary = theme.primaryColor || "#B45309";
   const secondary = isDarkMode ? "#F8FAFC" : theme.secondaryColor || "#18181B";
   const accent = theme.accentColor || primary;
@@ -113,9 +112,11 @@ export function buildStoreThemeCssVariables(
   const spacingYPx = typeof theme.spacingYPx === "number" ? theme.spacingYPx : 28;
   const titleSizePx = typeof theme.titleFontSizePx === "number" ? theme.titleFontSizePx : 36;
   const bodySizePx = typeof theme.bodyFontSizePx === "number" ? theme.bodyFontSizePx : 15;
-  const headingWeight = typeof rawTheme.headingFontWeight === "number" ? String(rawTheme.headingFontWeight) : "700";
+  const headingWeight = typeof theme.headingFontWeight === "number" ? String(theme.headingFontWeight) : "700";
   const lineHeight = typeof theme.lineHeight === "number" ? String(theme.lineHeight) : "1.2";
-  const buttonHeightPx = typeof rawTheme.buttonHeightPx === "number" ? `${rawTheme.buttonHeightPx}px` : "44px";
+  const buttonHeightPx = typeof theme.buttonHeightPx === "number" ? `${theme.buttonHeightPx}px` : "44px";
+  const buttonStyle = theme.buttonStyle || "solid";
+  const cardShadow = theme.cardShadow || "sm";
 
   return {
     backgroundColor: canvas,
@@ -139,6 +140,8 @@ export function buildStoreThemeCssVariables(
     "--store-badge-text": badgeTextColor,
     "--store-price": priceColor,
     "--store-btn-height": buttonHeightPx,
+    "--store-btn-style": buttonStyle,
+    "--store-card-shadow": cardShadow,
     "--store-border-radius": `${radiusPx}px`,
     "--store-spacing-y": `${spacingYPx}px`,
     "--store-title-size": `${titleSizePx}px`,

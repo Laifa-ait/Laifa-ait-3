@@ -30,12 +30,11 @@ const SPACING_SCALE = [4, 8, 12, 16, 24, 32, 48, 64];
 export const ThemeTypographyTab: React.FC<ThemeTypographyTabProps> = ({ theme, onUpdateTheme }) => {
   const headingFont = theme.headingFontFamily || theme.fontFamily || "'Playfair Display', serif";
   const bodyFont = theme.bodyFontFamily || theme.fontFamily || "'Plus Jakarta Sans', sans-serif";
-  const rawTheme = theme as unknown as Record<string, unknown>;
-  const headingWeight = typeof rawTheme.headingFontWeight === "number" ? rawTheme.headingFontWeight : 700;
+  const headingWeight = typeof theme.headingFontWeight === "number" ? theme.headingFontWeight : 700;
   const lineHeight = typeof theme.lineHeight === "number" ? theme.lineHeight : 1.2;
-  const buttonStyle = (rawTheme.buttonStyle as string) || "solid";
-  const buttonHeightPx = typeof rawTheme.buttonHeightPx === "number" ? rawTheme.buttonHeightPx : 44;
-  const cardShadow = (rawTheme.cardShadow as string) || "sm";
+  const buttonStyle = theme.buttonStyle || "solid";
+  const buttonHeightPx = typeof theme.buttonHeightPx === "number" ? theme.buttonHeightPx : 44;
+  const cardShadow = theme.cardShadow || "sm";
   const spacingYPx = typeof theme.spacingYPx === "number" ? theme.spacingYPx : 28;
   const borderRadiusPx = typeof theme.borderRadiusPx === "number" ? theme.borderRadiusPx : 16;
 
@@ -110,7 +109,7 @@ export const ThemeTypographyTab: React.FC<ThemeTypographyTabProps> = ({ theme, o
             <span className="text-[11px] font-semibold text-[#475467] block mb-1">Graisse des Titres</span>
             <div className="grid grid-cols-3 gap-1">
               {[600, 700, 800].map((w) => (
-                <button key={w} type="button" onClick={() => onUpdateTheme({ headingFontWeight: w } as Partial<CustomPageTheme>)} className={`h-7 rounded border text-[10.5px] font-bold cursor-pointer ${headingWeight === w ? "bg-[#023859] text-white border-[#023859]" : "bg-white text-slate-600 border-slate-200"}`}>{w}</button>
+                <button key={w} type="button" data-testid={`theme-heading-weight-${w}`} onClick={() => onUpdateTheme({ headingFontWeight: w })} className={`h-7 rounded border text-[10.5px] font-bold cursor-pointer ${headingWeight === w ? "bg-[#023859] text-white border-[#023859]" : "bg-white text-slate-600 border-slate-200"}`}>{w}</button>
               ))}
             </div>
           </div>
@@ -130,9 +129,9 @@ export const ThemeTypographyTab: React.FC<ThemeTypographyTabProps> = ({ theme, o
           <MousePointerClick className="h-3.5 w-3.5 text-[#023859]" />
           <span>Boutons & Cartes Globaux</span>
         </h4>
-        <div className="grid grid-cols-3 gap-1.5">
-          {([{ id: "solid", label: "Plein" }, { id: "outline", label: "Contour" }, { id: "pill", label: "Pilule" }] as const).map((st) => (
-            <button key={st.id} type="button" onClick={() => onUpdateTheme({ buttonStyle: st.id } as Partial<CustomPageTheme>)} className={`h-7 rounded-lg border text-[11px] font-bold cursor-pointer ${buttonStyle === st.id ? "bg-[#023859] text-white border-[#023859]" : "bg-white text-slate-600 border-slate-200"}`}>{st.label}</button>
+        <div className="grid grid-cols-4 gap-1.5">
+          {([{ id: "solid", label: "Plein" }, { id: "outline", label: "Contour" }, { id: "pill", label: "Pilule" }, { id: "sharp", label: "Carré" }] as const).map((st) => (
+            <button key={st.id} type="button" data-testid={`theme-button-style-${st.id}`} onClick={() => onUpdateTheme({ buttonStyle: st.id })} className={`h-7 rounded-lg border text-[10.5px] font-bold cursor-pointer ${buttonStyle === st.id ? "bg-[#023859] text-white border-[#023859]" : "bg-white text-slate-600 border-slate-200"}`}>{st.label}</button>
           ))}
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -141,7 +140,7 @@ export const ThemeTypographyTab: React.FC<ThemeTypographyTabProps> = ({ theme, o
               <span>Hauteur Boutons</span>
               <span className="font-mono text-[#023859] font-bold">{buttonHeightPx}px</span>
             </div>
-            <input type="range" min={36} max={56} step={2} value={buttonHeightPx} onChange={(e) => onUpdateTheme({ buttonHeightPx: Number(e.target.value) } as Partial<CustomPageTheme>)} className="w-full accent-[#023859] cursor-pointer" />
+            <input type="range" min={36} max={56} step={2} value={buttonHeightPx} onChange={(e) => onUpdateTheme({ buttonHeightPx: Number(e.target.value) })} className="w-full accent-[#023859] cursor-pointer" />
           </div>
           <div>
             <div className="flex justify-between text-[11px] font-semibold text-[#475467]">
@@ -155,7 +154,7 @@ export const ThemeTypographyTab: React.FC<ThemeTypographyTabProps> = ({ theme, o
           <span className="text-[11px] font-semibold text-[#475467] block mb-1">Ombre des Cartes</span>
           <div className="grid grid-cols-4 gap-1">
             {([{ id: "none", label: "Aucune" }, { id: "sm", label: "Douce" }, { id: "floating", label: "Flottante" }, { id: "brutal", label: "Brutale" }] as const).map((sh) => (
-              <button key={sh.id} type="button" onClick={() => onUpdateTheme({ cardShadow: sh.id } as Partial<CustomPageTheme>)} className={`h-7 rounded border text-[10px] font-bold cursor-pointer ${cardShadow === sh.id ? "bg-[#023859] text-white border-[#023859]" : "bg-white text-slate-600 border-slate-200"}`}>{sh.label}</button>
+              <button key={sh.id} type="button" data-testid={`theme-card-shadow-${sh.id}`} onClick={() => onUpdateTheme({ cardShadow: sh.id })} className={`h-7 rounded border text-[10px] font-bold cursor-pointer ${cardShadow === sh.id ? "bg-[#023859] text-white border-[#023859]" : "bg-white text-slate-600 border-slate-200"}`}>{sh.label}</button>
             ))}
           </div>
         </div>

@@ -101,6 +101,7 @@ export interface StoredProperty {
   commune?: string;
   wilaya?: string;
   status: PropertyStatus;
+  moderationStatus?: PropertyStatus | string;
   viewsCount: number;
   createdAt: string;
   updatedAt: string;

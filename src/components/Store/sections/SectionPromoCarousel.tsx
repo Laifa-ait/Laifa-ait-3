@@ -12,7 +12,8 @@ import {
   resolveAnimationClass,
   SectionDividerRenderer,
 } from "./sectionStyleHelper";
-import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play, Sparkles } from "lucide-react";
+import { useReducedMotion } from "motion/react";
 import { useStudioStore } from "../../../pages/Seller/StoreBuilder/store/useStudioStore";
 import { resolveBannerPosition } from "../../../pages/Seller/StoreBuilder/components/inspector/controls/AlignmentMatrix3x3";
 import { PromoCarouselSlideRenderer } from "./PromoCarouselSlideRenderer";
@@ -43,6 +44,8 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
   const styles = section.styles || {};
   const slides = Array.isArray(settings.slides) ? settings.slides : [];
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   const selectSection = useStudioStore((s) => s.selectSection);
   const selectedSectionId = useStudioStore((s) => s.selectedSectionId);
@@ -54,12 +57,12 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
     Boolean(selectedSubElement?.startsWith("slide-"));
 
   useEffect(() => {
-    if (!settings.autoplay || slides.length <= 1 || isStudioSlideFocused) return;
+    if (!settings.autoplay || slides.length <= 1 || isStudioSlideFocused || isPaused || prefersReducedMotion) return;
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % slides.length);
     }, (settings.intervalSec || 5) * 1000);
     return () => clearInterval(interval);
-  }, [slides.length, settings.autoplay, settings.intervalSec, isStudioSlideFocused]);
+  }, [slides.length, settings.autoplay, settings.intervalSec, isStudioSlideFocused, isPaused, prefersReducedMotion]);
 
   // Synchronize live canvas carousel with slide selected in Inspector or Structure Tree
   useEffect(() => {
@@ -124,18 +127,18 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
       }`}
     >
       {slides.length === 0 ? (
-        <div className="p-10 text-center bg-slate-100 rounded-2xl text-slate-600 text-xs font-semibold flex flex-col items-center gap-2">
+        <div
+          data-testid="promo-carousel-empty-state"
+          className="p-10 text-center bg-slate-100 rounded-2xl text-slate-600 text-xs font-semibold flex flex-col items-center gap-2"
+        >
           <Sparkles className="w-5 h-5 text-[#023859]" />
           <span>Aucune diapositive configurée. Ouvrez l&apos;onglet Réglages pour ajouter vos offres.</span>
         </div>
       ) : (
         <div
           style={baseContainerStyle.borderRadius ? { borderRadius: baseContainerStyle.borderRadius } : undefined}
-          className={`relative w-full overflow-hidden ${resolveBorderRadiusClass(
-            styles.borderRadius
-          )}`}
+          className={`relative w-full overflow-hidden ${resolveBorderRadiusClass(styles.borderRadius)}`}
         >
-          {/* Subtle Studio Floating Slide Switcher Pill (Only visible when editing in Studio) */}
           {isEditable && isSelected && (
             <div
               onClick={(e) => e.stopPropagation()}
@@ -147,9 +150,7 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
                   type="button"
                   onClick={(e) => handleGoToSlide(idx, e)}
                   className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer ${
-                    idx === safeIdx
-                      ? "bg-[#F97316] text-white shadow-2xs"
-                      : "text-white/75 hover:text-white hover:bg-white/10"
+                    idx === safeIdx ? "bg-[#F97316] text-white shadow-2xs" : "text-white/75 hover:text-white hover:bg-white/10"
                   }`}
                 >
                   Slide {idx + 1}
@@ -178,14 +179,23 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
             onNextSlide={() => handleGoToSlide((safeIdx + 1) % slides.length)}
           />
 
-          {/* Non-overlapping Bottom Architectural Control Bar */}
           {slides.length > 1 && (
             <div
               onClick={(e) => e.stopPropagation()}
               className="absolute bottom-3 left-4 right-4 z-20 flex items-center justify-between gap-3 pointer-events-none"
             >
-              {/* Dots & Counter Pill */}
               <div className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-950/65 backdrop-blur-md border border-white/15">
+                {settings.autoplay && (
+                  <button
+                    type="button"
+                    data-testid="promo-carousel-pause-btn"
+                    aria-label={isPaused ? "Reprendre le carrousel" : "Mettre en pause le carrousel"}
+                    onClick={() => setIsPaused((p) => !p)}
+                    className="text-white/90 hover:text-white pr-1 border-r border-white/20 cursor-pointer"
+                  >
+                    {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+                  </button>
+                )}
                 {settings.showSlideCounter !== false && (
                   <span className="text-[10px] font-mono font-extrabold text-white/90 pr-1 border-r border-white/20">
                     {String(safeIdx + 1).padStart(2, "0")}/{String(slides.length).padStart(2, "0")}
@@ -200,9 +210,7 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
                         aria-label={`Aller à la diapositive ${idx + 1}`}
                         onClick={(e) => handleGoToSlide(idx, e)}
                         className={`h-2 rounded-full transition-all cursor-pointer ${
-                          idx === safeIdx
-                            ? "w-6 bg-[#F97316]"
-                            : "w-2 bg-white/55 hover:bg-white"
+                          idx === safeIdx ? "w-6 bg-[#F97316]" : "w-2 bg-white/55 hover:bg-white"
                         }`}
                       />
                     ))}
@@ -210,15 +218,12 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
                 )}
               </div>
 
-              {/* Safe Navigation Arrows (Bottom-Right Dock - Never overlaps title!) */}
               {settings.showArrows !== false && (
                 <div className="pointer-events-auto flex items-center gap-1.5">
                   <button
                     type="button"
                     aria-label="Diapositive précédente"
-                    onClick={(e) =>
-                      handleGoToSlide((safeIdx - 1 + slides.length) % slides.length, e)
-                    }
+                    onClick={(e) => handleGoToSlide((safeIdx - 1 + slides.length) % slides.length, e)}
                     className="w-8 h-8 @sm:w-9 @sm:h-9 rounded-full bg-slate-950/75 hover:bg-slate-950 text-white border border-white/20 flex items-center justify-center shadow-md cursor-pointer transition-transform active:scale-95"
                   >
                     <ChevronLeft className="w-4 h-4 @sm:w-5 @sm:h-5" />

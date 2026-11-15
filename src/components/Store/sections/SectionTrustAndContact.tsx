@@ -10,6 +10,7 @@ import {
 import { Truck, ShieldCheck, RotateCcw, Star, Phone, Mail, MapPin, Clock } from "lucide-react";
 import { EditorialHeading } from "../EditorialHeading";
 import { CanvasInlineText } from "./CanvasInlineText";
+import { isDarkColor, readableTextColor } from "./themeColorUtils";
 
 interface SectionTrustAndContactProps {
   section: CustomPageSection;
@@ -21,18 +22,12 @@ interface SectionTrustAndContactProps {
   handleSubElementClick: (subElement: string, e: React.MouseEvent) => void;
 }
 
-const DEFAULT_REVIEWS = [
-  { author: "Amina K. (Alger)", rating: 5, comment: "Qualité remarquable et livraison rapide à domicile avec paiement à la réception." },
-  { author: "Karim B. (Oran)", rating: 5, comment: "Produit fidèle aux photos, emballage très soigné. Je recommande cette boutique !" },
-  { author: "Yasmine M. (Constantine)", rating: 5, comment: "Service client réactif et articles authentiques." },
-];
-
 export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
   section, theme, wrapperClass, isEditable, onSelect, isSubActive, handleSubElementClick,
 }) => {
   const styles = section.styles || {};
   const rawSettings = (section.settings || {}) as Record<string, unknown>;
-  const radiusClass = `${resolveBorderRadiusClass(styles.borderRadius)} ${resolveShadowClass(styles.cardShadow)}`;
+  const radiusClass = `${resolveBorderRadiusClass(styles.borderRadius)} ${resolveShadowClass(styles.cardShadow || theme.cardShadow)}`;
   const widthClass = resolveContainerWidthClass(styles.containerWidth);
   const accentColor = styles.iconColor || styles.buttonBgColor || theme.accentColor || theme.primaryColor || "var(--store-primary, #B45309)";
   const headingColor = styles.headingColor || styles.textColor || theme.secondaryColor || "var(--store-secondary, #18181B)";
@@ -42,17 +37,19 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
   const cardBorderColor = styles.cardBorderColor || theme.borderColor || "#E4E7EC";
   const priceColor = styles.priceColor || theme.priceColor || accentColor;
   const badgeBgColor = styles.badgeBgColor || theme.accentBadgeColor || accentColor;
-  const badgeTextColor = styles.badgeTextColor || theme.badgeTextColor || "#FFFFFF";
+  const badgeTextColor = styles.badgeTextColor || theme.badgeTextColor || readableTextColor(badgeBgColor);
   const textAlign = (rawSettings.textAlignment as string) || "left";
   const alignClass = textAlign === "center" ? "text-center" : textAlign === "right" ? "text-right" : "text-left";
   const containerStyle = buildSectionContainerStyle(styles, "transparent", "var(--store-secondary, #17191C)", theme);
 
   if (section.type === "verified_reviews") {
-    const customReviews =
-      Array.isArray(rawSettings.customReviews) && rawSettings.customReviews.length > 0
-        ? (rawSettings.customReviews as Array<{ author: string; rating: number; comment: string }>)
-        : DEFAULT_REVIEWS;
+    const customReviews = Array.isArray(rawSettings.customReviews)
+      ? (rawSettings.customReviews as Array<{ author: string; rating: number; comment: string }>).filter((r) => Boolean(r?.comment?.trim()))
+      : [];
     const limit = typeof rawSettings.maxReviews === "number" ? rawSettings.maxReviews : 3;
+    const avgRating = customReviews.length > 0
+      ? (customReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0) / customReviews.length).toFixed(1)
+      : null;
 
     return (
       <div onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={containerStyle}>
@@ -61,45 +58,43 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
             <div>
               <EditorialHeading
                 as="h2" text={String(rawSettings.title || "Avis Clients Vérifiés")} theme={theme} sectionStyles={styles}
-                accentColorOverride={styles.kickerColor || accentColor}
-                isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
-                onClick={(e) => handleSubElementClick("title", e)}
-                style={{ color: headingColor }}
+                accentColorOverride={styles.kickerColor || accentColor} isEditable={isEditable}
+                editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
+                onClick={(e) => handleSubElementClick("title", e)} style={{ color: headingColor }}
                 className={`text-xl @md:text-2xl font-extrabold rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`}
               />
               {Boolean(rawSettings.subtitle) && <p className="text-xs opacity-80 mt-1" style={{ color: subtitleColor }}>{String(rawSettings.subtitle)}</p>}
             </div>
-            <div
-              data-testid="reviews-trust-badge"
-              style={{ backgroundColor: styles.badgeBgColor || "#FFFBEB", color: styles.badgeTextColor || "#92400E", borderColor: styles.cardBorderColor || "#FDE68A" }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold self-start"
-            >
-              <Star className="w-4 h-4 fill-current" style={{ color: styles.iconColor || "#F59E0B" }} />
-              <span>4.9 / 5 • Achats Vérifiés Olmart</span>
+            <div data-testid="reviews-trust-badge" style={{ backgroundColor: badgeBgColor, color: badgeTextColor, borderColor: cardBorderColor }} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold self-start">
+              <Star className="w-4 h-4 fill-current" style={{ color: styles.iconColor || badgeTextColor }} />
+              <span>{avgRating ? `${avgRating} / 5 • ${customReviews.length} Avis Vérifié${customReviews.length > 1 ? "s" : ""}` : "Achats Vérifiés Olmart"}</span>
             </div>
           </div>
-          <div className="grid grid-cols-1 @md:grid-cols-3 gap-4">
-            {customReviews.slice(0, limit).map((rev, i) => (
-              <div
-                key={i} onClick={(e) => handleSubElementClick(`review-${i}`, e)}
-                style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }}
-                className={`p-4 border shadow-2xs space-y-2 ${radiusClass} ${
-                  isSubActive(`review-${i}`) ? "ring-2 ring-[#2563EB]" : ""
-                }`}
-              >
-                <div className="flex items-center gap-0.5" style={{ color: styles.iconColor || "#F59E0B" }}>
-                  {Array.from({ length: rev.rating || 5 }).map((_, s) => (
-                    <Star key={s} className="w-3.5 h-3.5 fill-current" />
-                  ))}
+          {customReviews.length === 0 ? (
+            <div data-testid="verified-reviews-empty-state" style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }} className={`p-6 border border-dashed text-center space-y-1.5 ${radiusClass}`}>
+              <p className="text-xs @sm:text-sm font-bold">Aucun avis client vérifié publié pour le moment.</p>
+              <p className="text-xs opacity-75">
+                {isEditable
+                  ? "Les avis authentiques de vos clients apparaîtront ici dès qu'ils seront collectés. Aucun avis fictif n'est généré."
+                  : "Les évaluations vérifiées seront affichées après les premières commandes livrées."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 @md:grid-cols-3 gap-4">
+              {customReviews.slice(0, limit).map((rev, i) => (
+                <div key={i} onClick={(e) => handleSubElementClick(`review-${i}`, e)} style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }} className={`p-4 border shadow-2xs space-y-2 ${radiusClass} ${isSubActive(`review-${i}`) ? "ring-2 ring-[#2563EB]" : ""}`}>
+                  <div className="flex items-center gap-0.5" style={{ color: styles.iconColor || accentColor }}>
+                    {Array.from({ length: rev.rating || 5 }).map((_, s) => <Star key={s} className="w-3.5 h-3.5 fill-current" />)}
+                  </div>
+                  <p className="text-xs @sm:text-sm leading-relaxed opacity-90" style={{ color: cardTextColor }}>« {rev.comment} »</p>
+                  <div className="pt-2 border-t flex items-center justify-between text-xs font-bold" style={{ borderColor: cardBorderColor, color: cardTextColor }}>
+                    <span>{rev.author}</span>
+                    <span className="text-[10px] font-semibold" style={{ color: styles.iconColor || accentColor }}>✓ Vérifié</span>
+                  </div>
                 </div>
-                <p className="text-xs @sm:text-sm leading-relaxed opacity-90" style={{ color: cardTextColor }}>« {rev.comment} »</p>
-                <div className="pt-2 border-t flex items-center justify-between text-xs font-bold" style={{ borderColor: cardBorderColor, color: cardTextColor }}>
-                  <span>{rev.author}</span>
-                  <span className="text-[10px] font-semibold" style={{ color: styles.iconColor || "#059669" }}>✓ Vérifié</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
         <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
       </div>
@@ -110,18 +105,15 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
     const freeAbove = typeof rawSettings.freeShippingAbove === "number" ? rawSettings.freeShippingAbove : undefined;
     const homePrice = typeof rawSettings.homeDeliveryPrice === "number" ? rawSettings.homeDeliveryPrice : 600;
     const deskPrice = typeof rawSettings.stopDeskPrice === "number" ? rawSettings.stopDeskPrice : 400;
-    const tariffs = Array.isArray(rawSettings.customTariffs)
-      ? (rawSettings.customTariffs as Array<{ wilayaName: string; estimatedDays: string; priceDZD: number }>)
-      : [];
+    const tariffs = Array.isArray(rawSettings.customTariffs) ? (rawSettings.customTariffs as Array<{ wilayaName: string; estimatedDays: string; priceDZD: number }>) : [];
+    const pillBg = styles.badgeBgColor || theme.canvasColor || "#F1F5F9";
+    const pillText = styles.badgeTextColor || readableTextColor(pillBg);
     return (
       <div onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={containerStyle}>
-        <div
-          style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }}
-          className={`${widthClass} border p-6 space-y-4 ${radiusClass}`}
-        >
+        <div style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }} className={`${widthClass} border p-6 space-y-4 ${radiusClass}`}>
           <div className="flex flex-col @md:flex-row items-start @md:items-center justify-between gap-4">
             <div className="flex items-start gap-3.5">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white shrink-0" style={{ backgroundColor: accentColor }}>
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: accentColor, color: readableTextColor(accentColor) }}>
                 <Truck className="w-5 h-5" />
               </div>
               <div>
@@ -132,10 +124,10 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2" onClick={(e) => handleSubElementClick("tarifs", e)}>
-              <span style={{ backgroundColor: styles.badgeBgColor || "#F1F5F9", color: styles.badgeTextColor || cardTextColor }} className="px-3 py-1.5 rounded-lg text-xs font-bold">
+              <span data-testid="delivery-stopdesk-pill" style={{ backgroundColor: pillBg, color: pillText, borderColor: cardBorderColor }} className="px-3 py-1.5 rounded-lg border text-xs font-bold">
                 Stop-Desk : dès {deskPrice.toLocaleString("fr-DZ")} DA
               </span>
-              <span style={{ backgroundColor: styles.badgeBgColor || "#F1F5F9", color: styles.badgeTextColor || cardTextColor }} className="px-3 py-1.5 rounded-lg text-xs font-bold">
+              <span data-testid="delivery-home-pill" style={{ backgroundColor: pillBg, color: pillText, borderColor: cardBorderColor }} className="px-3 py-1.5 rounded-lg border text-xs font-bold">
                 Domicile : dès {homePrice.toLocaleString("fr-DZ")} DA
               </span>
               {freeAbove && (
@@ -167,38 +159,19 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
     const feeLabel = feeBy === "free" ? "Frais pris en charge selon conditions" : feeBy === "seller" ? "Frais pris en charge par la boutique" : "Frais de retour à la charge de l'acheteur";
     return (
       <div onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={containerStyle}>
-        <div
-          style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }}
-          className={`${widthClass} border p-6 ${radiusClass}`}
-        >
+        <div style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }} className={`${widthClass} border p-6 ${radiusClass}`}>
           <div className="flex items-start gap-3.5">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white shrink-0" style={{ backgroundColor: accentColor }}>
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: accentColor, color: readableTextColor(accentColor) }}>
               <RotateCcw className="w-5 h-5" />
             </div>
             <div className="flex-1 space-y-1.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <EditorialHeading
-                  as="h2" text={String(rawSettings.title || "Conditions de Retours & Échanges")} theme={theme} sectionStyles={styles}
-                  accentColorOverride={styles.kickerColor || accentColor}
-                  isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
-                  onClick={(e) => handleSubElementClick("title", e)}
-                  style={{ color: headingColor }}
-                  className={`text-lg font-extrabold rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`}
-                />
+                <EditorialHeading as="h2" text={String(rawSettings.title || "Conditions de Retours & Échanges")} theme={theme} sectionStyles={styles} accentColorOverride={styles.kickerColor || accentColor} isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }} onClick={(e) => handleSubElementClick("title", e)} style={{ color: headingColor }} className={`text-lg font-extrabold rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`} />
                 <span className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: styles.badgeBgColor || `${accentColor}18`, color: styles.badgeTextColor || accentColor }}>
                   Délai {delayDays} jours • {feeLabel}
                 </span>
               </div>
-              <CanvasInlineText
-                as="p"
-                multiline
-                value={String(rawSettings.conditions || "Les demandes d'échange ou de retour sont traitées selon les conditions définies par le vendeur à réception du colis.")}
-                isEditable={isEditable}
-                editConfig={{ sectionId: section.id, settingKey: "conditions", subElement: "conditions" }}
-                onClick={(e) => handleSubElementClick("conditions", e)}
-                style={{ color: subtitleColor || cardTextColor }}
-                className="text-xs @sm:text-sm opacity-85 leading-relaxed"
-              />
+              <CanvasInlineText as="p" multiline value={String(rawSettings.conditions || "Les demandes d'échange ou de retour sont traitées selon les conditions définies par le vendeur à réception du colis.")} isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "conditions", subElement: "conditions" }} onClick={(e) => handleSubElementClick("conditions", e)} style={{ color: subtitleColor || cardTextColor }} className="text-xs @sm:text-sm opacity-85 leading-relaxed" />
             </div>
           </div>
         </div>
@@ -212,61 +185,60 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
     return (
       <div onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={containerStyle}>
         <div className={widthClass}>
-          <EditorialHeading
-            as="h2" text={String(rawSettings.title || "Questions Fréquentes")} theme={theme} sectionStyles={styles}
-            accentColorOverride={styles.kickerColor || accentColor}
-            isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
-            onClick={(e) => handleSubElementClick("title", e)}
-            style={{ color: headingColor }}
-            className={`text-xl @md:text-2xl font-extrabold mb-5 ${alignClass} ${isSubActive("title") ? "ring-2 ring-[#2563EB] rounded" : ""}`}
-          />
-          <div className="space-y-2.5">
-            {items.map((item, idx) => (
-              <details
-                key={idx} onClick={(e) => handleSubElementClick(`faq-${idx}`, e)} open={idx === 0}
-                style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }}
-                className={`border p-4 shadow-2xs ${radiusClass} ${
-                  isSubActive(`faq-${idx}`) ? "ring-2 ring-[#2563EB]" : ""
-                }`}
-              >
-                <summary className="font-bold text-sm cursor-pointer" style={{ color: cardTextColor }}>{item.question}</summary>
-                <p className="mt-2 text-xs @sm:text-sm opacity-85 leading-relaxed" style={{ color: subtitleColor || cardTextColor }}>{item.answer}</p>
-              </details>
-            ))}
-          </div>
+          <EditorialHeading as="h2" text={String(rawSettings.title || "Questions Fréquentes")} theme={theme} sectionStyles={styles} accentColorOverride={styles.kickerColor || accentColor} isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }} onClick={(e) => handleSubElementClick("title", e)} style={{ color: headingColor }} className={`text-xl @md:text-2xl font-extrabold mb-5 ${alignClass} ${isSubActive("title") ? "ring-2 ring-[#2563EB] rounded" : ""}`} />
+          {items.length === 0 ? (
+            <div data-testid="faq-empty-state" style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }} className={`p-6 border border-dashed text-center text-xs opacity-80 ${radiusClass}`}>
+              Aucune question fréquente configurée. Ajoutez vos questions/réponses dans l&apos;inspecteur.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {items.map((item, idx) => (
+                <details key={idx} onClick={(e) => handleSubElementClick(`faq-${idx}`, e)} open={idx === 0} style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }} className={`border p-4 shadow-2xs ${radiusClass} ${isSubActive(`faq-${idx}`) ? "ring-2 ring-[#2563EB]" : ""}`}>
+                  <summary className="font-bold text-sm cursor-pointer" style={{ color: cardTextColor }}>{item.question}</summary>
+                  <p className="mt-2 text-xs @sm:text-sm opacity-85 leading-relaxed" style={{ color: subtitleColor || cardTextColor }}>{item.answer}</p>
+                </details>
+              ))}
+            </div>
+          )}
         </div>
         <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
       </div>
     );
   }
 
+  const footerDefaultBg = isDarkColor(theme.canvasColor) ? theme.surfaceColor || "#141820" : isDarkColor(theme.secondaryColor) ? theme.secondaryColor || "#111827" : "#111827";
+  const footerBg = styles.backgroundColor || footerDefaultBg;
+  const footerText = styles.textColor || readableTextColor(footerBg);
+  const footerPillBg = styles.cardBgColor || (isDarkColor(footerBg) ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.06)");
+  const footerPillBorder = styles.cardBorderColor || (isDarkColor(footerBg) ? "rgba(255,255,255,0.18)" : "rgba(15,23,42,0.14)");
+
   return (
-    <div onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={buildSectionContainerStyle(styles, "var(--store-secondary, #111827)", "#F8FAFC", theme)}>
+    <div data-testid="contact-footer-section" onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={buildSectionContainerStyle(styles, footerBg, footerText, theme)}>
       <div className={`${widthClass} flex flex-col @md:flex-row items-start @md:items-center justify-between gap-6`}>
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5" style={{ color: accentColor }} />
-            <CanvasInlineText as="h3" value={String(rawSettings.title || "Service Client & Contact")} isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }} onClick={(e) => handleSubElementClick("title", e)} style={{ fontFamily: "var(--store-font-heading, inherit)", color: styles.headingColor || styles.textColor || "#F8FAFC" }} className={`font-extrabold text-base @md:text-lg rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`} />
+            <CanvasInlineText as="h3" value={String(rawSettings.title || "Service Client & Contact")} isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }} onClick={(e) => handleSubElementClick("title", e)} style={{ fontFamily: "var(--store-font-heading, inherit)", color: styles.headingColor || footerText }} className={`font-extrabold text-base @md:text-lg rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`} />
           </div>
           {Boolean(rawSettings.workingHours) && (
-            <p className="text-xs opacity-85 flex items-center gap-1.5" style={{ color: styles.subtitleColor }} onClick={(e) => handleSubElementClick("coordonnees", e)}>
+            <p className="text-xs opacity-85 flex items-center gap-1.5" style={{ color: styles.subtitleColor || footerText }} onClick={(e) => handleSubElementClick("coordonnees", e)}>
               <Clock className="w-3.5 h-3.5" style={{ color: accentColor }} /><span>{String(rawSettings.workingHours)}</span>
             </p>
           )}
           {(Boolean(rawSettings.address) || Boolean(rawSettings.wilaya)) && (
-            <p className="text-xs opacity-85 flex items-center gap-1.5" style={{ color: styles.subtitleColor }} onClick={(e) => handleSubElementClick("coordonnees", e)}>
+            <p className="text-xs opacity-85 flex items-center gap-1.5" style={{ color: styles.subtitleColor || footerText }} onClick={(e) => handleSubElementClick("coordonnees", e)}>
               <MapPin className="w-3.5 h-3.5" style={{ color: accentColor }} /><span>{[rawSettings.address, rawSettings.wilaya].filter(Boolean).join(" • ")}</span>
             </p>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-3 text-xs font-bold" onClick={(e) => handleSubElementClick("coordonnees", e)}>
           {Boolean(rawSettings.shopPhone) && (
-            <span style={{ backgroundColor: styles.cardBgColor || "rgba(255,255,255,0.1)", color: styles.cardTextColor || "#FFFFFF", borderColor: styles.cardBorderColor || "rgba(255,255,255,0.15)" }} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border">
+            <span style={{ backgroundColor: footerPillBg, color: styles.cardTextColor || footerText, borderColor: footerPillBorder }} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border">
               <Phone className="w-3.5 h-3.5" style={{ color: accentColor }} /><span>{String(rawSettings.shopPhone)}</span>
             </span>
           )}
           {Boolean(rawSettings.shopEmail) && (
-            <span style={{ backgroundColor: styles.cardBgColor || "rgba(255,255,255,0.1)", color: styles.cardTextColor || "#FFFFFF", borderColor: styles.cardBorderColor || "rgba(255,255,255,0.15)" }} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border">
+            <span style={{ backgroundColor: footerPillBg, color: styles.cardTextColor || footerText, borderColor: footerPillBorder }} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border">
               <Mail className="w-3.5 h-3.5" style={{ color: accentColor }} /><span>{String(rawSettings.shopEmail)}</span>
             </span>
           )}
