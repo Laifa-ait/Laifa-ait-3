@@ -63,7 +63,7 @@ describe("Audit Remédiation P0/P1 — Coordonnées Footer, Erreur Catalogue & P
     document.body.innerHTML = "";
   });
 
-  it("4. Pied de page contact_footer : zéro fausse coordonnée par défaut, alerte vide & import profil en 1 clic", () => {
+  it("4. Pied de page contact_footer : zéro coordonnée externe, conformité notifications internes Olmart & import localisation", () => {
     const sectorFooterDefaults = buildSectorAwareSectionDefaults("contact_footer", {}, "mode", "", []);
     expect(sectorFooterDefaults.shopPhone).toBe("");
     expect(sectorFooterDefaults.shopEmail).toBe("");
@@ -110,16 +110,18 @@ describe("Audit Remédiation P0/P1 — Coordonnées Footer, Erreur Catalogue & P
         labelClass="label"
       />
     );
-    expect(editor.container.querySelector('[data-testid="contact-footer-missing-warning"]')).not.toBeNull();
+    expect(editor.container.querySelector('[data-testid="contact-footer-internal-policy-banner"]')).not.toBeNull();
+    expect(editor.container.querySelector('[data-testid="contact-footer-missing-warning"]')).toBeNull();
     act(() => {
       editor.container.querySelector<HTMLButtonElement>('[data-testid="contact-footer-import-profile-btn"]')?.click();
     });
     expect(onSettingsChange).toHaveBeenCalledWith(
       expect.objectContaining({
-        shopPhone: "+213 551 23 45 67",
-        shopEmail: "contact@atelier-casbah.dz",
-        socialInstagram: "@atelier.casbah",
+        shopPhone: "",
+        shopEmail: "",
+        socialInstagram: "",
         wilaya: "Alger",
+        address: "Hydra, Alger, Algérie",
       })
     );
     editor.unmount();

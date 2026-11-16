@@ -146,7 +146,7 @@ export const HeroSwapImageFrame: React.FC<HeroSwapImageFrameProps> = ({
             data-testid="hero-swap-prev"
             onClick={goPrev}
             aria-label="Image précédente"
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-zinc-900 shadow-md border border-black/10 flex items-center justify-center transition-all hover:scale-105 cursor-pointer"
+            className="absolute start-2.5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-zinc-900 shadow-md border border-black/10 flex items-center justify-center transition-all hover:scale-105 cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -156,13 +156,13 @@ export const HeroSwapImageFrame: React.FC<HeroSwapImageFrameProps> = ({
             data-testid="hero-swap-next"
             onClick={goNext}
             aria-label="Image suivante"
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-zinc-900 shadow-md border border-black/10 flex items-center justify-center transition-all hover:scale-105 cursor-pointer"
+            className="absolute end-2.5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-zinc-900 shadow-md border border-black/10 flex items-center justify-center transition-all hover:scale-105 cursor-pointer"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
 
-          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/75 backdrop-blur-md text-white shadow-sm">
-            <Images className="w-3 h-3 text-amber-300 shrink-0 mr-0.5" />
+          <div className="absolute bottom-2.5 start-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/75 backdrop-blur-md text-white shadow-sm">
+            <Images className="w-3 h-3 text-amber-300 shrink-0 me-0.5" />
             {slides.map((_, idx) => (
               <button
                 key={idx}
@@ -179,7 +179,7 @@ export const HeroSwapImageFrame: React.FC<HeroSwapImageFrameProps> = ({
                 }`}
               />
             ))}
-            <span className="text-[9px] font-bold tracking-wider ml-1 opacity-90">
+            <span className="text-[9px] font-bold tracking-wider ms-1 opacity-90">
               {safeIndex + 1}/{slides.length}
             </span>
           </div>

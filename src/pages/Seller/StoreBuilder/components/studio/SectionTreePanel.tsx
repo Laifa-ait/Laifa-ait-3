@@ -89,19 +89,19 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
     onAddSection(
       "contact_footer",
       {
-        shopPhone: storeConfig?.contacts?.phone || storeConfig?.commerceConfig?.whatsappNumber || "",
-        shopEmail: storeConfig?.contacts?.email || "",
+        shopPhone: "",
+        shopEmail: "",
+        socialInstagram: "",
         wilaya,
         address,
         workingHours: "Sam - Jeu : 09h00 - 18h00",
-        socialInstagram: storeConfig?.socialLinks?.instagram || "",
       },
       "Pied de boutique & Contact"
     );
   };
 
   return (
-    <div className="w-full h-full bg-white border-r border-slate-200 flex flex-col shrink-0 overflow-hidden min-h-0 select-none">
+    <div className="w-full h-full bg-white border-e border-slate-200 flex flex-col shrink-0 overflow-hidden min-h-0 select-none">
       {onSelectNavMode && (
         <div className="hidden md:block border-b border-slate-200">
           <StudioSidebar navMode={navMode} onSelectNavMode={onSelectNavMode} onSaveDraft={onSaveDraft} />
@@ -110,7 +110,7 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
         {!showSectionsTree ? (
-          <div className="px-2 py-3 space-y-3 text-left rounded-lg border border-slate-200 bg-slate-50/60">
+          <div className="px-2 py-3 space-y-3 text-start rounded-lg border border-slate-200 bg-slate-50/60">
             <div className="space-y-1">
               <span className="text-[12px] font-semibold text-slate-900 block">
                 Configuration de l&apos;étape {activeStudioStep} · {currentStepMeta.title}
@@ -180,13 +180,13 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
 
             {bodySections.length > 5 && (
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute start-2.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Filtrer les sections..."
-                  className="w-full h-8 pl-8 pr-2.5 rounded-md border border-slate-200 bg-slate-50 text-[11.5px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:outline-none"
+                  className="w-full h-8 ps-8 pe-2.5 rounded-md border border-slate-200 bg-slate-50 text-[11.5px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:outline-none"
                 />
               </div>
             )}

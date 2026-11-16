@@ -177,11 +177,11 @@ export const MediaInspectorPanel: React.FC<MediaInspectorPanelProps> = ({
 
       <div className="space-y-2">
         <div className="relative">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2" />
           <input
             type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Rechercher par nom de fichier..." data-testid="media-search-input"
-            className="w-full h-8.5 pl-8 pr-3 text-xs bg-slate-50/70 border border-slate-200 rounded-lg focus:bg-white focus:border-slate-900 focus:outline-none"
+            className="w-full h-8.5 ps-8 pe-3 text-xs bg-slate-50/70 border border-slate-200 rounded-lg focus:bg-white focus:border-slate-900 focus:outline-none"
           />
         </div>
         <div className="flex gap-1" data-testid="media-type-tabs">

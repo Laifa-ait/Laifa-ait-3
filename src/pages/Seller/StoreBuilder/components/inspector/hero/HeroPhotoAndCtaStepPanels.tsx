@@ -17,7 +17,7 @@ interface HeroPhotoAndCtaStepPanelsProps {
   inputClass: string;
   labelClass: string;
   onSettingsChange: (fieldOrPatch: string | Record<string, unknown>, value?: unknown) => void;
-  onDeviceConfigChange: (patch: Partial<HeroDeviceMeasureConfig>) => void;
+  onDeviceConfigChange: (patch: Partial<HeroDeviceMeasureConfig>, rootSettingsPatch?: Record<string, unknown>) => void;
 }
 
 const POSITION_9_GRID: Array<{ id: HeroTextPosition9; label: string }> = [
@@ -42,14 +42,12 @@ export const HeroPhotoAndCtaStepPanels: React.FC<HeroPhotoAndCtaStepPanelsProps>
 
   const handleFocalChange = (nextX: number, nextY: number): void => {
     const posField = deviceTab === "mobile" ? "imagePositionMobile" : deviceTab === "tablet" ? "imagePositionTablet" : "imagePositionDesktop";
-    onDeviceConfigChange({ focalX: nextX, focalY: nextY });
-    onSettingsChange(posField, `${nextX}% ${nextY}%`);
+    onDeviceConfigChange({ focalX: nextX, focalY: nextY }, { [posField]: `${nextX}% ${nextY}%` });
   };
 
   const handleZoomChange = (nextZoom: number): void => {
     const zoomField = deviceTab === "mobile" ? "imageZoomMobile" : deviceTab === "tablet" ? "imageZoomTablet" : "imageZoomDesktop";
-    onDeviceConfigChange({ zoom: nextZoom });
-    onSettingsChange(zoomField, nextZoom);
+    onDeviceConfigChange({ zoom: nextZoom }, { [zoomField]: nextZoom });
   };
 
   const showStep3 = activeStep === "all" || activeStep === 3;
@@ -129,14 +127,14 @@ export const HeroPhotoAndCtaStepPanels: React.FC<HeroPhotoAndCtaStepPanelsProps>
           </div>
           <div className="grid grid-cols-3 gap-1 bg-white p-1.5 rounded-xl border border-zinc-200">
             {POSITION_9_GRID.map((pos) => (
-              <button key={pos.id} type="button" data-testid={`hero-pos9-${pos.id}`} onClick={() => { onDeviceConfigChange({ textPosition9: pos.id }); if (isDesktop) onSettingsChange("textPosition9", pos.id); }} className={`py-1.5 px-1 rounded-lg text-[9px] font-bold transition-all cursor-pointer ${profile.textPosition9 === pos.id ? "bg-zinc-900 text-white shadow-2xs" : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"}`}>
+              <button key={pos.id} type="button" data-testid={`hero-pos9-${pos.id}`} onClick={() => onDeviceConfigChange({ textPosition9: pos.id }, isDesktop ? { textPosition9: pos.id } : undefined)} className={`py-1.5 px-1 rounded-lg text-[9px] font-bold transition-all cursor-pointer ${profile.textPosition9 === pos.id ? "bg-zinc-900 text-white shadow-2xs" : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"}`}>
                 {pos.label}
               </button>
             ))}
           </div>
           <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-zinc-200">
             {(["left", "center", "right"] as const).map((align) => (
-              <button key={align} type="button" onClick={() => { onDeviceConfigChange({ textAlign: align }); if (isDesktop) onSettingsChange("textAlignment", align); }} className={`py-1 rounded-lg text-[10px] font-bold cursor-pointer ${profile.textAlign === align ? "bg-zinc-900 text-white" : "text-zinc-600"}`}>
+              <button key={align} type="button" onClick={() => onDeviceConfigChange({ textAlign: align }, isDesktop ? { textAlignment: align } : undefined)} className={`py-1 rounded-lg text-[10px] font-bold cursor-pointer ${profile.textAlign === align ? "bg-zinc-900 text-white" : "text-zinc-600"}`}>
                 {align === "left" ? "Gauche" : align === "center" ? "Centré" : "Droite"}
               </button>
             ))}
@@ -151,12 +149,12 @@ export const HeroPhotoAndCtaStepPanels: React.FC<HeroPhotoAndCtaStepPanelsProps>
             <textarea data-testid="hero-subtitle-input" rows={2} value={s.subtitle || ""} onChange={(e) => onSettingsChange({ subtitle: e.target.value, showSubtitle: true })} placeholder="2. Petite phrase explicative sous le titre (recommandé ≤ 140 car.)..." className={inputClass} />
             <div className="grid grid-cols-3 gap-1.5">
               <select value={s.titleFontFamily || "sans"} onChange={(e) => onSettingsChange("titleFontFamily", e.target.value)} className={inputClass}><option value="sans">Sans Moderne</option><option value="serif">Serif Prestige</option><option value="display">Display Pur</option></select>
-              <select value={profile.titleSizeToken} onChange={(e) => { const val = e.target.value as "sm" | "md" | "lg" | "xl"; onDeviceConfigChange({ titleSize: val }); onSettingsChange(deviceTab === "mobile" ? "titleSizeMobile" : deviceTab === "tablet" ? "titleSizeTablet" : "titleSizeDesktop", val); }} className={inputClass}><option value="sm">Titre Discret</option><option value="md">Titre Moyen</option><option value="lg">Titre Grand</option><option value="xl">Monumental</option></select>
+              <select value={profile.titleSizeToken} onChange={(e) => { const val = e.target.value as "sm" | "md" | "lg" | "xl"; const sizeField = deviceTab === "mobile" ? "titleSizeMobile" : deviceTab === "tablet" ? "titleSizeTablet" : "titleSizeDesktop"; onDeviceConfigChange({ titleSize: val }, { [sizeField]: val }); }} className={inputClass}><option value="sm">Titre Discret</option><option value="md">Titre Moyen</option><option value="lg">Titre Grand</option><option value="xl">Monumental</option></select>
               <select data-testid="hero-text-shadow-select" value={s.textShadow || "none"} onChange={(e) => onSettingsChange("textShadow", e.target.value)} className={inputClass}><option value="none">Ombre Texte: 0</option><option value="soft">Ombre Douce</option><option value="strong">Ombre Forte</option></select>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <select value={String(profile.textBoxMaxWidth)} onChange={(e) => { const v = Number(e.target.value) as 360 | 480 | 620; onDeviceConfigChange({ textBoxMaxWidth: v }); if (isDesktop) onSettingsChange("textBoxMaxWidth", v); }} className={inputClass}><option value="360">Bloc Compact (360px)</option><option value="480">Bloc Moyen (480px)</option><option value="620">Bloc Large (620px)</option></select>
-              <select value={String(profile.textVerticalGap)} onChange={(e) => { const v = Number(e.target.value) as 8 | 16 | 24; onDeviceConfigChange({ textVerticalGap: v }); if (isDesktop) onSettingsChange("textVerticalGap", v); }} className={inputClass}><option value="8">Espacement Serré (8px)</option><option value="16">Espacement Équilibré (16px)</option><option value="24">Espacement Aéré (24px)</option></select>
+              <select value={String(profile.textBoxMaxWidth)} onChange={(e) => { const v = Number(e.target.value) as 360 | 480 | 620; onDeviceConfigChange({ textBoxMaxWidth: v }, isDesktop ? { textBoxMaxWidth: v } : undefined); }} className={inputClass}><option value="360">Bloc Compact (360px)</option><option value="480">Bloc Moyen (480px)</option><option value="620">Bloc Large (620px)</option></select>
+              <select value={String(profile.textVerticalGap)} onChange={(e) => { const v = Number(e.target.value) as 8 | 16 | 24; onDeviceConfigChange({ textVerticalGap: v }, isDesktop ? { textVerticalGap: v } : undefined); }} className={inputClass}><option value="8">Espacement Serré (8px)</option><option value="16">Espacement Équilibré (16px)</option><option value="24">Espacement Aéré (24px)</option></select>
             </div>
           </div>
           <div className="p-2.5 rounded-xl bg-white border border-zinc-200 space-y-2.5">

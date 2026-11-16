@@ -181,7 +181,7 @@ export const MediaSelectedInspector: React.FC<MediaSelectedInspectorProps> = ({
                   key={cand.id} type="button" disabled={isReplacing}
                   data-testid={`media-replace-candidate-${cand.id}`}
                   onClick={() => void handleReplaceWith(cand.url)}
-                  className="p-1 rounded border border-slate-200 hover:border-sky-600 bg-slate-50 text-left cursor-pointer"
+                  className="p-1 rounded border border-slate-200 hover:border-sky-600 bg-slate-50 text-start cursor-pointer"
                   title={`Remplacer par ${cand.name || cand.id}`}
                 >
                   {cand.type === "video" ? (

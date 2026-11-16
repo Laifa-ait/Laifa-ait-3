@@ -46,19 +46,7 @@ export function evaluatePublishReadiness(params: {
     }
   }
 
-  const footerSection = visibleSections.find((s) => s.type === "contact_footer");
-  if (footerSection) {
-    const settings = (footerSection.settings || {}) as Record<string, unknown>;
-    const phone = String(settings.shopPhone || "").trim();
-    const email = String(settings.shopEmail || "").trim();
-    if (!phone && !email) {
-      warnings.push({
-        id: "missing-footer-contacts",
-        message: "Le pied de page contact ne contient ni téléphone ni adresse e-mail.",
-        targetNav: "sections",
-      });
-    }
-  }
+  // Conformité Olmart : toutes les interactions passent par les notifications internes (aucun contact externe requis).
 
   if (catalogStatus === "error") {
     warnings.push({

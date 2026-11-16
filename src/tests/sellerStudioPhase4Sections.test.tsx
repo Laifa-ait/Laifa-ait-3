@@ -194,20 +194,28 @@ describe("Phase 4 — Outils de Construction & Inspecteur des 16 Sections", () =
     unmount();
   });
 
-  it("filtre les contrôles non pertinents dans SectionLayoutTab et SectionResponsiveTab selon le type de section", () => {
+  it("filtre les contrôles non pertinents dans SectionLayoutTab et applique la politique Olmart (zéro contact externe sur contact_footer)", () => {
     useStudioStore.setState({ activeInspectorTab: "layout" });
     const marqueeSec: CustomPageSection<"kinetic_marquee"> = {
       id: "sec_mq", type: "kinetic_marquee", title: "Marquee", isVisible: true, order: 0, settings: { textFr: "" },
     };
+    const footerSec: CustomPageSection<"contact_footer"> = {
+      id: "sec_cf", type: "contact_footer", title: "Assistance", isVisible: true, order: 1,
+      settings: { workingHours: "09h-18h", wilaya: "Alger", shopPhone: "+213550000000", shopEmail: "externe@test.dz" },
+    };
     const { container, unmount } = renderInDom(
       <div>
         <StoreSectionRenderer section={marqueeSec} theme={BASE_THEME} products={SAMPLE_PRODUCTS} isEditable />
+        <StoreSectionRenderer section={footerSec} theme={BASE_THEME} products={SAMPLE_PRODUCTS} isEditable />
         <SectionInspectorPanel section={marqueeSec} products={SAMPLE_PRODUCTS} theme={BASE_THEME} onUpdateSection={() => {}} />
       </div>
     );
     expect(container.querySelector('[data-testid="kinetic-marquee-empty-state"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="layout-columns-control"]')).toBeNull();
     expect(container.querySelector('[data-testid="layout-alignment-control"]')).toBeNull();
+    expect(container.querySelector('[data-testid="contact-footer-internal-channel"]')).not.toBeNull();
+    expect(container.textContent).not.toContain("+213550000000");
+    expect(container.textContent).not.toContain("externe@test.dz");
     unmount();
   });
 });

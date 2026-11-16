@@ -94,8 +94,13 @@ export function getSectionCompletenessStatus(
     if (items.length === 0) return { isEmpty: true, reason: "0 question" };
   }
   if (sec.type === "contact_footer") {
-    if (!String(s.shopPhone || "").trim() && !String(s.shopEmail || "").trim()) {
-      return { isEmpty: true, reason: "Contact manquant" };
+    if (
+      !String(s.workingHours || "").trim() &&
+      !String(s.wilaya || "").trim() &&
+      !String(s.address || "").trim() &&
+      !String(s.title || "").trim()
+    ) {
+      return { isEmpty: true, reason: "Horaires manquants" };
     }
   }
   return { isEmpty: false };

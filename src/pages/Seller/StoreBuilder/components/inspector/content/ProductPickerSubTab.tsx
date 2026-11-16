@@ -53,7 +53,10 @@ export const ProductPickerSubTab: React.FC<ProductPickerSubTabProps> = ({
   const filteredProducts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return products.filter((prod) => {
-      if (q && !(prod.name || "").toLowerCase().includes(q) && !(prod.category || "").toLowerCase().includes(q)) return false;
+      if (q) {
+        const hay = `${prod.name || ""} ${prod.category || ""} ${prod.subcategory || prod.subCategory || ""} ${prod.subSubCategory || prod.subsubcategory || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
       const meta = classifyCatalogProductStatus(prod);
       if (statusFilter === "active") return meta.isPubliclyVisible;
       if (statusFilter === "inactive") return !meta.isPubliclyVisible;
@@ -112,6 +115,12 @@ export const ProductPickerSubTab: React.FC<ProductPickerSubTabProps> = ({
             const staleSet = new Set(staleIds);
             onSettingsChange("productIds", productIds.filter((id) => !staleSet.has(id)));
           }} className="px-2 py-1 rounded bg-amber-900 text-white text-[10.5px] font-bold shrink-0 cursor-pointer">Nettoyer</button>
+        </div>
+      )}
+
+      {feedType === "new_arrivals" && resolution.undatedProductIds.length > 0 && (
+        <div data-testid="picker-undated-warning" className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-[10.5px] text-amber-900">
+          {resolution.undatedProductIds.length} produit(s) sans date de création fiable exclu(s) des nouveautés automatiques.
         </div>
       )}
 

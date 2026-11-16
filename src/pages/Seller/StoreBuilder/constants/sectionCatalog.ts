@@ -230,16 +230,16 @@ export const SECTION_CATALOG: SectionOption[] = [
       title: "Questions *Fréquentes*",
       items: [
         { question: "Quels sont vos délais de livraison ?", answer: "Entre 24h et 72h selon votre wilaya." },
-        { question: "Comment contacter la boutique ?", answer: "Retrouvez nos coordonnées dans la section contact." },
+        { question: "Comment suivre ma commande ?", answer: "Toutes les mises à jour et échanges passent directement par vos notifications internes Olmart." },
       ],
     },
   },
   {
     type: "contact_footer",
-    title: "Coordonnées & Support Boutique",
+    title: "Assistance & Horaires Boutique",
     category: "Confiance & Contact",
     icon: Phone,
-    description: "Affichez votre numéro de service client, adresse, email et horaires d'ouverture.",
+    description: "Affichez vos horaires de service, votre wilaya d'expédition et le support via notifications internes Olmart.",
     defaultSettings: { workingHours: "Samedi au Jeudi de 09h00 à 18h00" },
   },
 ];

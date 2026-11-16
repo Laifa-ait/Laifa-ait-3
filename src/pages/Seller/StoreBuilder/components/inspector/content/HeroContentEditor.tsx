@@ -99,8 +99,14 @@ export const HeroContentEditor: React.FC<HeroContentEditorProps> = ({
     (Object.keys(currentDeviceConfig).length > 0 ||
       Boolean(deviceTab === "tablet" ? typedSettings.heroLayoutTablet : typedSettings.heroLayoutMobile));
 
-  const updateDeviceConfig = (patch: Partial<HeroDeviceMeasureConfig>): void => {
-    onSettingsChange(deviceConfigKey, { ...currentDeviceConfig, ...patch });
+  const updateDeviceConfig = (
+    patch: Partial<HeroDeviceMeasureConfig>,
+    rootSettingsPatch?: Record<string, unknown>
+  ): void => {
+    onSettingsChange({
+      ...(rootSettingsPatch || {}),
+      [deviceConfigKey]: { ...currentDeviceConfig, ...patch },
+    });
   };
 
   const handleResetDeviceProfile = (): void => {

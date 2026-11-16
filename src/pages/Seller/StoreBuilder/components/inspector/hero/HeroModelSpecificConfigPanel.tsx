@@ -20,7 +20,7 @@ interface HeroModelSpecificConfigPanelProps {
   inputClass: string;
   labelClass: string;
   onSettingsChange: (fieldOrPatch: string | Record<string, unknown>, value?: unknown) => void;
-  onDeviceConfigChange: (patch: Partial<HeroDeviceMeasureConfig>) => void;
+  onDeviceConfigChange: (patch: Partial<HeroDeviceMeasureConfig>, rootSettingsPatch?: Record<string, unknown>) => void;
 }
 
 export const HeroModelSpecificConfigPanel: React.FC<HeroModelSpecificConfigPanelProps> = ({
@@ -66,7 +66,7 @@ export const HeroModelSpecificConfigPanel: React.FC<HeroModelSpecificConfigPanel
                 type="button"
                 data-testid={`hero-palette-${pal.id}`}
                 onClick={() => applyPalette(pal)}
-                className={`p-2 rounded-xl border text-left transition-all flex items-center gap-2 cursor-pointer ${
+                className={`p-2 rounded-xl border text-start transition-all flex items-center gap-2 cursor-pointer ${
                   s.paletteId === pal.id
                     ? "border-zinc-900 ring-1 ring-zinc-900 bg-white"
                     : "border-zinc-200 bg-white hover:border-zinc-300"

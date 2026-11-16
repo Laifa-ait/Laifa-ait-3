@@ -3,6 +3,7 @@ import { admin, db } from "../../../config/firebase-admin";
 import { safeLogger } from "../../../utils/logger";
 import { traceTransactionExecution } from "../../../utils/transactionTrace";
 import { ProductVariant } from "../../product/product.types";
+import { applyOrderSalesCountDelta } from "./orderSalesCount.service";
 
 export class BusinessError extends Error {
   constructor(public statusCode: number, message: string) {
@@ -13,6 +14,7 @@ export class BusinessError extends Error {
 
 export interface FirestoreProduct {
   stock?: number;
+  salesCount?: number;
   variants?: ProductVariant[];
   hasOutOfStockVariants?: boolean;
 }
@@ -85,7 +87,13 @@ export class OrderStatusService {
         let productSnaps: firestore.DocumentSnapshot[] = [];
 
 
-        if ((tStatus === "returned" || tStatus === "canceled") && !data.restocked) {
+        const needsRestockRead = (tStatus === "returned" || tStatus === "canceled") && !data.restocked;
+        const needsSalesIncrementRead = tStatus === "delivered" && _cStatus !== "delivered" && !data.salesCountRecorded;
+        const needsSalesRevertRead =
+          (tStatus === "returned" || tStatus === "canceled" || tStatus === "refunded") &&
+          Boolean(data.salesCountRecorded);
+
+        if (needsRestockRead || needsSalesIncrementRead || needsSalesRevertRead) {
           const items = (data.items as Array<{ id?: string; quantity?: number; selectedVariant?: string }>) || [];
           const productIds = [
             ...new Set(
@@ -166,19 +174,23 @@ export class OrderStatusService {
           updatePayload["returnRequest.status"] = "received";
         }
 
-        if ((tStatus === "returned" || tStatus === "canceled") && !data.restocked && productSnaps) {
-          const productUpdates = new Map<string, FirestoreProduct>();
+        const items = (data.items as Array<{ id?: string; quantity?: number; selectedVariant?: string }>) || [];
+        const productUpdates = new Map<string, FirestoreProduct>();
+        if (productSnaps && productSnaps.length > 0) {
           for (const snap of productSnaps) {
             if (snap.exists) {
               productUpdates.set(snap.id, snap.data() as FirestoreProduct);
             }
           }
+        }
 
-          const items = (data.items as Array<{ id?: string; quantity?: number; selectedVariant?: string }>) || [];
+        let productsModified = false;
+        if ((tStatus === "returned" || tStatus === "canceled") && !data.restocked && productUpdates.size > 0) {
           for (const item of items) {
             if (!item.id || !item.quantity) continue;
             const pData = productUpdates.get(item.id);
             if (pData) {
+              productsModified = true;
               if (item.selectedVariant) {
                 pData.variants = (pData.variants || []).map((v: ProductVariant) => {
                   if (v.name === item.selectedVariant) {
@@ -202,12 +214,29 @@ export class OrderStatusService {
             }
           }
 
-          for (const [pId, pData] of productUpdates.entries()) {
-            t.update(db.collection("products").doc(pId), pData as firestore.UpdateData<FirestoreProduct>);
-          }
           updatePayload.restocked = true;
           updatePayload.restockedAt = admin.firestore.FieldValue.serverTimestamp();
           safeLogger.info("[Olmart Workers] 📦 RTO Stock Restored automatically", { orderId: id });
+        }
+
+        if (productUpdates.size > 0) {
+          const salesDelta = applyOrderSalesCountDelta({
+            targetStatus: tStatus,
+            currentStatus: cStatus,
+            salesCountRecorded: Boolean(data.salesCountRecorded),
+            items,
+            productUpdates: productUpdates as unknown as Map<string, Record<string, unknown>>,
+          });
+          if (salesDelta.changed) {
+            productsModified = true;
+            updatePayload.salesCountRecorded = salesDelta.nextSalesCountRecorded;
+          }
+        }
+
+        if (productsModified) {
+          for (const [pId, pData] of productUpdates.entries()) {
+            t.update(db.collection("products").doc(pId), pData as firestore.UpdateData<FirestoreProduct>);
+          }
         }
 
         if (tStatus === "refunded" && cStatus !== "refunded") {

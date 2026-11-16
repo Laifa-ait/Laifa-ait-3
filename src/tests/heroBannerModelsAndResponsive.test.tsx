@@ -138,12 +138,12 @@ describe("Phase 5 — Hero Atelier Premium & Responsive Avancé (5 Compositions)
     expect(adaptedForMobile.heightPx).toBeLessThan(pcProfile.heightPx);
   });
 
-  it("3. Gère le repli déterministe de HeroDiptych sans 2ème image et la composition multi-visuels de HeroGallery", async () => {
+  it("3. Gère le repli déterministe de HeroDiptych et HeroGallery sans 2ème image, ainsi que l'absence d'image principale", async () => {
     const diptychMissingSecond: CustomPageSection<"hero_banner"> = {
       id: "sec_dip_single", type: "hero_banner", title: "Diptyque", isVisible: true, order: 0,
       settings: {
         title: "Diptyque 1 Seule Photo",
-        imageUrl: "https://example.com/photo1.jpg",
+        imageUrl: "",
         secondaryImageUrl: "",
         heroLayout: "bento-hero",
       },
@@ -155,6 +155,24 @@ describe("Phase 5 — Hero Atelier Premium & Responsive Avancé (5 Compositions)
     expect(container.querySelector('[data-testid="hero-diptych-single-fallback"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="hero-diptych-missing-secondary-notice"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="hero-diptych-photo-2"]')).toBeNull();
+    const fallbackImg = container.querySelector('[data-testid="hero-pure-photo"]') as HTMLImageElement | null;
+    expect(fallbackImg?.getAttribute("src")).toContain("data:image/svg+xml");
+
+    const gallerySingle: CustomPageSection<"hero_banner"> = {
+      id: "sec_gal_single", type: "hero_banner", title: "Galerie 1 Visuel", isVisible: true, order: 0,
+      settings: {
+        title: "Galerie Sans Image Secondaire",
+        imageUrl: "https://example.com/g1.jpg",
+        secondaryImageUrl: "",
+        tertiaryImageUrl: "",
+        heroLayout: "atelier-collage",
+      },
+    };
+    await act(async () => {
+      root.render(<SectionHeroBanner section={gallerySingle} theme={DEFAULT_STUDIO_THEME} previewViewport="desktop" isEditable={false} />);
+    });
+    expect(container.querySelector('[data-testid="hero-gallery-single"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="hero-gallery-secondary-column"]')).toBeNull();
 
     const galleryMulti: CustomPageSection<"hero_banner"> = {
       id: "sec_gal_multi", type: "hero_banner", title: "Galerie", isVisible: true, order: 0,

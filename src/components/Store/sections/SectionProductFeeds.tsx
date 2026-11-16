@@ -27,23 +27,18 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
   section, theme, products, isEditable, isSelected, onSelect,
 }) => {
   const carouselRef = useRef<HTMLDivElement | null>(null);
-  const settings = useMemo(
-    () => (section.settings || {}) as ProductFeedSettings & FeaturedProductsSettings,
-    [section.settings]
-  );
+  const settings = useMemo(() => (section.settings || {}) as ProductFeedSettings & FeaturedProductsSettings, [section.settings]);
   const styles = section.styles || {};
 
   const selectSection = useStudioStore((s) => s.selectSection);
   const setActiveInspectorTab = useStudioStore((s) => s.setActiveInspectorTab);
 
-  const feedResult = useMemo(
-    () => resolveProductFeedItems(section.type, settings, products),
-    [section.type, settings, products]
-  );
-
+  const feedResult = useMemo(() => resolveProductFeedItems(section.type, settings, products), [section.type, settings, products]);
   const displayProducts = feedResult.items;
   const invalidIdsCount = feedResult.missingProductIds.length + feedResult.inactiveProductIds.length;
   const manualIdsCount = Array.isArray(settings.productIds) ? settings.productIds.length : 0;
+  const isBestSellersUnverified = section.type === "best_sellers" && !feedResult.hasRealSalesData;
+  const hidePublicUnrankedBestSellers = !isEditable && isBestSellersUnverified && feedResult.effectiveMode === "auto";
 
   const layoutMode = settings.layout || "grid";
   const isListLayout = layoutMode === "vertical" || layoutMode === "list";
@@ -60,7 +55,7 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
   const overtitleLabel =
     section.type === "featured_products" ? "SÉLECTION D'ATELIER"
     : section.type === "new_arrivals" ? "NOUVELLES CRÉATIONS"
-    : section.type === "best_sellers" ? "PIÈCES PLÉBISCITÉES"
+    : section.type === "best_sellers" ? (feedResult.hasRealSalesData ? "PIÈCES PLÉBISCITÉES" : "SÉLECTION DE LA BOUTIQUE")
     : "CATALOGUE & COLLECTIONS";
 
   const triggerDesignFocus = (e: React.MouseEvent, focusTarget: string) => {
@@ -158,7 +153,7 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
               )}
             </div>
 
-            {layoutMode === "carousel" && (
+            {layoutMode === "carousel" && !hidePublicUnrankedBestSellers && (
               <div className="flex items-center gap-1.5 shrink-0 pb-1">
                 <button type="button" onClick={(e) => scrollCarousel("left", e)} className="w-8 h-8 rounded-full border border-black/10 bg-white/80 flex items-center justify-center text-zinc-700 shadow-2xs hover:bg-white cursor-pointer" title="Précédent"><ChevronLeft className="w-4 h-4" /></button>
                 <button type="button" onClick={(e) => scrollCarousel("right", e)} className="w-8 h-8 rounded-full border border-black/10 bg-white/80 flex items-center justify-center text-zinc-700 shadow-2xs hover:bg-white cursor-pointer" title="Suivant"><ChevronRight className="w-4 h-4" /></button>
@@ -180,17 +175,32 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
           </div>
         )}
 
-        {isEditable && section.type === "best_sellers" && feedResult.effectiveMode === "auto" && displayProducts.length > 0 && !feedResult.hasRealSalesData && (
-          <div data-testid="best-sellers-no-sales-notice" className="mb-4 px-3 py-2 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium flex items-center justify-between gap-2">
-            <span>Aucune vente enregistrée sur ces produits — le classement réel s&apos;activera dès vos premières commandes.</span>
+        {isEditable && section.type === "new_arrivals" && feedResult.undatedProductIds.length > 0 && (
+          <div data-testid="new-arrivals-undated-warning" className="mb-4 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium flex items-center justify-between gap-2">
+            <span>{feedResult.undatedProductIds.length} produit(s) actif(s) sans date de création fiable ({feedResult.effectiveMode === "auto" ? "exclus du classement automatique" : "épinglés manuellement"}).</span>
+            <button type="button" onClick={(e) => triggerDesignFocus(e, "selection")} className="px-2.5 py-1 rounded bg-amber-900 text-white text-[11px] font-bold shrink-0 cursor-pointer">Vérifier</button>
           </div>
         )}
 
-        {displayProducts.length === 0 ? (
+        {isEditable && isBestSellersUnverified && feedResult.effectiveMode === "auto" && displayProducts.length > 0 && (
+          <div data-testid="best-sellers-no-sales-notice" className="mb-4 px-3 py-2 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium flex items-center justify-between gap-2">
+            <span>Aucune vente livrée enregistrée — la vitrine publique masque ce bloc jusqu&apos;aux premières commandes, ou passez en sélection manuelle.</span>
+            <button type="button" data-testid="best-sellers-switch-manual-btn" onClick={(e) => triggerDesignFocus(e, "selection")} className="px-2.5 py-1 rounded bg-slate-900 text-white text-[11px] font-bold shrink-0 cursor-pointer">Sélection manuelle</button>
+          </div>
+        )}
+
+        {hidePublicUnrankedBestSellers ? (
+          <div data-testid="best-sellers-public-no-sales-state" className="p-8 text-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 space-y-1.5">
+            <p className="text-xs @md:text-sm font-semibold text-slate-800">Classement meilleures ventes bientôt disponible</p>
+            <p className="text-xs text-slate-500">Les articles les plus commandés apparaîtront automatiquement dès les premières livraisons confirmées.</p>
+          </div>
+        ) : displayProducts.length === 0 ? (
           <div data-testid="product-feed-empty-state" className="p-8 text-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 space-y-2">
             <p className="text-xs @md:text-sm font-semibold text-slate-700">
               {feedResult.effectiveMode === "manual" && manualIdsCount > 0
                 ? "Les produits sélectionnés ne sont plus disponibles ou actifs."
+                : section.type === "new_arrivals" && feedResult.undatedProductIds.length > 0
+                ? `Aucun produit daté disponible pour les nouveautés (${feedResult.undatedProductIds.length} produit(s) sans date exclu(s)).`
                 : feedResult.obsoleteCategoryFilter
                 ? `Aucun produit actif dans la catégorie « ${settings.filterCategoryId} » (filtre obsolète ou rayon vide).`
                 : settings.filterCategoryId

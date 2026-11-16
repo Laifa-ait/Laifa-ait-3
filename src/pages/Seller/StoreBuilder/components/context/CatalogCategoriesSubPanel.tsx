@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Trash2, Sparkles, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, AlertTriangle } from "lucide-react";
 import { Product } from "../../../../../domains/product/product.types";
 import {
   CategoryItem,
@@ -13,6 +13,10 @@ import {
   slugifyCategoryValue,
 } from "../../../../../domains/seller/studioCatalogResolver";
 import { getSectorPresetCategories } from "../../constants/sectorCoherenceDefaults";
+import {
+  SectorPresetCategoriesBar,
+  mergeSectorPresetCategories,
+} from "./SectorPresetCategoriesBar";
 
 interface CatalogCategoriesSubPanelProps {
   categoriesSection?: CustomPageSection;
@@ -43,6 +47,28 @@ export const CatalogCategoriesSubPanel: React.FC<CatalogCategoriesSubPanelProps>
     ? (categoriesSection?.settings as FeaturedCategoriesSettings).categories
     : [];
 
+  const applyCategoriesUpdate = (nextCategories: CategoryItem[], defaultTitle = "Nos Rayons & Collections") => {
+    if (categoriesSection) {
+      onUpdateSection(categoriesSection.id, {
+        settings: {
+          ...(categoriesSection.settings as FeaturedCategoriesSettings),
+          categories: nextCategories,
+        },
+      });
+    } else {
+      onAddSection(
+        "featured_categories",
+        {
+          title: defaultTitle,
+          subtitle: "Sélection thématique adaptée à votre univers",
+          layout: "bento",
+          categories: nextCategories,
+        },
+        "Rayons & Catégories"
+      );
+    }
+  };
+
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanName = newCatName.trim();
@@ -63,88 +89,34 @@ export const CatalogCategoriesSubPanel: React.FC<CatalogCategoriesSubPanelProps>
       categoryFilter: cleanName,
     };
 
-    const nextCategories = [...categoriesList, newCat];
-
-    if (categoriesSection) {
-      onUpdateSection(categoriesSection.id, {
-        settings: {
-          ...(categoriesSection.settings as FeaturedCategoriesSettings),
-          categories: nextCategories,
-        },
-      });
-    } else {
-      onAddSection(
-        "featured_categories",
-        {
-          title: "Nos Rayons & Catégories",
-          subtitle: "Explorez nos collections thématiques",
-          layout: "bento",
-          categories: nextCategories,
-        },
-        "Rayons & Catégories"
-      );
-    }
-
+    applyCategoriesUpdate([...categoriesList, newCat], "Nos Rayons & Catégories");
     setNewCatName("");
     setNewCatSubtitle("");
     setNewCatImage("");
   };
 
-  const handleInjectSectorCategories = () => {
-    const presetCats = getSectorPresetCategories(activeSector);
-    if (categoriesSection) {
-      onUpdateSection(categoriesSection.id, {
-        settings: {
-          ...(categoriesSection.settings as FeaturedCategoriesSettings),
-          categories: presetCats,
-        },
-      });
-    } else {
-      onAddSection(
-        "featured_categories",
-        {
-          title: "Nos Rayons & Collections",
-          subtitle: "Sélection thématique adaptée à votre univers",
-          layout: "bento",
-          categories: presetCats,
-        },
-        "Rayons & Catégories"
-      );
-    }
+  const handleReplacePresets = () => {
+    applyCategoriesUpdate(getSectorPresetCategories(activeSector));
+  };
+
+  const handleMergePresets = () => {
+    const merged = mergeSectorPresetCategories(categoriesList, getSectorPresetCategories(activeSector));
+    applyCategoriesUpdate(merged);
   };
 
   const handleRemoveCategory = (catId: string) => {
     if (!categoriesSection) return;
-    const nextCategories = categoriesList.filter((c) => c.id !== catId);
-    onUpdateSection(categoriesSection.id, {
-      settings: {
-        ...(categoriesSection.settings as FeaturedCategoriesSettings),
-        categories: nextCategories,
-      },
-    });
+    applyCategoriesUpdate(categoriesList.filter((c) => c.id !== catId));
   };
 
   return (
     <div className="p-4 space-y-4">
-      <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#F0F7FA] border border-[#54ACBF]/40">
-        <div className="min-w-0">
-          <span className="text-[11px] font-extrabold text-[#011C40] block">
-            Rayons cohérents ({activeSector})
-          </span>
-          <span className="text-[10px] text-[#475467] block truncate">
-            Pré-remplir avec les visuels du secteur
-          </span>
-        </div>
-        <button
-          type="button"
-          data-testid="inject-sector-categories-btn"
-          onClick={handleInjectSectorCategories}
-          className="px-2.5 py-1.5 rounded-lg bg-[#023859] text-white text-[10.5px] font-bold flex items-center gap-1 shrink-0 cursor-pointer"
-        >
-          <Sparkles className="w-3 h-3" />
-          <span>Générer ({activeSector})</span>
-        </button>
-      </div>
+      <SectorPresetCategoriesBar
+        activeSector={activeSector}
+        existingCount={categoriesList.length}
+        onReplacePresets={handleReplacePresets}
+        onMergePresets={handleMergePresets}
+      />
 
       <form
         onSubmit={handleAddCategory}

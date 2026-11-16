@@ -192,6 +192,7 @@ export function buildPublicStorefrontProductDTO(
     onSale: Boolean(d.onSale),
     category: String(d.category || "Général"),
     subcategory: String(d.subcategory || d.subCategory || ""),
+    subSubCategory: String(d.subSubCategory || d.subsubcategory || ""),
     image: primaryImage,
     images,
     stock: typeof d.stock === "number" ? d.stock : 10,

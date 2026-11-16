@@ -20,7 +20,7 @@ interface HeroStep1ShapePanelProps {
   onResetDeviceProfile?: () => void;
   onSelectModel: (id: HeroLayoutModelId) => void;
   onSettingsChange: (fieldOrPatch: string | Record<string, unknown>, value?: unknown) => void;
-  onDeviceConfigChange: (patch: Partial<HeroDeviceMeasureConfig>) => void;
+  onDeviceConfigChange: (patch: Partial<HeroDeviceMeasureConfig>, rootSettingsPatch?: Record<string, unknown>) => void;
 }
 
 export const HeroStep1ShapePanel: React.FC<HeroStep1ShapePanelProps> = ({
@@ -115,7 +115,7 @@ export const HeroStep1ShapePanel: React.FC<HeroStep1ShapePanelProps> = ({
               type="button"
               data-testid={`hero-model-card-${m.id}`}
               onClick={() => onSelectModel(m.id)}
-              className={`p-2.5 rounded-xl border text-left transition-colors flex flex-col justify-between cursor-pointer ${
+              className={`p-2.5 rounded-xl border text-start transition-colors flex flex-col justify-between cursor-pointer ${
                 isSelected ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-800 hover:border-slate-300"
               }`}
             >
@@ -181,7 +181,7 @@ export const HeroStep1ShapePanel: React.FC<HeroStep1ShapePanelProps> = ({
         </div>
         <div className="grid grid-cols-4 gap-1">
           {([{ label: "0px", r: 0 }, { label: "12px", r: 12 }, { label: "24px", r: 24 }, { label: "40px", r: 40 }]).map((b) => (
-            <button key={b.r} type="button" onClick={() => { onDeviceConfigChange({ borderRadiusPx: b.r }); if (isDesktop) onSettingsChange({ borderRadiusPx: b.r, usePerCornerRadius: false }); }} className={`py-1 rounded-md text-[10px] font-medium border cursor-pointer ${!typedSettings.usePerCornerRadius && profile.borderRadiusPx === b.r ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200"}`}>
+            <button key={b.r} type="button" onClick={() => onDeviceConfigChange({ borderRadiusPx: b.r }, isDesktop ? { borderRadiusPx: b.r, usePerCornerRadius: false } : undefined)} className={`py-1 rounded-md text-[10px] font-medium border cursor-pointer ${!typedSettings.usePerCornerRadius && profile.borderRadiusPx === b.r ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200"}`}>
               {b.label}
             </button>
           ))}
@@ -206,7 +206,7 @@ export const HeroStep1ShapePanel: React.FC<HeroStep1ShapePanelProps> = ({
             <span>{activeModel === "atelier-collage" ? `Marge Passe-Partout (${deviceTab})` : `Marge intérieure (${deviceTab})`}</span>
             <span className="font-mono font-semibold text-slate-900">{profile.innerPaddingPx}px</span>
           </div>
-          <input type="range" data-testid="hero-inner-padding-slider" min={16} max={48} step={4} value={profile.innerPaddingPx} onChange={(e) => { const val = Number(e.target.value); onDeviceConfigChange({ innerPaddingPx: val }); if (isDesktop) onSettingsChange("innerPaddingPx", val); }} className="w-full accent-slate-900" />
+          <input type="range" data-testid="hero-inner-padding-slider" min={16} max={48} step={4} value={profile.innerPaddingPx} onChange={(e) => { const val = Number(e.target.value); onDeviceConfigChange({ innerPaddingPx: val }, isDesktop ? { innerPaddingPx: val } : undefined); }} className="w-full accent-slate-900" />
         </div>
       </div>
 

@@ -1,255 +1,252 @@
 import React from "react";
+import { ShieldCheck, Truck, RotateCcw, HelpCircle, MapPin, Clock, Star, CheckCircle2, ChevronDown, Bell } from "lucide-react";
 import { CustomPageSection, CustomPageTheme } from "../../../domains/seller/customPage.types";
-import {
-  buildSectionContainerStyle,
-  resolveBorderRadiusClass,
-  resolveContainerWidthClass,
-  resolveShadowClass,
-  SectionDividerRenderer,
-} from "./sectionStyleHelper";
-import { Truck, ShieldCheck, RotateCcw, Star, Phone, Mail, MapPin, Clock } from "lucide-react";
 import { EditorialHeading } from "../EditorialHeading";
-import { CanvasInlineText } from "./CanvasInlineText";
-import { isDarkColor, readableTextColor } from "./themeColorUtils";
+import { useStudioStore, SectionSubElement } from "../../../pages/Seller/StoreBuilder/store/useStudioStore";
 
 interface SectionTrustAndContactProps {
   section: CustomPageSection;
   theme: CustomPageTheme;
-  wrapperClass: string;
   isEditable?: boolean;
   onSelect?: () => void;
-  isSubActive: (subElement: string) => boolean;
-  handleSubElementClick: (subElement: string, e: React.MouseEvent) => void;
 }
 
 export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
-  section, theme, wrapperClass, isEditable, onSelect, isSubActive, handleSubElementClick,
+  section, theme, isEditable, onSelect,
 }) => {
-  const styles = section.styles || {};
+  const selectSection = useStudioStore((s) => s.selectSection);
+  const selectedSectionId = useStudioStore((s) => s.selectedSectionId);
+  const selectedSubElement = useStudioStore((s) => s.selectedSubElement);
   const rawSettings = (section.settings || {}) as Record<string, unknown>;
-  const radiusClass = `${resolveBorderRadiusClass(styles.borderRadius)} ${resolveShadowClass(styles.cardShadow || theme.cardShadow)}`;
-  const widthClass = resolveContainerWidthClass(styles.containerWidth);
-  const accentColor = styles.iconColor || styles.buttonBgColor || theme.accentColor || theme.primaryColor || "var(--store-primary, #B45309)";
-  const headingColor = styles.headingColor || styles.textColor || theme.secondaryColor || "var(--store-secondary, #18181B)";
-  const subtitleColor = styles.subtitleColor || styles.textColor || theme.mutedTextColor;
-  const cardBgColor = styles.cardBgColor || theme.surfaceColor || "var(--store-surface, #FFFFFF)";
-  const cardTextColor = styles.cardTextColor || styles.textColor || theme.secondaryColor || "var(--store-secondary, #0F172A)";
-  const cardBorderColor = styles.cardBorderColor || theme.borderColor || "#E4E7EC";
-  const priceColor = styles.priceColor || theme.priceColor || accentColor;
-  const badgeBgColor = styles.badgeBgColor || theme.accentBadgeColor || accentColor;
-  const badgeTextColor = styles.badgeTextColor || theme.badgeTextColor || readableTextColor(badgeBgColor);
-  const textAlign = (rawSettings.textAlignment as string) || "left";
-  const alignClass = textAlign === "center" ? "text-center" : textAlign === "right" ? "text-right" : "text-left";
-  const containerStyle = buildSectionContainerStyle(styles, "transparent", "var(--store-secondary, #17191C)", theme);
+  const primaryColor = section.styles?.headingColor || theme.primaryColor || "#023859";
+  const textColor = section.styles?.textColor || theme.secondaryColor || "#18181B";
+  const accentColor = theme.accentColor || primaryColor;
+  const surfaceBg = section.styles?.backgroundColor || theme.surfaceColor || "#FFFFFF";
+  const radiusPx = theme.borderRadiusPx ?? 16;
+
+  const isSubSelected = (sub: SectionSubElement) => Boolean(isEditable && selectedSectionId === section.id && selectedSubElement === sub);
+  const subRing = (sub: SectionSubElement) =>
+    isEditable ? `${isSubSelected(sub) ? "ring-2 ring-amber-400 rounded-lg" : "hover:ring-1 hover:ring-sky-400/50 rounded-lg"} cursor-pointer transition-all` : "";
+  const handleSubClick = (e: React.MouseEvent, sub: SectionSubElement) => {
+    if (!isEditable) return;
+    e.stopPropagation();
+    selectSection(section.id, sub);
+    onSelect?.();
+  };
 
   if (section.type === "verified_reviews") {
+    const minRating = Number(rawSettings.filterMinRating ?? 4);
+    const maxReviews = Math.min(Number(rawSettings.maxReviews ?? 6), 6);
     const customReviews = Array.isArray(rawSettings.customReviews)
-      ? (rawSettings.customReviews as Array<{ author: string; rating: number; comment: string }>).filter((r) => Boolean(r?.comment?.trim()))
+      ? (rawSettings.customReviews as Array<{ id?: string; author?: string; wilaya?: string; rating?: number; text?: string; verifiedLabel?: string }>)
+          .filter((r) => Boolean(r && (r.author || r.text)))
       : [];
-    const limit = typeof rawSettings.maxReviews === "number" ? rawSettings.maxReviews : 3;
-    const avgRating = customReviews.length > 0
-      ? (customReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0) / customReviews.length).toFixed(1)
-      : null;
+    const reviews = customReviews.filter((r) => (r.rating ?? 5) >= minRating).slice(0, maxReviews);
 
     return (
-      <div onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={containerStyle}>
-        <div className={widthClass}>
-          <div className={`mb-6 flex flex-col @sm:flex-row @sm:items-center justify-between gap-2 ${alignClass}`}>
+      <section onClick={onSelect} style={{ backgroundColor: surfaceBg, color: textColor }} className={`w-full py-12 px-5 sm:px-8 border-b border-black/5 ${isEditable ? "cursor-pointer" : ""}`}>
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-3">
             <div>
+              <span onClick={(e) => handleSubClick(e, "badge")} style={{ color: accentColor }} className={`inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] mb-1.5 px-1 ${subRing("badge")}`}>
+                <CheckCircle2 className="w-3.5 h-3.5" /> Acheteurs Vérifiés Olmart
+              </span>
               <EditorialHeading
-                as="h2" text={String(rawSettings.title || "Avis Clients Vérifiés")} theme={theme} sectionStyles={styles}
-                accentColorOverride={styles.kickerColor || accentColor} isEditable={isEditable}
-                editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
-                onClick={(e) => handleSubElementClick("title", e)} style={{ color: headingColor }}
-                className={`text-xl @md:text-2xl font-extrabold rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`}
+                text={(rawSettings.title as string) || section.title || "Ils nous font *confiance*"}
+                as="h2"
+                theme={theme}
+                accentColorOverride={accentColor}
+                onClick={(e) => handleSubClick(e, "title")}
+                className={`text-2xl sm:text-3xl font-black tracking-tight px-1 ${subRing("title")}`}
               />
-              {Boolean(rawSettings.subtitle) && <p className="text-xs opacity-80 mt-1" style={{ color: subtitleColor }}>{String(rawSettings.subtitle)}</p>}
             </div>
-            <div data-testid="reviews-trust-badge" style={{ backgroundColor: badgeBgColor, color: badgeTextColor, borderColor: cardBorderColor }} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold self-start">
-              <Star className="w-4 h-4 fill-current" style={{ color: styles.iconColor || badgeTextColor }} />
-              <span>{avgRating ? `${avgRating} / 5 • ${customReviews.length} Avis Vérifié${customReviews.length > 1 ? "s" : ""}` : "Achats Vérifiés Olmart"}</span>
-            </div>
+            {reviews.length > 0 && (
+              <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-amber-500/10 text-amber-600 text-xs font-black">
+                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                <span>{reviews.length} avis client{reviews.length > 1 ? "s" : ""}</span>
+              </div>
+            )}
           </div>
-          {customReviews.length === 0 ? (
-            <div data-testid="verified-reviews-empty-state" style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }} className={`p-6 border border-dashed text-center space-y-1.5 ${radiusClass}`}>
-              <p className="text-xs @sm:text-sm font-bold">Aucun avis client vérifié publié pour le moment.</p>
-              <p className="text-xs opacity-75">
-                {isEditable
-                  ? "Les avis authentiques de vos clients apparaîtront ici dès qu'ils seront collectés. Aucun avis fictif n'est généré."
-                  : "Les évaluations vérifiées seront affichées après les premières commandes livrées."}
+          {reviews.length === 0 ? (
+            <div data-testid="verified-reviews-empty-state" className="p-6 rounded-2xl border border-dashed border-black/15 bg-black/[0.02] text-center space-y-1.5">
+              <p className="text-sm font-bold opacity-80">Aucun avis client configuré pour le moment</p>
+              <p className="text-xs opacity-60 max-w-md mx-auto">
+                Ajoutez de vrais témoignages clients depuis l&apos;onglet Contenu ou masquez cette section tant que vous n&apos;avez pas reçu d&apos;avis.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 @md:grid-cols-3 gap-4">
-              {customReviews.slice(0, limit).map((rev, i) => (
-                <div key={i} onClick={(e) => handleSubElementClick(`review-${i}`, e)} style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }} className={`p-4 border shadow-2xs space-y-2 ${radiusClass} ${isSubActive(`review-${i}`) ? "ring-2 ring-[#2563EB]" : ""}`}>
-                  <div className="flex items-center gap-0.5" style={{ color: styles.iconColor || accentColor }}>
-                    {Array.from({ length: rev.rating || 5 }).map((_, s) => <Star key={s} className="w-3.5 h-3.5 fill-current" />)}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {reviews.map((rev, i) => (
+                <div key={rev.id || i} onClick={(e) => handleSubClick(e, `review-${i}`)} style={{ borderRadius: `${radiusPx}px` }} className={`p-6 bg-black/[0.02] border border-black/5 flex flex-col justify-between ${subRing(`review-${i}`)}`}>
+                  <div>
+                    <div className="flex items-center gap-1 mb-3">
+                      {Array.from({ length: Math.min(5, Math.max(1, Number(rev.rating ?? 5))) }).map((_, idx) => (
+                        <Star key={idx} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                    <p className="text-sm opacity-80 leading-relaxed mb-4">&ldquo;{rev.text}&rdquo;</p>
                   </div>
-                  <p className="text-xs @sm:text-sm leading-relaxed opacity-90" style={{ color: cardTextColor }}>« {rev.comment} »</p>
-                  <div className="pt-2 border-t flex items-center justify-between text-xs font-bold" style={{ borderColor: cardBorderColor, color: cardTextColor }}>
-                    <span>{rev.author}</span>
-                    <span className="text-[10px] font-semibold" style={{ color: styles.iconColor || accentColor }}>✓ Vérifié</span>
+                  <div className="flex items-center justify-between pt-3 border-t border-black/5 text-xs">
+                    <span className="font-bold">{rev.author || "Client"} {rev.wilaya ? `• ${rev.wilaya}` : ""}</span>
+                    <span className="text-[10px] font-bold text-emerald-600">{rev.verifiedLabel || "Achat vérifié"}</span>
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
-        <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
-      </div>
+      </section>
     );
   }
 
   if (section.type === "delivery_info") {
-    const freeAbove = typeof rawSettings.freeShippingAbove === "number" ? rawSettings.freeShippingAbove : undefined;
-    const homePrice = typeof rawSettings.homeDeliveryPrice === "number" ? rawSettings.homeDeliveryPrice : 600;
-    const deskPrice = typeof rawSettings.stopDeskPrice === "number" ? rawSettings.stopDeskPrice : 400;
-    const tariffs = Array.isArray(rawSettings.customTariffs) ? (rawSettings.customTariffs as Array<{ wilayaName: string; estimatedDays: string; priceDZD: number }>) : [];
-    const pillBg = styles.badgeBgColor || theme.canvasColor || "#F1F5F9";
-    const pillText = styles.badgeTextColor || readableTextColor(pillBg);
+    const freeAbove = Number(rawSettings.freeShippingAbove || 0);
+    const timeframe = (rawSettings.defaultTimeframe as string) || "24h à 72h";
+    const carriersText = (rawSettings.carriersText as string) || "Livraison à domicile & Stop-Desk dans les 69 Wilayas";
+    const highlightText = (rawSettings.codText as string) || "Vérification du colis & paiement espèces à la livraison disponibles";
     return (
-      <div onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={containerStyle}>
-        <div style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }} className={`${widthClass} border p-6 space-y-4 ${radiusClass}`}>
-          <div className="flex flex-col @md:flex-row items-start @md:items-center justify-between gap-4">
-            <div className="flex items-start gap-3.5">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: accentColor, color: readableTextColor(accentColor) }}>
-                <Truck className="w-5 h-5" />
-              </div>
+      <section onClick={onSelect} style={{ backgroundColor: surfaceBg, color: textColor }} className={`w-full py-10 px-5 sm:px-8 border-b border-black/5 ${isEditable ? "cursor-pointer" : ""}`}>
+        <div className="max-w-6xl mx-auto">
+          <EditorialHeading
+            text={(rawSettings.title as string) || section.title || "Livraison *69 Wilayas*"}
+            as="h2"
+            theme={theme}
+            accentColorOverride={accentColor}
+            onClick={(e) => handleSubClick(e, "title")}
+            className={`text-xl sm:text-2xl font-black tracking-tight mb-6 px-1 inline-block ${subRing("title")}`}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div onClick={(e) => handleSubClick(e, "card-0")} style={{ borderRadius: `${radiusPx}px` }} className={`p-5 bg-black/[0.02] border border-black/5 flex items-start gap-3.5 ${subRing("card-0")}`}>
+              <Truck className="w-6 h-6 shrink-0 mt-0.5" style={{ color: primaryColor }} />
               <div>
-                <EditorialHeading as="h2" text={String(rawSettings.title || "Livraison Rapide 69 Wilayas")} theme={theme} sectionStyles={styles} accentColorOverride={styles.kickerColor || accentColor} isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }} onClick={(e) => handleSubElementClick("title", e)} style={{ color: headingColor }} className={`text-lg @md:text-xl font-extrabold rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`} />
-                <p className="text-xs opacity-80 mt-0.5" style={{ color: subtitleColor }} onClick={(e) => handleSubElementClick("tarifs", e)}>
-                  Délai d&apos;expédition indicatif : <strong>{String(rawSettings.defaultTimeframe || "24h - 48h")}</strong> • Paiement à la livraison
-                </p>
+                <h3 className="font-bold text-sm">Expédition Nationale (69 Wilayas)</h3>
+                <p className="text-xs opacity-70 mt-1">Délai moyen constaté : <strong>{timeframe}</strong> ({carriersText}).</p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2" onClick={(e) => handleSubElementClick("tarifs", e)}>
-              <span data-testid="delivery-stopdesk-pill" style={{ backgroundColor: pillBg, color: pillText, borderColor: cardBorderColor }} className="px-3 py-1.5 rounded-lg border text-xs font-bold">
-                Stop-Desk : dès {deskPrice.toLocaleString("fr-DZ")} DA
-              </span>
-              <span data-testid="delivery-home-pill" style={{ backgroundColor: pillBg, color: pillText, borderColor: cardBorderColor }} className="px-3 py-1.5 rounded-lg border text-xs font-bold">
-                Domicile : dès {homePrice.toLocaleString("fr-DZ")} DA
-              </span>
-              {freeAbove && (
-                <span style={{ backgroundColor: badgeBgColor, color: badgeTextColor }} className="px-3 py-1.5 rounded-lg text-xs font-bold">
-                  Gratuit dès {freeAbove.toLocaleString("fr-DZ")} DA
-                </span>
-              )}
+            <div onClick={(e) => handleSubClick(e, "card-1")} style={{ borderRadius: `${radiusPx}px` }} className={`p-5 bg-black/[0.02] border border-black/5 flex items-start gap-3.5 ${subRing("card-1")}`}>
+              <ShieldCheck className="w-6 h-6 shrink-0 mt-0.5" style={{ color: primaryColor }} />
+              <div>
+                <h3 className="font-bold text-sm">Paiement à la réception (COD)</h3>
+                <p className="text-xs opacity-70 mt-1">{highlightText}.</p>
+              </div>
+            </div>
+            <div onClick={(e) => handleSubClick(e, "card-2")} style={{ borderRadius: `${radiusPx}px` }} className={`p-5 bg-black/[0.02] border border-black/5 flex items-start gap-3.5 ${subRing("card-2")}`}>
+              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: primaryColor }} />
+              <div>
+                <h3 className="font-bold text-sm">{freeAbove > 0 ? `Livraison offerte dès ${freeAbove.toLocaleString("fr-DZ")} DA` : "Tarifs wilaya transparents"}</h3>
+                <p className="text-xs opacity-70 mt-1">Calcul automatique du tarif exact au moment de la commande.</p>
+              </div>
             </div>
           </div>
-          {tariffs.length > 0 && (
-            <div className="grid grid-cols-1 @sm:grid-cols-3 gap-2 pt-3 border-t" style={{ borderColor: cardBorderColor }} onClick={(e) => handleSubElementClick("tarifs", e)}>
-              {tariffs.map((t, idx) => (
-                <div key={idx} style={{ borderColor: cardBorderColor }} className="px-3 py-2 rounded-lg bg-black/[0.02] border flex items-center justify-between text-xs">
-                  <span className="font-semibold truncate" style={{ color: cardTextColor }}>{t.wilayaName} ({t.estimatedDays})</span>
-                  <span className="font-extrabold shrink-0 ml-2" style={{ color: priceColor }}>{Number(t.priceDZD || 0).toLocaleString("fr-DZ")} DA</span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
-        <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
-      </div>
+      </section>
     );
   }
 
   if (section.type === "return_policy") {
-    const delayDays = typeof rawSettings.delayDays === "number" ? rawSettings.delayDays : 14;
-    const feeBy = rawSettings.returnShippingFeeBy as string;
-    const feeLabel = feeBy === "free" ? "Frais pris en charge selon conditions" : feeBy === "seller" ? "Frais pris en charge par la boutique" : "Frais de retour à la charge de l'acheteur";
+    const delayDays = Number(rawSettings.delayDays || 7);
+    const feeBy = rawSettings.returnShippingFeeBy === "seller" ? "pris en charge par la boutique" : "à la charge de l'acheteur (sauf défaut avéré)";
     return (
-      <div onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={containerStyle}>
-        <div style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }} className={`${widthClass} border p-6 ${radiusClass}`}>
-          <div className="flex items-start gap-3.5">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: accentColor, color: readableTextColor(accentColor) }}>
-              <RotateCcw className="w-5 h-5" />
-            </div>
-            <div className="flex-1 space-y-1.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <EditorialHeading as="h2" text={String(rawSettings.title || "Conditions de Retours & Échanges")} theme={theme} sectionStyles={styles} accentColorOverride={styles.kickerColor || accentColor} isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }} onClick={(e) => handleSubElementClick("title", e)} style={{ color: headingColor }} className={`text-lg font-extrabold rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`} />
-                <span className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: styles.badgeBgColor || `${accentColor}18`, color: styles.badgeTextColor || accentColor }}>
-                  Délai {delayDays} jours • {feeLabel}
-                </span>
-              </div>
-              <CanvasInlineText as="p" multiline value={String(rawSettings.conditions || "Les demandes d'échange ou de retour sont traitées selon les conditions définies par le vendeur à réception du colis.")} isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "conditions", subElement: "conditions" }} onClick={(e) => handleSubElementClick("conditions", e)} style={{ color: subtitleColor || cardTextColor }} className="text-xs @sm:text-sm opacity-85 leading-relaxed" />
-            </div>
+      <section onClick={onSelect} style={{ backgroundColor: surfaceBg, color: textColor }} className={`w-full py-10 px-5 sm:px-8 border-b border-black/5 ${isEditable ? "cursor-pointer" : ""}`}>
+        <div className="max-w-4xl mx-auto p-6 sm:p-8 rounded-2xl bg-black/[0.02] border border-black/5 flex flex-col sm:flex-row items-start gap-5">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 text-white" style={{ backgroundColor: primaryColor }}>
+            <RotateCcw className="w-6 h-6" />
+          </div>
+          <div>
+            <EditorialHeading
+              text={(rawSettings.title as string) || section.title || "Politique de *Retours & Échanges*"}
+              as="h2"
+              theme={theme}
+              accentColorOverride={accentColor}
+              onClick={(e) => handleSubClick(e, "title")}
+              className={`text-xl font-black tracking-tight px-1 inline-block ${subRing("title")}`}
+            />
+            <p onClick={(e) => handleSubClick(e, "description")} className={`text-sm opacity-80 mt-2 leading-relaxed px-1 ${subRing("description")}`}>
+              {(rawSettings.conditions as string) || `Vous disposez de ${delayDays} jours après réception de votre colis pour demander un échange ou un retour.`}
+            </p>
+            <p className="text-xs font-semibold opacity-65 mt-2">
+              Délai : <strong>{delayDays} jours</strong> • Frais de retour : <strong>{feeBy}</strong>.
+            </p>
           </div>
         </div>
-        <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
-      </div>
+      </section>
     );
   }
 
   if (section.type === "faq_accordion") {
-    const items = Array.isArray(rawSettings.items) ? (rawSettings.items as Array<{ question: string; answer: string }>) : [];
+    const rawItems = Array.isArray(rawSettings.items) ? (rawSettings.items as Array<{ question: string; answer: string }>) : [];
+    const items = rawItems.length > 0 ? rawItems : [
+      { question: "Quels sont les délais de livraison vers ma wilaya ?", answer: "Les expéditions prennent généralement 24h à 48h pour les grandes wilayas et jusqu'à 72h pour le Sud." },
+      { question: "Puis-je payer à la livraison (Cash on Delivery) ?", answer: "Oui, vous réglez votre commande en espèces directement au livreur lors de la remise du colis." },
+    ];
     return (
-      <div onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={containerStyle}>
-        <div className={widthClass}>
-          <EditorialHeading as="h2" text={String(rawSettings.title || "Questions Fréquentes")} theme={theme} sectionStyles={styles} accentColorOverride={styles.kickerColor || accentColor} isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }} onClick={(e) => handleSubElementClick("title", e)} style={{ color: headingColor }} className={`text-xl @md:text-2xl font-extrabold mb-5 ${alignClass} ${isSubActive("title") ? "ring-2 ring-[#2563EB] rounded" : ""}`} />
-          {items.length === 0 ? (
-            <div data-testid="faq-empty-state" style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }} className={`p-6 border border-dashed text-center text-xs opacity-80 ${radiusClass}`}>
-              Aucune question fréquente configurée. Ajoutez vos questions/réponses dans l&apos;inspecteur.
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {items.map((item, idx) => (
-                <details key={idx} onClick={(e) => handleSubElementClick(`faq-${idx}`, e)} open={idx === 0} style={{ backgroundColor: cardBgColor, color: cardTextColor, borderColor: cardBorderColor }} className={`border p-4 shadow-2xs ${radiusClass} ${isSubActive(`faq-${idx}`) ? "ring-2 ring-[#2563EB]" : ""}`}>
-                  <summary className="font-bold text-sm cursor-pointer" style={{ color: cardTextColor }}>{item.question}</summary>
-                  <p className="mt-2 text-xs @sm:text-sm opacity-85 leading-relaxed" style={{ color: subtitleColor || cardTextColor }}>{item.answer}</p>
-                </details>
-              ))}
-            </div>
-          )}
+      <section onClick={onSelect} style={{ backgroundColor: surfaceBg, color: textColor }} className={`w-full py-12 px-5 sm:px-8 border-b border-black/5 ${isEditable ? "cursor-pointer" : ""}`}>
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center gap-2.5 mb-6">
+            <HelpCircle className="w-5 h-5" style={{ color: primaryColor }} />
+            <EditorialHeading
+              text={(rawSettings.title as string) || section.title || "Questions *Fréquentes*"}
+              as="h2"
+              theme={theme}
+              accentColorOverride={accentColor}
+              onClick={(e) => handleSubClick(e, "title")}
+              className={`text-2xl font-black tracking-tight px-1 ${subRing("title")}`}
+            />
+          </div>
+          <div className="space-y-3">
+            {items.map((item, idx) => (
+              <details key={idx} onClick={(e) => handleSubClick(e, `faq-${idx}`)} open={idx === 0} style={{ borderRadius: `${Math.min(radiusPx, 16)}px` }} className={`group bg-black/[0.02] border border-black/5 px-5 py-4 ${subRing(`faq-${idx}`)}`}>
+                <summary className="font-bold text-sm cursor-pointer list-none flex items-center justify-between">
+                  <span>{item.question}</span>
+                  <ChevronDown className="w-4 h-4 opacity-50 group-open:rotate-180 transition-transform" />
+                </summary>
+                <p className="text-xs sm:text-sm opacity-75 mt-2.5 leading-relaxed">{item.answer}</p>
+              </details>
+            ))}
+          </div>
         </div>
-        <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
-      </div>
+      </section>
     );
   }
 
-  const footerDefaultBg = isDarkColor(theme.canvasColor) ? theme.surfaceColor || "#141820" : isDarkColor(theme.secondaryColor) ? theme.secondaryColor || "#111827" : "#111827";
-  const footerBg = styles.backgroundColor || footerDefaultBg;
-  const footerText = styles.textColor || readableTextColor(footerBg);
-  const footerPillBg = styles.cardBgColor || (isDarkColor(footerBg) ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.06)");
-  const footerPillBorder = styles.cardBorderColor || (isDarkColor(footerBg) ? "rgba(255,255,255,0.18)" : "rgba(15,23,42,0.14)");
-
   return (
-    <div data-testid="contact-footer-section" onClick={isEditable ? onSelect : undefined} className={wrapperClass} style={buildSectionContainerStyle(styles, footerBg, footerText, theme)}>
-      <div className={`${widthClass} flex flex-col @md:flex-row items-start @md:items-center justify-between gap-6`}>
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5" style={{ color: accentColor }} />
-            <CanvasInlineText as="h3" value={String(rawSettings.title || "Service Client & Contact")} isEditable={isEditable} editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }} onClick={(e) => handleSubElementClick("title", e)} style={{ fontFamily: "var(--store-font-heading, inherit)", color: styles.headingColor || footerText }} className={`font-extrabold text-base @md:text-lg rounded px-1 ${isSubActive("title") ? "ring-2 ring-[#2563EB]" : ""}`} />
-          </div>
+    <section onClick={onSelect} style={{ backgroundColor: surfaceBg, color: textColor }} className={`w-full py-10 px-5 sm:px-8 border-t border-black/10 ${isEditable ? "cursor-pointer" : ""}`}>
+      <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div>
+          <EditorialHeading
+            text={(rawSettings.title as string) || section.title || "Assistance & *Suivi Client*"}
+            as="h3"
+            theme={theme}
+            accentColorOverride={accentColor}
+            onClick={(e) => handleSubClick(e, "title")}
+            className={`text-lg font-black tracking-tight px-1 inline-block ${subRing("title")}`}
+          />
+          <p onClick={(e) => handleSubClick(e, "subtitle")} className={`text-xs opacity-70 mt-1 px-1 ${subRing("subtitle")}`}>
+            {(rawSettings.subtitle as string) || "Service client et suivi de commande assurés via les notifications internes Olmart."}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3 text-xs font-semibold">
+          <span
+            data-testid="contact-footer-internal-channel"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-black/[0.04]"
+          >
+            <Bell className="w-3.5 h-3.5" style={{ color: accentColor }} />
+            <span>Notifications internes Olmart</span>
+          </span>
           {Boolean(rawSettings.workingHours) && (
-            <p className="text-xs opacity-85 flex items-center gap-1.5" style={{ color: styles.subtitleColor || footerText }} onClick={(e) => handleSubElementClick("coordonnees", e)}>
-              <Clock className="w-3.5 h-3.5" style={{ color: accentColor }} /><span>{String(rawSettings.workingHours)}</span>
-            </p>
+            <span onClick={(e) => handleSubClick(e, "card-0")} className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-black/[0.04] ${subRing("card-0")}`}>
+              <Clock className="w-3.5 h-3.5" style={{ color: accentColor }} />
+              <span>{String(rawSettings.workingHours)}</span>
+            </span>
           )}
           {(Boolean(rawSettings.address) || Boolean(rawSettings.wilaya)) && (
-            <p className="text-xs opacity-85 flex items-center gap-1.5" style={{ color: styles.subtitleColor || footerText }} onClick={(e) => handleSubElementClick("coordonnees", e)}>
-              <MapPin className="w-3.5 h-3.5" style={{ color: accentColor }} /><span>{[rawSettings.address, rawSettings.wilaya].filter(Boolean).join(" • ")}</span>
-            </p>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-3 text-xs font-bold" onClick={(e) => handleSubElementClick("coordonnees", e)}>
-          {Boolean(rawSettings.shopPhone) && (
-            <span style={{ backgroundColor: footerPillBg, color: styles.cardTextColor || footerText, borderColor: footerPillBorder }} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border">
-              <Phone className="w-3.5 h-3.5" style={{ color: accentColor }} /><span>{String(rawSettings.shopPhone)}</span>
-            </span>
-          )}
-          {Boolean(rawSettings.shopEmail) && (
-            <span style={{ backgroundColor: footerPillBg, color: styles.cardTextColor || footerText, borderColor: footerPillBorder }} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border">
-              <Mail className="w-3.5 h-3.5" style={{ color: accentColor }} /><span>{String(rawSettings.shopEmail)}</span>
-            </span>
-          )}
-          {isEditable && !rawSettings.shopPhone && !rawSettings.shopEmail && (
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-400/50 bg-amber-500/15 text-amber-200 text-[11px] font-medium">
-              Coordonnées non renseignées — cliquez ici pour ajouter votre téléphone ou e-mail
+            <span onClick={(e) => handleSubClick(e, "card-1")} className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-black/[0.04] ${subRing("card-1")}`}>
+              <MapPin className="w-3.5 h-3.5" style={{ color: accentColor }} />
+              <span>{String(rawSettings.address || rawSettings.wilaya)}</span>
             </span>
           )}
         </div>
       </div>
-      <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
-    </div>
+    </section>
   );
 };

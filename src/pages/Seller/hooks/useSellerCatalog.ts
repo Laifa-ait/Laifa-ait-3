@@ -7,6 +7,7 @@ import { apiGet, apiPost, apiPut } from "../../../lib/api";
 import { PRODUCT_HIERARCHY } from "../../../constants";
 import { SellerProduct } from "../../../types/seller";
 import { deduplicateCategoryHierarchy, deduplicateCategoryOrder } from "../../../utils/categoryCanonical";
+import { fetchSellerCatalogSafely } from "../StoreBuilder/hooks/studioCatalogLoader";
 
 export function useSellerCatalog() {
   const { t } = useTranslation();
@@ -29,9 +30,12 @@ export function useSellerCatalog() {
 
     const fetchData = async () => {
       try {
-        const prodData = await apiGet<{ products: SellerProduct[] }>("/api/v1/seller/products");
-        if (!cancelled && prodData?.products) {
-          setProducts(prodData.products);
+        const catalogOutcome = await fetchSellerCatalogSafely();
+        if (!cancelled) {
+          if (!catalogOutcome.ok) {
+            throw new Error(catalogOutcome.errorMessage || "Impossible de charger le catalogue");
+          }
+          setProducts(catalogOutcome.products as SellerProduct[]);
         }
 
         const catData = await apiGet<{ hierarchy?: Record<string, Record<string, string[]>>; sortOrder?: string[] }>("/api/v1/settings/categories-hierarchy");
@@ -74,9 +78,9 @@ export function useSellerCatalog() {
     if (!currentUser) return;
     setLoading(true);
     try {
-      const prodData = await apiGet<{ products: SellerProduct[] }>("/api/v1/seller/products");
-      if (prodData?.products) {
-        setProducts(prodData.products);
+      const catalogOutcome = await fetchSellerCatalogSafely();
+      if (catalogOutcome.ok) {
+        setProducts(catalogOutcome.products as SellerProduct[]);
       }
       toast.success(t("Produit enregistré avec succès !"));
     } catch (err) {
@@ -93,9 +97,9 @@ export function useSellerCatalog() {
       toast.loading(t("Duplication en cours..."), { id: "dup" });
       await apiPost(`/api/v1/seller/products/${product.id}/duplicate`, {});
       toast.success(t("Produit dupliqué avec succès !"), { id: "dup" });
-      const prodData = await apiGet<{ products: SellerProduct[] }>("/api/v1/seller/products");
-      if (prodData?.products) {
-        setProducts(prodData.products);
+      const catalogOutcome = await fetchSellerCatalogSafely();
+      if (catalogOutcome.ok) {
+        setProducts(catalogOutcome.products as SellerProduct[]);
       }
     } catch (err) {
       console.error("Duplicate error:", err);

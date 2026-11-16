@@ -4,18 +4,7 @@ import { authenticateToken, authorizeSeller, AuthenticatedRequest } from "../../
 import { clearProductCatalogCache } from "../../product/controllers/productCatalog.controller";
 import { clearProductStoreCache } from "../../product/controllers/productStore.controller";
 import { clearProductSearchCache } from "../../../services/ProductSearchService";
-
-interface TimedDocument {
-  createdAt?: { toDate?: () => Date } | string | number | Date;
-  [key: string]: unknown;
-}
-
-const getTimestamp = (doc: TimedDocument): number => {
-  if (doc.createdAt && typeof (doc.createdAt as { toDate?: () => Date }).toDate === "function") {
-    return (doc.createdAt as { toDate: () => Date }).toDate().getTime();
-  }
-  return new Date((doc.createdAt as string | number | Date) || 0).getTime();
-};
+import { parseCatalogPageLimit, querySellerProductsPaginated } from "../services/sellerCatalogQuery.service";
 
 const router = Router();
 
@@ -334,19 +323,27 @@ router.put("/api/v1/seller/products/:id", authenticateToken, authorizeSeller, as
   }
 });
 
-// GET seller products
+// GET seller products (cursor-paginated Firestore query)
 router.get("/api/v1/seller/products", authenticateToken, authorizeSeller, async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.user?.uid) {
       return res.status(401).json({ error: "Authentification requise" });
     }
     const uid = req.user.uid;
-    const requestedLimit = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 250;
-    const safeLimit = Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, 250) : 250;
-    const snap = await db.collection("products").where("sellerId", "==", uid).limit(safeLimit).get();
-    const products = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    products.sort((a: TimedDocument, b: TimedDocument) => getTimestamp(b) - getTimestamp(a));
-    return res.json({ products });
+    const limit = parseCatalogPageLimit(req.query.limit);
+    const cursor = typeof req.query.cursor === "string" ? req.query.cursor : undefined;
+    const page = await querySellerProductsPaginated({
+      sellerId: uid,
+      limit,
+      cursor,
+    });
+    return res.json({
+      success: true,
+      products: page.products,
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+      limit: page.limit,
+    });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Internal error";
     return res.status(500).json({ error: msg });
