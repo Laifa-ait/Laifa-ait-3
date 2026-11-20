@@ -1,4 +1,5 @@
 import React from "react";
+import { RefreshCw, AlertTriangle } from "lucide-react";
 import { OverviewHeader } from "./components/overview/OverviewHeader";
 import { OverviewQuickActions } from "./components/overview/OverviewQuickActions";
 import { OverviewKpiCards } from "./components/overview/OverviewKpiCards";
@@ -18,6 +19,8 @@ export const Overview: React.FC = () => {
     wilayaStats,
     chartData,
     loading,
+    error,
+    refetch,
   } = useSellerOverview();
 
   if (loading) {
@@ -30,6 +33,26 @@ export const Overview: React.FC = () => {
 
   return (
     <div className="space-y-8 sm:space-y-12 max-w-7xl mx-auto pb-24 sm:pb-12" id="seller-overview-page">
+      {error && (
+        <div
+          role="alert"
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        >
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+            <span>{error}</span>
+          </div>
+          <button
+            type="button"
+            onClick={refetch}
+            className="inline-flex items-center justify-center gap-1.5 self-start sm:self-auto rounded-xl bg-amber-900 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-amber-800 transition-colors cursor-pointer"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            <span>Réessayer</span>
+          </button>
+        </div>
+      )}
+
       {/* 1. Header with greeting and badges */}
       <OverviewHeader userProfile={userProfile} outOfStockCount={outOfStockCount} />
 

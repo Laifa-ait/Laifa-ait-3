@@ -1,6 +1,7 @@
 import React from "react";
 import type { ArtisticFrameShape } from "../../types/studio.types";
 import type { CustomPageTheme } from "../../domains/seller/customPage.types";
+import { DEFAULT_MODERN_THEME } from "../../pages/Seller/StoreBuilder/constants/studioThemeDefaults";
 
 export const CHAMFERED_POLYGON_CLIP =
   "polygon(16px 0%, 100% 0%, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0% 100%, 0% 16px)";
@@ -22,16 +23,11 @@ export interface FrameShapeCardVisuals {
   mediaStyle: React.CSSProperties;
   forcedAspectClass?: string;
   showDoubleGalleryBorder: boolean;
-  showCasbahArchKeystone: boolean;
+  showArchKeystone: boolean;
   showPolaroidCaptionBar: boolean;
   showChamferedHudCorners: boolean;
 }
 
-/**
- * Pour les cartes produits du catalogue : ZÉRO OVALE (`medallion-oval` / `rounded-full`).
- * Les photos produits occupent 100% de la largeur supérieure (Full-Bleed, p-0),
- * sans boîte blanche rectangulaire autour d'une arche ou d'un ovale.
- */
 export function resolveCatalogProductFrameVisuals(
   shape: ArtisticFrameShape | undefined,
   borderRadiusPx?: number,
@@ -45,20 +41,20 @@ export function resolveCatalogProductFrameVisuals(
       mediaClassName: "rounded-none",
       mediaStyle: { borderRadius: 0 },
       showDoubleGalleryBorder: true,
-      showCasbahArchKeystone: false,
+      showArchKeystone: false,
       showPolaroidCaptionBar: false,
       showChamferedHudCorners: false,
     };
   }
 
-  if (effective === "casbah-arch") {
+  if (effective === "arch-minimal" || effective === "casbah-arch") {
     return {
-      outerClassName: "rounded-t-[999px] rounded-b-2xl bg-transparent",
+      outerClassName: "rounded-t-[999px] rounded-b-xl bg-transparent",
       outerStyle: {},
-      mediaClassName: "rounded-t-[999px] rounded-b-xl overflow-hidden",
+      mediaClassName: "rounded-t-[999px] rounded-b-lg overflow-hidden",
       mediaStyle: {},
       showDoubleGalleryBorder: false,
-      showCasbahArchKeystone: true,
+      showArchKeystone: true,
       showPolaroidCaptionBar: false,
       showChamferedHudCorners: false,
     };
@@ -67,12 +63,12 @@ export function resolveCatalogProductFrameVisuals(
   if (effective === "polaroid-atelier") {
     return {
       outerClassName:
-        "p-2.5 pb-9 bg-white text-slate-900 border border-slate-200/90 shadow-md hover:shadow-xl transition-all duration-300 rounded-sm",
+        "p-3 pb-10 bg-white text-slate-900 border border-slate-200 shadow-xs hover:shadow-md transition-all duration-200 rounded-sm",
       outerStyle: {},
       mediaClassName: "rounded-none ring-1 ring-black/5",
       mediaStyle: {},
       showDoubleGalleryBorder: false,
-      showCasbahArchKeystone: false,
+      showArchKeystone: false,
       showPolaroidCaptionBar: true,
       showChamferedHudCorners: false,
     };
@@ -85,22 +81,21 @@ export function resolveCatalogProductFrameVisuals(
       mediaClassName: "rounded-none",
       mediaStyle: { clipPath: CHAMFERED_MEDIA_CLIP },
       showDoubleGalleryBorder: false,
-      showCasbahArchKeystone: false,
+      showArchKeystone: false,
       showPolaroidCaptionBar: false,
       showChamferedHudCorners: true,
     };
   }
 
-  // soft-modern & medallion-oval fallback on product catalog cards -> Full-Bleed rounded-2xl (zero oval in catalog)
   return {
-    outerClassName: "rounded-2xl",
+    outerClassName: "rounded-xl",
     outerStyle:
       typeof borderRadiusPx === "number" ? { borderRadius: `${borderRadiusPx}px` } : {},
-    mediaClassName: "rounded-2xl overflow-hidden",
+    mediaClassName: "rounded-xl overflow-hidden",
     mediaStyle:
       typeof borderRadiusPx === "number" ? { borderRadius: `${borderRadiusPx}px` } : {},
     showDoubleGalleryBorder: false,
-    showCasbahArchKeystone: false,
+    showArchKeystone: false,
     showPolaroidCaptionBar: false,
     showChamferedHudCorners: false,
   };
@@ -108,7 +103,7 @@ export function resolveCatalogProductFrameVisuals(
 
 export function resolveFrameShapeVisuals(
   shape: ArtisticFrameShape | undefined,
-  fallbackRadiusClass = "rounded-2xl",
+  fallbackRadiusClass = "rounded-xl",
   fallbackMediaRadiusClass = "rounded-xl",
   borderRadiusPx?: number,
 ): FrameShapeCardVisuals {
@@ -118,11 +113,11 @@ export function resolveFrameShapeVisuals(
     return {
       outerClassName: "rounded-[999px]",
       outerStyle: {},
-      mediaClassName: "rounded-[999px] ring-1 ring-[#C59B27]/35",
+      mediaClassName: "rounded-[999px] ring-1 ring-black/10",
       mediaStyle: {},
       forcedAspectClass: "aspect-[3/4]",
       showDoubleGalleryBorder: false,
-      showCasbahArchKeystone: false,
+      showArchKeystone: false,
       showPolaroidCaptionBar: false,
       showChamferedHudCorners: false,
     };
@@ -130,6 +125,7 @@ export function resolveFrameShapeVisuals(
 
   if (
     effective === "sharp-couture" ||
+    effective === "arch-minimal" ||
     effective === "casbah-arch" ||
     effective === "polaroid-atelier" ||
     effective === "chamfered-tech"
@@ -147,7 +143,7 @@ export function resolveFrameShapeVisuals(
         ? { borderRadius: `${Math.max(0, borderRadiusPx - 4)}px` }
         : {},
     showDoubleGalleryBorder: false,
-    showCasbahArchKeystone: false,
+    showArchKeystone: false,
     showPolaroidCaptionBar: false,
     showChamferedHudCorners: false,
   };
@@ -169,7 +165,7 @@ export const ArtisticFrameWrapper: React.FC<ArtisticFrameWrapperProps> = ({
   theme,
   caption,
   accentColor,
-  fallbackRadiusClass = "rounded-2xl",
+  fallbackRadiusClass = "rounded-xl",
   className = "",
   style,
   children,
@@ -181,7 +177,8 @@ export const ArtisticFrameWrapper: React.FC<ArtisticFrameWrapperProps> = ({
     fallbackRadiusClass,
     theme?.borderRadiusPx,
   );
-  const resolvedAccent = accentColor || theme?.accentColor || theme?.primaryColor || "#B45309";
+  const resolvedAccent =
+    accentColor || theme?.accentColor || theme?.primaryColor || DEFAULT_MODERN_THEME.accentColor || "#2563EB";
 
   return (
     <div
@@ -200,14 +197,14 @@ export const ArtisticFrameWrapper: React.FC<ArtisticFrameWrapperProps> = ({
         {visuals.showDoubleGalleryBorder && (
           <div
             className="pointer-events-none absolute inset-2 border z-10"
-            style={{ borderColor: `${resolvedAccent}55` }}
+            style={{ borderColor: `${resolvedAccent}40` }}
           />
         )}
 
-        {visuals.showCasbahArchKeystone && (
+        {visuals.showArchKeystone && (
           <div
-            className="pointer-events-none absolute inset-1.5 rounded-t-[999px] rounded-b-xl border z-10"
-            style={{ borderColor: `${resolvedAccent}40` }}
+            className="pointer-events-none absolute inset-1.5 rounded-t-[999px] rounded-b-lg border z-10"
+            style={{ borderColor: `${resolvedAccent}30` }}
           />
         )}
 
@@ -226,15 +223,12 @@ export const ArtisticFrameWrapper: React.FC<ArtisticFrameWrapperProps> = ({
       </div>
 
       {visuals.showPolaroidCaptionBar && (
-        <div className="pointer-events-none absolute inset-x-3 bottom-2 flex items-center justify-between gap-2 text-slate-700">
-          <span
-            className="text-xs italic font-serif tracking-wide truncate"
-            style={{ fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif" }}
-          >
-            {caption || theme?.sector || "Atelier d'Art Olmart"}
+        <div className="pointer-events-none absolute inset-x-3 bottom-2.5 flex items-center justify-between gap-2 text-slate-700">
+          <span className="text-xs font-medium tracking-tight truncate">
+            {caption || "Collection Studio"}
           </span>
-          <span className="text-[9px] font-mono uppercase tracking-widest text-slate-400 shrink-0">
-            N° 01
+          <span className="text-[10px] font-mono tabular-nums tracking-wider text-slate-400 shrink-0">
+            01
           </span>
         </div>
       )}

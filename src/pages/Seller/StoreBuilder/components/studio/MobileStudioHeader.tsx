@@ -1,5 +1,5 @@
 import React from "react";
-import { UploadCloud, Menu, ArrowLeft, Undo2, Redo2, AlertCircle, Loader2, Check, Clock, WifiOff } from "lucide-react";
+import { UploadCloud, Menu, ArrowLeft, Undo2, Redo2, AlertCircle, Loader2, Check, Clock, WifiOff, Save } from "lucide-react";
 import { SaveStatus } from "../../hooks/useStudioSaveManager";
 
 interface MobileStudioHeaderProps {
@@ -142,6 +142,21 @@ export const MobileStudioHeader: React.FC<MobileStudioHeaderProps> = ({
 
       <div className="flex items-center gap-1.5 shrink-0">
         {renderMobileSaveStatus()}
+
+        {onSaveDraft && (
+          <button
+            type="button"
+            data-testid="mobile-save-btn"
+            disabled={saveStatus === "saving" || saveStatus === "retrying"}
+            onClick={() => { void onSaveDraft(); }}
+            aria-label="Enregistrer"
+            title="Enregistrer le brouillon"
+            className="h-9 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[12px] font-semibold text-slate-800 flex items-center gap-1 cursor-pointer shrink-0 whitespace-nowrap disabled:opacity-55"
+          >
+            <Save className="w-3.5 h-3.5 text-slate-600" />
+            <span className="hidden xs:inline">Enregistrer</span>
+          </button>
+        )}
 
         <button
           type="button"

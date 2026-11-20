@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Activity, AlertTriangle, CheckCircle2, Clock, Zap, Cpu, RefreshCw, ShieldAlert } from "lucide-react";
 import { apiGet } from "../../../lib/api";
 import { TelemetryTable, TransactionMetric } from "./TelemetryTable";
+import { startVisibilityAwarePolling } from "../../../utils/visibilityPolling";
 
 export interface TelemetryData {
   activeBackgroundTasks: number;
@@ -38,8 +39,7 @@ export const TelemetryPanel: React.FC = () => {
 
   useEffect(() => {
     fetchTelemetry();
-    const interval = setInterval(fetchTelemetry, 15000); // 15s auto-refresh
-    return () => clearInterval(interval);
+    return startVisibilityAwarePolling(fetchTelemetry, 60_000);
   }, [fetchTelemetry]);
 
   const isCritical =

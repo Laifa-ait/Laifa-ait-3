@@ -404,26 +404,7 @@ export class OrderStatusService {
   }
 
   static async confirmDelivery(input: ConfirmDeliveryInput): Promise<string> {
-    const { id, fullName, email, phone, wilaya, commune, address, deliveryMethod, items, total, authUid } = input;
-
-    const docRef = db.collection("confirmed_delivery_info").doc(id);
-
-    const deliveryPayload = {
-      id,
-      fullName,
-      email: email || "",
-      phone,
-      wilaya,
-      commune,
-      address,
-      deliveryMethod,
-      items,
-      total,
-      userId: authUid ? authUid : "guest",
-      createdAt: admin.firestore.Timestamp.now(),
-    };
-
-    await docRef.set(deliveryPayload, { merge: true });
-    return id;
+    // Les coordonnées de livraison sont enregistrées de façon transactionnelle dans `orders` lors de la validation finale.
+    return input.id;
   }
 }

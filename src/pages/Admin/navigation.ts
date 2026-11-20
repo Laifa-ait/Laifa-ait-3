@@ -224,7 +224,7 @@ export const getNavGroups = (t: (key: string) => string): AdminNavGroup[] => [
       {
         to: "/dashboard/admin/seed",
         icon: Database,
-        label: t("Base Démo (Seed)"),
+        label: t("Nettoyage Firebase"),
       },
       {
         to: "/dashboard/admin/settings",

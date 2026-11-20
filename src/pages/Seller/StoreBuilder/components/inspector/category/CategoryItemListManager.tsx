@@ -4,6 +4,7 @@ import { CategoryItem } from "../../../constants/categoryPresets";
 import { Product } from "../../../../../../domains/product/product.types";
 import { CustomPageSection } from "../../../../../../domains/seller/customPage.types";
 import { CategoryItemCard } from "./CategoryItemCard";
+import { DEFAULT_MODERN_THEME } from "../../../constants/studioThemeDefaults";
 import { QUICK_READY_CATEGORY_CARDS } from "../../../../../../components/Store/sections/category/categoryImageHelper";
 
 interface CategoryItemListManagerProps {
@@ -64,7 +65,7 @@ export const CategoryItemListManager: React.FC<CategoryItemListManagerProps> = (
       imageUrl: defaultImg,
       iconName: "ShoppingBag",
       badge: "",
-      badgeColor: "#023859",
+      badgeColor: DEFAULT_MODERN_THEME.primaryColor,
       itemCount: undefined,
       productIds: [],
       colSpan: 1,
@@ -122,13 +123,13 @@ export const CategoryItemListManager: React.FC<CategoryItemListManagerProps> = (
   return (
     <div className="space-y-3">
       {/* 1. Choisir quelles cartes prêtes à l'emploi utiliser */}
-      <div className="p-3 bg-[#F8FBFC] border border-slate-200 rounded-xl space-y-2">
+      <div className="p-3 bg-[var(--studio-background)] border border-slate-200 rounded-xl space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-extrabold text-[#011C40] uppercase tracking-wider flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-[#023859]" />
+          <span className="text-[11px] font-extrabold text-[var(--studio-black)] uppercase tracking-wider flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
             <span>Choisir les cartes à utiliser</span>
           </span>
-          <span className="text-[10px] font-bold text-[#023859] bg-white px-2 py-0.5 rounded-full border border-slate-200">
+          <span className="text-[10px] font-bold text-[var(--studio-primary)] bg-white px-2 py-0.5 rounded-full border border-slate-200 tabular-nums">
             {activeCount} affichée{activeCount > 1 ? "s" : ""}
           </span>
         </div>
@@ -151,7 +152,7 @@ export const CategoryItemListManager: React.FC<CategoryItemListManagerProps> = (
                 onClick={() => handleToggleQuickReadyCard(ready)}
                 className={`p-1.5 rounded-lg border text-left flex items-center gap-2 transition-all cursor-pointer ${
                   isSelected
-                    ? "bg-[#023859] border-[#023859] text-white shadow-2xs"
+                    ? "bg-[var(--studio-primary)] border-[var(--studio-primary)] text-white shadow-2xs"
                     : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
                 }`}
               >
@@ -182,7 +183,7 @@ export const CategoryItemListManager: React.FC<CategoryItemListManagerProps> = (
             type="button"
             onClick={handleAdd}
             disabled={categories.length >= 24}
-            className="flex-1 h-8 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-2xs disabled:opacity-40 cursor-pointer transition-colors"
+            className="flex-1 h-8 rounded-lg bg-[var(--studio-primary)] hover:bg-[var(--studio-primary-hover)] text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-2xs disabled:opacity-40 cursor-pointer transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Créer une carte sur-mesure</span>
@@ -204,7 +205,7 @@ export const CategoryItemListManager: React.FC<CategoryItemListManagerProps> = (
       {/* 2. Liste des cartes configurées (avec bouton Afficher / Masquer sur chaque carte) */}
       {categories.length === 0 ? (
         <div className="p-5 text-center bg-white rounded-xl border border-dashed border-slate-300 space-y-2">
-          <Sparkles className="w-6 h-6 text-[#023859] mx-auto" />
+          <Sparkles className="w-6 h-6 text-[var(--studio-primary)] mx-auto" />
           <p className="text-xs font-bold text-slate-800">Aucune carte sélectionnée</p>
           <p className="text-[11px] text-slate-500">
             Cochez l'une des cartes ci-dessus ou cliquez sur « + Créer une carte sur-mesure ».

@@ -24,7 +24,7 @@ interface SectionProductFeedsProps {
 }
 
 export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
-  section, theme, products, isEditable, isSelected, onSelect,
+  section, theme, products, isEditable, isSelected, onSelect, previewViewport = "desktop",
 }) => {
   const carouselRef = useRef<HTMLDivElement | null>(null);
   const settings = useMemo(() => (section.settings || {}) as ProductFeedSettings & FeaturedProductsSettings, [section.settings]);
@@ -47,15 +47,22 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
   const imagePosition = settings.cardImagePosition || "center";
   const imageFit = settings.cardImageFit || "cover";
   const columnsDesktop = settings.columnsDesktop || 4;
-  const accentColor = styles.iconColor || settings.cardAccentColor || theme.accentColor || theme.primaryColor || "#023859";
+  const columnsTablet = settings.columnsTablet || Math.min(columnsDesktop, 3);
+  const columnsMobile = settings.columnsMobile || Math.min(columnsDesktop, 2);
+  const effectiveCols =
+    previewViewport === "mobile" ? columnsMobile
+    : previewViewport === "tablet" ? columnsTablet
+    : columnsDesktop;
+
+  const accentColor = styles.iconColor || settings.cardAccentColor || theme.accentColor || theme.primaryColor || "#0F172A";
   const kickerColor = styles.kickerColor || accentColor;
-  const headingColor = styles.headingColor || settings.titleColor || styles.textColor || theme.secondaryColor || "#18181B";
+  const headingColor = styles.headingColor || settings.titleColor || styles.textColor || theme.secondaryColor || "#0F172A";
   const subtitleColor = styles.subtitleColor || settings.subtitleColor || styles.textColor || theme.mutedTextColor;
 
   const overtitleLabel =
-    section.type === "featured_products" ? "SÉLECTION D'ATELIER"
-    : section.type === "new_arrivals" ? "NOUVELLES CRÉATIONS"
-    : section.type === "best_sellers" ? (feedResult.hasRealSalesData ? "PIÈCES PLÉBISCITÉES" : "SÉLECTION DE LA BOUTIQUE")
+    section.type === "featured_products" ? "SÉLECTION STUDIO"
+    : section.type === "new_arrivals" ? "NOUVEAUTÉS"
+    : section.type === "best_sellers" ? (feedResult.hasRealSalesData ? "MEILLEURES VENTES" : "SÉLECTION DE LA BOUTIQUE")
     : "CATALOGUE & COLLECTIONS";
 
   const triggerDesignFocus = (e: React.MouseEvent, focusTarget: string) => {
@@ -72,9 +79,10 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
   };
 
   const gridColsClass = isListLayout
-    ? columnsDesktop === 2 ? "grid-cols-1 @3xl:grid-cols-2 gap-3.5 @3xl:gap-5" : "grid-cols-1 gap-3.5 @3xl:gap-4"
-    : columnsDesktop === 2 ? "grid-cols-2 gap-4 @3xl:gap-6"
-    : columnsDesktop === 3 ? "grid-cols-2 @3xl:grid-cols-3 gap-4 @3xl:gap-6"
+    ? effectiveCols >= 2 && previewViewport !== "mobile" ? "grid-cols-1 @3xl:grid-cols-2 gap-3.5 @3xl:gap-5" : "grid-cols-1 gap-3.5 @3xl:gap-4"
+    : effectiveCols === 1 ? "grid-cols-1 gap-4"
+    : effectiveCols === 2 ? "grid-cols-2 gap-3.5 @3xl:gap-6"
+    : effectiveCols === 3 ? "grid-cols-2 @3xl:grid-cols-3 gap-4 @3xl:gap-6"
     : "grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-4 gap-4 @3xl:gap-6";
 
   const renderCard = (prod: Product) => (
@@ -94,24 +102,24 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
   return (
     <div
       onClick={isEditable ? onSelect : undefined}
-      style={buildSectionContainerStyle(styles, "transparent", "var(--store-secondary, #18181B)", theme)}
+      style={buildSectionContainerStyle(styles, "transparent", "var(--store-secondary, #0F172A)", theme)}
       className={`relative py-4 @3xl:py-6 transition-all select-none ${resolveBorderRadiusClass(styles.borderRadius)} ${resolveShadowClass(styles.shadow)} ${resolveAnimationClass(styles.animation)}`}
     >
       {isEditable && isSelected && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 bg-[#F8FBFC] text-[#011C40] px-3 py-2 rounded-xl border border-slate-200/90 select-none" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center gap-1.5 text-xs font-bold text-[#011C40]">
-            <Sparkles className="w-3.5 h-3.5 text-[#023859]" />
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 bg-[var(--studio-background,#F8FAFC)] text-[var(--studio-primary,#0F172A)] px-3 py-2 rounded-xl border border-slate-200/90 select-none" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--studio-primary,#0F172A)]">
+            <Sparkles className="w-3.5 h-3.5 text-[var(--studio-focus,#2563EB)]" />
             <span>{isListLayout ? "Liste Bandeaux" : layoutMode === "carousel" ? "Carrousel Produits" : "Grille Produits"} ({displayProducts.length})</span>
             <span className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-[10px] font-semibold text-slate-600">
               {feedResult.effectiveMode === "manual" ? "Manuel" : "Règle dynamique"}
             </span>
           </div>
           <div className="flex items-center gap-1.5">
-            <button type="button" onClick={(e) => triggerDesignFocus(e, "selection")} className="h-7 px-2.5 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors">
+            <button type="button" onClick={(e) => triggerDesignFocus(e, "selection")} className="h-7 px-2.5 rounded-lg bg-[var(--studio-primary,#0F172A)] hover:opacity-90 text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-opacity">
               <Grid className="w-3 h-3" /><span>Sélecteur Produits</span>
             </button>
             <button type="button" onClick={(e) => triggerDesignFocus(e, "countdown")} className="h-7 px-2.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors">
-              <Sliders className="w-3 h-3 text-[#26658C]" /><span>Chrono Offre</span>
+              <Sliders className="w-3 h-3 text-[var(--studio-focus,#2563EB)]" /><span>Chrono Offre</span>
             </button>
           </div>
         </div>
@@ -131,7 +139,7 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
 
         {(settings.title || section.title || settings.subtitle) && (
           <div className="mb-7 flex items-end justify-between gap-4 border-b border-black/[0.06] pb-4" style={{ borderColor: styles.sectionBorderColor || undefined }}>
-            <div onClick={(e) => isEditable && triggerDesignFocus(e, "title")} className={`min-w-0 flex-1 ${isEditable ? "cursor-pointer rounded px-1 hover:ring-1 hover:ring-[#26658C]" : ""}`}>
+            <div onClick={(e) => isEditable && triggerDesignFocus(e, "title")} className={`min-w-0 flex-1 ${isEditable ? "cursor-pointer rounded px-1 hover:ring-1 hover:ring-[var(--studio-focus,#2563EB)]" : ""}`}>
               <span data-testid="product-feed-kicker" className="block text-[10px] @md:text-[11px] font-bold uppercase tracking-[0.28em] mb-1.5" style={{ color: kickerColor }}>
                 {overtitleLabel}
               </span>
@@ -140,7 +148,7 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
                   as="h3" text={String(settings.title || section.title)} theme={theme} sectionStyles={styles}
                   accentColorOverride={kickerColor} isEditable={isEditable}
                   editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
-                  className="text-xl @md:text-2xl @3xl:text-3xl font-extrabold tracking-tight leading-snug"
+                  className="text-xl @md:text-2xl @3xl:text-3xl font-extrabold tracking-tight leading-snug break-words"
                   style={{ color: headingColor }}
                 />
               )}
@@ -148,7 +156,7 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
                 <CanvasInlineText
                   as="p" value={settings.subtitle} isEditable={isEditable}
                   editConfig={{ sectionId: section.id, settingKey: "subtitle" }}
-                  style={{ color: subtitleColor }} className="text-xs @md:text-sm opacity-80 max-w-xl mt-1.5 leading-relaxed"
+                  style={{ color: subtitleColor }} className="text-xs @md:text-sm opacity-80 max-w-xl mt-1.5 leading-relaxed break-words"
                 />
               )}
             </div>
@@ -169,9 +177,7 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
               {feedResult.missingProductIds.length > 0 && feedResult.inactiveProductIds.length > 0 ? " et " : ""}
               {feedResult.inactiveProductIds.length > 0 && `${feedResult.inactiveProductIds.length} produit(s) inactif(s)`} dans cette sélection.
             </span>
-            <button type="button" onClick={(e) => triggerDesignFocus(e, "selection")} className="px-2.5 py-1 rounded bg-amber-900 text-white text-[11px] font-bold shrink-0 cursor-pointer">
-              Nettoyer
-            </button>
+            <button type="button" onClick={(e) => triggerDesignFocus(e, "selection")} className="px-2.5 py-1 rounded bg-amber-900 text-white text-[11px] font-bold shrink-0 cursor-pointer">Nettoyer</button>
           </div>
         )}
 
@@ -208,7 +214,7 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
                 : "Aucun produit actif à afficher dans cette section."}
             </p>
             {isEditable && (
-              <button type="button" onClick={(e) => triggerDesignFocus(e, "selection")} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#023859] text-white text-xs font-bold cursor-pointer">
+              <button type="button" onClick={(e) => triggerDesignFocus(e, "selection")} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--studio-primary,#0F172A)] text-white text-xs font-bold cursor-pointer">
                 <Grid className="w-3.5 h-3.5" /><span>Configurer les produits</span>
               </button>
             )}
@@ -220,7 +226,9 @@ export const SectionProductFeeds: React.FC<SectionProductFeedsProps> = ({
             ))}
           </div>
         ) : (
-          <div className={`grid ${gridColsClass}`}>{displayProducts.map((prod) => renderCard(prod))}</div>
+          <div data-testid="product-feed-grid" data-feed-columns={effectiveCols} data-preview-viewport={previewViewport} className={`grid ${gridColsClass}`}>
+            {displayProducts.map((prod) => renderCard(prod))}
+          </div>
         )}
       </div>
 

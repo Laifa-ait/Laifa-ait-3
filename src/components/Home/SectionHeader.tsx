@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowRight, Sparkles, Zap } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { HomepageSection } from "../../domains/home/homepage.types";
@@ -35,60 +35,50 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({ section, isDarkBg 
 
   const styleVariant = section.style || "clean";
 
-  const renderStyleBadge = () => {
-    if (section.themeName) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#F9F2F4] text-[#622347] border border-[#E0B4B2]/60">
-          <Sparkles className="w-2.5 h-2.5 text-[#A54055] fill-[#A54055]" />
-          {t(section.themeName, section.themeName)}
-        </span>
-      );
-    }
-    if (styleVariant === "premium") {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-[#42164B] to-[#622347] text-white shadow-xs">
-          <Sparkles className="w-2.5 h-2.5 fill-[#E99856] text-[#E99856]" />
-          {t("home.sections.badge_prestige")}
-        </span>
-      );
-    }
-    if (styleVariant === "immersive") {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#E99856] text-[#1A1836] shadow-xs">
-          <Zap className="w-2.5 h-2.5 fill-[#1A1836] text-[#1A1836]" />
-          {t("home.sections.badge_flash")}
-        </span>
-      );
-    }
-    if (styleVariant === "glass") {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/50 backdrop-blur-md text-[#1A1836] border border-[#E0B4B2]/60">
-          {t("home.sections.badge_special")}
-        </span>
-      );
-    }
+  const resolveKickerLabel = (): string | null => {
+    if (section.themeName) return t(section.themeName, section.themeName);
+    if (styleVariant === "premium") return t("home.sections.badge_prestige");
+    if (styleVariant === "immersive") return t("home.sections.badge_flash");
+    if (styleVariant === "glass") return t("home.sections.badge_special");
     return null;
   };
+
+  const kickerLabel = resolveKickerLabel();
 
   const getButtonStyles = () => {
     if (isDarkBg) {
       return "bg-white/10 hover:bg-white/20 text-white border border-white/20";
     }
-    return "bg-white hover:bg-[#FAF7F6] text-[#1A1836] hover:text-[#622347] border border-[#EFE6E6] hover:border-[#E0B4B2] shadow-2xs font-semibold";
+    return "bg-white hover:bg-[#F7F8F6] text-[#0F1B1D] hover:text-[#0D5C4B] border border-[#D4DFD9] hover:border-[#0D5C4B]/50 shadow-2xs font-semibold";
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-4 sm:mb-6 pb-3 border-b border-[#EFE6E6] gap-3 group/header">
+    <div
+      className={`flex flex-col sm:flex-row sm:items-end justify-between mb-5 sm:mb-6 pb-3.5 border-b gap-3 group/header ${
+        isDarkBg ? "border-white/15" : "border-[#E3E9E5]"
+      }`}
+    >
       <div className="space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className={`text-xl sm:text-2xl font-display font-bold tracking-tight ${isDarkBg ? "text-white" : "text-[#1A1836]"}`}>
-            {titleText}
-          </h3>
-          {renderStyleBadge()}
-        </div>
+        {kickerLabel && (
+          <p
+            className={`text-xs font-semibold tracking-wide ${
+              isDarkBg ? "text-[#E59A42]" : "text-[#0D5C4B]"
+            }`}
+          >
+            {kickerLabel}
+          </p>
+        )}
+
+        <h3
+          className={`text-xl sm:text-2xl font-display font-bold tracking-tight text-balance ${
+            isDarkBg ? "text-white" : "text-[#0F1B1D]"
+          }`}
+        >
+          {titleText}
+        </h3>
 
         {subtitleText && (
-          <p className={`text-xs sm:text-sm font-medium ${isDarkBg ? "text-[#E0B4B2]" : "text-[#6E5A6F]"}`}>
+          <p className={`text-xs sm:text-sm font-medium ${isDarkBg ? "text-[#B8C8C4]" : "text-[#5F7073]"}`}>
             {subtitleText}
           </p>
         )}
@@ -98,7 +88,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({ section, isDarkBg 
         <button
           type="button"
           onClick={() => navigate(targetLink)}
-          className={`group flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 ${getButtonStyles()}`}
+          className={`group flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs transition-colors duration-200 cursor-pointer whitespace-nowrap shrink-0 ${getButtonStyles()}`}
         >
           <span>{seeMoreLabel}</span>
           <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 rtl:rotate-180 transition-transform" />
@@ -108,8 +98,8 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({ section, isDarkBg 
           <button
             type="button"
             onClick={() => navigate("/dashboard/admin/homepage")}
-            className={`text-[11px] font-semibold px-2 py-1 transition-colors cursor-pointer ${
-              isDarkBg ? "text-white/60 hover:text-white" : "text-[#9B879C] hover:text-[#622347]"
+            className={`text-xs font-semibold px-2 py-1 transition-colors cursor-pointer ${
+              isDarkBg ? "text-white/60 hover:text-white" : "text-[#839497] hover:text-[#0D5C4B]"
             }`}
           >
             {t("common.edit")}

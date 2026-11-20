@@ -62,9 +62,9 @@ export const NavbarDesktopActions: React.FC<NavbarDesktopActionsProps> = ({
           aria-expanded={isLangDropdownOpen}
           aria-haspopup="true"
           aria-label={t("nav.change_language", "Changer de langue")}
-          className="flex items-center gap-1.5 text-xs font-bold text-[#1A1836] hover:text-[#622347] hover:bg-[#FAF7F6] border border-[#EFE6E6] hover:border-[#E0B4B2] transition-all duration-200 h-10 px-3.5 bg-white rounded-full cursor-pointer whitespace-nowrap shrink-0 shadow-2xs"
+          className="flex items-center gap-1.5 text-xs font-bold text-[#0F1B1D] hover:text-[#0D5C4B] hover:bg-[#F7F8F6] border border-[#E3E9E5] hover:border-[#C3D3CB] transition-colors duration-200 h-10 px-3.5 bg-white rounded-full cursor-pointer whitespace-nowrap shrink-0 shadow-2xs"
         >
-          <Globe className="w-4 h-4 text-[#622347]" />
+          <Globe className="w-4 h-4 text-[#0D5C4B]" />
           <span className="uppercase">{lang ? lang.split("-")[0] : "fr"}</span>
         </button>
         {isLangDropdownOpen && (
@@ -73,7 +73,7 @@ export const NavbarDesktopActions: React.FC<NavbarDesktopActionsProps> = ({
               className="fixed inset-0 z-50 cursor-default"
               onClick={() => setIsLangDropdownOpen(false)}
             />
-            <div className="absolute top-full right-0 mt-2 bg-white border border-[#EFE6E6] shadow-xl z-[60] py-2 rounded-2xl min-w-[148px] overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="absolute top-full right-0 mt-2 bg-white border border-[#E3E9E5] shadow-xl z-[60] py-2 rounded-2xl min-w-[148px] overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
               {[
                 { code: "fr", name: "Français" },
                 { code: "ar", name: "العربية" },
@@ -86,15 +86,15 @@ export const NavbarDesktopActions: React.FC<NavbarDesktopActionsProps> = ({
                     setLang(l.code);
                     setIsLangDropdownOpen(false);
                   }}
-                  className={`w-full text-left rtl:text-right px-4 py-2.5 text-sm font-medium transition-colors bg-transparent border-none cursor-pointer flex items-center justify-between gap-2 hover:bg-[#FAF7F6] ${
+                  className={`w-full text-left rtl:text-right px-4 py-2.5 text-sm font-medium transition-colors bg-transparent border-none cursor-pointer flex items-center justify-between gap-2 hover:bg-[#F7F8F6] ${
                     lang === l.code
-                      ? "text-[#622347] font-bold"
-                      : "text-[#1A1836]/80"
+                      ? "text-[#0D5C4B] font-bold"
+                      : "text-[#0F1B1D]/80"
                   }`}
                 >
                   <span>{l.name}</span>
                   {lang === l.code && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#A54055]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#0D5C4B]" />
                   )}
                 </button>
               ))}
@@ -108,11 +108,11 @@ export const NavbarDesktopActions: React.FC<NavbarDesktopActionsProps> = ({
         type="button"
         onClick={() => setIsWishlistOpen(true)}
         aria-label={t("nav.my_wishlist", "Mes Favoris")}
-        className="hidden lg:flex items-center justify-center text-[#1A1836] hover:text-[#A54055] hover:bg-[#FAF7F6] border border-[#EFE6E6] hover:border-[#E0B4B2] transition-all duration-200 cursor-pointer relative bg-white w-10 h-10 rounded-full shadow-2xs"
+        className="hidden lg:flex items-center justify-center text-[#0F1B1D] hover:text-[#C83E4D] hover:bg-[#F7F8F6] border border-[#E3E9E5] hover:border-[#C3D3CB] transition-colors duration-200 cursor-pointer relative bg-white w-10 h-10 rounded-full shadow-2xs"
       >
-        <Heart className="w-5 h-5 stroke-[1.7] text-[#42164B]" />
+        <Heart className="w-5 h-5 stroke-[1.7] text-[#0F1B1D]" />
         {wishlist.length > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#A54055] text-white flex items-center justify-center text-[10px] font-bold shadow-xs border border-white tabular-nums">
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#C83E4D] text-white flex items-center justify-center text-[10px] font-bold shadow-xs border border-white tabular-nums">
             {wishlist.length}
           </span>
         )}
@@ -123,11 +123,11 @@ export const NavbarDesktopActions: React.FC<NavbarDesktopActionsProps> = ({
         type="button"
         onClick={() => setIsCartOpen(true)}
         aria-label={t("nav.my_cart", "Mon Panier")}
-        className="flex items-center justify-center text-[#1A1836] hover:text-[#622347] hover:bg-[#FAF7F6] border border-[#EFE6E6] hover:border-[#E0B4B2] transition-all duration-200 cursor-pointer relative bg-white w-10 h-10 rounded-full active:scale-95 shadow-2xs"
+        className="flex items-center justify-center text-[#0F1B1D] hover:text-[#0D5C4B] hover:bg-[#F7F8F6] border border-[#E3E9E5] hover:border-[#C3D3CB] transition-colors duration-200 cursor-pointer relative bg-white w-10 h-10 rounded-full active:scale-95 shadow-2xs"
       >
-        <ShoppingBag className="w-5 h-5 stroke-[1.8] text-[#1A1836]" />
+        <ShoppingBag className="w-5 h-5 stroke-[1.8] text-[#0F1B1D]" />
         {cartCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-gradient-to-r from-[#622347] to-[#A54055] text-white flex items-center justify-center text-[10px] font-black shadow-xs border border-white tabular-nums">
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#0D5C4B] text-white flex items-center justify-center text-[10px] font-black shadow-xs border border-white tabular-nums">
             {cartCount}
           </span>
         )}
@@ -148,8 +148,8 @@ export const NavbarDesktopActions: React.FC<NavbarDesktopActionsProps> = ({
           aria-label={t("nav.user_account", "Compte utilisateur")}
           className={`flex items-center justify-center transition-all duration-200 cursor-pointer w-10 h-10 rounded-full border shadow-2xs ${
             currentUser
-              ? "p-0.5 border-[#E0B4B2] hover:ring-2 hover:ring-[#622347]/25 hover:border-[#622347] bg-white"
-              : "text-[#1A1836] hover:text-[#622347] hover:bg-[#FAF7F6] border-[#EFE6E6] hover:border-[#E0B4B2] bg-white"
+              ? "p-0.5 border-[#C3D3CB] hover:ring-2 hover:ring-[#0D5C4B]/25 hover:border-[#0D5C4B] bg-white"
+              : "text-[#0F1B1D] hover:text-[#0D5C4B] hover:bg-[#F7F8F6] border-[#E3E9E5] hover:border-[#C3D3CB] bg-white"
           }`}
         >
           {currentUser ? (
@@ -162,7 +162,7 @@ export const NavbarDesktopActions: React.FC<NavbarDesktopActionsProps> = ({
               alt={userProfile?.displayName || t("nav.profile_alt", "Profil")}
             />
           ) : (
-            <UserIcon className="w-5 h-5 stroke-[1.7] text-[#42164B]" />
+            <UserIcon className="w-5 h-5 stroke-[1.7] text-[#0F1B1D]" />
           )}
         </button>
       </div>
@@ -171,10 +171,10 @@ export const NavbarDesktopActions: React.FC<NavbarDesktopActionsProps> = ({
       <button
         type="button"
         onClick={() => setIsMobileMenuOpen(true)}
-        className="hidden lg:flex items-center justify-center text-[#1A1836] hover:text-[#622347] hover:bg-[#FAF7F6] border border-[#EFE6E6] hover:border-[#E0B4B2] transition-all duration-200 cursor-pointer bg-white w-10 h-10 rounded-full shrink-0 shadow-2xs"
+        className="hidden lg:flex items-center justify-center text-[#0F1B1D] hover:text-[#0D5C4B] hover:bg-[#F7F8F6] border border-[#E3E9E5] hover:border-[#C3D3CB] transition-colors duration-200 cursor-pointer bg-white w-10 h-10 rounded-full shrink-0 shadow-2xs"
         title={t("nav.menu", "Menu")}
       >
-        <Menu className="w-5 h-5 stroke-[1.7] text-[#1A1836]" />
+        <Menu className="w-5 h-5 stroke-[1.7] text-[#0F1B1D]" />
       </button>
     </div>
   );

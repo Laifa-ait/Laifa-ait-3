@@ -170,21 +170,29 @@ export class MessagingService {
         throw new Error("QUOTE_REQUEST_ID_REQUIRED");
       }
 
-      const quoteDoc = await db.collection("bricolage_quote_requests").doc(context.quoteRequestId).get();
+      const quoteDoc = await db.collection("artisan_quote_requests").doc(context.quoteRequestId).get();
       if (!quoteDoc.exists) {
         throw new Error("QUOTE_REQUEST_NOT_FOUND");
       }
 
       const quoteData = quoteDoc.data() || {};
-      const customerId = quoteData.customerId;
-      const artisanId = quoteData.artisanId;
+      const customerId = quoteData.clientId || quoteData.customerId;
+      let artisanUid = quoteData.artisanUserId || quoteData.artisanId;
 
-      if (callerUid !== customerId && callerUid !== artisanId) {
+      if (!quoteData.artisanUserId && quoteData.artisanId) {
+        const artisanSnap = await db.collection("artisan_profiles").doc(quoteData.artisanId).get();
+        if (artisanSnap.exists) {
+          artisanUid = (artisanSnap.data() as { userId?: string })?.userId || artisanUid;
+        }
+      }
+
+      if (callerUid !== customerId && callerUid !== artisanUid) {
         throw new Error("FORBIDDEN_NOT_QUOTE_PARTICIPANT");
       }
 
-      verifiedRecipientId = callerUid === customerId ? artisanId : customerId;
-      referenceTitle = quoteData.categoryTitle || "Demande de devis";
+      verifiedRecipientId = callerUid === customerId ? artisanUid : customerId;
+      referenceTitle = quoteData.offerTitle || quoteData.title || quoteData.categoryTitle || "Demande de devis";
+      referenceImageUrl = quoteData.offerImageUrl || undefined;
     }
 
     if (callerUid === verifiedRecipientId) {
@@ -274,6 +282,13 @@ export class MessagingService {
         id: conversationId,
         ...newConvData
       };
+    }
+
+    if (type === "BRICOLAGE_QUOTE" && context.quoteRequestId) {
+      db.collection("artisan_quote_requests")
+        .doc(context.quoteRequestId)
+        .update({ conversationId, updatedAt: nowIso })
+        .catch(() => {});
     }
 
     // 3. Moderate and send initial message

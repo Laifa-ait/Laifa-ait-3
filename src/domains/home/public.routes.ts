@@ -48,9 +48,11 @@ router.post("/api/v1/logs/error", debugLimiter, async (req: Request, res: Respon
 });
 
 let publicProfilesCache: { timestamp: number; profiles: PublicShopDTO[] } | null = null;
-const PROFILES_CACHE_TTL_MS = 60 * 1000; // 60s TTL to prevent Firestore read amplification
+let inFlightPublicProfiles: Promise<PublicShopDTO[]> | null = null;
+const profileByIdCache = new Map<string, { timestamp: number; dto: PublicShopDTO | null }>();
+const PROFILES_CACHE_TTL_MS = 5 * 60 * 1000; // 5m TTL to prevent Firestore read amplification
 
-// GET public profiles list (Authoritative projection with strict whitelist & 60s cache)
+// GET public profiles list (Authoritative projection with strict whitelist & 5m cache)
 router.get("/api/v1/public-profiles", async (_req: Request, res: Response) => {
   try {
     if (
@@ -66,40 +68,48 @@ router.get("/api/v1/public-profiles", async (_req: Request, res: Response) => {
       return res.json({ success: true, profiles: [] });
     }
 
-    // 1. Select only active seller users up to a fixed limit of 100
-    const usersSnap = await db
-      .collection("users")
-      .where("role", "==", "seller")
-      .where("status", "==", USER_STATUSES.ACTIVE)
-      .limit(100)
-      .get();
+    if (!inFlightPublicProfiles) {
+      inFlightPublicProfiles = (async () => {
+        const usersSnap = await db
+          .collection("users")
+          .where("role", "==", "seller")
+          .where("status", "==", USER_STATUSES.ACTIVE)
+          .limit(100)
+          .get();
 
-    if (usersSnap.empty) {
-      safeLogger.info("/api/v1/public-profiles fetched public profiles", { count: 0 });
-      publicProfilesCache = { timestamp: Date.now(), profiles: [] };
-      return res.json({ success: true, profiles: [] });
+        if (usersSnap.empty) {
+          publicProfilesCache = { timestamp: Date.now(), profiles: [] };
+          return [];
+        }
+
+        const pubDocPromises = usersSnap.docs.map((doc) => db.collection("publicProfiles").doc(doc.id).get());
+        const pubDocs = await Promise.all(pubDocPromises);
+
+        const pubDocsMap = new Map<string, Record<string, unknown>>();
+        pubDocs.forEach((doc) => {
+          if (doc.exists) {
+            pubDocsMap.set(doc.id, doc.data() || {});
+          }
+        });
+
+        const now = Date.now();
+        const profiles: PublicShopDTO[] = usersSnap.docs.map((userDoc) => {
+          const userData = userDoc.data() || {};
+          const pubData = pubDocsMap.get(userDoc.id) || {};
+          const dto = buildWhitelistedShopDTO(userDoc.id, userData, pubData);
+          profileByIdCache.set(userDoc.id, { timestamp: now, dto });
+          return dto;
+        });
+
+        publicProfilesCache = { timestamp: now, profiles };
+        safeLogger.info("/api/v1/public-profiles fetched public profiles", { count: profiles.length });
+        return profiles;
+      })().finally(() => {
+        inFlightPublicProfiles = null;
+      });
     }
 
-    // 2. Load publicProfiles corresponding exactly to selected active sellers via bounded parallel get
-    const pubDocPromises = usersSnap.docs.map((doc) => db.collection("publicProfiles").doc(doc.id).get());
-    const pubDocs = await Promise.all(pubDocPromises);
-
-    const pubDocsMap = new Map<string, Record<string, unknown>>();
-    pubDocs.forEach((doc) => {
-      if (doc.exists) {
-        pubDocsMap.set(doc.id, doc.data() || {});
-      }
-    });
-
-    // 3. Build strictly whitelisted public shop DTOs
-    const profiles: PublicShopDTO[] = usersSnap.docs.map((userDoc) => {
-      const userData = userDoc.data() || {};
-      const pubData = pubDocsMap.get(userDoc.id) || {};
-      return buildWhitelistedShopDTO(userDoc.id, userData, pubData);
-    });
-
-    publicProfilesCache = { timestamp: Date.now(), profiles };
-    safeLogger.info("/api/v1/public-profiles fetched public profiles", { count: profiles.length });
+    const profiles = await inFlightPublicProfiles;
     return res.json({ success: true, profiles });
   } catch (err: unknown) {
     safeLogger.error("Error fetching public profiles", {
@@ -109,7 +119,7 @@ router.get("/api/v1/public-profiles", async (_req: Request, res: Response) => {
   }
 });
 
-// POST /api/v1/public-profiles (Batch lookup for checkout & cart - max 20 IDs)
+// POST /api/v1/public-profiles (Batch lookup for checkout & cart - max 20 IDs, cached per ID for 5m)
 router.post("/api/v1/public-profiles", async (req: Request, res: Response) => {
   try {
     const rawIds = req.body?.ids;
@@ -130,37 +140,59 @@ router.post("/api/v1/public-profiles", async (req: Request, res: Response) => {
       return res.json({ success: true, profiles: {} });
     }
 
-    const userDocPromises = sellerIds.map((id) => db.collection("users").doc(id).get());
-    const pubDocPromises = sellerIds.map((id) => db.collection("publicProfiles").doc(id).get());
-
-    const [userDocs, pubDocs] = await Promise.all([
-      Promise.all(userDocPromises),
-      Promise.all(pubDocPromises),
-    ]);
-
-    const pubDocsMap = new Map<string, Record<string, unknown>>();
-    pubDocs.forEach((doc) => {
-      if (doc.exists) {
-        pubDocsMap.set(doc.id, doc.data() || {});
-      }
-    });
-
+    const now = Date.now();
+    const useCache = process.env.NODE_ENV !== "test";
     const profilesMap: Record<string, PublicShopDTO> = {};
-    userDocs.forEach((userDoc) => {
-      if (userDoc.exists) {
-        const userData = userDoc.data() || {};
-        const pubData = pubDocsMap.get(userDoc.id) || {};
-        profilesMap[userDoc.id] = buildWhitelistedShopDTO(userDoc.id, userData, pubData);
+    const missingIds: string[] = [];
+
+    for (const id of sellerIds) {
+      const cached = useCache ? profileByIdCache.get(id) : undefined;
+      if (cached && now - cached.timestamp < PROFILES_CACHE_TTL_MS) {
+        if (cached.dto) profilesMap[id] = cached.dto;
       } else {
-        const pubData = pubDocsMap.get(userDoc.id);
-        if (pubData) {
-          profilesMap[userDoc.id] = buildWhitelistedShopDTO(userDoc.id, {}, pubData);
-        }
+        missingIds.push(id);
       }
-    });
+    }
+
+    if (missingIds.length > 0) {
+      const userDocPromises = missingIds.map((id) => db.collection("users").doc(id).get());
+      const pubDocPromises = missingIds.map((id) => db.collection("publicProfiles").doc(id).get());
+
+      const [userDocs, pubDocs] = await Promise.all([
+        Promise.all(userDocPromises),
+        Promise.all(pubDocPromises),
+      ]);
+
+      const pubDocsMap = new Map<string, Record<string, unknown>>();
+      pubDocs.forEach((doc) => {
+        if (doc.exists) {
+          pubDocsMap.set(doc.id, doc.data() || {});
+        }
+      });
+
+      if (profileByIdCache.size > 500) profileByIdCache.clear();
+
+      userDocs.forEach((userDoc, idx) => {
+        const id = userDoc.id || missingIds[idx];
+        let dto: PublicShopDTO | null = null;
+        if (userDoc.exists) {
+          const userData = userDoc.data() || {};
+          const pubData = pubDocsMap.get(id) || {};
+          dto = buildWhitelistedShopDTO(id, userData, pubData);
+        } else {
+          const pubData = pubDocsMap.get(id);
+          if (pubData) {
+            dto = buildWhitelistedShopDTO(id, {}, pubData);
+          }
+        }
+        if (dto) profilesMap[id] = dto;
+        if (useCache) profileByIdCache.set(id, { timestamp: now, dto });
+      });
+    }
 
     safeLogger.info("/api/v1/public-profiles batch fetched profiles", {
       requested: sellerIds.length,
+      fetchedFromDb: missingIds.length,
       found: Object.keys(profilesMap).length,
     });
     return res.json({ success: true, profiles: profilesMap });

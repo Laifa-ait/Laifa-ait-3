@@ -145,6 +145,9 @@ const handleQuoteRequest = async (req: AuthenticatedRequest, res: Response) => {
     const clientEmail = req.user?.email || req.body.clientEmail || "";
     const {
       artisanId,
+      offerId,
+      offerTitle,
+      offerImageUrl,
       clientName,
       clientPhone,
       tradeId,
@@ -159,19 +162,22 @@ const handleQuoteRequest = async (req: AuthenticatedRequest, res: Response) => {
       estimatedBudget,
     } = req.body;
 
-    if (!artisanId || !clientName || !clientPhone || !wilaya || !commune || !description) {
+    if (!artisanId || !clientName || !wilaya || !commune || !description) {
       return res.status(400).json({
-        error: "Veuillez fournir toutes les informations requises (artisan, nom, téléphone, wilaya, commune, description).",
+        error: "Veuillez fournir toutes les informations requises (artisan, nom, wilaya, commune, description).",
       });
     }
 
     const result = await ArtisanServiceLayer.submitQuoteRequest(clientId, clientEmail, {
       artisanId,
+      offerId,
+      offerTitle,
+      offerImageUrl,
       clientName,
       clientPhone,
       tradeId: tradeId || "",
       serviceTitle,
-      title: title || `Demande pour ${serviceTitle || "Prestation"}`,
+      title: title || `Demande pour ${offerTitle || serviceTitle || "Prestation"}`,
       description,
       wilaya,
       commune,
@@ -245,17 +251,21 @@ artisanUserRouter.get("/artisans/me/requests", authenticateToken, handleGetArtis
 artisanUserRouter.get("/artisans/quotes/my-quotes", authenticateToken, handleGetArtisanRequests);
 
 /**
- * PUT /api/v1/artisans/me/requests/:id/status & PUT /api/v1/artisans/quotes/:id/status (Artisan updates request status)
+ * PUT /api/v1/artisans/me/requests/:id/status & PUT /api/v1/artisans/quotes/:id/status
  */
 const handleUpdateRequestStatus = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const uid = req.user?.uid;
     const { id } = req.params;
-    const { status, artisanResponse } = req.body;
+    const { status, artisanResponse, artisanNotes, proposedPriceDzd, estimatedPrice, proposedDelay } = req.body;
 
     if (!uid) return res.status(401).json({ error: "Utilisateur non authentifié" });
 
-    const result = await ArtisanServiceLayer.updateQuoteRequestStatus(uid, id, status, artisanResponse);
+    const result = await ArtisanServiceLayer.updateQuoteRequestStatus(uid, id, status, {
+      artisanResponse: artisanResponse ?? artisanNotes,
+      proposedPriceDzd: proposedPriceDzd ?? estimatedPrice,
+      proposedDelay,
+    });
     if (!result.success) {
       return res.status(400).json({ error: result.error || "Impossible de mettre à jour la demande" });
     }

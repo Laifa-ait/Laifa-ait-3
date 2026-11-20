@@ -7,6 +7,10 @@ import { safeLogger } from "../utils/logger";
 import { queryKeys } from "../lib/queryKeys";
 import { productsApi } from "../services/api/products.api";
 import { deduplicateCategoryHierarchy, deduplicateCategoryOrder } from "../utils/categoryCanonical";
+import { fetchWithClientCache, invalidateClientReadCache } from "../utils/clientReadCache";
+
+const CATEGORIES_CACHE_KEY = "settings:categories:v1";
+const CATEGORIES_CLIENT_TTL_MS = 15 * 60 * 1000;
 
 interface ShopContextType {
   fetchFeaturedProducts: (nbLimit?: number) => Promise<Product[]>;
@@ -45,13 +49,25 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [categoryHierarchy, setCategoryHierarchy] =
     useState<Record<string, Record<string, string[]>>>(PRODUCT_HIERARCHY);
 
-  const refreshHierarchy = async () => {
+  const refreshHierarchy = async (forceRefresh = false) => {
     try {
-      const data = await apiGet<{
+      if (forceRefresh) {
+        invalidateClientReadCache(CATEGORIES_CACHE_KEY);
+      }
+      const data = await fetchWithClientCache<{
         hierarchy?: Record<string, Record<string, string[]>>;
         sortOrder?: string[];
         isCustomized?: boolean;
-      }>("/api/v1/settings/categories");
+      }>(
+        CATEGORIES_CACHE_KEY,
+        () =>
+          apiGet<{
+            hierarchy?: Record<string, Record<string, string[]>>;
+            sortOrder?: string[];
+            isCustomized?: boolean;
+          }>("/api/v1/settings/categories"),
+        CATEGORIES_CLIENT_TTL_MS
+      );
       if (data && data.hierarchy && Object.keys(data.hierarchy).length > 0) {
         const mergedInput: Record<string, Record<string, string[]>> = data.isCustomized
           ? { ...data.hierarchy }
@@ -77,7 +93,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
-      refreshHierarchy();
+      void refreshHierarchy(false);
     }, 650);
     return () => clearTimeout(timer);
   }, []);

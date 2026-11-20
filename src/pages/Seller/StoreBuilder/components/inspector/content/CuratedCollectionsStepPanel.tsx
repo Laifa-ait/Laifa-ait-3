@@ -49,15 +49,15 @@ export const CuratedCollectionsStepPanel: React.FC<CuratedCollectionsStepPanelPr
   return (
     <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-xs font-bold text-[#011C40] flex items-center gap-1.5">
-          <Layers className="w-3.5 h-3.5 text-[#023859]" />
+        <h3 className="text-xs font-bold text-[var(--studio-black)] flex items-center gap-1.5">
+          <Layers className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
           <span>Collections ({collections.length}/16)</span>
         </h3>
         <button
           type="button"
           disabled={collections.length >= 16}
           onClick={onAdd}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold cursor-pointer disabled:opacity-40 whitespace-nowrap shrink-0"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--studio-primary)] hover:bg-[var(--studio-primary-hover)] text-[var(--studio-white)] text-[11px] font-bold cursor-pointer disabled:opacity-40 whitespace-nowrap shrink-0"
         >
           <Plus className="h-3.5 w-3.5" />
           <span>Ajouter</span>
@@ -77,7 +77,7 @@ export const CuratedCollectionsStepPanel: React.FC<CuratedCollectionsStepPanelPr
           <div
             key={String(collection.id || index)}
             className={`space-y-2.5 rounded-xl border p-3 transition-all ${
-              isHighlighted ? "border-[#023859] bg-[#F0F7FA]/60" : "border-slate-200 bg-white"
+              isHighlighted ? "border-[var(--studio-primary)] bg-[var(--studio-highlight-soft)]" : "border-[var(--studio-border)] bg-[var(--studio-white)]"
             }`}
           >
             <div className="flex gap-2">
@@ -166,7 +166,7 @@ export const CuratedCollectionsStepPanel: React.FC<CuratedCollectionsStepPanelPr
                                 : ids.filter((id) => id !== product.id),
                             })
                           }
-                          className="accent-[#023859] shrink-0"
+                          className="accent-[var(--studio-primary)] shrink-0"
                         />
                         <span className="truncate">{product.name}</span>
                       </span>
@@ -182,7 +182,7 @@ export const CuratedCollectionsStepPanel: React.FC<CuratedCollectionsStepPanelPr
                   <button
                     type="button"
                     onClick={() => setVisibleLimit((prev) => prev + 40)}
-                    className="w-full py-1 text-[10.5px] font-semibold text-[#023859] cursor-pointer"
+                    className="w-full py-1 text-[10.5px] font-semibold text-[var(--studio-primary)] cursor-pointer"
                   >
                     + Voir {Math.min(40, products.length - visibleLimit)} autres
                   </button>

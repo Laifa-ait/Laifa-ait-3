@@ -153,11 +153,12 @@ export class SupportAdminMessageService {
       finalMessagePayload = messageData;
     });
 
-    await db.collection("adminActions").add({
+    await db.collection("audit_logs").add({
       action: "support-message-sent",
-      uid: adminUid,
-      email: adminEmail || "inconnu",
-      ticketId,
+      adminId: adminUid,
+      adminEmail: adminEmail || "inconnu",
+      targetId: ticketId,
+      resourceType: "support_ticket",
       isInternal: !!isInternal,
       timestamp: admin.firestore.FieldValue.serverTimestamp()
     });

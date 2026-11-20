@@ -150,11 +150,12 @@ export class SupportTicketService {
       });
     });
 
-    await db.collection("adminActions").add({
+    await db.collection("audit_logs").add({
       action: "support-status-updated",
-      uid: adminUid,
-      email: adminEmail || "inconnu",
-      ticketId,
+      adminId: adminUid,
+      adminEmail: adminEmail || "inconnu",
+      targetId: ticketId,
+      resourceType: "support_ticket",
       newStatus: status,
       timestamp: admin.firestore.FieldValue.serverTimestamp()
     });
@@ -191,11 +192,12 @@ export class SupportTicketService {
       });
     });
 
-    await db.collection("adminActions").add({
+    await db.collection("audit_logs").add({
       action: "support-priority-updated",
-      uid: adminUid,
-      email: adminEmail || "inconnu",
-      ticketId,
+      adminId: adminUid,
+      adminEmail: adminEmail || "inconnu",
+      targetId: ticketId,
+      resourceType: "support_ticket",
       newPriority: priority,
       timestamp: admin.firestore.FieldValue.serverTimestamp()
     });

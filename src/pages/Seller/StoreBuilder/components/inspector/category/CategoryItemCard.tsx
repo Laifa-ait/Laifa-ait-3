@@ -17,6 +17,7 @@ import { Product } from "../../../../../../domains/product/product.types";
 import { CustomPageSection } from "../../../../../../domains/seller/customPage.types";
 import { CategoryProductAssigner } from "./CategoryProductAssigner";
 import { StudioImagePicker } from "../content/StudioImagePicker";
+import { DEFAULT_MODERN_THEME } from "../../../constants/studioThemeDefaults";
 import { SmartLinkPicker } from "../controls/SmartLinkPicker";
 import {
   countMatchingProductsForCategory,
@@ -43,12 +44,12 @@ interface CategoryItemCardProps {
 }
 
 const BADGE_COLORS = [
-  { label: "Bleu Olmart", hex: "#023859" },
-  { label: "Vert", hex: "#10B981" },
-  { label: "Azurin", hex: "#2563EB" },
-  { label: "Rouge", hex: "#E11D48" },
-  { label: "Violet", hex: "#8B5CF6" },
-  { label: "Or", hex: "#D97706" },
+  { label: "Obsidian Slate", hex: DEFAULT_MODERN_THEME.primaryColor },
+  { label: "Cobalt", hex: DEFAULT_MODERN_THEME.accentColor },
+  { label: "Émeraude", hex: "#10B981" },
+  { label: "Rose Corail", hex: "#E11D48" },
+  { label: "Indigo", hex: "#6366F1" },
+  { label: "Graphite", hex: "#334155" },
 ];
 
 export const CategoryItemCard: React.FC<CategoryItemCardProps> = ({
@@ -73,20 +74,20 @@ export const CategoryItemCard: React.FC<CategoryItemCardProps> = ({
   return (
     <div
       className={`rounded-xl border transition-all ${
-        !isVisible ? "border-slate-200 bg-slate-50/70 opacity-65" : isExpanded ? "border-[#023859] bg-white shadow-sm ring-1 ring-[#023859]/15" : "border-slate-200 bg-white"
+        !isVisible ? "border-slate-200 bg-slate-50/70 opacity-65" : isExpanded ? "border-[var(--studio-primary)] bg-white shadow-sm ring-1 ring-[var(--studio-primary)]/15" : "border-slate-200 bg-white"
       }`}
     >
       <div className="p-2.5 flex items-center justify-between gap-2 cursor-pointer select-none" onClick={onToggleExpand}>
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center relative">
             <img src={resolvedThumb} alt={cat.name} onError={(e) => handleCategoryImageError(e, index)} className="w-full h-full object-cover" />
-            <span className="absolute bottom-0 right-0 bg-slate-900/80 text-white text-[9px] font-bold px-1 rounded-tl">#{index + 1}</span>
+            <span className="absolute bottom-0 right-0 bg-slate-900/80 text-white text-[9px] font-bold px-1 rounded-tl tabular-nums">#{index + 1}</span>
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-xs font-bold text-slate-900 truncate">{cat.name || `Carte #${index + 1}`}</span>
               {cat.badge && (
-                <span style={{ backgroundColor: cat.badgeColor || "#023859" }} className="px-1.5 py-0.5 rounded text-[9px] font-bold text-white leading-none">
+                <span style={{ backgroundColor: cat.badgeColor || DEFAULT_MODERN_THEME.primaryColor }} className="px-1.5 py-0.5 rounded text-[9px] font-bold text-white leading-none">
                   {cat.badge}
                 </span>
               )}
@@ -121,10 +122,10 @@ export const CategoryItemCard: React.FC<CategoryItemCardProps> = ({
 
           <div className="p-2 rounded-lg bg-white border border-slate-200 space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-700 flex items-center gap-1"><Focus className="w-3 h-3 text-[#023859]" />Cadrage de cette photo (Mobile / PC)</span>
+              <span className="text-[10px] font-bold text-slate-700 flex items-center gap-1"><Focus className="w-3 h-3 text-[var(--studio-primary)]" />Cadrage de cette photo (Mobile / PC)</span>
               <div className="inline-flex rounded border border-slate-200 p-0.5 bg-slate-50">
                 {(["cover", "contain"] as const).map((fit) => (
-                  <button key={fit} type="button" onClick={() => onUpdate({ imageFit: fit })} className={`px-1.5 py-0.5 rounded text-[9px] font-bold cursor-pointer ${currentFit === fit ? "bg-[#023859] text-white" : "text-slate-600"}`}>
+                  <button key={fit} type="button" onClick={() => onUpdate({ imageFit: fit })} className={`px-1.5 py-0.5 rounded text-[9px] font-bold cursor-pointer ${currentFit === fit ? "bg-[var(--studio-primary)] text-white" : "text-slate-600"}`}>
                     {fit === "cover" ? "Remplir" : "Entier"}
                   </button>
                 ))}
@@ -132,7 +133,7 @@ export const CategoryItemCard: React.FC<CategoryItemCardProps> = ({
             </div>
             <div className="grid grid-cols-3 gap-1">
               {([{ id: "top", label: "Haut" }, { id: "center", label: "Centre" }, { id: "bottom", label: "Bas" }] as const).map((pos) => (
-                <button key={pos.id} type="button" onClick={() => onUpdate({ imagePosition: pos.id })} className={`py-1 rounded border text-[10px] font-bold cursor-pointer ${currentPos === pos.id ? "bg-[#F0F7FA] border-[#023859] text-[#011C40]" : "bg-slate-50 border-slate-200 text-slate-600"}`}>
+                <button key={pos.id} type="button" onClick={() => onUpdate({ imagePosition: pos.id })} className={`py-1 rounded border text-[10px] font-bold cursor-pointer ${currentPos === pos.id ? "bg-[var(--studio-highlight-soft)] border-[var(--studio-primary)] text-[var(--studio-black)]" : "bg-slate-50 border-slate-200 text-slate-600"}`}>
                   Focus {pos.label}
                 </button>
               ))}
@@ -150,7 +151,7 @@ export const CategoryItemCard: React.FC<CategoryItemCardProps> = ({
                 <input value={cat.subtitle || ""} onChange={(e) => onUpdate({ subtitle: e.target.value })} placeholder="Ex: Nouvelle collection" className={`${inputClass} mt-1`} />
               </label>
               <label className="text-[11px] font-semibold text-slate-700 block">
-                <span className="flex items-center gap-1"><Hash className="w-3 h-3 text-[#023859]" /><span>Nb. articles</span></span>
+                <span className="flex items-center gap-1"><Hash className="w-3 h-3 text-[var(--studio-primary)]" /><span>Nb. articles</span></span>
                 <input type="number" min={0} value={cat.itemCount ?? ""} onChange={(e) => onUpdate({ itemCount: e.target.value === "" ? undefined : Number(e.target.value) })} placeholder="Auto" className={`${inputClass} mt-1`} />
               </label>
             </div>
@@ -159,13 +160,13 @@ export const CategoryItemCard: React.FC<CategoryItemCardProps> = ({
           <SmartLinkPicker label={`Lien cible de la Carte #${index + 1}`} value={cat.link || `#rayon:${cat.slug || `rayon-${index + 1}`}`} onChange={(href) => onUpdate({ link: href })} products={products} sections={sections} />
 
           <div className="space-y-1.5 p-2.5 rounded-lg bg-white border border-slate-200">
-            <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1"><Tag className="w-3 h-3 text-[#023859]" /><span>Badge commercial</span></span>
+            <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1"><Tag className="w-3 h-3 text-[var(--studio-primary)]" /><span>Badge commercial</span></span>
             <div className="flex flex-wrap gap-1">
               {QUICK_CATEGORY_BADGES.map((presetBadge) => {
                 const isNone = presetBadge === "Aucun";
                 const isSelected = isNone ? !cat.badge : cat.badge === presetBadge;
                 return (
-                  <button key={presetBadge} type="button" onClick={() => onUpdate({ badge: isNone ? "" : presetBadge })} className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${isSelected ? "bg-[#023859] border-[#023859] text-white" : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"}`}>
+                  <button key={presetBadge} type="button" onClick={() => onUpdate({ badge: isNone ? "" : presetBadge })} className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${isSelected ? "bg-[var(--studio-primary)] border-[var(--studio-primary)] text-white" : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"}`}>
                     {presetBadge}
                   </button>
                 );
@@ -181,7 +182,7 @@ export const CategoryItemCard: React.FC<CategoryItemCardProps> = ({
                 {CATEGORY_ICON_CATALOG.slice(0, 5).map((item) => {
                   const ItemIcon = item.icon;
                   return (
-                    <button key={item.name} type="button" onClick={() => onUpdate({ iconName: item.name })} className={`p-1 rounded cursor-pointer ${cat.iconName === item.name ? "bg-[#023859] text-white" : "text-slate-500 hover:bg-slate-100"}`} title={item.name}>
+                    <button key={item.name} type="button" onClick={() => onUpdate({ iconName: item.name })} className={`p-1 rounded cursor-pointer ${cat.iconName === item.name ? "bg-[var(--studio-primary)] text-white" : "text-slate-500 hover:bg-slate-100"}`} title={item.name}>
                       <ItemIcon className="w-3 h-3" />
                     </button>
                   );

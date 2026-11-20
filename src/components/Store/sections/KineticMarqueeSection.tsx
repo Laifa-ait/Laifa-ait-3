@@ -40,7 +40,7 @@ export const KineticMarqueeSection: React.FC<KineticMarqueeSectionProps> = ({
   const [isPaused, setIsPaused] = useState(false);
   const rawSettings = (section.settings || {}) as unknown as Record<string, unknown>;
   const settings: KineticMarqueeSettings = section.settings || {
-    textFr: "FAIT MAIN EN ALGÉRIE • ÉDITION LIMITÉE • LIVRAISON 69 WILAYAS",
+    textFr: "COLLECTION CONTEMPORAINE • ÉDITION STUDIO • LIVRAISON NATIONALE",
   };
   const styles = section.styles || {};
 
@@ -51,21 +51,21 @@ export const KineticMarqueeSection: React.FC<KineticMarqueeSectionProps> = ({
 
   const textFr = hasExplicitEmptyText
     ? ""
-    : settings.textFr || "FAIT MAIN EN ALGÉRIE • ÉDITION LIMITÉE • LIVRAISON 69 WILAYAS";
+    : settings.textFr || "COLLECTION CONTEMPORAINE • ÉDITION STUDIO • LIVRAISON NATIONALE";
   const textAr =
-    settings.textAr || "صنع بحب في الجزائر • إصدار محدود • توصيل لجميع الولايات";
+    settings.textAr || "تشكيلة عصرية • إصدار ستوديو • توصيل وطني سريع";
   const showBilingual = settings.showBilingual !== false && Boolean(textAr) && !hasExplicitEmptyText;
   const speed = settings.speed || "normal";
   const textStyle = settings.textStyle || "alternating";
-  const separator = settings.separator || "star";
+  const separator = settings.separator || "dot";
   const direction = settings.direction || "ltr";
   const tiltDeg = settings.tiltDeg ?? 0;
   const uppercase = settings.uppercase !== false;
 
   const durationSec = speed === "slow" ? 36 : speed === "fast" ? 13 : 22;
-  const bgColor = styles.backgroundColor || theme.secondaryColor || "#011C40";
+  const bgColor = styles.backgroundColor || theme.secondaryColor || "#0F172A";
   const textColor = styles.headingColor || styles.textColor || "#FFFFFF";
-  const secondaryTextColor = styles.subtitleColor || styles.kickerColor || theme.accentColor || theme.primaryColor || "#F59E0B";
+  const secondaryTextColor = styles.subtitleColor || styles.kickerColor || theme.accentColor || theme.primaryColor || "#94A3B8";
   const glyphColor = styles.iconColor || secondaryTextColor;
 
   const letterSpacingEm =
@@ -138,7 +138,7 @@ export const KineticMarqueeSection: React.FC<KineticMarqueeSectionProps> = ({
               e.stopPropagation();
               setIsPaused((prev) => !prev);
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-black/45 hover:bg-black/70 text-white flex items-center justify-center border border-white/20 cursor-pointer"
+            className="absolute end-2 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-black/45 hover:bg-black/70 text-white flex items-center justify-center border border-white/20 cursor-pointer"
           >
             {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
           </button>
@@ -187,7 +187,7 @@ export const KineticMarqueeSection: React.FC<KineticMarqueeSectionProps> = ({
                         dir="rtl"
                         className="text-base @sm:text-xl @md:text-2xl font-bold"
                         style={{
-                          fontFamily: "'Amiri', 'Reem Kufi', Georgia, serif",
+                          fontFamily: "'Cairo', system-ui, sans-serif",
                           ...(isHollow
                             ? {
                                 WebkitTextStroke: `1px ${secondaryTextColor}`,

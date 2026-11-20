@@ -39,7 +39,7 @@ export const CategoryBentoGrid: React.FC<CategoryBentoGridProps> = ({
                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-400 to-amber-600" />
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-950" />
             )}
             <div
               className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"
@@ -49,8 +49,8 @@ export const CategoryBentoGrid: React.FC<CategoryBentoGridProps> = ({
               <div className="flex justify-between items-start">
                 {showBadge && Boolean(cat.badge) && (
                   <span
-                    className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-xs"
-                    style={{ backgroundColor: cat.badgeColor || "#F97316" }}
+                    className="px-2 py-0.5 rounded-sm text-[10px] font-bold tracking-wider uppercase shadow-xs"
+                    style={{ backgroundColor: cat.badgeColor || "#0F172A" }}
                   >
                     {cat.badge}
                   </span>
@@ -64,7 +64,7 @@ export const CategoryBentoGrid: React.FC<CategoryBentoGridProps> = ({
                   <p className="text-xs text-slate-200 mt-0.5 line-clamp-1 drop-shadow-xs">{cat.subtitle}</p>
                 )}
                 {showCount && Boolean(cat.itemCount) && (
-                  <span className="text-[11px] text-orange-300 font-medium mt-1 inline-block">
+                  <span className="text-[11px] text-sky-300 font-medium mt-1 inline-block tabular-nums">
                     {cat.itemCount} articles répertoriés
                   </span>
                 )}

@@ -1,26 +1,38 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FileText, Tag, Camera, Settings, RefreshCw, Send } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import React, { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { RefreshCw } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 import {
   fetchMyArtisanProfile,
   fetchArtisanMyQuotes,
+  fetchArtisanTrades,
   updateArtisanMyProfile,
-} from '../../services/artisan.api';
-import { ArtisanProfile, ArtisanQuoteRequest } from '../../types/artisan';
-import { ArtisanNavbar } from '../../components/artisans/ArtisanNavbar';
-import { ArtisanDashboardHeader } from '../../components/artisans/dashboard/ArtisanDashboardHeader';
-import { ArtisanQuotesTab } from '../../components/artisans/dashboard/ArtisanQuotesTab';
-import { ArtisanServicesTab } from '../../components/artisans/dashboard/ArtisanServicesTab';
-import { ArtisanPortfolioTab } from '../../components/artisans/dashboard/ArtisanPortfolioTab';
-import { ArtisanSettingsTab } from '../../components/artisans/dashboard/ArtisanSettingsTab';
+} from "../../services/artisan.api";
+import { fetchMyArtisanOffers } from "../../services/artisanOffers.api";
+import { ArtisanProfile, ArtisanQuoteRequest, ArtisanTrade } from "../../types/artisan";
+import { ArtisanOffer } from "../../types/artisanOffers";
+import {
+  ArtisanDashboardLayout,
+  ArtisanDashboardTab,
+} from "../../components/artisans/dashboard/ArtisanDashboardLayout";
+import { ArtisanOverviewTab } from "../../components/artisans/dashboard/ArtisanOverviewTab";
+import { ArtisanOffersTab } from "../../components/artisans/dashboard/ArtisanOffersTab";
+import { ArtisanOfferForm } from "../../components/artisans/dashboard/ArtisanOfferForm";
+import { ArtisanQuotesTab } from "../../components/artisans/dashboard/ArtisanQuotesTab";
+import { ArtisanAdsCampaignTab } from "../../components/artisans/dashboard/ArtisanAdsCampaignTab";
+import { ArtisanSettingsTab } from "../../components/artisans/dashboard/ArtisanSettingsTab";
+import { ArtisanIntegratedInbox } from "../../components/artisans/messaging/ArtisanIntegratedInbox";
 
 export const ArtisanDashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<ArtisanProfile | null>(null);
+  const [offers, setOffers] = useState<ArtisanOffer[]>([]);
   const [quotes, setQuotes] = useState<ArtisanQuoteRequest[]>([]);
-  const [activeTab, setActiveTab] = useState<'quotes' | 'services' | 'portfolio' | 'settings'>('quotes');
+  const [trades, setTrades] = useState<ArtisanTrade[]>([]);
+  const [activeTab, setActiveTab] = useState<ArtisanDashboardTab>("overview");
+  const [editingOffer, setEditingOffer] = useState<ArtisanOffer | null>(null);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingAvailability, setUpdatingAvailability] = useState(false);
 
@@ -30,27 +42,32 @@ export const ArtisanDashboardPage: React.FC = () => {
     try {
       const myProf = await fetchMyArtisanProfile();
       if (!myProf) {
-        navigate('/artisans/devenir-artisan', { replace: true });
+        navigate("/artisans/devenir-artisan", { replace: true });
         return;
       }
       setProfile(myProf);
 
-      const quotesData = await fetchArtisanMyQuotes();
-      setQuotes(quotesData);
-    } catch (err) {
-      console.error('Error loading artisan dashboard', err);
+      const [myOffers, myQuotes, tradesList] = await Promise.all([
+        fetchMyArtisanOffers(),
+        fetchArtisanMyQuotes(),
+        fetchArtisanTrades(),
+      ]);
+      setOffers(myOffers);
+      setQuotes(myQuotes);
+      setTrades(tradesList);
     } finally {
       setLoading(false);
     }
   }, [currentUser, navigate]);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!currentUser) {
-      navigate('/auth?redirect=/artisans/dashboard');
+      navigate("/auth?redirect=/artisans/dashboard");
       return;
     }
     loadData();
-  }, [currentUser, loadData, navigate]);
+  }, [currentUser, authLoading, loadData, navigate]);
 
   const handleToggleAvailability = async () => {
     if (!profile) return;
@@ -64,101 +81,102 @@ export const ArtisanDashboardPage: React.FC = () => {
     }
   };
 
-  if (loading && !profile) {
+  if ((loading || authLoading) && !profile) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <RefreshCw className="w-6 h-6 animate-spin text-amber-600" />
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <RefreshCw className="w-6 h-6 animate-spin text-[#1E3A8A]" />
       </div>
     );
   }
 
   if (!profile) return null;
 
+  const pendingQuotesCount = quotes.filter((q) => q.status === "pending").length;
+
   return (
-    <div id="artisan-dashboard-page" className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <ArtisanNavbar activeTab="dashboard" />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
-        <ArtisanDashboardHeader
+    <ArtisanDashboardLayout
+      profile={profile}
+      activeTab={activeTab}
+      onSelectTab={(tab) => {
+        if (tab === "publish" && activeTab !== "publish") {
+          setEditingOffer(null);
+        }
+        setActiveTab(tab);
+      }}
+      offersCount={offers.length}
+      pendingQuotesCount={pendingQuotesCount}
+      updatingAvailability={updatingAvailability}
+      onToggleAvailability={handleToggleAvailability}
+    >
+      {activeTab === "overview" && (
+        <ArtisanOverviewTab
           profile={profile}
-          onToggleAvailability={handleToggleAvailability}
-          updatingAvailability={updatingAvailability}
+          offers={offers}
+          quotes={quotes}
+          onNavigateTab={(tab) => {
+            if (tab === "publish") setEditingOffer(null);
+            setActiveTab(tab);
+          }}
         />
+      )}
 
-        {/* Dashboard Tabs Navigation */}
-        <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
-          <button
-            type="button"
-            onClick={() => navigate(`/artisans/annonces?tradeId=${encodeURIComponent(profile.tradeId)}`)}
-            className="px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shrink-0 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 shadow-xs"
-          >
-            <Send className="w-4 h-4" />
-            <span>Chantiers & Annonces</span>
-          </button>
+      {activeTab === "offers" && (
+        <ArtisanOffersTab
+          offers={offers}
+          onCreateNew={() => {
+            setEditingOffer(null);
+            setActiveTab("publish");
+          }}
+          onEditOffer={(offer) => {
+            setEditingOffer(offer);
+            setActiveTab("publish");
+          }}
+          onRefresh={loadData}
+        />
+      )}
 
-          <button
-            onClick={() => setActiveTab('quotes')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shrink-0 ${
-              activeTab === 'quotes'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            <span>Demandes de Devis ({quotes.length})</span>
-          </button>
+      {activeTab === "publish" && (
+        <ArtisanOfferForm
+          profile={profile}
+          trades={trades}
+          editingOffer={editingOffer}
+          onSaved={async () => {
+            setEditingOffer(null);
+            await loadData();
+            setActiveTab("offers");
+          }}
+          onCancel={() => {
+            setEditingOffer(null);
+            setActiveTab("offers");
+          }}
+        />
+      )}
 
-          <button
-            onClick={() => setActiveTab('services')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shrink-0 ${
-              activeTab === 'services'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Tag className="w-4 h-4" />
-            <span>Prestations & Tarifs ({(profile.services || []).length})</span>
-          </button>
+      {activeTab === "quotes" && (
+        <ArtisanQuotesTab
+          quotes={quotes}
+          onRefreshQuotes={loadData}
+          onOpenChat={(convId) => {
+            if (convId) setSelectedConversationId(convId);
+            setActiveTab("messages");
+          }}
+        />
+      )}
 
-          <button
-            onClick={() => setActiveTab('portfolio')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shrink-0 ${
-              activeTab === 'portfolio'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Camera className="w-4 h-4" />
-            <span>Portfolio ({(profile.portfolio || []).length})</span>
-          </button>
+      {activeTab === "messages" && (
+        <ArtisanIntegratedInbox
+          initialConversationId={selectedConversationId}
+          emptySubtitle="Les discussions avec vos clients suite aux demandes de devis s'affichent ici."
+        />
+      )}
 
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shrink-0 ${
-              activeTab === 'settings'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            <span>Paramètres Profil</span>
-          </button>
-        </div>
+      {activeTab === "ads" && <ArtisanAdsCampaignTab profile={profile} />}
 
-        {/* Tab Contents */}
-        {activeTab === 'quotes' && (
-          <ArtisanQuotesTab quotes={quotes} onRefreshQuotes={loadData} />
-        )}
-        {activeTab === 'services' && (
-          <ArtisanServicesTab profile={profile} onProfileUpdated={loadData} />
-        )}
-        {activeTab === 'portfolio' && (
-          <ArtisanPortfolioTab profile={profile} onProfileUpdated={loadData} />
-        )}
-        {activeTab === 'settings' && (
-          <ArtisanSettingsTab profile={profile} onProfileUpdated={loadData} />
-        )}
-      </main>
-    </div>
+      {activeTab === "settings" && (
+        <ArtisanSettingsTab profile={profile} onProfileUpdated={loadData} />
+      )}
+    </ArtisanDashboardLayout>
   );
 };
+
+export default ArtisanDashboardPage;

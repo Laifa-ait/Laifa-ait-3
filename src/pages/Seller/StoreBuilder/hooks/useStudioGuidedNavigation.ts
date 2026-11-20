@@ -7,12 +7,14 @@ interface UseStudioGuidedNavigationOptions {
   onSelectNavMode: (mode: StudioNavMode) => void;
   onSaveDraft?: () => unknown | Promise<unknown>;
   onAfterStepChange?: () => void;
+  externalSaveError?: string | null;
 }
 
 export function useStudioGuidedNavigation({
   onSelectNavMode,
   onSaveDraft,
   onAfterStepChange,
+  externalSaveError,
 }: UseStudioGuidedNavigationOptions) {
   const mode = useStudioStore((s) => s.studioExperienceMode);
   const setMode = useStudioStore((s) => s.setStudioExperienceMode);
@@ -49,7 +51,8 @@ export function useStudioGuidedNavigation({
       const saveOutcome = await onSaveDraft?.();
       if (saveOutcome === null || saveOutcome === false) {
         setSaveStepError(
-          "La sauvegarde a échoué. L'étape reste ouverte : vérifiez votre connexion puis réessayez."
+          externalSaveError?.trim() ||
+            "La sauvegarde a échoué. L'étape reste ouverte : vérifiez votre connexion ou les champs saisis puis réessayez."
         );
         return false;
       }
@@ -65,13 +68,13 @@ export function useStudioGuidedNavigation({
       const msg =
         err instanceof Error && err.message.trim()
           ? err.message
-          : "Impossible d'enregistrer cette étape. Veuillez réessayer.";
+          : externalSaveError?.trim() || "Impossible d'enregistrer cette étape. Veuillez réessayer.";
       setSaveStepError(msg);
       return false;
     } finally {
       setIsSavingStep(false);
     }
-  }, [activeStep, completeAndAdvance, isSavingStep, onAfterStepChange, onSaveDraft, onSelectNavMode]);
+  }, [activeStep, completeAndAdvance, externalSaveError, isSavingStep, onAfterStepChange, onSaveDraft, onSelectNavMode]);
 
   return {
     mode,

@@ -184,16 +184,16 @@ export const PageEditorDrawer: React.FC<PageEditorDrawerProps> = ({
 
       <label className="flex items-center justify-between cursor-pointer">
         <span className="text-[11px] font-semibold text-[#344054]">Afficher / Publier cette page</span>
-        <input type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} data-testid="page-published-checkbox" className="w-4 h-4 accent-[#023859] rounded" />
+        <input type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} data-testid="page-published-checkbox" className="w-4 h-4 accent-[var(--studio-primary)] rounded" />
       </label>
 
       <div className="pt-2 border-t border-[#E2E8F0]">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1.5">
-            <LayoutTemplate className="w-3.5 h-3.5 text-[#023859]" />
+            <LayoutTemplate className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
             <span className="text-[10px] font-bold uppercase text-[#475467]">Sections cohérentes ({sectionIds.length})</span>
           </div>
-          <button type="button" onClick={() => setSectionIds(resolveCoherentSectionIdsForPage(pageType !== "custom" ? pageType : templateId, sections))} className="text-[10px] font-bold text-[#023859] underline">
+          <button type="button" onClick={() => setSectionIds(resolveCoherentSectionIdsForPage(pageType !== "custom" ? pageType : templateId, sections))} className="text-[10px] font-bold text-[var(--studio-primary)] underline">
             Filtrer auto
           </button>
         </div>
@@ -201,7 +201,7 @@ export const PageEditorDrawer: React.FC<PageEditorDrawerProps> = ({
           {sections.map((sec, idx) => (
             <label key={sec.id} className="flex items-center justify-between px-2 py-1 rounded bg-white border border-[#E2E8F0] text-[11px] cursor-pointer">
               <span className="truncate font-medium text-[#1E293B]">{idx + 1}. {sec.title || sec.type}</span>
-              <input type="checkbox" checked={sectionIds.includes(sec.id)} onChange={() => toggleSectionId(sec.id)} className="w-3.5 h-3.5 accent-[#023859] rounded" />
+              <input type="checkbox" checked={sectionIds.includes(sec.id)} onChange={() => toggleSectionId(sec.id)} className="w-3.5 h-3.5 accent-[var(--studio-primary)] rounded" />
             </label>
           ))}
         </div>
@@ -209,7 +209,7 @@ export const PageEditorDrawer: React.FC<PageEditorDrawerProps> = ({
 
       <div className="pt-2 border-t border-[#E2E8F0] space-y-1.5">
         <div className="flex items-center gap-1.5">
-          <Search className="w-3.5 h-3.5 text-[#023859]" />
+          <Search className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
           <span className="text-[10px] font-bold uppercase text-[#475467]">SEO & Open Graph</span>
         </div>
         <input type="text" data-testid="page-seo-title-input" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="Meta Title SEO" className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#D0D5DD] rounded-lg" />
@@ -220,7 +220,7 @@ export const PageEditorDrawer: React.FC<PageEditorDrawerProps> = ({
         </div>
         <div className="p-2 rounded-lg bg-white border border-[#E2E8F0]">
           <div className="flex items-center gap-1 text-[10px] text-[#64748B]">
-            <Globe className="w-3 h-3 text-[#023859]" />
+            <Globe className="w-3 h-3 text-[var(--studio-primary)]" />
             <span className="truncate">olmart.dz/store/{shopSlug}/p/{effectiveSlug}</span>
           </div>
           <p className="text-[11px] font-bold text-[#1A0DAB] truncate">{previewTitle}</p>
@@ -229,7 +229,7 @@ export const PageEditorDrawer: React.FC<PageEditorDrawerProps> = ({
       </div>
 
       <div className="flex items-center gap-2 pt-1">
-        <button type="button" onClick={handleSubmit} disabled={isSaving || !title.trim()} data-testid="save-page-btn" className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-[#023859] text-white text-xs font-bold rounded-lg disabled:opacity-50">
+        <button type="button" onClick={handleSubmit} disabled={isSaving || !title.trim()} data-testid="save-page-btn" className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-[var(--studio-primary)] text-white text-xs font-bold rounded-lg disabled:opacity-50">
           {isSaving ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
           <span>{initialPage ? "Enregistrer" : "Créer la page"}</span>
         </button>

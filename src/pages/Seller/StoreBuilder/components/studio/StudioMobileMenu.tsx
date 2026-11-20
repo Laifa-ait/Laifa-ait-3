@@ -15,6 +15,7 @@ interface StudioMobileMenuProps {
   navMode: StudioNavMode;
   onSelectNavMode: (mode: StudioNavMode) => void;
   onSaveDraft?: () => unknown | Promise<unknown>;
+  lastSaveError?: string | null;
   shopName?: string;
 }
 
@@ -24,6 +25,7 @@ export const StudioMobileMenu: React.FC<StudioMobileMenuProps> = ({
   navMode,
   onSelectNavMode,
   onSaveDraft,
+  lastSaveError,
   shopName = "Ma Boutique",
 }) => {
   const navigate = useNavigate();
@@ -37,7 +39,7 @@ export const StudioMobileMenu: React.FC<StudioMobileMenuProps> = ({
     saveStepError,
     selectStep,
     handleSaveAndAdvance,
-  } = useStudioGuidedNavigation({ onSelectNavMode, onSaveDraft });
+  } = useStudioGuidedNavigation({ onSelectNavMode, onSaveDraft, externalSaveError: lastSaveError });
 
   if (!isOpen) return null;
 
@@ -191,7 +193,7 @@ export const StudioMobileMenu: React.FC<StudioMobileMenuProps> = ({
                 <span className="block text-[11px] font-medium text-slate-400 px-3 pb-1">Apparence &amp; Structure</span>
                 <button type="button" onClick={() => handleSelect("sections")} className={navClass("sections")}><Layers className="w-4 h-4 shrink-0" /><span>Sections de la page</span></button>
                 <button type="button" onClick={() => handleSelect("theme")} className={navClass("theme")}><Palette className="w-4 h-4 shrink-0" /><span>Thème &amp; Couleurs</span></button>
-                <button type="button" onClick={() => handleSelect("atelier")} className={navClass("atelier")}><Sparkles className="w-4 h-4 shrink-0" /><span>Atelier &amp; Matières</span></button>
+                <button type="button" onClick={() => handleSelect("atelier")} className={navClass("atelier")}><Sparkles className="w-4 h-4 shrink-0" /><span>Studio &amp; Finitions</span></button>
                 <button type="button" onClick={() => handleSelect("header")} className={navClass("header")}><PanelTop className="w-4 h-4 shrink-0" /><span>En-tête &amp; Menu</span></button>
                 <button type="button" onClick={() => handleSelect("identity")} className={navClass("identity")}><Store className="w-4 h-4 shrink-0" /><span>Identité boutique</span></button>
                 <button type="button" onClick={() => handleSelect("pages")} className={navClass("pages")}><FileText className="w-4 h-4 shrink-0" /><span>Pages &amp; Navigation</span></button>

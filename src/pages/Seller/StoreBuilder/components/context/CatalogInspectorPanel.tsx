@@ -19,6 +19,7 @@ interface CatalogInspectorPanelProps {
   products: Product[];
   catalogStatus?: CatalogLoadStatus;
   catalogError?: string | null;
+  catalogTruncated?: boolean;
   onReloadCatalog?: () => void | Promise<void>;
   sections: CustomPageSection[];
   storeConfig?: SellerStoreConfig | null;
@@ -43,6 +44,7 @@ export const CatalogInspectorPanel: React.FC<CatalogInspectorPanelProps> = ({
   products,
   catalogStatus,
   catalogError,
+  catalogTruncated,
   onReloadCatalog,
   sections,
   storeConfig,
@@ -201,6 +203,7 @@ export const CatalogInspectorPanel: React.FC<CatalogInspectorPanelProps> = ({
             products={products}
             catalogStatus={catalogStatus}
             catalogError={catalogError}
+            catalogTruncated={catalogTruncated}
             onReloadCatalog={onReloadCatalog}
             productFeedSections={productFeedSections}
             activeFeedSection={activeFeedSection}

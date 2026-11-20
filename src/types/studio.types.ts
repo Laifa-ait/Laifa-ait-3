@@ -2,9 +2,10 @@ export type ArtisticSurfaceTexture =
   | "none"
   | "film-grain"
   | "cotton-paper"
-  | "zellige-watermark"
   | "silk-mesh"
-  | "architectural-grid";
+  | "architectural-grid"
+  /** @deprecated Legacy alias silently mapped to architectural-grid */
+  | "zellige-watermark";
 
 export type ArtisticAmbientLighting =
   | "natural"
@@ -20,6 +21,8 @@ export type ArtisticCardMaterial =
 export type ArtisticFrameShape =
   | "sharp-couture"
   | "soft-modern"
+  | "arch-minimal"
+  /** @deprecated Legacy alias mapped to arch-minimal */
   | "casbah-arch"
   | "medallion-oval"
   | "polaroid-atelier"
@@ -34,6 +37,7 @@ export type EditorialHeadingAccentStyle =
   | "copper-bronze";
 
 export type EditorialUnderlineStyle =
+  | "hairline"
   | "brush-stroke"
   | "golden-wave";
 

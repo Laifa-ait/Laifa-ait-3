@@ -23,7 +23,7 @@ const userProfileCache = new Map<string, CachedUserProfile>();
 const inFlightProfileLookups = new Map<string, Promise<{ exists: boolean; udata?: Record<string, unknown> }>>();
 
 const MAX_PROFILE_CACHE_SIZE = 5000;
-const PROFILE_CACHE_TTL_MS = 120 * 1000; // 2 minutes in-memory TTL
+const PROFILE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes in-memory TTL
 const STALE_CACHE_MAX_AGE_MS = 60 * 60 * 1000; // 1 hour max age for Stale-While-Revalidate during DB errors
 const ERROR_BACKOFF_MS = 60 * 1000; // 60s backoff after lookup failure to prevent hammering Firestore
 
@@ -49,7 +49,7 @@ export function clearUserProfileCache(uid?: string): void {
 
 export function getUserProfileFromCache(uid: string): Record<string, unknown> | null {
   const cached = userProfileCache.get(uid);
-  if (cached && cached.data) {
+  if (cached && cached.data && !cached.isErrorFallback && Date.now() - cached.cachedAt < PROFILE_CACHE_TTL_MS) {
     return cached.data;
   }
   return null;

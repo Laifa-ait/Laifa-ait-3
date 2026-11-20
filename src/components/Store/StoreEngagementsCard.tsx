@@ -49,16 +49,16 @@ export const StoreEngagementsCard: React.FC<StoreEngagementsCardProps> = ({
         backgroundColor: "var(--store-surface, #FFFFFF)",
         borderRadius: "var(--store-border-radius, 20px)",
         fontFamily: "var(--store-font-body, inherit)",
-        color: "var(--store-secondary, #18181B)",
+        color: "var(--store-secondary, #0F172A)",
       }}
-      className="border border-black/10 p-6 sm:p-8 space-y-6 shadow-sm"
+      className="border border-slate-200/80 p-6 sm:p-8 space-y-6 shadow-sm"
     >
-      <div className="flex items-center justify-between border-b border-black/10 pb-4">
+      <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
         <div className="flex items-center gap-3">
-          <ShieldCheck className="w-5 h-5" style={{ color: "var(--store-primary, #B45309)" }} />
+          <ShieldCheck className="w-5 h-5" style={{ color: "var(--store-primary, #0F172A)" }} />
           <h3
             style={{
-              color: "var(--store-secondary, #18181B)",
+              color: "var(--store-secondary, #0F172A)",
               fontFamily: "var(--store-font-heading, inherit)",
             }}
             className="text-sm font-bold uppercase tracking-wider"
@@ -71,10 +71,10 @@ export const StoreEngagementsCard: React.FC<StoreEngagementsCardProps> = ({
             type="button"
             onClick={() => setIsEditingAbout(!isEditingAbout)}
             style={{
-              color: "var(--store-primary, #B45309)",
-              backgroundColor: "var(--store-canvas, #FAF6F0)",
+              color: "var(--store-primary, #0F172A)",
+              backgroundColor: "var(--store-canvas, #F8FAFC)",
             }}
-            className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80 border border-black/10 cursor-pointer"
+            className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80 border border-slate-200 cursor-pointer"
           >
             {isEditingAbout ? (isRTL ? "إلغاء التعديل" : "Annuler") : isRTL ? "تعديل" : "Modifier"}
           </button>
@@ -126,7 +126,7 @@ export const StoreEngagementsCard: React.FC<StoreEngagementsCardProps> = ({
               onClick={() => void saveAboutInfo()}
               disabled={savingAbout}
               style={{
-                backgroundColor: "var(--store-primary, #B45309)",
+                backgroundColor: "var(--store-primary, #0F172A)",
                 color: "#FFFFFF",
                 borderRadius: "var(--store-border-radius, 12px)",
               }}
@@ -146,18 +146,18 @@ export const StoreEngagementsCard: React.FC<StoreEngagementsCardProps> = ({
         <div className="space-y-4">
           {storeInfo.legalStatus && (
             <div
-              style={{ backgroundColor: "var(--store-canvas, #FAF6F0)" }}
-              className="flex gap-4 p-4 rounded-2xl border border-black/10"
+              style={{ backgroundColor: "var(--store-canvas, #F8FAFC)" }}
+              className="flex gap-4 p-4 rounded-xl border border-slate-200/80"
             >
               <div
                 style={{ backgroundColor: "var(--store-surface, #FFFFFF)" }}
-                className="w-10 h-10 rounded-xl border border-black/10 flex items-center justify-center shrink-0 shadow-2xs"
+                className="w-10 h-10 rounded-lg border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs"
               >
-                <Building2 className="w-4 h-4" style={{ color: "var(--store-primary, #B45309)" }} />
+                <Building2 className="w-4 h-4" style={{ color: "var(--store-primary, #0F172A)" }} />
               </div>
               <div>
                 <h4
-                  style={{ color: "var(--store-primary, #B45309)" }}
+                  style={{ color: "var(--store-primary, #0F172A)" }}
                   className="text-[10px] font-bold uppercase tracking-wider"
                 >
                   {d("legalStatus")}
@@ -175,18 +175,18 @@ export const StoreEngagementsCard: React.FC<StoreEngagementsCardProps> = ({
 
           {storeInfo.avgPreparationTime && (
             <div
-              style={{ backgroundColor: "var(--store-canvas, #FAF6F0)" }}
-              className="flex gap-4 p-4 rounded-2xl border border-black/10"
+              style={{ backgroundColor: "var(--store-canvas, #F8FAFC)" }}
+              className="flex gap-4 p-4 rounded-xl border border-slate-200/80"
             >
               <div
                 style={{ backgroundColor: "var(--store-surface, #FFFFFF)" }}
-                className="w-10 h-10 rounded-xl border border-black/10 flex items-center justify-center shrink-0 shadow-2xs"
+                className="w-10 h-10 rounded-lg border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs"
               >
-                <Truck className="w-4 h-4" style={{ color: "var(--store-primary, #B45309)" }} />
+                <Truck className="w-4 h-4" style={{ color: "var(--store-primary, #0F172A)" }} />
               </div>
               <div className="flex-1">
                 <h4
-                  style={{ color: "var(--store-primary, #B45309)" }}
+                  style={{ color: "var(--store-primary, #0F172A)" }}
                   className="text-[10px] font-bold uppercase tracking-wider"
                 >
                   {d("prepTime")}
@@ -204,18 +204,18 @@ export const StoreEngagementsCard: React.FC<StoreEngagementsCardProps> = ({
 
           {storeInfo.returnPolicy && (
             <div
-              style={{ backgroundColor: "var(--store-canvas, #FAF6F0)" }}
-              className="flex gap-4 p-4 rounded-2xl border border-black/10"
+              style={{ backgroundColor: "var(--store-canvas, #F8FAFC)" }}
+              className="flex gap-4 p-4 rounded-xl border border-slate-200/80"
             >
               <div
                 style={{ backgroundColor: "var(--store-surface, #FFFFFF)" }}
-                className="w-10 h-10 rounded-xl border border-black/10 flex items-center justify-center shrink-0 shadow-2xs"
+                className="w-10 h-10 rounded-lg border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs"
               >
-                <Undo2 className="w-4 h-4" style={{ color: "var(--store-primary, #B45309)" }} />
+                <Undo2 className="w-4 h-4" style={{ color: "var(--store-primary, #0F172A)" }} />
               </div>
               <div className="flex-1">
                 <h4
-                  style={{ color: "var(--store-primary, #B45309)" }}
+                  style={{ color: "var(--store-primary, #0F172A)" }}
                   className="text-[10px] font-bold uppercase tracking-wider"
                 >
                   {d("returnPolicy")}

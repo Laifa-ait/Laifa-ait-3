@@ -1,6 +1,7 @@
 import React from "react";
 import { Check, CheckCircle2, Palette, Tag, Layers, Sparkles } from "lucide-react";
 import { ProductCardStyleVariant } from "../../../../../../domains/seller/customPage.types";
+import { DEFAULT_MODERN_THEME } from "../../../constants/studioThemeDefaults";
 
 interface ProductCardStyleControllerProps {
   settings: Record<string, unknown>;
@@ -51,8 +52,8 @@ export const ProductCardStyleController: React.FC<ProductCardStyleControllerProp
   return (
     <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-3 select-none">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-extrabold text-[#011C40] uppercase tracking-wider flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-[#023859]" />
+        <span className="text-[11px] font-extrabold text-[var(--studio-black)] uppercase tracking-wider flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
           <span>Modèle de Carte Produit</span>
         </span>
         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -60,8 +61,8 @@ export const ProductCardStyleController: React.FC<ProductCardStyleControllerProp
 
       {/* 1. Sélecteur Visuel du Style de Carte */}
       <div className="space-y-1.5">
-        <span className="text-[11px] font-bold text-[#011C40] flex items-center gap-1">
-          <Layers className="w-3 h-3 text-[#26658C]" />
+        <span className="text-[11px] font-bold text-[var(--studio-black)] flex items-center gap-1">
+          <Layers className="w-3 h-3 text-[var(--studio-muted)]" />
           <span>Style de carte produit</span>
         </span>
         <div className="grid grid-cols-2 gap-1.5">
@@ -74,14 +75,14 @@ export const ProductCardStyleController: React.FC<ProductCardStyleControllerProp
                 onClick={() => onSettingsChange("cardStyle", st.id)}
                 className={`relative p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                   isSelected
-                    ? "border-[#023859] bg-[#F0F7FA] text-[#011C40] ring-1 ring-[#023859]/25 shadow-2xs"
-                    : "border-slate-200 bg-slate-50/70 text-slate-600 hover:bg-white hover:border-[#54ACBF]"
+                    ? "border-[var(--studio-primary)] bg-[var(--studio-highlight-soft)] text-[var(--studio-black)] ring-1 ring-[var(--studio-primary)]/25 shadow-2xs"
+                    : "border-[var(--studio-border)] bg-slate-50/70 text-slate-600 hover:bg-white hover:border-[var(--studio-focus)]"
                 }`}
               >
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-[11px] font-extrabold text-slate-900">{st.label}</span>
                   {isSelected && (
-                    <span className="w-3.5 h-3.5 rounded-full bg-[#023859] text-white flex items-center justify-center shrink-0">
+                    <span className="w-3.5 h-3.5 rounded-full bg-[var(--studio-primary)] text-white flex items-center justify-center shrink-0">
                       <Check className="w-2.5 h-2.5" />
                     </span>
                   )}
@@ -94,14 +95,14 @@ export const ProductCardStyleController: React.FC<ProductCardStyleControllerProp
       </div>
 
       {/* 2. Couleur d'accent des badges & cadres */}
-      <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-        <span className="text-xs font-semibold text-[#011C40] flex items-center gap-1.5">
-          <Palette className="w-3.5 h-3.5 text-[#023859]" />
+      <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-[var(--studio-border)]">
+        <span className="text-xs font-semibold text-[var(--studio-black)] flex items-center gap-1.5">
+          <Palette className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
           <span>Couleur d&apos;accent (Badge & Cadre)</span>
         </span>
         <input
           type="color"
-          value={(settings.cardAccentColor as string) || "#023859"}
+          value={(settings.cardAccentColor as string) || DEFAULT_MODERN_THEME.primaryColor}
           onChange={(e) => onSettingsChange("cardAccentColor", e.target.value)}
           className="w-7 h-7 rounded cursor-pointer border border-slate-200"
         />
@@ -109,8 +110,8 @@ export const ProductCardStyleController: React.FC<ProductCardStyleControllerProp
 
       {/* 3. Informations Réelles Affichées */}
       <div className="space-y-1.5 pt-1 border-t border-slate-100">
-        <span className="text-[11px] font-bold text-[#011C40] flex items-center gap-1">
-          <Tag className="w-3 h-3 text-[#26658C]" />
+        <span className="text-[11px] font-bold text-[var(--studio-black)] flex items-center gap-1">
+          <Tag className="w-3 h-3 text-[var(--studio-muted)]" />
           <span>Informations produit affichées</span>
         </span>
 
@@ -119,14 +120,14 @@ export const ProductCardStyleController: React.FC<ProductCardStyleControllerProp
           return (
             <label
               key={item.key}
-              className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200 text-xs cursor-pointer hover:bg-[#F8FBFC]"
+              className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200 text-xs cursor-pointer hover:bg-[var(--studio-background)]"
             >
               <span className="font-medium text-slate-800">{item.label}</span>
               <input
                 type="checkbox"
                 checked={checked}
                 onChange={(e) => onSettingsChange(item.key, e.target.checked)}
-                className="accent-[#023859] w-4 h-4"
+                className="accent-[var(--studio-primary)] w-4 h-4"
               />
             </label>
           );

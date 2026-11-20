@@ -1,18 +1,9 @@
-import React, { useState, useRef } from "react";
-import {
-  CustomPageSection,
-  MediaFolderCategory,
-  MediaGalleryItem,
-  SellerStoreConfig,
-} from "../../../../../domains/seller/customPage.types";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { CustomPageSection, MediaFolderCategory, MediaGalleryItem, SellerStoreConfig } from "../../../../../domains/seller/customPage.types";
 import { Image as ImageIcon, Loader2, Search, Upload } from "lucide-react";
 import { MediaCard } from "./MediaCard";
 import { MediaSelectedInspector } from "./MediaSelectedInspector";
-import {
-  findMediaUsageInSections,
-  isSystemOrCatalogMedia,
-  validateMediaFile,
-} from "../../utils/studioMediaValidation";
+import { buildMediaUsageIndex, findMediaUsageInSections, isSystemOrCatalogMedia, validateMediaFile } from "../../utils/studioMediaValidation";
 
 export { findMediaUsageInSections };
 
@@ -31,12 +22,8 @@ interface MediaInspectorPanelProps {
 }
 
 const FOLDER_TABS: Array<{ id: "all" | MediaFolderCategory; label: string }> = [
-  { id: "all", label: "Tous" },
-  { id: "images", label: "Images" },
-  { id: "logos", label: "Logos" },
-  { id: "banners", label: "Bannières" },
-  { id: "collections", label: "Collections" },
-  { id: "videos", label: "Vidéos" },
+  { id: "all", label: "Tous" }, { id: "images", label: "Images" }, { id: "logos", label: "Logos" },
+  { id: "banners", label: "Bannières" }, { id: "collections", label: "Collections" }, { id: "videos", label: "Vidéos" },
 ];
 
 export const MediaInspectorPanel: React.FC<MediaInspectorPanelProps> = ({
@@ -53,32 +40,43 @@ export const MediaInspectorPanel: React.FC<MediaInspectorPanelProps> = ({
   const [localUploading, setLocalUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [localUploadError, setLocalUploadError] = useState<string | null>(null);
+  const [visibleLimit, setVisibleLimit] = useState(40);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+  }, []);
 
   const isUploading = localUploading || externalUploading;
   const displayedError = localUploadError || externalUploadError;
 
-  const enrichedGallery: MediaGalleryItem[] = mediaGallery.map((m) => ({
+  const enrichedGallery = useMemo<MediaGalleryItem[]>(() => mediaGallery.map((m) => ({
     ...m,
     name: localOverrides[m.id]?.name ?? m.name,
     folder: localOverrides[m.id]?.folder ?? m.folder ?? (m.type === "video" ? "videos" : "images"),
-  }));
+  })), [mediaGallery, localOverrides]);
 
-  const filteredMedia = enrichedGallery.filter((item) => {
-    const matchesSearch = (item.name || item.url).toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFolder = folderFilter === "all" || (item.folder || "images") === folderFilter;
-    const matchesType = typeFilter === "all" || item.type === typeFilter;
-    return matchesSearch && matchesFolder && matchesType;
-  });
+  const filteredMedia = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return enrichedGallery.filter((item) => {
+      const matchesSearch = (item.name || item.url).toLowerCase().includes(q);
+      const matchesFolder = folderFilter === "all" || (item.folder || "images") === folderFilter;
+      const matchesType = typeFilter === "all" || item.type === typeFilter;
+      return matchesSearch && matchesFolder && matchesType;
+    });
+  }, [enrichedGallery, searchQuery, folderFilter, typeFilter]);
 
+  const usageIndex = useMemo(() => buildMediaUsageIndex(sections, storeConfig), [sections, storeConfig]);
   const selectedMedia = enrichedGallery.find((m) => m.id === selectedMediaId) || null;
-  const selectedUsages = selectedMedia ? findMediaUsageInSections(selectedMedia.url, sections, storeConfig) : [];
+  const selectedUsages = selectedMedia ? (usageIndex.get((selectedMedia.url || "").trim()) || []) : [];
 
   const handleCopy = (url: string) => {
     if (navigator.clipboard) navigator.clipboard.writeText(url);
     setCopiedUrl(url);
     if (onSelectMediaUrl) onSelectMediaUrl(url);
-    setTimeout(() => setCopiedUrl(null), 2000);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopiedUrl(null), 2000);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,11 +87,7 @@ export const MediaInspectorPanel: React.FC<MediaInspectorPanelProps> = ({
     try {
       const descriptor = await validateMediaFile(file, { allowVideo: true });
       const targetFolder: MediaFolderCategory =
-        descriptor.kind === "video"
-          ? "videos"
-          : folderFilter !== "all" && folderFilter !== "videos"
-          ? folderFilter
-          : "images";
+        descriptor.kind === "video" ? "videos" : folderFilter !== "all" && folderFilter !== "videos" ? folderFilter : "images";
       const uploaded = await onUploadMedia(file, { folder: targetFolder, allowVideo: true });
       setSelectedMediaId(uploaded.id);
     } catch (err) {
@@ -105,6 +99,8 @@ export const MediaInspectorPanel: React.FC<MediaInspectorPanelProps> = ({
   };
 
   const handleSaveRenameOrFolder = async (item: MediaGalleryItem, patch: { name?: string; folder?: MediaFolderCategory }) => {
+    const previousOverride = localOverrides[item.id];
+    setLocalUploadError(null);
     setLocalOverrides((prev) => ({ ...prev, [item.id]: { ...prev[item.id], ...patch } }));
     if (onSaveConfig && !isSystemOrCatalogMedia(item.id)) {
       const source = storeConfig?.mediaGallery && storeConfig.mediaGallery.length > 0
@@ -113,7 +109,17 @@ export const MediaInspectorPanel: React.FC<MediaInspectorPanelProps> = ({
       const updated = source.some((m) => m.id === item.id)
         ? source.map((m) => (m.id === item.id ? { ...m, ...patch } : m))
         : [{ ...item, ...patch }, ...source];
-      await onSaveConfig({ mediaGallery: updated });
+      try {
+        await onSaveConfig({ mediaGallery: updated });
+      } catch (err) {
+        setLocalOverrides((prev) => {
+          const next = { ...prev };
+          if (previousOverride) next[item.id] = previousOverride;
+          else delete next[item.id];
+          return next;
+        });
+        setLocalUploadError(err instanceof Error ? err.message : "Échec de l'enregistrement des modifications du média.");
+      }
     }
   };
 
@@ -128,6 +134,10 @@ export const MediaInspectorPanel: React.FC<MediaInspectorPanelProps> = ({
     }
   };
 
+  const handleSearchChange = (q: string) => { setSearchQuery(q); setVisibleLimit(40); };
+  const handleTypeChange = (t: "all" | "image" | "video") => { setTypeFilter(t); setVisibleLimit(40); };
+  const handleFolderChange = (f: "all" | MediaFolderCategory) => { setFolderFilter(f); setVisibleLimit(40); };
+
   return (
     <div className="p-4 space-y-4 select-none" data-testid="media-inspector-panel">
       <div className="flex items-center justify-between pb-3 border-b border-slate-200">
@@ -137,19 +147,8 @@ export const MediaInspectorPanel: React.FC<MediaInspectorPanelProps> = ({
         </div>
         {onUploadMedia && (
           <div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm"
-              onChange={handleFileChange}
-              className="hidden"
-              data-testid="media-file-input"
-            />
-            <button
-              type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}
-              data-testid="media-upload-btn"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[11.5px] font-medium disabled:opacity-60 cursor-pointer"
-            >
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm" onChange={handleFileChange} className="hidden" data-testid="media-file-input" />
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} data-testid="media-upload-btn" className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[11.5px] font-medium disabled:opacity-60 cursor-pointer">
               {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
               <span>Importer</span>
             </button>
@@ -164,42 +163,34 @@ export const MediaInspectorPanel: React.FC<MediaInspectorPanelProps> = ({
             <span>{Math.max(0, Math.min(100, Math.round(uploadProgress)))}%</span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
-            <div className="h-full bg-[#023859] transition-all duration-200" style={{ width: `${Math.max(5, Math.min(100, uploadProgress))}%` }} />
+            <div className="h-full bg-[var(--studio-primary)] transition-all duration-200" style={{ width: `${Math.max(5, Math.min(100, uploadProgress))}%` }} />
           </div>
         </div>
       )}
 
       {displayedError && (
-        <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-[11px] text-rose-700 font-medium" data-testid="media-upload-error">
-          {displayedError}
-        </div>
+        <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-[11px] text-rose-700 font-medium" data-testid="media-upload-error">{displayedError}</div>
       )}
 
       <div className="space-y-2">
         <div className="relative">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2" />
           <input
-            type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+            type="text" value={searchQuery} onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Rechercher par nom de fichier..." data-testid="media-search-input"
             className="w-full h-8.5 ps-8 pe-3 text-xs bg-slate-50/70 border border-slate-200 rounded-lg focus:bg-white focus:border-slate-900 focus:outline-none"
           />
         </div>
         <div className="flex gap-1" data-testid="media-type-tabs">
           {(["all", "image", "video"] as const).map((t) => (
-            <button
-              key={t} type="button" data-testid={`media-type-tab-${t}`} onClick={() => setTypeFilter(t)}
-              className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${typeFilter === t ? "bg-[#023859] text-white border-[#023859]" : "bg-slate-50 text-slate-600 border-slate-200"}`}
-            >
+            <button key={t} type="button" data-testid={`media-type-tab-${t}`} onClick={() => handleTypeChange(t)} className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${typeFilter === t ? "bg-[var(--studio-primary)] text-white border-[var(--studio-primary)]" : "bg-slate-50 text-slate-600 border-slate-200"}`}>
               {t === "all" ? "Tout" : t === "image" ? "Images" : "Vidéos"}
             </button>
           ))}
         </div>
         <div className="flex flex-wrap gap-1" data-testid="media-folder-tabs">
           {FOLDER_TABS.map((tab) => (
-            <button
-              key={tab.id} type="button" data-testid={`media-folder-tab-${tab.id}`} onClick={() => setFolderFilter(tab.id)}
-              className={`px-2 py-1 rounded-md text-[10.5px] font-medium border cursor-pointer ${folderFilter === tab.id ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
-            >
+            <button key={tab.id} type="button" data-testid={`media-folder-tab-${tab.id}`} onClick={() => handleFolderChange(tab.id)} className={`px-2 py-1 rounded-md text-[10.5px] font-medium border cursor-pointer ${folderFilter === tab.id ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}>
               {tab.label}
             </button>
           ))}
@@ -208,18 +199,12 @@ export const MediaInspectorPanel: React.FC<MediaInspectorPanelProps> = ({
 
       {selectedMedia && (
         <MediaSelectedInspector
-          key={selectedMedia.id}
-          selectedMedia={selectedMedia}
-          allMedia={enrichedGallery}
-          selectedUsages={selectedUsages}
-          copiedUrl={copiedUrl}
-          dims={localOverrides[selectedMedia.id]?.dims}
-          deletingId={deletingId}
-          onCopy={handleCopy}
+          key={selectedMedia.id} selectedMedia={selectedMedia} allMedia={enrichedGallery}
+          selectedUsages={selectedUsages} copiedUrl={copiedUrl} dims={localOverrides[selectedMedia.id]?.dims}
+          deletingId={deletingId} onCopy={handleCopy}
           onDetectedDimensions={(id, dims) => setLocalOverrides((prev) => ({ ...prev, [id]: { ...prev[id], dims } }))}
           onSaveRenameOrFolder={handleSaveRenameOrFolder}
-          onConfirmDelete={onDeleteMedia ? executeDelete : undefined}
-          onReplaceUrl={onReplaceMediaUrl}
+          onConfirmDelete={onDeleteMedia ? executeDelete : undefined} onReplaceUrl={onReplaceMediaUrl}
         />
       )}
 
@@ -229,17 +214,25 @@ export const MediaInspectorPanel: React.FC<MediaInspectorPanelProps> = ({
           <p className="text-xs font-medium text-slate-700">Aucun média dans ce filtre</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2.5">
-          {filteredMedia.map((item) => (
-            <MediaCard
-              key={item.id} item={item} isSelected={selectedMediaId === item.id} isCopied={copiedUrl === item.url}
-              inUseCount={findMediaUsageInSections(item.url, sections, storeConfig).length}
-              onSelect={() => { setSelectedMediaId(item.id); if (onSelectMediaUrl) onSelectMediaUrl(item.url); }}
-              onCopy={handleCopy}
-            />
-          ))}
+        <div className="space-y-2.5">
+          <div className="grid grid-cols-2 gap-2.5">
+            {filteredMedia.slice(0, visibleLimit).map((item) => (
+              <MediaCard
+                key={item.id} item={item} isSelected={selectedMediaId === item.id} isCopied={copiedUrl === item.url}
+                inUseCount={(usageIndex.get((item.url || "").trim()) || []).length}
+                onSelect={() => { setSelectedMediaId(item.id); if (onSelectMediaUrl) onSelectMediaUrl(item.url); }}
+                onCopy={handleCopy}
+              />
+            ))}
+          </div>
+          {filteredMedia.length > visibleLimit && (
+            <button type="button" onClick={() => setVisibleLimit((prev) => prev + 40)} className="w-full py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[11px] font-semibold text-slate-700 cursor-pointer">
+              Afficher +{Math.min(40, filteredMedia.length - visibleLimit)} médias
+            </button>
+          )}
         </div>
       )}
     </div>
   );
 };
+

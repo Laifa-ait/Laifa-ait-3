@@ -2,6 +2,7 @@ import React from "react";
 import { Calendar, Clock, Palette, RefreshCw } from "lucide-react";
 import { CountdownBannerStyle } from "../../../../../../components/Store/sections/ProductFeedEcommerceWidgets";
 import { CountdownPreviewStylesGrid } from "./CountdownPreviewStylesGrid";
+import { DEFAULT_MODERN_THEME } from "../../../constants/studioThemeDefaults";
 
 interface CountdownCardEditorProps {
   settings: Record<string, unknown>;
@@ -181,7 +182,7 @@ export const CountdownCardEditor: React.FC<CountdownCardEditorProps> = ({
             <span className="text-[10.5px] font-medium text-slate-600 block">Fond bannière</span>
             <input
               type="color"
-              value={(settings.countdownBgColor as string) || "#0F172A"}
+              value={(settings.countdownBgColor as string) || DEFAULT_MODERN_THEME.primaryColor}
               onChange={(e) => onSettingsChange("countdownBgColor", e.target.value)}
               className="h-7 w-full rounded cursor-pointer bg-transparent"
             />
@@ -190,7 +191,7 @@ export const CountdownCardEditor: React.FC<CountdownCardEditorProps> = ({
             <span className="text-[10.5px] font-medium text-slate-600 block">Couleur d&apos;accent</span>
             <input
               type="color"
-              value={(settings.countdownAccentColor as string) || "#B45309"}
+              value={(settings.countdownAccentColor as string) || DEFAULT_MODERN_THEME.accentColor}
               onChange={(e) => onSettingsChange("countdownAccentColor", e.target.value)}
               className="h-7 w-full rounded cursor-pointer bg-transparent"
             />

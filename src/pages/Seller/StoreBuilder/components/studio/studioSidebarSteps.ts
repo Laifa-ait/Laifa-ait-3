@@ -26,7 +26,7 @@ export const STUDIO_JOURNEY_STEPS: StudioJourneyStepMeta[] = [
     defaultNav: "theme",
     subLinks: [
       { id: "theme", label: "Thème" },
-      { id: "atelier", label: "Atelier" },
+      { id: "atelier", label: "Finitions" },
     ],
   },
   {
@@ -62,7 +62,7 @@ export const EXPERT_NAV_GROUPS: Array<{
     items: [
       { id: "sections", label: "Sections" },
       { id: "theme", label: "Thème" },
-      { id: "atelier", label: "Atelier" },
+      { id: "atelier", label: "Finitions" },
       { id: "header", label: "En-tête" },
       { id: "identity", label: "Identité" },
       { id: "pages", label: "Pages" },

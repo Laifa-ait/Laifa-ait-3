@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { Suspense, lazy, useState, useEffect, useRef } from "react";
 import { Plus, Layers, Phone, ChevronRight, Search, SlidersHorizontal } from "lucide-react";
 import {
   CustomPageSection, CustomPageSectionType, SellerStoreConfig, StoreThemeSector,
 } from "../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../domains/product/product.types";
-import { AddSectionModal } from "../AddSectionModal";
 import { SectionCard } from "./SectionCard";
 import { DeleteSectionModal } from "./DeleteSectionModal";
 import { StudioSidebar } from "./StudioSidebar";
+
+const AddSectionModal = lazy(() => import("../AddSectionModal").then((m) => ({ default: m.AddSectionModal })));
 import { StudioNavMode } from "./studio.types";
 import { STUDIO_JOURNEY_STEPS } from "./studioSidebarSteps";
 import { useStudioStore } from "../../store/useStudioStore";
@@ -26,59 +27,51 @@ interface SectionTreePanelProps {
   onToggleVisibility: (id: string) => void;
   onDeleteSection: (id: string) => void;
   onDuplicateSection?: (id: string) => void;
-  onAddSection: (
-    type: CustomPageSectionType,
-    defaultSettings: Record<string, unknown>,
-    defaultTitle?: string
-  ) => void;
+  onAddSection: (type: CustomPageSectionType, defaultSettings: Record<string, unknown>, defaultTitle?: string, insertAtIndex?: number) => void;
   onSaveDraft?: () => unknown | Promise<unknown>;
+  lastSaveError?: string | null;
 }
 
 export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
   sections, selectedSectionId, products = [], activeSector, storeConfig,
   navMode = "sections", onSelectNavMode, onSelectSection, onUpdateSection,
-  onReorder, onToggleVisibility, onDeleteSection, onDuplicateSection, onAddSection, onSaveDraft,
+  onReorder, onToggleVisibility, onDeleteSection, onDuplicateSection, onAddSection, onSaveDraft, lastSaveError,
 }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [pendingInsertIndex, setPendingInsertIndex] = useState<number | undefined>(undefined);
   const [deletingSection, setDeletingSection] = useState<CustomPageSection | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const studioExperienceMode = useStudioStore((s) => s.studioExperienceMode);
   const activeStudioStep = useStudioStore((s) => s.activeStudioStep);
+  const sectionsRef = useRef(sections);
+  useEffect(() => { sectionsRef.current = sections; }, [sections]);
 
   useEffect(() => {
     const handleRequestDelete = (e: Event) => {
       const secId = (e as CustomEvent<{ sectionId?: string }>).detail?.sectionId;
       if (!secId) return;
-      const found = sections.find((s) => s.id === secId);
+      const found = sectionsRef.current.find((s) => s.id === secId);
       if (found) setDeletingSection(found);
     };
-    const handleOpenAddModal = () => setIsAddModalOpen(true);
-
+    const handleOpenAddModal = (e: Event) => {
+      const idx = (e as CustomEvent<{ insertAtIndex?: number }>).detail?.insertAtIndex;
+      setPendingInsertIndex(typeof idx === "number" ? idx : undefined);
+      setIsAddModalOpen(true);
+    };
     window.addEventListener("studio:request-delete-section", handleRequestDelete);
     window.addEventListener("studio:open-add-section-modal", handleOpenAddModal);
     return () => {
       window.removeEventListener("studio:request-delete-section", handleRequestDelete);
       window.removeEventListener("studio:open-add-section-modal", handleOpenAddModal);
     };
-  }, [sections]);
+  }, []);
 
-  const showSectionsTree =
-    studioExperienceMode === "expert" || activeStudioStep === 3 || navMode === "sections";
-
-  const bodySections = sections
-    .map((sec, idx) => ({ sec, idx }))
-    .filter(({ sec }) => sec.type !== "contact_footer" && sec.type !== "return_policy");
-
+  const showSectionsTree = studioExperienceMode === "expert" || activeStudioStep === 3 || navMode === "sections";
+  const bodySections = sections.map((sec, idx) => ({ sec, idx })).filter(({ sec }) => sec.type !== "contact_footer" && sec.type !== "return_policy");
   const filteredBodySections = searchQuery.trim()
-    ? bodySections.filter(({ sec }) =>
-        (sec.title || sec.type).toLowerCase().includes(searchQuery.trim().toLowerCase())
-      )
+    ? bodySections.filter(({ sec }) => (sec.title || sec.type).toLowerCase().includes(searchQuery.trim().toLowerCase()))
     : bodySections;
-
-  const footerSections = sections
-    .map((sec, idx) => ({ sec, idx }))
-    .filter(({ sec }) => sec.type === "contact_footer" || sec.type === "return_policy");
-
+  const footerSections = sections.map((sec, idx) => ({ sec, idx })).filter(({ sec }) => sec.type === "contact_footer" || sec.type === "return_policy");
   const resolvedSector: StoreThemeSector = activeSector || storeConfig?.theme?.sector || "mode";
   const currentStepMeta = STUDIO_JOURNEY_STEPS.find((s) => s.step === activeStudioStep) || STUDIO_JOURNEY_STEPS[0];
 
@@ -86,25 +79,16 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
     const wilaya = (storeConfig?.wilaya || "").trim();
     const commune = storeConfig?.commune ? `${storeConfig.commune}, ` : "";
     const address = wilaya ? `${commune}${wilaya}, Algérie` : "";
-    onAddSection(
-      "contact_footer",
-      {
-        shopPhone: "",
-        shopEmail: "",
-        socialInstagram: "",
-        wilaya,
-        address,
-        workingHours: "Sam - Jeu : 09h00 - 18h00",
-      },
-      "Pied de boutique & Contact"
-    );
+    onAddSection("contact_footer", {
+      shopPhone: "", shopEmail: "", socialInstagram: "", wilaya, address, workingHours: "Sam - Jeu : 09h00 - 18h00",
+    }, "Pied de boutique & Contact");
   };
 
   return (
     <div className="w-full h-full bg-white border-e border-slate-200 flex flex-col shrink-0 overflow-hidden min-h-0 select-none">
       {onSelectNavMode && (
         <div className="hidden md:block border-b border-slate-200">
-          <StudioSidebar navMode={navMode} onSelectNavMode={onSelectNavMode} onSaveDraft={onSaveDraft} />
+          <StudioSidebar navMode={navMode} onSelectNavMode={onSelectNavMode} onSaveDraft={onSaveDraft} lastSaveError={lastSaveError} />
         </div>
       )}
 
@@ -218,31 +202,33 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
                     onDuplicateSection={onDuplicateSection}
                   />
                 ))}
+                <button
+                  type="button"
+                  data-testid="tree-bottom-add-section-btn"
+                  onClick={() => { setPendingInsertIndex(undefined); setIsAddModalOpen(true); }}
+                  className="w-full h-8 px-2.5 mt-1 rounded-lg text-[#005BD3] hover:bg-[#EEF4FF] text-[12px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5 shrink-0" />
+                  <span>Ajouter une section</span>
+                </button>
               </div>
             )}
 
-            <div className="pt-2.5 border-t border-slate-200 space-y-1">
+            <div className="pt-2.5 border-t border-[#E3E5E8] space-y-1">
               <span className="block text-[10.5px] font-medium text-slate-400 px-1">Pied de page</span>
               {footerSections.map(({ sec, idx }) => (
                 <SectionCard
-                  key={sec.id} sec={sec} idx={idx} totalSections={sections.length}
-                  isSelected={sec.id === selectedSectionId} products={products}
-                  onSelectSection={onSelectSection} onUpdateSection={onUpdateSection}
-                  onReorder={onReorder} onToggleVisibility={onToggleVisibility}
-                  onRequestDelete={(targetSec) => setDeletingSection(targetSec)}
-                  onDuplicateSection={onDuplicateSection}
+                  key={sec.id} sec={sec} idx={idx} totalSections={sections.length} isSelected={sec.id === selectedSectionId}
+                  products={products} onSelectSection={onSelectSection} onUpdateSection={onUpdateSection} onReorder={onReorder}
+                  onToggleVisibility={onToggleVisibility} onRequestDelete={(targetSec) => setDeletingSection(targetSec)} onDuplicateSection={onDuplicateSection}
                 />
               ))}
               {footerSections.length === 0 && (
                 <button
-                  type="button"
-                  onClick={handleAddContactFooter}
-                  className="w-full flex items-center justify-between px-2.5 py-2 rounded-md border border-dashed border-slate-200 hover:bg-slate-50 text-[11.5px] font-medium text-slate-700 cursor-pointer"
+                  type="button" onClick={handleAddContactFooter}
+                  className="w-full flex items-center justify-between px-2.5 py-2 rounded-md border border-dashed border-[#CDD2D9] hover:bg-[#F6F7F9] text-[11.5px] font-medium text-slate-700 cursor-pointer"
                 >
-                  <span className="flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-slate-500" />
-                    <span>+ Activer le pied de page</span>
-                  </span>
+                  <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-slate-500" /><span>+ Activer le pied de page</span></span>
                   <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                 </button>
               )}
@@ -250,9 +236,13 @@ export const SectionTreePanel: React.FC<SectionTreePanelProps> = ({
           </>
         )}
       </div>
-
       <DeleteSectionModal section={deletingSection} onClose={() => setDeletingSection(null)} onConfirm={onDeleteSection} />
-      <AddSectionModal isOpen={isAddModalOpen} activeSector={resolvedSector} onClose={() => setIsAddModalOpen(false)} onAddSection={onAddSection} />
+      {isAddModalOpen && (
+        <Suspense fallback={null}>
+          <AddSectionModal isOpen={isAddModalOpen} activeSector={resolvedSector} insertAtIndex={pendingInsertIndex} onClose={() => { setPendingInsertIndex(undefined); setIsAddModalOpen(false); }} onAddSection={onAddSection} />
+        </Suspense>
+      )}
     </div>
   );
 };
+

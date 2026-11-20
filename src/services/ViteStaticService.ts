@@ -61,6 +61,11 @@ async function getFreshHtmlTemplate(distPath: string): Promise<string> {
   return cachedHtmlTemplate;
 }
 
+const SW_UNREGISTER_SCRIPT =
+  "self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).then(()=>self.registration.unregister()).then(()=>self.clients.matchAll({type:'window'})).then(cs=>cs.forEach(c=>{if(c.url&&'navigate'in c)c.navigate(c.url);})));});\n";
+const REGISTER_SW_CLEANUP_SCRIPT =
+  "if('serviceWorker'in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{if(!r.active||!r.active.scriptURL.includes('firebase-messaging-sw.js'))r.unregister();})).catch(()=>{});}\n";
+
 export async function setupViteAndStaticServing(app: Express): Promise<void> {
   const distPath = existsSync(path.join(process.cwd(), "dist"))
     ? path.join(process.cwd(), "dist")
@@ -68,24 +73,12 @@ export async function setupViteAndStaticServing(app: Express): Promise<void> {
   const publicLocalesPath = path.join(process.cwd(), "public", "locales");
   const distLocalesPath = path.join(distPath, "locales");
 
-  // Security Guard: Block public HTTP access to sourcemap (.map) files across all static routes
-  app.use((req, res, next) => {
-    const rawPath = (req.path || "").toLowerCase();
-    if (rawPath.endsWith(".map") || rawPath.includes(".map?")) {
-      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-      return res.status(404).type("text/plain").send("Not Found");
-    }
-    next();
-  });
-
-  // Dedicated, fail-safe /locales/:lang.json handler
   app.get("/locales/:lang.json", async (req, res) => {
     const rawLang = req.params.lang || "fr";
     const lang = rawLang.split("-")[0].toLowerCase();
     if (!["fr", "ar", "en"].includes(lang)) {
       return res.status(404).json({ error: `Langue non supportée: ${rawLang}` });
     }
-
     try {
       const data = await LocaleStorageService.getMergedLocale(lang);
       res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -98,57 +91,38 @@ export async function setupViteAndStaticServing(app: Express): Promise<void> {
       });
       const distLocale = path.join(distLocalesPath, `${lang}.json`);
       const publicLocale = path.join(publicLocalesPath, `${lang}.json`);
-      const targetPath = existsSync(distLocale) ? distLocale : publicLocale;
-      const data = LocaleStorageService.safeReadJson(targetPath, {});
+      const data = LocaleStorageService.safeReadJson(existsSync(distLocale) ? distLocale : publicLocale, {});
       res.setHeader("Content-Type", "application/json; charset=utf-8");
       return res.json(data);
     }
   });
 
-  // Self-destructing Service Worker to purge stale Workbox caches and unregister old SWs
   app.get("/sw.js", (_req, res) => {
     res.setHeader("Content-Type", "application/javascript; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    return res.send(
-      "self.addEventListener('install', function() { self.skipWaiting(); });\n" +
-      "self.addEventListener('activate', function(event) {\n" +
-      "  event.waitUntil(caches.keys().then(function(keys) { return Promise.all(keys.map(function(k) { return caches.delete(k); })); })\n" +
-      "    .then(function() { return self.registration.unregister(); })\n" +
-      "    .then(function() { return self.clients.matchAll({ type: 'window' }); })\n" +
-      "    .then(function(clients) { clients.forEach(function(c) { if (c.url && 'navigate' in c) c.navigate(c.url); }); }));\n" +
-      "});\n"
-    );
+    return res.send(SW_UNREGISTER_SCRIPT);
   });
 
   app.get("/registerSW.js", (_req, res) => {
     res.setHeader("Content-Type", "application/javascript; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    return res.send(
-      "if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(function(regs) {\n" +
-      "  regs.forEach(function(r) { if (!r.active || !r.active.scriptURL.includes('firebase-messaging-sw.js')) r.unregister(); });\n" +
-      "}).catch(function() {}); }\n"
-    );
+    return res.send(REGISTER_SW_CLEANUP_SCRIPT);
   });
 
   app.use(express.static(path.join(process.cwd(), "public")));
-
   const assetsDir = path.join(distPath, "assets");
   app.use("/assets", express.static(assetsDir, { maxAge: "1h" }));
 
-  // Hash-resilient fallback for /assets/<chunkPrefix>-<staleHash>.(js|css) after hot rebuilds
   app.get("/assets/:filename", (req, res, next) => {
     try {
       const requested = path.basename(req.params.filename || "");
       const exactPath = path.join(assetsDir, requested);
-      if (existsSync(exactPath)) {
-        return res.sendFile(exactPath);
-      }
+      if (existsSync(exactPath)) return res.sendFile(exactPath);
 
       const match = requested.match(/^(.+)-[A-Za-z0-9_-]{6,12}\.(js|css)$/);
       if (match && existsSync(assetsDir)) {
         const [, prefix, ext] = match;
-        const files = readdirSync(assetsDir);
-        const replacement = files.find(
+        const replacement = readdirSync(assetsDir).find(
           (f) => f.startsWith(`${prefix}-`) && f.endsWith(`.${ext}`) && !f.endsWith(".map")
         );
         if (replacement) {
@@ -162,13 +136,11 @@ export async function setupViteAndStaticServing(app: Express): Promise<void> {
     return next();
   });
 
-  if (await attachDevViteMiddleware(app)) {
-    return;
-  }
+  if (await attachDevViteMiddleware(app)) return;
 
   const indexHtmlPath = path.join(distPath, "index.html");
-  app.use("/locales", express.static(path.join(distPath, "locales"), { maxAge: "1h", immutable: false, setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate"); } }));
-  app.use("/locales", express.static(path.join(process.cwd(), "public", "locales"), { maxAge: "1h", immutable: false, setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate"); } }));
+  app.use("/locales", express.static(distLocalesPath, { maxAge: "1h", immutable: false, setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate"); } }));
+  app.use("/locales", express.static(publicLocalesPath, { maxAge: "1h", immutable: false, setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate"); } }));
   app.use("/avatars", express.static(path.join(distPath, "avatars"), { maxAge: "7d" }));
   app.use("/avatars", express.static(path.join(process.cwd(), "public", "avatars"), { maxAge: "7d" }));
 
@@ -196,39 +168,35 @@ export async function setupViteAndStaticServing(app: Express): Promise<void> {
   const sendOptimizedHtml = async (res: Response, customHtmlContent?: string) => {
     let content = customHtmlContent || (await getFreshHtmlTemplate(distPath));
     if (!content || content.trim() === "") {
-      try {
-        const directHtmlPath = existsSync(path.join(distPath, "index.html"))
-          ? path.join(distPath, "index.html")
-          : existsSync(path.join(process.cwd(), "build", "index.html"))
-          ? path.join(process.cwd(), "build", "index.html")
-          : path.join(process.cwd(), "index.html");
-        if (existsSync(directHtmlPath)) {
-          content = await fsPromises.readFile(directHtmlPath, "utf-8");
-          cachedHtmlTemplate = content;
-          isStaticBuildValid = true;
+      for (const candidate of [
+        path.join(distPath, "index.html"),
+        path.join(process.cwd(), "build", "index.html"),
+        path.join(process.cwd(), "index.html"),
+      ]) {
+        try {
+          if (existsSync(candidate)) {
+            content = await fsPromises.readFile(candidate, "utf-8");
+            cachedHtmlTemplate = content;
+            isStaticBuildValid = true;
+            break;
+          }
+        } catch {
+          // try next candidate
         }
-      } catch {
-        // ignore
       }
     }
 
     const nonce = res.locals.cspNonce || "";
-
     if (!content || content.trim() === "") {
       safeLogger.error("[CRITICAL ALERT] Serving HTTP 500 because frontend static assets are missing or corrupted");
       res.status(500).setHeader("Content-Type", "text/html; charset=utf-8");
       let errorPage = '<!doctype html><html lang="fr"><head><meta charset="UTF-8"><title>500 - Service Indisponible</title></head><body><div style="font-family:sans-serif;text-align:center;padding:50px;"><h1>500 - Service Indisponible</h1><p>Les ressources de la plateforme sont indisponibles. Veuillez réessayer ultérieurement.</p></div></body></html>';
-      if (nonce) {
-        errorPage = injectNonceToHtml(errorPage, nonce);
-      }
+      if (nonce) errorPage = injectNonceToHtml(errorPage, nonce);
       res.send(errorPage);
       return;
     }
 
-    if (nonce) {
-      content = injectNonceToHtml(content, nonce);
-    }
-
+    if (nonce) content = injectNonceToHtml(content, nonce);
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     res.setHeader("Pragma", "no-cache");
@@ -236,32 +204,19 @@ export async function setupViteAndStaticServing(app: Express): Promise<void> {
     res.send(content);
   };
 
-  app.get(["/", "/index.html"], async (_req, res) => {
-    await sendOptimizedHtml(res);
-  });
-
-  app.use(
-    express.static(distPath, {
-      index: false,
-      maxAge: 0,
-      setHeaders: (res, filePath) => {
-        if (filePath.endsWith(".html")) {
-          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        } else if (filePath.includes("/assets/")) {
-          res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate");
-        } else {
-          res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate");
-        }
-      },
-    })
-  );
+  app.get(["/", "/index.html"], async (_req, res) => { await sendOptimizedHtml(res); });
+  app.use(express.static(distPath, {
+    index: false,
+    maxAge: 0,
+    setHeaders: (res, filePath) => {
+      res.setHeader("Cache-Control", filePath.endsWith(".html") ? "no-cache, no-store, must-revalidate" : "public, max-age=3600, must-revalidate");
+    },
+  }));
 
   app.get("/product/:id", async (req, res) => {
     try {
-      const productId = req.params.id;
-      const product = await getProductSeoData(productId);
+      const product = await getProductSeoData(req.params.id);
       let html = await getFreshHtmlTemplate(distPath);
-
       if (product && html) {
         html = injectProductSeo(html, product);
         res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600");
@@ -278,9 +233,7 @@ export async function setupViteAndStaticServing(app: Express): Promise<void> {
       return res.status(404).json({ error: `Ressource introuvable: ${req.method} ${req.path}` });
     }
     const ext = path.extname(req.path);
-    if (ext && ext !== ".html") {
-      return res.status(404).end();
-    }
+    if (ext && ext !== ".html") return res.status(404).end();
     return sendOptimizedHtml(res);
   });
 }

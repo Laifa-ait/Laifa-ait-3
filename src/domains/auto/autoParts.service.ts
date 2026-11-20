@@ -74,7 +74,7 @@ export class AutoPartsService {
   }
 
   private async ensureSeed() {
-    if (process.env.NODE_ENV === "production" || this.isOfflineTestMode() || !db) return;
+    if (process.env.ALLOW_AUTO_SEED !== "true" || process.env.NODE_ENV === "production" || this.isOfflineTestMode() || !db) return;
     try {
       const snap = await db.collection("auto_parts").limit(1).get();
       if (snap.empty) {

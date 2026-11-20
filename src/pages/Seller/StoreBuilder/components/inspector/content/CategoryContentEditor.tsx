@@ -57,14 +57,14 @@ export const CategoryContentEditor: React.FC<CategoryContentEditorProps> = ({
   useEffect(() => {
     if (!selectedSubElement) return;
     if (selectedSubElement === "category-style") {
-      selectStep(2);
+      selectStep(2, true);
     } else if (selectedSubElement === "category-presets") {
-      selectStep(4);
+      selectStep(4, true);
     } else if (
       selectedSubElement.startsWith("category-items") ||
       selectedSubElement.startsWith("cat-")
     ) {
-      selectStep(1);
+      selectStep(1, true);
       const rawIdx = selectedSubElement.includes(":")
         ? selectedSubElement.split(":")[1]
         : selectedSubElement.replace("cat-", "");

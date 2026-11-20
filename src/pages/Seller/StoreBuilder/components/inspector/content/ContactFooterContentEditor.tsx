@@ -21,7 +21,7 @@ interface ContactFooterContentEditorProps {
 
 const CONTACT_FOOTER_STEPS: StepDefinition[] = [
   { id: 1, shortLabel: "1. Horaires", title: "1. Accueil & Horaires", subtitle: "Titre d'assistance et plages de préparation." },
-  { id: 2, shortLabel: "2. Localisation", title: "2. Wilaya & Expédition", subtitle: "Localisation de l'atelier ou point de départ." },
+  { id: 2, shortLabel: "2. Localisation", title: "2. Wilaya & Expédition", subtitle: "Wilaya d'origine et zone d'expédition." },
 ];
 
 export const ContactFooterContentEditor: React.FC<ContactFooterContentEditorProps> = ({
@@ -71,7 +71,7 @@ export const ContactFooterContentEditor: React.FC<ContactFooterContentEditorProp
         data-testid="contact-footer-internal-policy-banner"
         className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2 text-start"
       >
-        <ShieldCheck className="w-4 h-4 text-[#023859] shrink-0 mt-0.5" />
+        <ShieldCheck className="w-4 h-4 text-[var(--studio-primary)] shrink-0 mt-0.5" />
         <p className="text-[11px] font-medium text-slate-700 leading-snug">
           Conformité Olmart : Toutes les interactions clients passent par les notifications internes sécurisées. Aucun téléphone, WhatsApp ou e-mail externe n&apos;est requis ni publié.
         </p>
@@ -81,7 +81,7 @@ export const ContactFooterContentEditor: React.FC<ContactFooterContentEditorProp
         type="button"
         data-testid="contact-footer-import-profile-btn"
         onClick={handleImportFromStoreProfile}
-        className="w-full py-2 px-3 rounded-xl bg-[#023859]/10 hover:bg-[#023859]/15 text-[#023859] border border-[#023859]/20 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+        className="w-full py-2 px-3 rounded-xl bg-[var(--studio-surface-subtle)] hover:bg-slate-200/70 text-[var(--studio-primary)] border border-[var(--studio-border)] text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
       >
         <RefreshCw className="w-3.5 h-3.5" />
         <span>Synchroniser ma Wilaya &amp; mes horaires</span>
@@ -108,7 +108,7 @@ export const ContactFooterContentEditor: React.FC<ContactFooterContentEditorProp
       {activeStep === 2 && (
         <div className="space-y-3" data-testid="contact-footer-step-panel-2">
           {renderField("wilaya", "Wilaya d'expédition", "Ex: Alger (16)")}
-          {renderField("address", "Zone / Atelier (sans numéro externe)", "Ex: Hydra, Alger, Algérie")}
+          {renderField("address", "Zone / Showroom (sans numéro externe)", "Ex: Hydra, Alger, Algérie")}
         </div>
       )}
 

@@ -181,8 +181,9 @@ export function useCuration() {
       });
 
       if (selectedProduct.sellerId) {
-        await addAdminDoc("notifications", {
-          userId: selectedProduct.sellerId,
+        await addAdminDoc("user_notifications", {
+          recipientId: selectedProduct.sellerId,
+          senderId: "admin",
           title: t("Produit Approuvé ! 🎉"),
           message: t("Votre produit {{name}} a été validé par la modération Olmart et est désormais en ligne.", { name: selectedProduct.name }),
           type: "product_approval",
@@ -220,8 +221,9 @@ export function useCuration() {
       });
 
       if (selectedProduct.sellerId) {
-        await addAdminDoc("notifications", {
-          userId: selectedProduct.sellerId,
+        await addAdminDoc("user_notifications", {
+          recipientId: selectedProduct.sellerId,
+          senderId: "admin",
           title: t("Produit Refusé ⚠️"),
           message: t("Votre produit {{name}} requiert des modifications avant publication : {{reason}}", { name: selectedProduct.name, reason: rejectionReason.trim() }),
           type: "product_rejection",

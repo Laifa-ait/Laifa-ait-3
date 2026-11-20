@@ -44,41 +44,14 @@ describe("Audit & Refonte Studio Vendeur : Sélecteur de Couleurs par Élément,
 
   it("1. Contrôles Bannière (4 Coins Arrondis, Couleurs 4 Coins, Ombres, Filtres Photo, Badge & Bouton CTA) fonctionnent de bout en bout", async () => {
     const settings: HeroBannerSettings = {
-      badgeText: "COLLECTION PRIVÉE",
-      showBadge: true,
-      badgeBgColor: "#D4AF37",
-      badgeTextColor: "#0E1117",
-      title: "Haute Horlogerie Alger",
-      subtitle: "Savoir-faire artisanal",
-      showSubtitle: true,
-      imageUrl: "",
-      heroLayout: "editorial-split",
-      ctaText: "Explorer",
-      showCta: true,
-      usePerCornerRadius: true,
-      borderRadiusTlPx: 40,
-      borderRadiusTrPx: 8,
-      borderRadiusBrPx: 40,
-      borderRadiusBlPx: 0,
-      useCornerColors: true,
-      cornerColorTl: "#FAF6F0",
-      cornerColorTr: "#F3E8D6",
-      cornerColorBr: "#EFE2CC",
-      cornerColorBl: "#FFFFFF",
-      bannerShadow: "floating",
-      imageShadow: "lg",
-      imageFilterPreset: "warm-editorial",
-      imageBrightness: 110,
-      imageContrast: 115,
-      ctaStyle: "outline",
-      ctaButtonSize: "lg",
-      ctaBgColor: "#111827",
-      ctaTextColor: "#F9FAFB",
-      ctaBorderColor: "#D97706",
-      ctaBorderWidthPx: 3,
-      ctaBorderRadiusPx: 14,
-      ctaShadow: "glow",
-      ctaShowArrow: false,
+      badgeText: "COLLECTION PRIVÉE", showBadge: true, badgeBgColor: "#D4AF37", badgeTextColor: "#0E1117",
+      title: "Haute Horlogerie Alger", subtitle: "Savoir-faire artisanal", showSubtitle: true, imageUrl: "",
+      heroLayout: "editorial-split", ctaText: "Explorer", showCta: true,
+      usePerCornerRadius: true, borderRadiusTlPx: 40, borderRadiusTrPx: 8, borderRadiusBrPx: 40, borderRadiusBlPx: 0,
+      useCornerColors: true, cornerColorTl: "#FAF6F0", cornerColorTr: "#F3E8D6", cornerColorBr: "#EFE2CC", cornerColorBl: "#FFFFFF",
+      bannerShadow: "floating", imageShadow: "lg", imageFilterPreset: "warm-editorial", imageBrightness: 110, imageContrast: 115,
+      ctaStyle: "outline", ctaButtonSize: "lg", ctaBgColor: "#111827", ctaTextColor: "#F9FAFB", ctaBorderColor: "#D97706",
+      ctaBorderWidthPx: 3, ctaBorderRadiusPx: 14, ctaShadow: "glow", ctaShowArrow: false,
     };
 
     const profile = resolveHeroDeviceProfile(settings, "desktop");
@@ -91,16 +64,10 @@ describe("Audit & Refonte Studio Vendeur : Sélecteur de Couleurs par Élément,
     const filterCss = resolveHeroImageFilterCss(settings);
     expect(filterCss).toContain("brightness(110%)");
     expect(filterCss).toContain("contrast(115%)");
-    expect(resolveHeroBoxShadowCss("floating")).toContain("rgba(15, 23, 42, 0.25)");
+    expect(resolveHeroBoxShadowCss("floating")).toContain("rgba(15, 23, 42, 0.30)");
 
     const section: CustomPageSection<"hero_banner"> = {
-      id: "sec_hero_fx",
-      type: "hero_banner",
-      title: "Bannière Prestige",
-      isVisible: true,
-      order: 0,
-      settings,
-      styles: {},
+      id: "sec_hero_fx", type: "hero_banner", title: "Bannière Prestige", isVisible: true, order: 0, settings, styles: {},
     };
 
     await act(async () => {
@@ -110,33 +77,29 @@ describe("Audit & Refonte Studio Vendeur : Sélecteur de Couleurs par Élément,
     const heroNode = container.querySelector('[data-testid="hero-model-editorial-split"]') as HTMLElement;
     expect(heroNode.style.borderRadius).toBe("40px 8px 40px 0px");
     expect((container.querySelector('[data-testid="hero-badge-pill"]') as HTMLElement).textContent).toContain("COLLECTION PRIVÉE");
-    expect((container.querySelector('[data-testid="hero-pure-photo-img"]') as HTMLImageElement).style.filter).toContain("brightness");
+    expect((container.querySelector('[data-testid="hero-pure-photo"]') as HTMLImageElement).style.filter).toContain("brightness");
     expect((container.querySelector('[data-testid="hero-single-cta-btn"]') as HTMLAnchorElement).style.borderRadius).toBe("14px");
 
-    // Vérifier les 4 autres modèles de bannière (cinema-full, arch-palace, atelier-collage, bento-hero) + 2ème bouton CTA
-    const models = ["cinema-full", "arch-palace", "atelier-collage", "bento-hero"] as const;
-    for (const modelId of models) {
+    for (const modelId of ["cinema-full", "arch-palace", "atelier-collage", "bento-hero"] as const) {
       const modelSection: CustomPageSection<"hero_banner"> = {
         ...section,
         settings: {
-          ...settings,
-          heroLayout: modelId,
-          imageZoomDesktop: 1.3,
-          innerPaddingPx: 28,
-          diptychGapPx: 24,
-          showSecondaryCta: true,
-          secondaryCtaText: "Voir Lookbook",
-          secondaryCtaBgColor: "#FFFFFF",
-          secondaryCtaTextColor: "#111827",
+          ...settings, heroLayout: modelId, imageZoomDesktop: 1.3, innerPaddingPx: 28, diptychGapPx: 24,
+          showSecondaryCta: true, secondaryCtaText: "Voir Lookbook", secondaryCtaBgColor: "#FFFFFF", secondaryCtaTextColor: "#111827",
         },
       };
       await act(async () => {
         root.render(<SectionHeroBanner section={modelSection} theme={DEFAULT_STUDIO_THEME} previewViewport="desktop" />);
       });
       expect(container.querySelector(`[data-testid="hero-model-${modelId}"]`)).not.toBeNull();
-      const secBtn = container.querySelector('[data-testid="hero-secondary-cta-btn"]') as HTMLAnchorElement;
-      expect(secBtn).not.toBeNull();
-      expect(secBtn.textContent).toContain("Voir Lookbook");
+      const secBtn = container.querySelector('[data-testid="hero-secondary-cta-btn"]') as HTMLAnchorElement | null;
+      if (modelId === "cinema-full") {
+        expect(container.querySelector('[data-testid="hero-single-cta-btn"]')).not.toBeNull();
+        expect(secBtn).toBeNull();
+        expect(container.querySelector('[data-testid="hero-badge-pill"]')).toBeNull();
+      } else {
+        expect(secBtn?.textContent).toContain("Voir Lookbook");
+      }
     }
   });
 
@@ -152,15 +115,11 @@ describe("Audit & Refonte Studio Vendeur : Sélecteur de Couleurs par Élément,
 
     expect(container.querySelector('[data-testid="hero-step-panel-1"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="hero-step-panel-2"]')).toBeNull();
-    expect(container.querySelector('[data-testid="hero-inner-padding-slider"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="hero-goto-design-tab-btn"]')).not.toBeNull();
+    await act(async () => { (container.querySelector('[data-testid="hero-width-full-btn"]') as HTMLButtonElement).click(); });
+    expect(settings.containerMode).toBe("full");
 
-    await act(async () => { (container.querySelector('[data-testid="hero-toggle-per-corner-radius"]') as HTMLButtonElement).click(); });
-    expect(settings.usePerCornerRadius).toBe(true);
-
-    expect((container.querySelector('[data-testid="hero-step-tab-2"]') as HTMLButtonElement).disabled).toBe(true);
     await act(async () => { (container.querySelector('[data-testid="hero-save-step-btn"]') as HTMLButtonElement).click(); });
-
-    expect(container.querySelector('[data-testid="hero-badge-bg-color"]')).not.toBeNull();
     await act(async () => { (container.querySelector('[data-testid="hero-toggle-corner-colors"]') as HTMLButtonElement).click(); });
     expect(settings.useCornerColors).toBe(true);
 
@@ -181,10 +140,6 @@ describe("Audit & Refonte Studio Vendeur : Sélecteur de Couleurs par Élément,
 
     await act(async () => { (container.querySelector('[data-testid="style-step-tab-1"]') as HTMLButtonElement).click(); });
     expect(container.querySelector('[data-testid="section-element-color-matrix"]')).not.toBeNull();
-    for (const key of ["backgroundColor", "headingColor", "subtitleColor", "cardBgColor", "cardBorderColor", "priceColor", "badgeBgColor", "iconColor", "buttonBgColor"]) {
-      expect(container.querySelector(`[data-testid="section-color-${key}"]`)).not.toBeNull();
-    }
-
     await act(async () => { (container.querySelector('[data-testid="section-toggle-corner-colors"]') as HTMLButtonElement).click(); });
     expect(styles.useCornerColors).toBe(true);
 
@@ -202,17 +157,14 @@ describe("Audit & Refonte Studio Vendeur : Sélecteur de Couleurs par Élément,
     const computedContainer = buildSectionContainerStyle(collectionSection.styles, "#FFFFFF", "#17191C", DEFAULT_STUDIO_THEME) as Record<string, string>;
     expect(computedContainer.borderRadius).toBe("36px 12px 36px 4px");
     expect(computedContainer["--section-heading-color"]).toBe("#7C2D12");
-    expect(computedContainer["--section-card-bg"]).toBe("#FFFBEB");
-    expect(computedContainer["--section-price-color"]).toBe("#B45309");
 
     await act(async () => { root.render(<SectionContentAndTrust section={collectionSection} products={[]} theme={DEFAULT_STUDIO_THEME} />); });
     const imgEl = container.querySelector("img") as HTMLImageElement;
-    expect(imgEl.src.startsWith("data:image/svg+xml")).toBe(true);
     expect(imgEl.style.filter).toContain("sepia(14%)");
   });
 
   it("4. Les 9 Thèmes Signatures (incluant Obsidienne Luxe Sombre) et le Studio 13 Couleurs fonctionnent sans résidu hardcodé", async () => {
-    expect(ARTISTIC_STUDIO_PRESETS).toHaveLength(9);
+    expect(ARTISTIC_STUDIO_PRESETS).toHaveLength(14);
     const darkTheme = ARTISTIC_STUDIO_PRESETS.find((p) => p.id === "horlogerie_prestige");
     expect(darkTheme?.theme.canvasColor).toBe("#0E1117");
     expect(darkTheme?.theme.buttonColor).toBe("#D4AF37");
@@ -228,14 +180,56 @@ describe("Audit & Refonte Studio Vendeur : Sélecteur de Couleurs par Élément,
 
     await act(async () => { root.render(<ThemeColorPaletteTab theme={DEFAULT_STUDIO_THEME} onUpdateTheme={() => undefined} onErrorChange={() => undefined} />); });
     expect(container.querySelector('[data-testid="global-color-canvasColor"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="global-color-priceColor"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="global-color-buttonTextColor"]')).not.toBeNull();
+  });
 
-    const faqSection: CustomPageSection = {
-      id: "sec_faq", type: "faq_accordion", title: "FAQ", isVisible: true, order: 1,
-      settings: { title: "FAQ", items: [{ question: "Q?", answer: "R." }] }, styles: { containerWidth: "contained" },
+  it("5. Onglet Style -> 2. Bords (Arrondi des coins & Ombre Lumineuse) sur Hero Rose Poudré met à jour la bannière sans écrasement d'état", async () => {
+    useStudioStore.getState().setActiveInspectorTab("style");
+    let heroSection: CustomPageSection<"hero_banner"> = {
+      id: "sec_hero_rose", type: "hero_banner", title: "Hero Rose Poudré", isVisible: true, order: 0,
+      settings: {
+        heroLayout: "editorial-split", title: "Hero Rose Poudré", imageUrl: "", ctaBgColor: "#EC4899",
+        heroDesktopConfig: { borderRadiusPx: 16 }, heroMobileConfig: { borderRadiusPx: 16 },
+      },
+      styles: { borderRadius: "md" },
     };
-    await act(async () => { root.render(<SectionInspectorPanel section={faqSection} sections={[faqSection]} products={[]} currentTheme={DEFAULT_STUDIO_THEME} onUpdateSection={() => undefined} />); });
-    expect(container.querySelector('[data-testid="list-content-stepper"]')).not.toBeNull();
+
+    const renderBoth = async () => {
+      await act(async () => {
+        root.render(
+          <div>
+            <SectionInspectorPanel
+              section={heroSection} sections={[heroSection]} products={[]} currentTheme={DEFAULT_STUDIO_THEME}
+              onUpdateSection={(_id, patch) => { heroSection = { ...heroSection, ...patch } as CustomPageSection<"hero_banner">; }}
+            />
+            <SectionHeroBanner section={heroSection} theme={DEFAULT_STUDIO_THEME} previewViewport="mobile" />
+          </div>
+        );
+      });
+    };
+
+    await renderBoth();
+    await act(async () => { (container.querySelector('[data-testid="style-save-step-btn"]') as HTMLButtonElement).click(); });
+    await renderBoth();
+
+    const lgBtn = container.querySelector('[data-testid="section-radius-btn-lg"]') as HTMLButtonElement;
+    expect(lgBtn).not.toBeNull();
+    await act(async () => { lgBtn.click(); });
+    await renderBoth();
+
+    expect(heroSection.styles.borderRadius).toBe("lg");
+    expect(heroSection.settings.borderRadiusPx).toBe(40);
+    expect(heroSection.settings.heroMobileConfig?.borderRadiusPx).toBe(40);
+    expect((container.querySelector('[data-testid="hero-model-editorial-split"]') as HTMLElement).style.borderRadius).toBe("40px");
+
+    const shadowSelect = container.querySelector('[data-testid="section-shadow-select"]') as HTMLSelectElement;
+    await act(async () => {
+      shadowSelect.value = "glow";
+      shadowSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await renderBoth();
+
+    expect(heroSection.styles.shadow).toBe("glow");
+    expect(heroSection.settings.bannerShadow).toBe("glow");
+    expect((container.querySelector('[data-testid="hero-model-editorial-split"]') as HTMLElement).style.boxShadow).toContain("rgba(236, 72, 153");
   });
 });

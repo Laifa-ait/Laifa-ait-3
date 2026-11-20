@@ -22,7 +22,10 @@ import {
   fetchArtisanJobBroadcasts,
   fetchMyArtisanProfile,
 } from '../../services/artisan.api';
+import { fetchArtisanSponsoredFeed } from '../../services/artisanAds.api';
+import { ArtisanNativeBannerAd } from '../../components/artisans/ads/ArtisanNativeBannerAd';
 import { ArtisanJobBroadcast, ArtisanProfile } from '../../types/artisan';
+import { ArtisanAdCampaign } from '../../types/artisanAds';
 
 export const ArtisanBroadcastsPage: React.FC = () => {
   const { user } = useAuth();
@@ -30,6 +33,7 @@ export const ArtisanBroadcastsPage: React.FC = () => {
   const initialTrade = searchParams.get('tradeId') || '';
 
   const [broadcasts, setBroadcasts] = useState<ArtisanJobBroadcast[]>([]);
+  const [nativeBanner, setNativeBanner] = useState<ArtisanAdCampaign | null>(null);
   const [myProfile, setMyProfile] = useState<ArtisanProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -64,12 +68,19 @@ export const ArtisanBroadcastsPage: React.FC = () => {
   const loadBroadcasts = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchArtisanJobBroadcasts({
-        tradeId: selectedTrade || undefined,
-        wilaya: selectedWilaya || undefined,
-        urgency: selectedUrgency || undefined,
-      });
+      const [data, ads] = await Promise.all([
+        fetchArtisanJobBroadcasts({
+          tradeId: selectedTrade || undefined,
+          wilaya: selectedWilaya || undefined,
+          urgency: selectedUrgency || undefined,
+        }),
+        fetchArtisanSponsoredFeed({
+          tradeId: selectedTrade || undefined,
+          wilaya: selectedWilaya || undefined,
+        }),
+      ]);
       setBroadcasts(data);
+      setNativeBanner(ads.inFeedBanners[0] || null);
     } catch (err) {
       console.error('Error fetching broadcasts', err);
     } finally {
@@ -192,6 +203,9 @@ export const ArtisanBroadcastsPage: React.FC = () => {
             </select>
           </div>
         </div>
+
+        {/* Google Native In-Feed Ad Slot on Broadcasts Page */}
+        {nativeBanner && <ArtisanNativeBannerAd banner={nativeBanner} />}
 
         {/* Broadcasts List */}
         {loading ? (

@@ -125,21 +125,29 @@ export const OlmaArtisanHero: React.FC<OlmaArtisanHeroProps> = ({
     }
   };
 
+  const activeFiltersCount = [
+    filters.tradeId,
+    filters.wilaya,
+    filters.availableOnly ? "1" : "",
+    filters.minRating ? String(filters.minRating) : "",
+  ].filter(Boolean).length;
+
   return (
-    <div className="w-full bg-white pt-2 sm:pt-3 pb-3 sm:pb-4 relative z-30 border-b border-slate-100/80">
-      <div className="max-w-xl mx-auto px-4 sm:px-6 relative" ref={containerRef}>
+    <div className="w-full bg-white pt-2.5 sm:pt-3.5 pb-3 sm:pb-4 relative z-30 border-b border-slate-200/70">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 relative" ref={containerRef}>
         <OlmaArtisanSearchBar
           whatTerm={whatTerm}
           whereTerm={whereTerm}
           isLocating={isLocating}
+          activeFiltersCount={activeFiltersCount}
           onWhatChange={handleWhatChange}
           onWhatClear={() => {
-            setWhatTerm('');
+            setWhatTerm("");
             onFilterChange({ ...filters, q: undefined });
           }}
           onWhereChange={handleWhereChange}
           onWhereClear={() => {
-            setWhereTerm('');
+            setWhereTerm("");
             setSuggestions([]);
             setIsSuggestionsOpen(false);
             onFilterChange({ ...filters, wilaya: undefined, commune: undefined });

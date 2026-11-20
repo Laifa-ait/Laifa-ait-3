@@ -31,11 +31,12 @@ interface StudioColumnsLayoutProps {
   toggleVisibility: (id: string) => void;
   deleteSection: (id: string) => void;
   duplicateSection?: (id: string) => void;
-  addSection: (type: CustomPageSectionType, settings: Record<string, unknown>, title?: string) => void;
+  addSection: (type: CustomPageSectionType, settings: Record<string, unknown>, title?: string, insertAtIndex?: number) => void;
   currentTheme: CustomPageTheme;
   products: Product[];
   catalogStatus?: CatalogLoadStatus;
   catalogError?: string | null;
+  catalogTruncated?: boolean;
   onReloadCatalog?: () => void | Promise<void>;
   storeConfig?: SellerStoreConfig | null;
   viewport: "mobile" | "tablet" | "desktop";
@@ -58,6 +59,7 @@ interface StudioColumnsLayoutProps {
   handleApplyFullArchetype: (sections: CustomPageSection[], theme: CustomPageTheme) => Promise<void>;
   onReplaceSections?: (sections: CustomPageSection[]) => void;
   onSaveDraft?: () => unknown | Promise<unknown>;
+  lastSaveError?: string | null;
 }
 
 export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
@@ -81,6 +83,7 @@ export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
   products,
   catalogStatus,
   catalogError,
+  catalogTruncated,
   onReloadCatalog,
   storeConfig,
   viewport,
@@ -103,9 +106,13 @@ export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
   handleApplyFullArchetype,
   onReplaceSections,
   onSaveDraft,
+  lastSaveError,
 }) => {
+  const [mobileSplitPreviewOpen, setMobileSplitPreviewOpen] = React.useState<boolean>(true);
+  const isMobileSplitActive = mobileColumn === "inspector" && mobileSplitPreviewOpen;
+
   return (
-    <div className="flex-1 flex overflow-hidden min-w-0 min-h-0">
+    <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-w-0 min-h-0">
       <div
         className={`h-full min-w-0 ${
           mobileColumn === "tree" ? "block w-full flex-1 md:flex-none" : "hidden"
@@ -132,28 +139,38 @@ export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
           onDuplicateSection={duplicateSection}
           onAddSection={addSection}
           onSaveDraft={onSaveDraft}
+          lastSaveError={lastSaveError}
         />
       </div>
 
       <div
-        className={`h-full flex-1 min-w-0 overflow-hidden ${
-          mobileColumn === "canvas" ? "block w-full" : "hidden md:block"
+        data-testid="studio-canvas-column"
+        data-mobile-split-active={isMobileSplitActive ? "true" : "false"}
+        className={`min-w-0 overflow-hidden transition-all duration-200 ${
+          mobileColumn === "canvas"
+            ? "block w-full flex-1 h-full"
+            : isMobileSplitActive
+            ? "block w-full h-[38vh] min-h-[210px] max-h-[310px] shrink-0 border-b-2 border-slate-300 shadow-xs md:h-full md:max-h-none md:min-h-0 md:flex-1 md:border-b-0 md:shadow-none"
+            : "hidden md:block md:h-full md:flex-1"
         }`}
       >
         <StudioPreview
           sections={sections}
           theme={currentTheme}
           products={products}
+          catalogStatus={catalogStatus}
           storeConfig={storeConfig}
           viewport={viewport}
           onViewportChange={setViewport}
           selectedSectionId={selectedSectionId}
           shopSlug={storeConfig?.shopSlug}
           shopName={storeConfig?.shopName}
+          isMobileSplitCompact={isMobileSplitActive}
           onSelectSection={(id) => {
             setSelectedSectionId(id);
             setNavMode("sections");
             setShowRightSidebar(true);
+            setMobileColumn("inspector");
           }}
           showLeftSidebar={showLeftSidebar}
           onToggleLeftSidebar={() => setShowLeftSidebar((prev) => !prev)}
@@ -163,14 +180,16 @@ export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
       </div>
 
       <div
-        className={`h-full min-w-0 ${
-          mobileColumn === "inspector" ? "block w-full flex-1 md:flex-none" : "hidden"
-        } ${showRightSidebar ? "md:block md:w-[356px] lg:w-[372px] md:shrink-0" : "md:hidden"}`}
+        className={`min-w-0 min-h-0 ${
+          mobileColumn === "inspector" ? "flex flex-col w-full flex-1 md:h-full md:flex-none" : "hidden"
+        } ${showRightSidebar ? "md:block md:h-full md:w-[356px] lg:w-[372px] md:shrink-0" : "md:hidden"}`}
       >
         <PropertiesInspector
           navMode={navMode}
           onSelectNavMode={onSelectNavMode}
           onReturnToCanvas={() => setMobileColumn("canvas")}
+          mobileSplitPreviewOpen={mobileSplitPreviewOpen}
+          onToggleMobileSplitPreview={() => setMobileSplitPreviewOpen((prev) => !prev)}
           onSelectSection={(id) => {
             setSelectedSectionId(id);
             setNavMode("sections");
@@ -180,6 +199,7 @@ export const StudioColumnsLayout: React.FC<StudioColumnsLayoutProps> = ({
           products={products}
           catalogStatus={catalogStatus}
           catalogError={catalogError}
+          catalogTruncated={catalogTruncated}
           onReloadCatalog={onReloadCatalog}
           storeConfig={storeConfig}
           currentTheme={currentTheme}

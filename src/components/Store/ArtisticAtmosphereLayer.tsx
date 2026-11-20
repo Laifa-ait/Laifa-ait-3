@@ -6,6 +6,7 @@ import type {
   CustomPageSectionStyles,
   CustomPageTheme,
 } from "../../domains/seller/customPage.types";
+import { DEFAULT_MODERN_THEME } from "../../pages/Seller/StoreBuilder/constants/studioThemeDefaults";
 
 interface ArtisticAtmosphereLayerProps {
   theme?: CustomPageTheme | null;
@@ -22,13 +23,13 @@ export function resolveCardMaterialClasses(
   const active = sectionMaterial || themeMaterial || "solid-matte";
   if (active === "frosted-crystal") {
     return isDarkSection
-      ? "backdrop-blur-xl bg-black/22 border border-white/25 shadow-[0_12px_36px_rgba(0,0,0,0.18)]"
-      : "backdrop-blur-xl bg-white/75 border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.05)]";
+      ? "backdrop-blur-xl bg-black/25 border border-white/20 shadow-[0_12px_32px_rgba(0,0,0,0.20)]"
+      : "backdrop-blur-xl bg-white/80 border border-white/60 shadow-[0_8px_28px_rgba(15,23,42,0.05)]";
   }
   if (active === "velvet-shadow") {
     return isDarkSection
-      ? "backdrop-blur-md bg-black/20 border border-[#FDE68A]/40 shadow-[0_16px_42px_-6px_rgba(0,0,0,0.26),0_4px_14px_-2px_rgba(253,230,138,0.15)]"
-      : "bg-[var(--store-surface,#FFFFFF)] border border-[#C59B27]/20 shadow-[0_14px_38px_-6px_rgba(1,28,64,0.10),0_4px_12px_-2px_rgba(197,155,39,0.08)]";
+      ? "backdrop-blur-md bg-slate-900/60 border border-white/15 shadow-[0_16px_42px_-6px_rgba(0,0,0,0.35)]"
+      : "bg-[var(--store-surface,#FFFFFF)] border border-slate-200/80 shadow-[0_14px_38px_-8px_rgba(15,23,42,0.10)]";
   }
   return "";
 }
@@ -40,8 +41,11 @@ export const ArtisticAtmosphereLayer: React.FC<ArtisticAtmosphereLayerProps> = (
   className = "",
 }) => {
   const uid = useId().replace(/:/g, "");
-  const surfaceTexture: ArtisticSurfaceTexture =
+  const rawTexture: ArtisticSurfaceTexture =
     sectionStyles?.surfaceTexture || theme?.surfaceTexture || "none";
+  // Map legacy zellige-watermark cleanly to architectural-grid
+  const surfaceTexture: ArtisticSurfaceTexture =
+    rawTexture === "zellige-watermark" ? "architectural-grid" : rawTexture;
   const ambientLighting: ArtisticAmbientLighting =
     sectionStyles?.ambientLighting || theme?.ambientLighting || "natural";
 
@@ -49,32 +53,24 @@ export const ArtisticAtmosphereLayer: React.FC<ArtisticAtmosphereLayerProps> = (
     return null;
   }
 
-  const accentColor = theme?.accentColor || theme?.primaryColor || "#B45309";
-  const primaryColor = theme?.primaryColor || "#023859";
+  const accentColor =
+    theme?.accentColor || theme?.primaryColor || DEFAULT_MODERN_THEME.accentColor || "#2563EB";
+  const primaryColor =
+    theme?.primaryColor || DEFAULT_MODERN_THEME.primaryColor || "#0F172A";
 
   return (
     <div
       aria-hidden="true"
       className={`pointer-events-none absolute inset-0 overflow-hidden z-0 select-none ${className}`}
     >
-      {/* 1. AMBIENT LIGHTING SCENOGRAPHY */}
       {ambientLighting === "golden-hour" && (
-        <>
-          <div
-            className="absolute -top-24 inset-x-0 h-[440px] opacity-30 transition-opacity duration-700"
-            style={{
-              background:
-                "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(245, 158, 11, 0.26) 0%, rgba(251, 191, 36, 0.10) 48%, transparent 100%)",
-            }}
-          />
-          <div
-            className="absolute bottom-0 inset-x-0 h-64 opacity-15"
-            style={{
-              background:
-                "linear-gradient(to top, rgba(217, 119, 6, 0.10), transparent)",
-            }}
-          />
-        </>
+        <div
+          className="absolute -top-24 inset-x-0 h-[420px] opacity-25 transition-opacity duration-700"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(251, 191, 36, 0.22) 0%, transparent 100%)",
+          }}
+        />
       )}
 
       {ambientLighting === "spotlight-atelier" && (
@@ -83,7 +79,7 @@ export const ArtisticAtmosphereLayer: React.FC<ArtisticAtmosphereLayerProps> = (
           style={{
             background: isDarkMode
               ? "radial-gradient(circle at 50% 34%, rgba(255,255,255,0.07) 0%, transparent 58%, rgba(2,6,23,0.35) 100%)"
-              : "radial-gradient(circle at 50% 34%, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0) 58%, rgba(15,23,42,0.05) 100%)",
+              : "radial-gradient(circle at 50% 34%, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0) 58%, rgba(15,23,42,0.04) 100%)",
           }}
         />
       )}
@@ -101,16 +97,10 @@ export const ArtisticAtmosphereLayer: React.FC<ArtisticAtmosphereLayerProps> = (
         </>
       )}
 
-      {/* 2. SUBTLE SURFACE TEXTURES (0.04 to 0.08 max opacity) */}
       {surfaceTexture === "film-grain" && (
-        <svg className="absolute inset-0 w-full h-full opacity-[0.05] mix-blend-multiply">
+        <svg className="absolute inset-0 w-full h-full opacity-[0.04] mix-blend-multiply">
           <filter id={`film-grain-${uid}`}>
-            <feTurbulence
-              type="fractalNoise"
-              baseFrequency="0.82"
-              numOctaves={3}
-              stitchTiles="stitch"
-            />
+            <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves={3} stitchTiles="stitch" />
             <feColorMatrix type="saturate" values="0" />
           </filter>
           <rect width="100%" height="100%" filter={`url(#film-grain-${uid})`} />
@@ -118,86 +108,34 @@ export const ArtisticAtmosphereLayer: React.FC<ArtisticAtmosphereLayerProps> = (
       )}
 
       {surfaceTexture === "cotton-paper" && (
-        <>
-          <div
-            className="absolute inset-0 opacity-25"
-            style={{
-              backgroundImage:
-                "radial-gradient(rgba(180, 142, 92, 0.06) 1px, transparent 0), radial-gradient(rgba(120, 90, 50, 0.04) 1px, transparent 0)",
-              backgroundSize: "24px 24px",
-              backgroundPosition: "0 0, 12px 12px",
-            }}
-          />
-          <svg className="absolute inset-0 w-full h-full opacity-[0.05] mix-blend-multiply">
-            <filter id={`cotton-${uid}`}>
-              <feTurbulence
-                type="turbulence"
-                baseFrequency="0.04 0.35"
-                numOctaves={2}
-                stitchTiles="stitch"
-              />
-              <feColorMatrix type="saturate" values="0.15" />
-            </filter>
-            <rect width="100%" height="100%" filter={`url(#cotton-${uid})`} />
-          </svg>
-        </>
-      )}
-
-      {surfaceTexture === "zellige-watermark" && (
-        <svg className="absolute inset-0 w-full h-full opacity-[0.045]">
-          <defs>
-            <pattern
-              id={`zellige-${uid}`}
-              width="64"
-              height="64"
-              patternUnits="userSpaceOnUse"
-            >
-              <g fill="none" stroke={accentColor} strokeWidth="0.9">
-                <polygon points="32,4 40,24 60,32 40,40 32,60 24,40 4,32 24,24" />
-                <polygon points="32,12 46,18 52,32 46,46 32,52 18,46 12,32 18,18" />
-                <circle cx="32" cy="32" r="5" />
-                <path d="M0,0 L12,12 M64,0 L52,12 M0,64 L12,52 M64,64 L52,52" />
-              </g>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill={`url(#zellige-${uid})`} />
-        </svg>
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage:
+              "radial-gradient(rgba(100, 116, 139, 0.08) 1px, transparent 0)",
+            backgroundSize: "24px 24px",
+          }}
+        />
       )}
 
       {surfaceTexture === "silk-mesh" && (
         <div
-          className="absolute inset-0 opacity-20"
+          className="absolute inset-0 opacity-18"
           style={{
             backgroundImage: `
-              radial-gradient(at 15% 15%, ${accentColor}1E 0px, transparent 50%),
-              radial-gradient(at 85% 25%, ${primaryColor}14 0px, transparent 55%),
-              radial-gradient(at 50% 80%, ${accentColor}14 0px, transparent 55%)
+              radial-gradient(at 15% 15%, ${accentColor}1A 0px, transparent 50%),
+              radial-gradient(at 85% 25%, ${primaryColor}12 0px, transparent 55%)
             `,
           }}
         />
       )}
 
       {surfaceTexture === "architectural-grid" && (
-        <svg className="absolute inset-0 w-full h-full opacity-[0.07]">
+        <svg className="absolute inset-0 w-full h-full opacity-[0.06]">
           <defs>
-            <pattern
-              id={`arch-grid-${uid}`}
-              width="48"
-              height="48"
-              patternUnits="userSpaceOnUse"
-            >
-              <path
-                d="M 48 0 L 0 0 0 48"
-                fill="none"
-                stroke={primaryColor}
-                strokeWidth="0.75"
-                strokeOpacity="0.4"
-              />
-              <path
-                d="M -3 0 L 3 0 M 0 -3 L 0 3 M 45 0 L 51 0 M 0 45 L 0 51"
-                stroke={accentColor}
-                strokeWidth="1"
-              />
+            <pattern id={`arch-grid-${uid}`} width="48" height="48" patternUnits="userSpaceOnUse">
+              <path d="M 48 0 L 0 0 0 48" fill="none" stroke={primaryColor} strokeWidth="0.75" strokeOpacity="0.4" />
+              <path d="M -3 0 L 3 0 M 0 -3 L 0 3" stroke={accentColor} strokeWidth="1" />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill={`url(#arch-grid-${uid})`} />

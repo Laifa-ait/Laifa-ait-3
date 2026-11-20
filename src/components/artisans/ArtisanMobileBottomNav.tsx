@@ -1,18 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { Compass, FileText, LayoutGrid, LayoutDashboard, UserCheck, Send } from 'lucide-react';
-import { motion } from 'motion/react';
-import { useAuth } from '../../context/AuthContext';
-import { fetchMyArtisanProfile, fetchClientMyRequests } from '../../services/artisan.api';
-import { ArtisanProfile } from '../../types/artisan';
-import { SuperAppSwitcherModal } from '../common/SuperAppSwitcherModal';
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  Compass,
+  FileText,
+  MessageSquare,
+  LayoutGrid,
+  LayoutDashboard,
+} from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import { fetchMyArtisanProfile, fetchClientMyRequests } from "../../services/artisan.api";
+import { ArtisanProfile } from "../../types/artisan";
+import { SuperAppSwitcherModal } from "../common/SuperAppSwitcherModal";
 
 export const ArtisanMobileBottomNav: React.FC = () => {
-  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentUser, openAuthModal } = useAuth();
+  const { currentUser } = useAuth();
 
   const [myArtisanProfile, setMyArtisanProfile] = useState<ArtisanProfile | null>(null);
   const [quotesCount, setQuotesCount] = useState<number>(0);
@@ -33,62 +36,64 @@ export const ArtisanMobileBottomNav: React.FC = () => {
     }
   }, [currentUser]);
 
-  const isExplorerActive = location.pathname === '/artisans' || location.pathname === '/bricolage';
-  const isBroadcastActive = location.pathname.startsWith('/artisans/annonces');
-  const isQuotesActive = location.pathname === '/artisans/mes-demandes';
-  const isProActive =
-    location.pathname.startsWith('/artisans/dashboard') ||
-    location.pathname === '/artisans/devenir-artisan';
+  const isExplorerActive =
+    location.pathname === "/artisans" ||
+    location.pathname === "/bricolage" ||
+    location.pathname.startsWith("/artisans/offres");
+  const isQuotesActive = location.pathname === "/artisans/mes-demandes";
+  const isMessagesActive = location.pathname.startsWith("/artisans/messages");
+  const isArtisanSpaceActive =
+    location.pathname.startsWith("/artisans/dashboard") ||
+    location.pathname === "/artisans/devenir-artisan";
 
   const navItems = [
     {
-      id: 'explorer',
-      label: t('nav_explorer', 'Explorer'),
+      id: "explorer",
+      label: "Offres",
       icon: Compass,
       isActive: isExplorerActive,
-      onClick: () => navigate('/artisans'),
+      onClick: () => navigate("/artisans"),
     },
     {
-      id: 'broadcasts',
-      label: t('nav_broadcasts', 'Annonces'),
-      icon: Send,
-      isActive: isBroadcastActive,
-      onClick: () => navigate('/artisans/annonces'),
-    },
-    {
-      id: 'quotes',
-      label: t('nav_my_quotes', 'Devis'),
+      id: "quotes",
+      label: "Mes devis",
       icon: FileText,
       isActive: isQuotesActive,
       badgeCount: quotesCount,
-      onClick: () => {
-        if (!currentUser) {
-          if (openAuthModal) openAuthModal();
-          else window.dispatchEvent(new CustomEvent('auth:openModal', { detail: { mode: 'login' } }));
-          return;
-        }
-        navigate('/artisans/mes-demandes');
-      },
+      onClick: () =>
+        currentUser
+          ? navigate("/artisans/mes-demandes")
+          : navigate("/auth?redirect=/artisans/mes-demandes"),
     },
     {
-      id: 'switcher',
-      label: t('nav_applications', 'Applications'),
+      id: "messages",
+      label: "Messages",
+      icon: MessageSquare,
+      isActive: isMessagesActive,
+      onClick: () =>
+        currentUser
+          ? navigate("/artisans/messages")
+          : navigate("/auth?redirect=/artisans/messages"),
+    },
+    {
+      id: "switcher",
+      label: "Apps",
       icon: LayoutGrid,
       isActive: isSwitcherOpen,
       onClick: () => setIsSwitcherOpen(true),
     },
     {
-      id: 'pro',
-      label: myArtisanProfile ? t('nav_pro_space', 'Pro') : t('nav_become_artisan', 'Rejoindre'),
-      icon: myArtisanProfile ? LayoutDashboard : UserCheck,
-      isActive: isProActive,
+      id: "artisan-space",
+      label: "Artisan",
+      icon: LayoutDashboard,
+      isActive: isArtisanSpaceActive,
       onClick: () => {
         if (!currentUser) {
-          navigate('/auth?redirect=/artisans/devenir-artisan');
-        } else if (myArtisanProfile?.status === 'approved') {
-          navigate('/artisans/dashboard');
+          navigate("/auth?redirect=/artisans/devenir-artisan");
+        } else if (myArtisanProfile) {
+          navigate("/artisans/dashboard");
         } else {
-          navigate('/artisans/devenir-artisan');
+          navigate("/artisans/devenir-artisan");
         }
       },
     },
@@ -97,57 +102,36 @@ export const ArtisanMobileBottomNav: React.FC = () => {
   return (
     <>
       <div
-        className="md:hidden fixed bottom-0 inset-x-0 w-full z-50 bg-white/95 backdrop-blur-xl border-t border-slate-200 shadow-[0_-2px_16px_rgba(0,0,0,0.06)]"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        className="md:hidden fixed bottom-0 inset-x-0 w-full z-50 bg-white/95 backdrop-blur-md border-t border-slate-200"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         <nav className="w-full max-w-lg mx-auto flex items-center justify-around px-2 py-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const active = item.isActive;
             const badge =
-              'badgeCount' in item && typeof item.badgeCount === 'number' && item.badgeCount > 0
+              "badgeCount" in item && typeof item.badgeCount === "number" && item.badgeCount > 0
                 ? item.badgeCount
                 : null;
 
             return (
-              <motion.button
+              <button
                 key={item.id}
-                id={`olma-artisan-bottom-${item.id}`}
-                whileTap={{ scale: 0.92 }}
+                type="button"
                 onClick={item.onClick}
-                className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl min-w-[60px] transition-colors relative cursor-pointer ${
-                  active ? 'text-amber-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+                className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl min-w-[56px] transition-colors relative cursor-pointer ${
+                  item.isActive ? "text-[#1E3A8A] font-semibold" : "text-slate-500"
                 }`}
               >
                 <div className="relative">
-                  <Icon
-                    className={`w-5 h-5 transition-transform duration-150 ${
-                      active ? 'stroke-[2.4] scale-105 text-amber-600' : 'stroke-[1.8] text-slate-500'
-                    }`}
-                  />
+                  <Icon className="w-5 h-5" />
                   {badge !== null && (
-                    <span className="absolute -top-1.5 -right-2 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[16px] text-center shadow-xs">
+                    <span className="absolute -top-1.5 -right-2 bg-[#1E3A8A] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[16px] text-center tabular-nums">
                       {badge}
                     </span>
                   )}
                 </div>
-
-                <span
-                  className={`text-[10px] sm:text-[11px] mt-1 tracking-tight leading-none ${
-                    active ? 'text-amber-600 font-bold' : 'text-slate-500 font-medium'
-                  }`}
-                >
-                  {item.label}
-                </span>
-
-                {active && (
-                  <motion.div
-                    layoutId="olma-artisan-active-indicator"
-                    className="w-1.5 h-1 rounded-full bg-amber-500 mt-1 shadow-xs"
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  />
-                )}
-              </motion.button>
+                <span className="text-[10px] mt-1 leading-none">{item.label}</span>
+              </button>
             );
           })}
         </nav>

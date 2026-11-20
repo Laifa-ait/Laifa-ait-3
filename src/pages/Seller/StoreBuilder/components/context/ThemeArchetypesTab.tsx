@@ -8,6 +8,7 @@ import {
 import { MASTER_THEME_ARCHETYPES, MasterThemeArchetype } from "./themeArchetypes";
 import { EXTRA_UNIVERSE_ARCHETYPES } from "./extraThemeArchetypes";
 import { AlertTriangle, Check, Eye, LayoutTemplate, Palette, X } from "lucide-react";
+import { DEFAULT_MODERN_THEME } from "../../constants/studioThemeDefaults";
 
 export type StoreArchetype = MasterThemeArchetype;
 
@@ -30,7 +31,7 @@ const UNIVERSE_FILTERS: Array<{ id: "all" | StoreThemeSector; label: string }> =
   { id: "mode", label: "Mode Élégance" },
   { id: "tech", label: "Technologie" },
   { id: "beaute", label: "Beauté" },
-  { id: "artisanat", label: "Artisanat algérien" },
+  { id: "artisanat", label: "Design & Objets" },
   { id: "maison", label: "Maison & Décoration" },
   { id: "alimentation", label: "Alimentation" },
   { id: "sport", label: "Sport" },
@@ -185,7 +186,7 @@ export const ThemeArchetypesTab: React.FC<ThemeArchetypesTabProps> = ({
                     <span className="text-white font-semibold text-[12px] truncate block">{arch.name}</span>
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    {[arch.theme.primaryColor, arch.theme.secondaryColor || "#111", arch.theme.canvasColor || "#FFF"].map((c, i) => (
+                    {[arch.theme.primaryColor, arch.theme.secondaryColor || DEFAULT_MODERN_THEME.secondaryColor, arch.theme.canvasColor || DEFAULT_MODERN_THEME.canvasColor].map((c, i) => (
                       <span key={i} className="w-2.5 h-2.5 rounded-full border border-white/60" style={{ backgroundColor: c }} />
                     ))}
                   </div>

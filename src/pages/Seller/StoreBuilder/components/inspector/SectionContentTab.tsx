@@ -1,6 +1,6 @@
 import React from "react";
 import { Sparkles } from "lucide-react";
-import { CustomPageSection, SellerStoreConfig } from "../../../../../domains/seller/customPage.types";
+import { CustomPageSection, CustomPageTheme, SellerStoreConfig } from "../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../domains/product/product.types";
 import { HeroContentEditor } from "./content/HeroContentEditor";
 import { ProductSelectionEditor } from "./content/ProductSelectionEditor";
@@ -16,6 +16,7 @@ interface SectionContentTabProps {
   sections?: CustomPageSection[];
   products: Product[];
   storeConfig?: SellerStoreConfig | null;
+  theme?: CustomPageTheme;
   onSettingsChange: (
     fieldOrPatch: string | Record<string, unknown>,
     value?: unknown
@@ -24,8 +25,8 @@ interface SectionContentTabProps {
 }
 
 const inputClass =
-  "h-9 w-full rounded-lg border border-[#E4E7EC] bg-white px-3 text-[12px] text-[#17191C] focus:border-[#023859] focus:outline-none";
-const labelClass = "block space-y-1 text-[12px] font-semibold text-[#475467]";
+  "h-9 w-full rounded-lg border border-[var(--studio-border)] bg-white px-3 text-[12px] text-[var(--studio-black)] focus:border-[var(--studio-primary)] focus:outline-none";
+const labelClass = "block space-y-1 text-[12px] font-semibold text-[var(--studio-muted)]";
 
 export const SectionContentTab: React.FC<SectionContentTabProps> = ({
   sectionId,
@@ -34,6 +35,7 @@ export const SectionContentTab: React.FC<SectionContentTabProps> = ({
   sections = [],
   products,
   storeConfig,
+  theme,
   onSettingsChange,
   onSaveStep,
 }) => {
@@ -99,6 +101,8 @@ export const SectionContentTab: React.FC<SectionContentTabProps> = ({
           settings={settings}
           sections={sections}
           products={products}
+          storeConfig={storeConfig}
+          storeTheme={theme || storeConfig?.theme}
           onSettingsChange={(f, v) => onSettingsChange(f, v)}
           onSaveStep={onSaveStep}
           inputClass={inputClass}

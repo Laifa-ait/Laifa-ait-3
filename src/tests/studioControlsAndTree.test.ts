@@ -39,7 +39,7 @@ describe("Studio Step 2 — Visual Controllers & Hierarchical Tree", () => {
       "scheme_4",
     ]);
     expect(schemes[2].backgroundColor).toBe("#B85B35");
-    expect(schemes[3].backgroundColor).toBe("#111827");
+    expect(schemes[3].backgroundColor).toBe("#0F172A");
     expect(schemes[3].textColor).toBe("#FFFFFF");
   });
 

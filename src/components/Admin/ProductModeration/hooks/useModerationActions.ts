@@ -21,7 +21,7 @@ export const useModerationActions = (
     }
     const toastId = toast.loading(t("Approbation en cours..."));
     try {
-      const token = await currentUser?.getIdToken(true);
+      const token = await currentUser?.getIdToken();
       if (!token) throw new Error("Non authentifié");
       const res = await fetch("/api/v1/admin/products/" + product.id + "/approve", {
         method: "POST",
@@ -58,7 +58,7 @@ export const useModerationActions = (
     }
     const toastId = toast.loading(t("Rejet en cours..."));
     try {
-      const token = await currentUser?.getIdToken(true);
+      const token = await currentUser?.getIdToken();
       if (!token) throw new Error("Non authentifié");
       const res = await fetch("/api/v1/admin/products/" + targetProduct.id + "/reject", {
         method: "POST",
@@ -91,7 +91,7 @@ export const useModerationActions = (
     if (!confirmed) return;
 
     try {
-      const token = await currentUser?.getIdToken(true);
+      const token = await currentUser?.getIdToken();
       if (!token) throw new Error("Non authentifié");
 
       const res = await fetch("/api/v1/admin/products/" + product.id + "/delete", {
@@ -121,7 +121,7 @@ export const useModerationActions = (
     if (!confirmed) return;
 
     try {
-      const token = await currentUser?.getIdToken(true);
+      const token = await currentUser?.getIdToken();
       if (!token) throw new Error("Non authentifié");
 
       const res = await fetch("/api/v1/admin/products/" + product.id + "/deny-delete", {
@@ -142,7 +142,7 @@ export const useModerationActions = (
     if (activeTab !== "active") return;
     const toastId = toast.loading(t("Recalcul de tous les scores de pertinence..."));
     try {
-      const token = await currentUser?.getIdToken(true);
+      const token = await currentUser?.getIdToken();
       if (!token) throw new Error("Non authentifié");
       const res = await fetch("/api/v1/admin/products/recalculate-scores", {
         method: "POST",

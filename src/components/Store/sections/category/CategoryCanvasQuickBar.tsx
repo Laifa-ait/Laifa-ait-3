@@ -26,7 +26,7 @@ interface CategoryCanvasQuickBarProps {
 const QUICK_CARD_MODELS: Array<{ id: CategoryLayoutType; label: string }> = [
   { id: "bento", label: "Bento Apple" },
   { id: "accordion", label: "Accordéon" },
-  { id: "arch", label: "Arche Palace" },
+  { id: "arch", label: "Voûte Architecturale" },
   { id: "polaroid", label: "Polaroid" },
   { id: "magazine", label: "Index Magazine" },
   { id: "glass-dock", label: "Glass Dock" },
@@ -105,11 +105,11 @@ export const CategoryCanvasQuickBar: React.FC<CategoryCanvasQuickBarProps> = ({
   const supportsColsOnActiveDevice = activeDevice === "mobile" ? caps.supportsColumnsMobile : activeDevice === "tablet" ? caps.supportsColumnsTablet : caps.supportsColumnsDesktop;
 
   return (
-    <div className="mb-3.5 p-2 @[560px]:p-2.5 bg-[#F8FBFC] border border-slate-200/90 rounded-2xl shadow-2xs space-y-2 select-none" onClick={(e) => e.stopPropagation()}>
+    <div className="mb-3.5 p-2 @[560px]:p-2.5 bg-[var(--studio-background,#F8FAFC)] border border-slate-200/90 rounded-2xl shadow-2xs space-y-2 select-none" onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] @[560px]:text-[11px] font-extrabold text-[#011C40] flex items-center gap-1 mr-0.5">
-            <Layers className="w-3.5 h-3.5 text-[#023859]" /><span>Cartes ({visibleCount}/{categories.length})</span>
+          <span className="text-[10px] @[560px]:text-[11px] font-extrabold text-[var(--studio-primary,#0F172A)] flex items-center gap-1 mr-0.5">
+            <Layers className="w-3.5 h-3.5 text-[var(--studio-primary,#0F172A)]" /><span>Cartes ({visibleCount}/{categories.length})</span>
           </span>
 
           <div className="inline-flex items-center bg-white border border-slate-200 rounded-lg p-0.5 gap-0.5">
@@ -120,36 +120,36 @@ export const CategoryCanvasQuickBar: React.FC<CategoryCanvasQuickBarProps> = ({
             ] as const).map((dev) => {
               const Icon = dev.icon;
               return (
-                <button key={dev.id} type="button" onClick={() => setPreviewViewport(dev.id)} className={`h-6 px-2 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${activeDevice === dev.id ? "bg-[#023859] text-white shadow-2xs" : "text-slate-600 hover:bg-slate-100"}`}>
+                <button key={dev.id} type="button" onClick={() => setPreviewViewport(dev.id)} className={`h-6 px-2 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${activeDevice === dev.id ? "bg-[var(--studio-primary,#0F172A)] text-white shadow-2xs" : "text-slate-600 hover:bg-slate-100"}`}>
                   <Icon className="w-3 h-3" /><span>{dev.label}</span>
                 </button>
               );
             })}
             {activeDevice !== "desktop" && hasCustomDeviceLayout && (
-              <button type="button" onClick={() => dispatchPatch(activeDevice === "tablet" ? { layoutTablet: "inherit", cardSizeTablet: "inherit" } : { layoutMobile: "inherit", cardSizeMobile: "inherit" })} className="h-6 px-1.5 rounded-md text-[9px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 flex items-center gap-0.5 cursor-pointer" title="Réinitialiser sur le modèle PC">
+              <button type="button" onClick={() => dispatchPatch(activeDevice === "tablet" ? { layoutTablet: "inherit", cardSizeTablet: "inherit" } : { layoutMobile: "inherit", cardSizeMobile: "inherit" })} className="h-6 px-1.5 rounded-md text-[9px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 flex items-center gap-0.5 cursor-pointer" title="Réinitialiser sur le modèle PC">
                 <RotateCcw className="w-2.5 h-2.5" /><span>Sync PC</span>
               </button>
             )}
           </div>
 
           <div className="inline-flex items-center bg-white border border-slate-200 rounded-lg p-0.5 gap-0.5">
-            <span className="text-[9px] @[560px]:text-[10px] font-bold text-slate-500 px-1 hidden @[560px]:flex items-center gap-1"><Type className="w-3 h-3 text-[#023859]" />Titre :</span>
+            <span className="text-[9px] @[560px]:text-[10px] font-bold text-slate-500 px-1 hidden @[560px]:flex items-center gap-1"><Type className="w-3 h-3 text-[var(--studio-primary,#0F172A)]" />Titre :</span>
             {canSwitchBelowAndOverlay ? (
               <>
-                <button type="button" onClick={() => dispatchPatch({ showTitle: true, textPosition: "below" })} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${activeTitleMode === "below" ? "bg-[#023859] text-white" : "text-slate-600 hover:bg-slate-100"}`}>Sous carte</button>
-                <button type="button" onClick={() => dispatchPatch({ showTitle: true, textPosition: "overlay-bottom" })} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${activeTitleMode === "overlay" ? "bg-[#023859] text-white" : "text-slate-600 hover:bg-slate-100"}`}>Sur image</button>
+                <button type="button" onClick={() => dispatchPatch({ showTitle: true, textPosition: "below" })} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${activeTitleMode === "below" ? "bg-[var(--studio-primary,#0F172A)] text-white" : "text-slate-600 hover:bg-slate-100"}`}>Sous carte</button>
+                <button type="button" onClick={() => dispatchPatch({ showTitle: true, textPosition: "overlay-bottom" })} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${activeTitleMode === "overlay" ? "bg-[var(--studio-primary,#0F172A)] text-white" : "text-slate-600 hover:bg-slate-100"}`}>Sur image</button>
               </>
             ) : (
-              <button type="button" onClick={() => dispatchPatch({ showTitle: true, textPosition: ["bento", "glass-dock", "accordion"].includes(activeLayout) ? "overlay-bottom" : "below" })} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${activeTitleMode !== "none" ? "bg-[#023859] text-white" : "text-slate-600 hover:bg-slate-100"}`}>Avec titre</button>
+              <button type="button" onClick={() => dispatchPatch({ showTitle: true, textPosition: ["bento", "glass-dock", "accordion"].includes(activeLayout) ? "overlay-bottom" : "below" })} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${activeTitleMode !== "none" ? "bg-[var(--studio-primary,#0F172A)] text-white" : "text-slate-600 hover:bg-slate-100"}`}>Avec titre</button>
             )}
             <button type="button" onClick={() => dispatchPatch({ showTitle: false, textPosition: "none" })} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${activeTitleMode === "none" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"}`}>Sans titre</button>
           </div>
         </div>
 
         <div className="flex items-center gap-1 flex-wrap">
-          <button type="button" onClick={(e) => onTriggerSubTab("items", e, 0)} className="h-6 @[560px]:h-7 px-2 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[10px] @[560px]:text-[11px] font-bold flex items-center gap-1 cursor-pointer"><Grid className="w-3 h-3" /><span>Rayons</span></button>
-          <button type="button" onClick={(e) => onTriggerSubTab("style", e)} className="h-6 @[560px]:h-7 px-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] @[560px]:text-[11px] font-bold flex items-center gap-1 cursor-pointer"><Sliders className="w-3 h-3 text-[#26658C]" /><span>Style</span></button>
-          <button type="button" onClick={(e) => onTriggerSubTab("presets", e)} className="h-6 @[560px]:h-7 px-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] @[560px]:text-[11px] font-bold flex items-center gap-1 cursor-pointer"><Wand2 className="w-3 h-3 text-[#26658C]" /><span>Packs</span></button>
+          <button type="button" onClick={(e) => onTriggerSubTab("items", e, 0)} className="h-6 @[560px]:h-7 px-2 rounded-lg bg-[var(--studio-primary,#0F172A)] hover:opacity-90 text-white text-[10px] @[560px]:text-[11px] font-bold flex items-center gap-1 cursor-pointer"><Grid className="w-3 h-3" /><span>Rayons</span></button>
+          <button type="button" onClick={(e) => onTriggerSubTab("style", e)} className="h-6 @[560px]:h-7 px-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] @[560px]:text-[11px] font-bold flex items-center gap-1 cursor-pointer"><Sliders className="w-3 h-3 text-[var(--studio-focus,#2563EB)]" /><span>Style</span></button>
+          <button type="button" onClick={(e) => onTriggerSubTab("presets", e)} className="h-6 @[560px]:h-7 px-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] @[560px]:text-[11px] font-bold flex items-center gap-1 cursor-pointer"><Wand2 className="w-3 h-3 text-[var(--studio-focus,#2563EB)]" /><span>Packs</span></button>
         </div>
       </div>
 
@@ -159,7 +159,7 @@ export const CategoryCanvasQuickBar: React.FC<CategoryCanvasQuickBarProps> = ({
             Modèle ({activeDevice === "desktop" ? "PC" : activeDevice === "tablet" ? "Tablette" : "Mobile"}) :
           </span>
           {QUICK_CARD_MODELS.map((m) => (
-            <button key={m.id} type="button" onClick={() => handleSelectModel(m.id)} className={`h-6 px-2 rounded-md text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${activeLayout === m.id ? "bg-[#023859] text-white shadow-2xs" : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300"}`}>{m.label}</button>
+            <button key={m.id} type="button" onClick={() => handleSelectModel(m.id)} className={`h-6 px-2 rounded-md text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${activeLayout === m.id ? "bg-[var(--studio-primary,#0F172A)] text-white shadow-2xs" : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300"}`}>{m.label}</button>
           ))}
         </div>
 
@@ -167,7 +167,7 @@ export const CategoryCanvasQuickBar: React.FC<CategoryCanvasQuickBarProps> = ({
           {supportsColsOnActiveDevice && (
             <div className="inline-flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
               {colChoices.map((col) => (
-                <button key={col} type="button" onClick={() => handleSelectCols(col)} className={`h-5 px-1.5 rounded text-[9px] font-bold cursor-pointer ${columnsActiveDevice === col ? "bg-[#023859] text-white" : "text-slate-600 hover:bg-slate-100"}`}>{col} col.</button>
+                <button key={col} type="button" onClick={() => handleSelectCols(col)} className={`h-5 px-1.5 rounded text-[9px] font-bold cursor-pointer ${columnsActiveDevice === col ? "bg-[var(--studio-primary,#0F172A)] text-white" : "text-slate-600 hover:bg-slate-100"}`}>{col} col.</button>
               ))}
             </div>
           )}
@@ -175,7 +175,7 @@ export const CategoryCanvasQuickBar: React.FC<CategoryCanvasQuickBarProps> = ({
           <div className="flex items-center gap-1 shrink-0">
             <Maximize2 className="w-3 h-3 text-slate-400 shrink-0 hidden @[560px]:block" />
             {QUICK_CARD_SIZES.map((sz) => (
-              <button key={sz.id} type="button" onClick={() => handleSelectSize(sz.id)} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${cardSize === sz.id ? "bg-[#011C40] text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"}`}>{sz.label}</button>
+              <button key={sz.id} type="button" onClick={() => handleSelectSize(sz.id)} className={`h-6 px-1.5 @[560px]:px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer ${cardSize === sz.id ? "bg-[var(--studio-primary,#0F172A)] text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"}`}>{sz.label}</button>
             ))}
           </div>
         </div>

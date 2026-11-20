@@ -4,6 +4,10 @@ import { apiGet, apiPost } from "../lib/api";
 import toast from "react-hot-toast";
 import { safeLogger } from "../utils/logger";
 import { PRODUCT_HIERARCHY } from "../constants";
+import { fetchWithClientCache, invalidateClientReadCache } from "../utils/clientReadCache";
+
+const MEGAMENU_CACHE_KEY = "settings:megamenu:v1";
+const MEGAMENU_CLIENT_TTL_MS = 15 * 60 * 1000;
 
 const DEFAULT_CATEGORIES: MegaMenuCategory[] = Object.entries(PRODUCT_HIERARCHY).map(([catName, subcats]) => {
   const catIdMap: Record<string, string> = {
@@ -67,8 +71,6 @@ export const MegaMenuProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    let isCancelled = false;
-
     const saved = localStorage.getItem("olma_megamenu_data_v6");
     let existingData: MegaMenuCategory[] = [];
     if (saved) {
@@ -118,12 +120,20 @@ export const MegaMenuProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
 
     setCategoriesData(localMergedData);
+  }, [categoryHierarchy]);
 
+  // Mount-only cached remote fetch (prevents double-fetch when categoryHierarchy updates)
+  useEffect(() => {
+    let isCancelled = false;
     const timer = setTimeout(async () => {
       if (isCancelled) return;
       setIsLoading(true);
       try {
-        const data = await apiGet<{ categoriesData?: MegaMenuCategory[] }>("/api/v1/settings/megamenu");
+        const data = await fetchWithClientCache<{ categoriesData?: MegaMenuCategory[] }>(
+          MEGAMENU_CACHE_KEY,
+          () => apiGet<{ categoriesData?: MegaMenuCategory[] }>("/api/v1/settings/megamenu"),
+          MEGAMENU_CLIENT_TTL_MS
+        );
         if (data && data.categoriesData && !isCancelled) {
           setCategoriesData(data.categoriesData);
         }
@@ -142,7 +152,7 @@ export const MegaMenuProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       isCancelled = true;
       clearTimeout(timer);
     };
-  }, [categoryHierarchy]);
+  }, []);
 
   useEffect(() => {
     if (categoriesData.length > 0) {
@@ -177,6 +187,8 @@ export const MegaMenuProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updatedAt: new Date().toISOString(),
       });
 
+      invalidateClientReadCache(MEGAMENU_CACHE_KEY);
+      invalidateClientReadCache("settings:categories:v1");
       await refreshHierarchy();
 
       toast.success("Mega Menu enregistré avec succès ! ✨🚀", { id: "save-megamenu" });

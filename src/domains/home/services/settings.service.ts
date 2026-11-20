@@ -3,40 +3,54 @@ import { safeLogger } from "../../../utils/logger";
 import { withFirestoreDeadline } from "../../../utils/firestoreTimeout";
 
 const settingsCache = new Map<string, { data: unknown; expiry: number }>();
+const inFlightSettingsRequests = new Map<string, Promise<unknown>>();
 
 export class SettingsService {
   static clearCache(): void {
     settingsCache.clear();
+    inFlightSettingsRequests.clear();
   }
 
   static async getCachedOrFetch<T>(
     key: string,
     fetcher: () => Promise<T>,
-    ttlMs = 300000 // 5 minute cache
+    ttlMs = 600000 // 10 minute cache
   ): Promise<T | null> {
     const cached = settingsCache.get(key);
     if (cached && Date.now() < cached.expiry) {
       return cached.data as T;
     }
 
+    const existingFlight = inFlightSettingsRequests.get(key);
+    if (existingFlight) {
+      return (await existingFlight) as T | null;
+    }
+
     const fallbackValue = (cached?.data as T | undefined) ?? null;
 
-    try {
-      const data = await withFirestoreDeadline(fetcher, fallbackValue as T, 1500, `settings:${key}`);
-      if (data !== undefined && data !== null) {
-        settingsCache.set(key, { data, expiry: Date.now() + ttlMs });
+    const flightPromise = (async (): Promise<T | null> => {
+      try {
+        const data = await withFirestoreDeadline(fetcher, fallbackValue as T, 1500, `settings:${key}`);
+        if (data !== undefined && data !== null) {
+          settingsCache.set(key, { data, expiry: Date.now() + ttlMs });
+        }
+        return data;
+      } catch (err: unknown) {
+        if (cached?.data) {
+          return cached.data as T;
+        }
+        safeLogger.warn("[Olmart Gateway] Settings fetch error", {
+          settingKey: key,
+          err: err instanceof Error ? err.message : String(err),
+        });
+        return null;
+      } finally {
+        inFlightSettingsRequests.delete(key);
       }
-      return data;
-    } catch (err: unknown) {
-      if (cached?.data) {
-        return cached.data as T;
-      }
-      safeLogger.warn("[Olmart Gateway] Settings fetch error", {
-        settingKey: key,
-        err: err instanceof Error ? err.message : String(err),
-      });
-      return null;
-    }
+    })();
+
+    inFlightSettingsRequests.set(key, flightPromise);
+    return flightPromise;
   }
 
   static async getHomepageCategories(): Promise<Record<string, unknown>[]> {
@@ -179,7 +193,7 @@ export class SettingsService {
 
   static async getTags(): Promise<Record<string, unknown>[]> {
     const tags = await this.getCachedOrFetch("tags", async () => {
-      const snap = await db.collection("tags").get();
+      const snap = await db.collection("tags").limit(100).get();
       return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     });
     return tags || [];

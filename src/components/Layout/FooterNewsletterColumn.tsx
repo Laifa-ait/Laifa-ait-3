@@ -52,13 +52,13 @@ export const FooterNewsletterColumn: React.FC = () => {
 
   return (
     <div className="lg:col-span-4 space-y-3">
-      <div className="p-4 rounded-2xl bg-[#161429] border border-white/10 shadow-lg shadow-black/40 space-y-3">
-        <h5 className="text-xs font-extrabold uppercase tracking-widest text-white flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-[#E99856]" />
+      <div className="p-4 rounded-2xl bg-[#112023] border border-white/10 shadow-lg shadow-black/30 space-y-3">
+        <h5 className="text-xs font-bold uppercase tracking-widest text-white flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-[#E59A42]" />
           <span>{t("footer_offers_app_heading", "Restez Informé")}</span>
         </h5>
 
-        <p className="text-[11px] text-[#E0B4B2] leading-normal font-medium">
+        <p className="text-[11px] text-[#B8C8C4] leading-normal font-medium">
           {t(
             "footer_newsletter_promo_desc",
             "Recevez les meilleures offres des boutiques partenaires chaque semaine."
@@ -67,19 +67,19 @@ export const FooterNewsletterColumn: React.FC = () => {
 
         <form className="flex gap-2" onSubmit={handleNewsletterSubmit}>
           <div className="relative flex-1">
-            <Mail className="w-4 h-4 text-[#E99856] absolute left-3 top-1/2 -translate-y-1/2" />
+            <Mail className="w-4 h-4 text-[#E59A42] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t("footer_email_placeholder", "Votre adresse email")}
-              className="w-full bg-[#0D0C1A] border border-white/15 pl-9 pr-3 py-2.5 text-xs text-white rounded-xl focus:outline-none focus:border-[#E99856] transition-all placeholder:text-[#E0B4B2]/60"
+              className="w-full bg-[#091214] border border-white/15 pl-9 pr-3 py-2.5 text-xs text-white rounded-xl focus:outline-none focus:border-[#0D5C4B] transition-colors placeholder:text-[#8FA5A0]"
             />
           </div>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="bg-gradient-to-r from-[#E99856] to-[#A54055] hover:from-[#f3a668] hover:to-[#b84960] text-white font-black px-4 py-2.5 rounded-xl text-xs transition-all border border-white/15 shadow-md cursor-pointer shrink-0 active:scale-95 disabled:opacity-50 flex items-center gap-1"
+            className="bg-[#0D5C4B] hover:bg-[#13745F] text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-colors border border-[#1B7A63]/50 shadow-md cursor-pointer shrink-0 active:scale-95 disabled:opacity-50 flex items-center gap-1"
           >
             {isSubmitting ? (
               <span>...</span>
@@ -97,10 +97,10 @@ export const FooterNewsletterColumn: React.FC = () => {
             <QRCodeSVG value="https://olmart.dz" size={36} level="M" />
           </div>
           <div className="text-[11px] leading-tight">
-            <p className="font-extrabold text-white text-xs">
+            <p className="font-bold text-white text-xs">
               {t("footer_app_title", "Application Olmart")}
             </p>
-            <p className="text-[10px] text-[#E0B4B2] mt-0.5 font-medium">
+            <p className="text-[10px] text-[#B8C8C4] mt-0.5 font-medium">
               {t("footer_app_scan", "Scannez pour naviguer sur mobile")}
             </p>
           </div>

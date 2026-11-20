@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { apiGet } from "../../../lib/api";
 import {
@@ -27,13 +27,25 @@ export function useSellerOverview() {
   const [wilayaStats, setWilayaStats] = useState<SellerOverviewWilayaStat[]>([]);
   const [chartData, setChartData] = useState<SellerOverviewChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refetch = useCallback(() => {
+    setError(null);
+    setLoading(true);
+    setRefreshKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
 
     const fetchData = async () => {
       try {
+        setError(null);
         const data = await apiGet<SellerOverviewApiResponse>("/api/v1/seller/overview-stats");
         if (!cancelled && data) {
           if (data.stats) setStats(data.stats);
@@ -44,9 +56,13 @@ export function useSellerOverview() {
           if (data.wilayaStats) setWilayaStats(data.wilayaStats);
           if (data.chartData) setChartData(data.chartData);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         if (!cancelled) {
-          console.error("Error fetching overview stats:", err);
+          const message =
+            err instanceof Error && err.message && !err.message.trim().startsWith("<")
+              ? err.message
+              : "Impossible de charger les statistiques de la boutique pour le moment.";
+          setError(message);
         }
       } finally {
         if (!cancelled) {
@@ -59,7 +75,7 @@ export function useSellerOverview() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser]);
+  }, [currentUser, refreshKey]);
 
   return {
     currentUser,
@@ -72,5 +88,7 @@ export function useSellerOverview() {
     wilayaStats,
     chartData,
     loading,
+    error,
+    refetch,
   };
 }

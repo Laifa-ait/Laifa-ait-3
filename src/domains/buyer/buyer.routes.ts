@@ -39,7 +39,7 @@ const UnfollowStoreSchema = z.object({
   sellerId: z.string().min(1).max(100),
 }).strict();
 
-// 1. POST /api/v1/user/habits - User habits tracking
+// 1. POST /api/v1/user/habits - Legacy no-op (migrated to localStorage + /api/v1/user/affinity-digest)
 router.post("/api/v1/user/habits", authenticateToken, async (req: AuthenticatedBuyerRequest, res: Response) => {
   const uid = req.user?.uid;
   if (!uid) return res.status(401).json({ error: "Authentification requise" });
@@ -49,13 +49,7 @@ router.post("/api/v1/user/habits", authenticateToken, async (req: AuthenticatedB
     return res.status(400).json({ error: "Données de comportement invalides", details: parsed.error.issues });
   }
 
-  try {
-    await db.collection("user_habits").doc(uid).set(parsed.data, { merge: true });
-    return res.json({ success: true });
-  } catch (err: unknown) {
-    safeLogger.error("[Buyer Domain] Error saving user habits", { err: String(err) });
-    return res.status(500).json({ error: "Erreur serveur" });
-  }
+  return res.json({ success: true });
 });
 
 // 2. POST /api/v1/user/cart - User cart synchronization

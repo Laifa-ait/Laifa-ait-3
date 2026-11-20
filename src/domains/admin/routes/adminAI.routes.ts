@@ -101,7 +101,7 @@ router.post("/admin/checkout-audits", authenticateToken, authorizeAdmin, async (
   try {
     const { overallScore, scores, checksPassed, checksFailed, authorEmail } = req.body;
 
-    const docRef = await admin.firestore().collection("checkout_audits").add({
+    const docRef = await db.collection("checkout_audits").add({
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       overallScore: overallScore || 98,
       scores: scores || {},
@@ -110,7 +110,7 @@ router.post("/admin/checkout-audits", authenticateToken, authorizeAdmin, async (
       authorEmail: authorEmail || req.user?.email || "admin@olmart.dz"
     });
 
-    await admin.firestore().collection("audit_logs").add({
+    await db.collection("audit_logs").add({
       action: "CHECKOUT_UX_AUDIT",
       details: { reportId: docRef.id, score: overallScore },
       adminEmail: authorEmail || req.user?.email || "admin@olmart.dz",

@@ -22,11 +22,11 @@ export const KineticMarqueeContentEditor: React.FC<
   const textFr =
     typeof settings.textFr === "string"
       ? settings.textFr
-      : "FAIT MAIN EN ALGÉRIE • ÉDITION LIMITÉE • LIVRAISON 69 WILAYAS";
+      : "COLLECTION STUDIO • DESIGN ARCHITECTURAL • LIVRAISON 69 WILAYAS";
   const textAr =
     typeof settings.textAr === "string"
       ? settings.textAr
-      : "صنع بحب في الجزائر • إصدار محدود • توصيل لجميع الولايات";
+      : "مجموعة الاستوديو • تصميم عصري • توصيل لجميع الولايات";
   const showBilingual = settings.showBilingual !== false;
   const speed = (settings.speed as KineticMarqueeSpeed) || "normal";
   const textStyle = (settings.textStyle as KineticMarqueeTextStyle) || "alternating";
@@ -73,7 +73,7 @@ export const KineticMarqueeContentEditor: React.FC<
           type="text"
           value={textFr}
           onChange={(e) => onSettingsChange("textFr", e.target.value)}
-          placeholder="FAIT MAIN EN ALGÉRIE • ÉDITION LIMITÉE"
+          placeholder="COLLECTION STUDIO • ÉDITION LIMITÉE"
           className={inputClass}
         />
       </label>
@@ -98,7 +98,7 @@ export const KineticMarqueeContentEditor: React.FC<
             dir="rtl"
             value={textAr}
             onChange={(e) => onSettingsChange("textAr", e.target.value)}
-            placeholder="صنع بحب في الجزائر • إصدار محدود"
+            placeholder="مجموعة الاستوديو • تصميم عصري"
             className={inputClass}
           />
         </label>

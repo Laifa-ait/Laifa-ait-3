@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Check, Loader2, AlertCircle, ExternalLink, ShieldCheck, Command,
-  WifiOff, Clock, History, MoreHorizontal, Megaphone, UploadCloud,
+  WifiOff, Clock, History, MoreHorizontal, Megaphone, UploadCloud, Save,
 } from "lucide-react";
 import { SaveStatus } from "../../hooks/useStudioSaveManager";
 
@@ -171,6 +171,20 @@ export const StudioTopBarRightActions: React.FC<StudioTopBarRightActionsProps> =
             </div>
           )}
         </div>
+      )}
+
+      {onSaveDraft && (
+        <button
+          type="button"
+          data-testid="topbar-save-btn"
+          disabled={saveStatus === "saving" || saveStatus === "retrying"}
+          onClick={() => { void onSaveDraft(); }}
+          title="Enregistrer le brouillon maintenant"
+          className="h-8 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-[12px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-55"
+        >
+          <Save className="w-3.5 h-3.5 text-slate-600" />
+          <span>Enregistrer</span>
+        </button>
       )}
 
       <button

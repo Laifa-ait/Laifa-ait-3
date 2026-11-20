@@ -103,29 +103,7 @@ analyticsRouter.post("/api/v1/analytics/track", async (req: Request, res: Respon
       validatedEvents.push(parsed.data);
     }
 
-    const firestoreDb = getTargetDb();
-    if (firestoreDb) {
-      try {
-        const batch = firestoreDb.batch();
-        validatedEvents.forEach((evt) => {
-          const ref = firestoreDb.collection("analytics_events").doc();
-          batch.set(ref, {
-            ...evt,
-            serverTimestamp: admin.firestore.FieldValue.serverTimestamp(),
-          });
-        });
-        await batch.commit();
-      } catch (dbErr: unknown) {
-        if (isBillingOrQuotaError(dbErr)) {
-          safeLogger.debug("[Analytics] Write deferred: billing or quota limits active on project");
-        } else {
-          safeLogger.warn("[Analytics] Batch tracking non-fatal write error", {
-            err: dbErr instanceof Error ? dbErr.message : String(dbErr),
-          });
-        }
-      }
-    }
-
+    // Écritures brutes Firestore `analytics_events` désactivées pour éviter l'explosion de quota.
     return res.status(200).json({ ok: true, success: true, count: validatedEvents.length });
   } catch (error: unknown) {
     if (isBillingOrQuotaError(error)) {

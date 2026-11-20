@@ -62,14 +62,11 @@ export const StudioImagePicker: React.FC<StudioImagePickerProps> = ({
   const isPreviewBroken = Boolean(value && brokenPreviewUrl === value);
 
   return (
-    <div className="space-y-2 bg-white p-2.5 rounded-xl border border-slate-200">
+    <div data-testid="studio-image-picker-root" className="space-y-2 bg-white p-2.5 rounded-xl border border-slate-200">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] font-semibold text-slate-800">{label}</span>
         {value && (
-          <button
-            type="button" onClick={() => onChange("")}
-            className="text-[10.5px] font-medium text-rose-600 hover:text-rose-800 flex items-center gap-0.5 cursor-pointer"
-          >
+          <button type="button" onClick={() => onChange("")} className="text-[10.5px] font-medium text-rose-600 hover:text-rose-800 flex items-center gap-0.5 cursor-pointer">
             <Trash2 className="w-3 h-3" /><span>Retirer</span>
           </button>
         )}
@@ -85,22 +82,16 @@ export const StudioImagePicker: React.FC<StudioImagePickerProps> = ({
             <img src={value} alt={label} onError={() => setBrokenPreviewUrl(value)} className="w-full h-full object-cover" />
           ) : value && isPreviewBroken ? (
             <div data-testid="image-picker-broken-badge" className="flex flex-col items-center justify-center text-rose-600 p-1 text-center">
-              <AlertCircle className="w-4 h-4" />
-              <span className="text-[8px] font-bold">Brisée</span>
+              <AlertCircle className="w-4 h-4" /><span className="text-[8px] font-bold">Brisée</span>
             </div>
           ) : (
             <Upload className="w-4 h-4 text-slate-400" />
           )}
-          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[9px] font-semibold text-center px-1 transition-opacity">
-            Changer
-          </div>
+          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[9px] font-semibold text-center px-1 transition-opacity">Changer</div>
         </div>
 
         <div className="flex-1 grid grid-cols-2 gap-1.5">
-          <input
-            ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/avif"
-            onChange={handleFileChange} className="hidden" data-testid="image-picker-file-input"
-          />
+          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={handleFileChange} className="hidden" data-testid="image-picker-file-input" />
           <button
             type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}
             data-testid="image-picker-upload-btn"
@@ -121,7 +112,8 @@ export const StudioImagePicker: React.FC<StudioImagePickerProps> = ({
           </button>
 
           <button
-            type="button" onClick={() => setPickerMode(pickerMode === "products" ? "none" : "products")}
+            type="button" data-testid="image-picker-products-btn"
+            onClick={() => setPickerMode(pickerMode === "products" ? "none" : "products")}
             className={`h-7 px-2 rounded-md border text-[10.5px] font-medium flex items-center justify-center gap-1 cursor-pointer transition-colors ${
               pickerMode === "products" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
             }`}
@@ -130,7 +122,8 @@ export const StudioImagePicker: React.FC<StudioImagePickerProps> = ({
           </button>
 
           <button
-            type="button" onClick={() => setPickerMode(pickerMode === "stock" ? "none" : "stock")}
+            type="button" data-testid="image-picker-stock-btn"
+            onClick={() => setPickerMode(pickerMode === "stock" ? "none" : "stock")}
             className={`h-7 px-2 rounded-md border text-[10.5px] font-medium flex items-center justify-center gap-1 cursor-pointer transition-colors ${
               pickerMode === "stock" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
             }`}
@@ -148,7 +141,8 @@ export const StudioImagePicker: React.FC<StudioImagePickerProps> = ({
 
       <div className="flex items-center justify-between pt-0.5">
         <button
-          type="button" onClick={() => setPickerMode(pickerMode === "url" ? "none" : "url")}
+          type="button" data-testid="image-picker-url-btn"
+          onClick={() => setPickerMode(pickerMode === "url" ? "none" : "url")}
           className="text-[10.5px] font-medium text-slate-500 hover:text-slate-900 flex items-center gap-1 cursor-pointer"
         >
           <Link2 className="w-3 h-3" />
@@ -158,7 +152,8 @@ export const StudioImagePicker: React.FC<StudioImagePickerProps> = ({
 
       {pickerMode === "url" && (
         <input
-          type="url" value={value.startsWith("data:") ? "" : value} onChange={(e) => { setBrokenPreviewUrl(null); onChange(e.target.value); }}
+          type="url" data-testid="image-picker-url-input"
+          value={value.startsWith("data:") ? "" : value} onChange={(e) => { setBrokenPreviewUrl(null); onChange(e.target.value); }}
           placeholder={placeholder}
           className="h-8 w-full rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 text-[11px] font-mono text-slate-900 focus:border-slate-900 focus:bg-white focus:outline-none"
         />
@@ -201,7 +196,7 @@ export const StudioImagePicker: React.FC<StudioImagePickerProps> = ({
                 const isSelected = value === item.url;
                 return (
                   <button
-                    key={item.id} type="button"
+                    key={item.id} type="button" data-testid={`image-picker-product-item-${item.id}`}
                     onClick={() => { setBrokenPreviewUrl(null); onChange(item.url); setPickerMode("none"); }}
                     className={`group relative aspect-square rounded-lg overflow-hidden border transition-all cursor-pointer ${
                       isSelected ? "border-slate-900 ring-2 ring-slate-900/20" : "border-slate-200 hover:border-slate-400"
@@ -220,11 +215,11 @@ export const StudioImagePicker: React.FC<StudioImagePickerProps> = ({
 
       {pickerMode === "stock" && (
         <div className="pt-2 border-t border-slate-100 grid grid-cols-4 gap-1.5 max-h-40 overflow-y-auto p-0.5">
-          {STUDIO_BACKDROP_PRESETS.map((stock) => {
+          {STUDIO_BACKDROP_PRESETS.map((stock, idx) => {
             const isSelected = value === stock.url;
             return (
               <button
-                key={stock.label} type="button"
+                key={stock.label} type="button" data-testid={`image-picker-stock-item-${idx}`}
                 onClick={() => { setBrokenPreviewUrl(null); onChange(stock.url); setPickerMode("none"); }}
                 className={`group relative aspect-square rounded-lg overflow-hidden border transition-all cursor-pointer ${
                   isSelected ? "border-slate-900 ring-2 ring-slate-900/20" : "border-slate-200 hover:border-slate-400"

@@ -37,7 +37,8 @@ export class TrendingSearchesService {
   private static inMemoryPurchaseCounts: Map<string, number> = new Map();
   private static cachedTrends: string[] = [];
   private static cachedTimestamp = 0;
-  private static readonly CACHE_TTL_MS = 30 * 60 * 1000;
+  private static inFlightPromise: Promise<string[]> | null = null;
+  private static readonly CACHE_TTL_MS = 60 * 60 * 1000;
 
   private static cleanTerm(raw: string): string | null {
     if (!raw) return null;
@@ -109,7 +110,11 @@ export class TrendingSearchesService {
     if (this.cachedTrends.length > 0 && now - this.cachedTimestamp < this.CACHE_TTL_MS) {
       return this.cachedTrends;
     }
+    if (this.inFlightPromise) {
+      return this.inFlightPromise;
+    }
 
+    this.inFlightPromise = (async () => {
     try {
       const scoreMap: Map<string, { term: string; score: number }> = new Map();
       const addScore = (term: string, points: number) => {
@@ -165,7 +170,12 @@ export class TrendingSearchesService {
       return sortedTrends;
     } catch {
       return this.cachedTrends.length > 0 ? this.cachedTrends : DEFAULT_TRENDS;
+    } finally {
+      this.inFlightPromise = null;
     }
+    })();
+
+    return this.inFlightPromise;
   }
 
   public static async warmupTrendingSearches(): Promise<void> {
@@ -180,6 +190,7 @@ export class TrendingSearchesService {
   public static resetCacheForTesting(): void {
     this.cachedTrends = [];
     this.cachedTimestamp = 0;
+    this.inFlightPromise = null;
     this.inMemorySearchCounts.clear();
     this.inMemoryPurchaseCounts.clear();
   }

@@ -30,12 +30,12 @@ export const SectorPresetCategoriesBar: React.FC<SectorPresetCategoriesBarProps>
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#F0F7FA] border border-[#54ACBF]/40">
+      <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[var(--studio-highlight-soft)] border border-[var(--studio-border-strong)]">
         <div className="min-w-0">
-          <span className="text-[11px] font-extrabold text-[#011C40] block">
+          <span className="text-[11px] font-extrabold text-[var(--studio-black)] block">
             Rayons cohérents ({activeSector})
           </span>
-          <span className="text-[10px] text-[#475467] block truncate">
+          <span className="text-[10px] text-[var(--studio-muted)] block truncate">
             Pré-remplir avec les visuels du secteur
           </span>
         </div>
@@ -43,7 +43,7 @@ export const SectorPresetCategoriesBar: React.FC<SectorPresetCategoriesBarProps>
           type="button"
           data-testid="inject-sector-categories-btn"
           onClick={handleTrigger}
-          className="px-2.5 py-1.5 rounded-lg bg-[#023859] text-white text-[10.5px] font-bold flex items-center gap-1 shrink-0 cursor-pointer"
+          className="px-2.5 py-1.5 rounded-lg bg-[var(--studio-primary)] text-[var(--studio-white)] text-[10.5px] font-bold flex items-center gap-1 shrink-0 cursor-pointer"
         >
           <Sparkles className="w-3 h-3" />
           <span>Générer ({activeSector})</span>
@@ -69,7 +69,7 @@ export const SectorPresetCategoriesBar: React.FC<SectorPresetCategoriesBarProps>
                 onMergePresets();
                 setConfirmOpen(false);
               }}
-              className="flex-1 h-7 px-2 rounded-lg bg-[#023859] text-white text-[11px] font-bold cursor-pointer"
+              className="flex-1 h-7 px-2 rounded-lg bg-[var(--studio-primary)] text-[var(--studio-white)] text-[11px] font-bold cursor-pointer"
             >
               Fusionner
             </button>

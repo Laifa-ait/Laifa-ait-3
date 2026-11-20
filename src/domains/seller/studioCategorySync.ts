@@ -100,7 +100,7 @@ export function planCategorySyncFromProducts(
         imageUrl: group.firstImage,
         iconName: "ShoppingBag",
         badge: "",
-        badgeColor: "#023859",
+        badgeColor: "#0F172A",
         itemCount: count,
         productIds,
         categoryFilter: group.displayName,

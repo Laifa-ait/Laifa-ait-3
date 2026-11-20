@@ -69,10 +69,10 @@ export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({
     <header
       style={{
         backgroundColor: "color-mix(in srgb, var(--store-surface, #FFFFFF) 94%, transparent)",
-        color: "var(--store-secondary, #18181B)",
+        color: "var(--store-secondary, #0F172A)",
         fontFamily: "var(--store-font-body, inherit)",
       }}
-      className="sticky top-0 z-40 w-full backdrop-blur-md border-b border-black/10"
+      className="sticky top-0 z-40 w-full backdrop-blur-md border-b border-slate-200/80"
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 shrink-0">
@@ -80,22 +80,22 @@ export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({
             type="button"
             onClick={handleBack}
             style={{
-              backgroundColor: "var(--store-canvas, #FAF6F0)",
-              color: "var(--store-secondary, #18181B)",
+              backgroundColor: "var(--store-canvas, #F8FAFC)",
+              color: "var(--store-secondary, #0F172A)",
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/10 hover:opacity-85 transition-opacity text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:opacity-85 transition-opacity text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer"
             aria-label={isDraftPreview ? "Retour au Studio" : "Retour au catalogue"}
           >
-            <ArrowLeft className="w-4 h-4" style={{ color: "var(--store-primary, #B45309)" }} />
+            <ArrowLeft className="w-4 h-4" style={{ color: "var(--store-primary, #0F172A)" }} />
             <span>{isDraftPreview ? "Retour au Studio" : "Retour"}</span>
           </button>
 
           {isDraftPreview && (
             <span
               data-testid="storefront-draft-preview-badge"
-              className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-bold"
+              className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-blue-50 text-blue-900 border border-blue-200 text-[11px] font-bold"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
               Aperçu Brouillon Studio
             </span>
           )}
@@ -104,7 +104,7 @@ export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({
         <div className="flex items-center gap-2 min-w-0">
           <span
             style={{
-              color: "var(--store-secondary, #18181B)",
+              color: "var(--store-secondary, #0F172A)",
               fontFamily: "var(--store-font-heading, inherit)",
             }}
             className="text-sm sm:text-base font-extrabold tracking-tight truncate"
@@ -112,7 +112,7 @@ export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({
             {shopName}
           </span>
           {storeInfo.wilaya && (
-            <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/5 opacity-75 shrink-0">
+            <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-semibold bg-slate-100 text-slate-600 shrink-0">
               {storeInfo.wilaya}
             </span>
           )}
@@ -124,10 +124,10 @@ export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({
               type="button"
               data-testid="open-seller-studio-btn"
               onClick={() => navigate("/dashboard/seller/studio")}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors shadow-2xs cursor-pointer whitespace-nowrap shrink-0"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors shadow-2xs cursor-pointer whitespace-nowrap shrink-0"
               title="Personnaliser cette boutique dans le Studio Vendeur"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <Sparkles className="w-3.5 h-3.5 text-sky-400" />
               <span className="hidden sm:inline">Studio Vendeur</span>
             </button>
           )}
@@ -136,21 +136,21 @@ export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({
             type="button"
             onClick={handleShare}
             style={{
-              backgroundColor: "var(--store-canvas, #FAF6F0)",
-              color: "var(--store-secondary, #18181B)",
+              backgroundColor: "var(--store-canvas, #F8FAFC)",
+              color: "var(--store-secondary, #0F172A)",
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/10 hover:opacity-85 transition-opacity text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:opacity-85 transition-opacity text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer"
             title="Partager cette boutique"
             aria-label="Partager cette boutique"
           >
             {copied ? (
               <>
-                <Check className="w-3.5 h-3.5" style={{ color: "var(--store-primary, #B45309)" }} />
+                <Check className="w-3.5 h-3.5" style={{ color: "var(--store-primary, #0F172A)" }} />
                 <span className="hidden sm:inline font-bold">Copié</span>
               </>
             ) : (
               <>
-                <Share2 className="w-3.5 h-3.5" style={{ color: "var(--store-primary, #B45309)" }} />
+                <Share2 className="w-3.5 h-3.5" style={{ color: "var(--store-primary, #0F172A)" }} />
                 <span className="hidden sm:inline">Partager</span>
               </>
             )}
@@ -160,10 +160,10 @@ export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({
             type="button"
             onClick={() => uiContext?.setIsCartOpen(true)}
             style={{
-              backgroundColor: "var(--store-primary, #B45309)",
+              backgroundColor: "var(--store-primary, #0F172A)",
               color: "#FFFFFF",
             }}
-            className="relative inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl hover:opacity-90 text-xs font-bold transition-opacity shadow-2xs cursor-pointer whitespace-nowrap shrink-0"
+            className="relative inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg hover:opacity-90 text-xs font-bold transition-opacity shadow-2xs cursor-pointer whitespace-nowrap shrink-0"
             title="Ouvrir le panier"
             aria-label="Panier d'achat"
           >
@@ -173,9 +173,9 @@ export const StoreBoutiqueNavbar: React.FC<StoreBoutiqueNavbarProps> = ({
               <span
                 style={{
                   backgroundColor: "var(--store-surface, #FFFFFF)",
-                  color: "var(--store-secondary, #18181B)",
+                  color: "var(--store-secondary, #0F172A)",
                 }}
-                className="px-1.5 py-0.2 text-[10px] font-black rounded-full tabular-nums"
+                className="px-1.5 py-0.2 text-[10px] font-black rounded-sm tabular-nums"
               >
                 {itemCount > 99 ? "99+" : itemCount}
               </span>

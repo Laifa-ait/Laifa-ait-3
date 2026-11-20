@@ -39,7 +39,7 @@ export interface CategoryTheme {
 
 export const THEMES_BY_KEY: Record<string, CategoryTheme> = {
   "Maison & Déco": {
-    accentHex: "#E99856",
+    accentHex: "#E59A42",
     editionTag: "INTÉRIEUR & DESIGN",
     editionTagKey: "cat_tag.maison",
     titleKey: "cat_maison_deco",
@@ -50,7 +50,7 @@ export const THEMES_BY_KEY: Record<string, CategoryTheme> = {
     defaultSubcategories: ["Mobilier de Salon", "Luminaires", "Linge de Maison"],
   },
   Électronique: {
-    accentHex: "#E99856",
+    accentHex: "#E59A42",
     editionTag: "HIGH-TECH & PRO",
     editionTagKey: "cat_tag.tech",
     titleKey: "cat_electronic_title",
@@ -61,7 +61,7 @@ export const THEMES_BY_KEY: Record<string, CategoryTheme> = {
     defaultSubcategories: ["Smartphones", "Ordinateurs & PC", "Audio & Casques"],
   },
   Électroménager: {
-    accentHex: "#E0B4B2",
+    accentHex: "#3DA88D",
     editionTag: "ÉQUIPEMENT MAISON",
     editionTagKey: "cat_tag.electromenager",
     titleKey: "cat_appliance_title",
@@ -72,7 +72,7 @@ export const THEMES_BY_KEY: Record<string, CategoryTheme> = {
     defaultSubcategories: ["TV & Home Cinéma", "Froid & Lavage", "Cuisson"],
   },
   Mode: {
-    accentHex: "#A54055",
+    accentHex: "#E59A42",
     editionTag: "VESTIAIRE & STYLE",
     editionTagKey: "cat_tag.mode",
     titleKey: "cat_fashion_title",
@@ -83,7 +83,7 @@ export const THEMES_BY_KEY: Record<string, CategoryTheme> = {
     defaultSubcategories: ["Mode Femme", "Mode Homme", "Accessoires & Bijoux"],
   },
   "Artisanat & Tradition": {
-    accentHex: "#E99856",
+    accentHex: "#E59A42",
     editionTag: "PATRIMOINE D'ALGÉRIE",
     editionTagKey: "cat_tag.artisanat",
     titleKey: "cat_craft_title",
@@ -94,7 +94,7 @@ export const THEMES_BY_KEY: Record<string, CategoryTheme> = {
     defaultSubcategories: ["Tenues Traditionnelles", "Poterie", "Tapis Berbères"],
   },
   "Beauté & Santé": {
-    accentHex: "#E0B4B2",
+    accentHex: "#3DA88D",
     editionTag: "SOINS & PARFUMERIE",
     editionTagKey: "cat_tag.beaute",
     titleKey: "cat_beauty_title",
@@ -105,7 +105,7 @@ export const THEMES_BY_KEY: Record<string, CategoryTheme> = {
     defaultSubcategories: ["Soins du visage", "Parfums", "Maquillage"],
   },
   "Auto & Moto": {
-    accentHex: "#A54055",
+    accentHex: "#E59A42",
     editionTag: "MÉCANIQUE & ÉQUIPEMENT",
     editionTagKey: "cat_tag.auto",
     titleKey: "cat_auto",
@@ -116,7 +116,7 @@ export const THEMES_BY_KEY: Record<string, CategoryTheme> = {
     defaultSubcategories: ["Pièces & Entretien", "Pneumatiques", "Moto & Scooter"],
   },
   "Sport & Loisirs": {
-    accentHex: "#E99856",
+    accentHex: "#E59A42",
     editionTag: "PERFORMANCE & OUTDOOR",
     editionTagKey: "cat_tag.sport",
     titleKey: "cat_sport",
@@ -127,7 +127,7 @@ export const THEMES_BY_KEY: Record<string, CategoryTheme> = {
     defaultSubcategories: ["Fitness & Musculation", "Sports Collectifs", "Randonnée"],
   },
   "Bébé & Puériculture": {
-    accentHex: "#E0B4B2",
+    accentHex: "#3DA88D",
     editionTag: "UNIVERS PREMIER ÂGE",
     editionTagKey: "cat_tag.bebe",
     titleKey: "cat_bebe",
@@ -138,7 +138,7 @@ export const THEMES_BY_KEY: Record<string, CategoryTheme> = {
     defaultSubcategories: ["Poussettes & Voyage", "Chambre & Sommeil", "Éveil"],
   },
   "Bricolage & Outillage": {
-    accentHex: "#E99856",
+    accentHex: "#E59A42",
     editionTag: "ATELIER & CHANTIER",
     editionTagKey: "cat_tag.bricolage",
     titleKey: "cat_bricolage",
@@ -149,7 +149,7 @@ export const THEMES_BY_KEY: Record<string, CategoryTheme> = {
     defaultSubcategories: ["Électroportatif", "Outillage à Main", "Plomberie"],
   },
   "Jeux & Jouets": {
-    accentHex: "#A54055",
+    accentHex: "#3DA88D",
     editionTag: "ÉVEIL & PASSIONS",
     editionTagKey: "cat_tag.jouets",
     titleKey: "cat_jeux",
@@ -160,7 +160,7 @@ export const THEMES_BY_KEY: Record<string, CategoryTheme> = {
     defaultSubcategories: ["Jeux éducatifs", "Jeux de société", "Plein air"],
   },
   Supermarché: {
-    accentHex: "#E99856",
+    accentHex: "#E59A42",
     editionTag: "ÉPICERIE & TERROIR",
     editionTagKey: "cat_tag.supermarche",
     titleKey: "cat_supermarche",
@@ -171,7 +171,7 @@ export const THEMES_BY_KEY: Record<string, CategoryTheme> = {
     defaultSubcategories: ["Épicerie & Terroir", "Boissons & Cafés", "Entretien"],
   },
   "Scolaire & Bureau": {
-    accentHex: "#E0B4B2",
+    accentHex: "#3DA88D",
     editionTag: "SAVOIR & PAPETERIE",
     editionTagKey: "cat_tag.scolaire",
     titleKey: "cat_scolaire_title",

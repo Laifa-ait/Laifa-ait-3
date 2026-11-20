@@ -46,11 +46,11 @@ export const HeroCanvasSubToolbar: React.FC<HeroCanvasSubToolbarProps> = ({
   const btnText = isPrimaryBtn ? settings?.ctaText || "" : settings?.secondaryCtaText || "";
   const btnLink = (isPrimaryBtn ? settings?.ctaLink : settings?.secondaryCtaLink) || "#catalog";
   const btnStyle = isPrimaryBtn ? settings?.ctaStyle || "solid" : settings?.secondaryCtaStyle || "outline";
-  const btnColor = (isPrimaryBtn ? settings?.ctaBgColor : settings?.secondaryCtaBgColor) || "#023859";
+  const btnColor = (isPrimaryBtn ? settings?.ctaBgColor : settings?.secondaryCtaBgColor) || "#0F172A";
 
   return (
     <div
-      className="bg-[#F8FBFC] border-b border-slate-200 px-3 py-1.5 flex flex-col gap-1.5 select-none"
+      className="bg-[var(--studio-background,#F8FAFC)] border-b border-slate-200 px-3 py-1.5 flex flex-col gap-1.5 select-none"
       onClick={(e) => e.stopPropagation()}
       data-testid="hero-canvas-sub-toolbar"
     >
@@ -67,8 +67,8 @@ export const HeroCanvasSubToolbar: React.FC<HeroCanvasSubToolbarProps> = ({
                 onClick={(e) => onSelectSubElement(item.id, e)}
                 className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shrink-0 border ${
                   isAct
-                    ? "bg-[#023859] text-white border-[#023859] shadow-2xs"
-                    : "bg-white text-slate-700 border-slate-200/90 hover:bg-slate-100 hover:text-[#011C40]"
+                    ? "bg-[var(--studio-primary,#0F172A)] text-white border-[var(--studio-primary,#0F172A)] shadow-2xs"
+                    : "bg-white text-slate-700 border-slate-200/90 hover:bg-slate-100 hover:text-slate-950"
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -87,7 +87,7 @@ export const HeroCanvasSubToolbar: React.FC<HeroCanvasSubToolbarProps> = ({
           <button
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent("studio:open-inspector-tab", { detail: { sectionId, tab: "content" } }))}
-            className="h-7 px-2.5 rounded-md bg-[#023859] text-white font-bold flex items-center gap-1 cursor-pointer"
+            className="h-7 px-2.5 rounded-md bg-[var(--studio-primary,#0F172A)] text-white font-bold flex items-center gap-1 cursor-pointer"
           >
             <FolderOpen className="w-3 h-3" />
             <span>Remplacer l&apos;image</span>
@@ -100,7 +100,7 @@ export const HeroCanvasSubToolbar: React.FC<HeroCanvasSubToolbarProps> = ({
                 type="button"
                 onClick={() => emitPatch(sectionId, { imageFit: fit.id })}
                 className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
-                  (settings.imageFit || "cover") === fit.id ? "bg-[#023859] text-white" : "text-slate-600 hover:text-slate-900"
+                  (settings.imageFit || "cover") === fit.id ? "bg-[var(--studio-primary,#0F172A)] text-white" : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 {fit.label}
@@ -115,7 +115,7 @@ export const HeroCanvasSubToolbar: React.FC<HeroCanvasSubToolbarProps> = ({
                 type="button"
                 onClick={() => emitPatch(sectionId, { imagePositionDesktop: p.pos, backgroundPosition: p.pos })}
                 className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
-                  activeObjectPosition === p.pos ? "bg-[#26658C] text-white" : "text-slate-600 hover:text-slate-900"
+                  activeObjectPosition === p.pos ? "bg-[var(--studio-focus,#2563EB)] text-white" : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 {p.label}
@@ -128,7 +128,7 @@ export const HeroCanvasSubToolbar: React.FC<HeroCanvasSubToolbarProps> = ({
             value={imageAlt}
             placeholder="Texte alternatif SEO (alt)..."
             onChange={(e) => emitPatch(sectionId, { imageAlt: e.target.value })}
-            className="h-7 px-2 rounded-md border border-slate-200 bg-white text-slate-800 text-[11px] min-w-[170px] flex-1 max-w-xs outline-none focus:border-[#023859]"
+            className="h-7 px-2 rounded-md border border-slate-200 bg-white text-slate-800 text-[11px] min-w-[170px] flex-1 max-w-xs outline-none focus:border-[var(--studio-focus,#2563EB)]"
           />
         </div>
       )}
@@ -140,7 +140,7 @@ export const HeroCanvasSubToolbar: React.FC<HeroCanvasSubToolbarProps> = ({
             value={btnText}
             placeholder="Texte du bouton..."
             onChange={(e) => emitPatch(sectionId, isPrimaryBtn ? { ctaText: e.target.value, showCta: true } : { secondaryCtaText: e.target.value, showSecondaryCta: true })}
-            className="h-7 px-2 rounded-md border border-slate-200 bg-white text-slate-900 font-bold text-[11px] w-40 outline-none focus:border-[#023859]"
+            className="h-7 px-2 rounded-md border border-slate-200 bg-white text-slate-900 font-bold text-[11px] w-40 outline-none focus:border-[var(--studio-focus,#2563EB)]"
           />
 
           <div className="flex items-center gap-1 bg-white rounded-md border border-slate-200 px-2 h-7">
@@ -169,7 +169,7 @@ export const HeroCanvasSubToolbar: React.FC<HeroCanvasSubToolbarProps> = ({
               const safeUrl = safeNavigationHref(e.target.value);
               emitPatch(sectionId, isPrimaryBtn ? { ctaLink: safeUrl } : { secondaryCtaLink: safeUrl });
             }}
-            className="h-7 px-2 rounded-md border border-slate-200 bg-white text-slate-700 font-mono text-[11px] w-36 outline-none focus:border-[#023859]"
+            className="h-7 px-2 rounded-md border border-slate-200 bg-white text-slate-700 font-mono text-[11px] w-36 outline-none focus:border-[var(--studio-focus,#2563EB)]"
           />
 
           <div className="flex items-center bg-white rounded-md border border-slate-200 p-0.5">
@@ -179,7 +179,7 @@ export const HeroCanvasSubToolbar: React.FC<HeroCanvasSubToolbarProps> = ({
                 type="button"
                 onClick={() => emitPatch(sectionId, isPrimaryBtn ? { ctaStyle: st } : { secondaryCtaStyle: st })}
                 className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase cursor-pointer ${
-                  btnStyle === st ? "bg-[#023859] text-white" : "text-slate-600 hover:text-slate-900"
+                  btnStyle === st ? "bg-[var(--studio-primary,#0F172A)] text-white" : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 {st}

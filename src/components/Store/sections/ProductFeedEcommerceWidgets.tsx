@@ -109,7 +109,7 @@ export const ProductColorSwatches: React.FC<ProductColorSwatchesProps> = ({
           style={{ backgroundColor: item.css }}
           className={`h-3.5 w-3.5 rounded-full border transition-all cursor-pointer ${
             selected === item.raw
-              ? "scale-110 ring-2 ring-offset-1 ring-[#023859]"
+              ? "scale-110 ring-2 ring-offset-1 ring-slate-900"
               : "border-slate-300 opacity-85 hover:opacity-100"
           }`}
           title={item.raw}
@@ -141,7 +141,7 @@ export const ProductSizeChips: React.FC<ProductSizeChipsProps> = ({ sizes = [] }
           }}
           className={`h-5 px-1.5 rounded text-[10px] font-bold border transition-all cursor-pointer ${
             selected === size
-              ? "bg-[#011C40] text-white border-[#011C40]"
+              ? "bg-slate-900 text-white border-slate-900"
               : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
           }`}
         >
@@ -163,7 +163,7 @@ export const ProductStockProgressBar: React.FC<ProductStockProgressBarProps> = (
   sold = 0,
   total,
   stock,
-  accentColor = "#023859",
+  accentColor = "#0F172A",
 }) => {
   const remainingStock = typeof stock === "number" ? Math.max(0, stock) : 0;
   const computedTotal =

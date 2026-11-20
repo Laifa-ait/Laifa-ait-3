@@ -6,6 +6,7 @@ import {
   buildAutoFixedThemeColors,
 } from "../../../../../components/Store/sections/themeColorUtils";
 import { ARTISTIC_STUDIO_PRESETS } from "../../constants/artisticStudioPresets";
+import { DEFAULT_MODERN_THEME } from "../../constants/studioThemeDefaults";
 
 interface ThemeColorPaletteTabProps {
   theme: CustomPageTheme;
@@ -41,8 +42,8 @@ export const ThemeColorPaletteTab: React.FC<ThemeColorPaletteTabProps> = ({
     const pickerColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color) ? color : defaultVal;
 
     return (
-      <div key={field} className="space-y-1 bg-white p-2 rounded-xl border border-slate-200/90">
-        <label className="text-[10.5px] font-bold text-[#344054] block truncate">{label}</label>
+      <div key={field} className="space-y-1 bg-[var(--studio-white)] p-2 rounded-xl border border-[var(--studio-border)]">
+        <label className="text-[10.5px] font-bold text-[var(--studio-text)] block truncate">{label}</label>
         <div className="flex items-center gap-1.5">
           <input
             type="color"
@@ -50,7 +51,7 @@ export const ThemeColorPaletteTab: React.FC<ThemeColorPaletteTabProps> = ({
             value={pickerColor}
             aria-label={label}
             onChange={(e) => onUpdateTheme({ [field]: e.target.value } as Partial<CustomPageTheme>)}
-            className="h-7 w-8 shrink-0 rounded-lg border border-[#E4E7EC] bg-white p-0.5 cursor-pointer"
+            className="h-7 w-8 shrink-0 rounded-lg border border-[var(--studio-border)] bg-[var(--studio-white)] p-0.5 cursor-pointer"
           />
           <input
             type="text"
@@ -70,7 +71,7 @@ export const ThemeColorPaletteTab: React.FC<ThemeColorPaletteTabProps> = ({
                 onErrorChange("Saisissez une couleur hexadécimale valide (#RRGGBB).");
               }
             }}
-            className="h-7 min-w-0 flex-1 rounded-lg border border-[#E4E7EC] px-2 font-mono text-[11px] text-[#17191C] focus:border-[#023859] focus:outline-none uppercase"
+            className="h-7 min-w-0 flex-1 rounded-lg border border-[var(--studio-border)] px-2 font-mono text-[11px] text-[var(--studio-black)] focus:border-[var(--studio-focus)] focus:outline-none uppercase"
           />
         </div>
       </div>
@@ -131,23 +132,23 @@ export const ThemeColorPaletteTab: React.FC<ThemeColorPaletteTabProps> = ({
         <select
           value={theme.sector}
           onChange={(e) => onUpdateTheme({ sector: e.target.value as StoreThemeSector })}
-          className="h-9 w-full rounded-xl border border-[#E4E7EC] bg-white px-3 text-[12px] font-semibold text-[#17191C] focus:border-[#023859] focus:outline-none"
+          className="h-9 w-full rounded-xl border border-[var(--studio-border)] bg-[var(--studio-white)] px-3 text-[12px] font-semibold text-[var(--studio-black)] focus:border-[var(--studio-focus)] focus:outline-none"
         >
-          <option value="artisanat">Artisanat, Tradition &amp; Patrimoine</option>
+          <option value="artisanat">Design, Objets &amp; Architecture</option>
           <option value="mode">Mode, Prêt-à-porter &amp; Haute Couture</option>
           <option value="beaute">Beauté, Parfums &amp; Soins</option>
           <option value="tech">High-Tech, Gaming &amp; Électronique</option>
           <option value="maison">Maison, Intérieur &amp; Décoration</option>
-          <option value="alimentation">Alimentation, Terroir &amp; Épicerie Fine</option>
+          <option value="alimentation">Gastronomie &amp; Épicerie Fine</option>
           <option value="sport">Sport, Fitness &amp; Performance</option>
           <option value="accessoires">Accessoires, Horlogerie &amp; Maroquinerie</option>
           <option value="enfants">Enfants, Bébé &amp; Éveil</option>
         </select>
       </div>
 
-      <div className="p-2.5 rounded-2xl border border-slate-200 bg-slate-50 space-y-2">
+      <div className="p-2.5 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-background)] space-y-2">
         <span className="text-[10.5px] font-black uppercase tracking-wider text-zinc-700 flex items-center gap-1">
-          <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Harmonies Chromatiques (Application 1-Clic)
+          <Sparkles className="w-3.5 h-3.5 text-[var(--studio-focus)]" /> Harmonies Chromatiques (Application 1-Clic)
         </span>
         <div className="grid grid-cols-3 gap-1.5">
           {ARTISTIC_STUDIO_PRESETS.map((preset) => {
@@ -191,40 +192,40 @@ export const ThemeColorPaletteTab: React.FC<ThemeColorPaletteTabProps> = ({
         </div>
       </div>
 
-      <div className="space-y-2 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
-        <h4 className="text-[10.5px] font-black uppercase tracking-wider text-zinc-800">
+      <div className="space-y-2 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-background)] p-3">
+        <h4 className="text-[10.5px] font-black uppercase tracking-wider text-[var(--studio-black)]">
           1. Fonds, Cartes &amp; Bordures (60% / 30%)
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {colorControl("Fond de Page (Canvas)", "canvasColor", "#F4ECE1")}
-          {colorControl("Fond des Cartes (Surface)", "surfaceColor", "#FFFDF9")}
-          {colorControl("Filets & Bordures", "borderColor", "#DFCBB2")}
+          {colorControl("Fond de Page (Canvas)", "canvasColor", DEFAULT_MODERN_THEME.canvasColor || "#F8FAFC")}
+          {colorControl("Fond des Cartes (Surface)", "surfaceColor", DEFAULT_MODERN_THEME.surfaceColor || "#FFFFFF")}
+          {colorControl("Filets & Bordures", "borderColor", DEFAULT_MODERN_THEME.borderColor || "#E2E8F0")}
         </div>
       </div>
 
-      <div className="space-y-2 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
-        <h4 className="text-[10.5px] font-black uppercase tracking-wider text-zinc-800">
+      <div className="space-y-2 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-background)] p-3">
+        <h4 className="text-[10.5px] font-black uppercase tracking-wider text-[var(--studio-black)]">
           2. Titres, Paragraphes &amp; Prix (DA)
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {colorControl("Couleur des Titres", "secondaryColor", "#29170E")}
-          {colorControl("Texte Principal", "textColor", theme.secondaryColor || "#3D2518")}
-          {colorControl("Texte Secondaire (Muted)", "mutedTextColor", "#7C5A46")}
-          {colorControl("Prix & Montants (DA)", "priceColor", theme.primaryColor || "#9A3412")}
+          {colorControl("Couleur des Titres", "secondaryColor", DEFAULT_MODERN_THEME.secondaryColor || "#0F172A")}
+          {colorControl("Texte Principal", "textColor", theme.secondaryColor || DEFAULT_MODERN_THEME.textColor || "#0F172A")}
+          {colorControl("Texte Secondaire (Muted)", "mutedTextColor", DEFAULT_MODERN_THEME.mutedTextColor || "#64748B")}
+          {colorControl("Prix & Montants (DA)", "priceColor", theme.primaryColor || DEFAULT_MODERN_THEME.priceColor || "#0F172A")}
         </div>
       </div>
 
-      <div className="space-y-2 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
-        <h4 className="text-[10.5px] font-black uppercase tracking-wider text-zinc-800">
+      <div className="space-y-2 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-background)] p-3">
+        <h4 className="text-[10.5px] font-black uppercase tracking-wider text-[var(--studio-black)]">
           3. Marque, Boutons CTA &amp; Badges (10%)
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {colorControl("Couleur Principale", "primaryColor", "#B84A27")}
-          {colorControl("Couleur d'Accent / Or", "accentColor", "#C88A2B")}
-          {colorControl("Fond des Boutons CTA", "buttonColor", theme.primaryColor || "#29170E")}
-          {colorControl("Texte des Boutons CTA", "buttonTextColor", "#FFFDF9")}
-          {colorControl("Fond des Badges", "accentBadgeColor", theme.primaryColor || "#B84A27")}
-          {colorControl("Texte des Badges", "badgeTextColor", "#FFFDF9")}
+          {colorControl("Couleur Principale", "primaryColor", DEFAULT_MODERN_THEME.primaryColor)}
+          {colorControl("Couleur d'Accent", "accentColor", DEFAULT_MODERN_THEME.accentColor)}
+          {colorControl("Fond des Boutons CTA", "buttonColor", theme.primaryColor || DEFAULT_MODERN_THEME.buttonColor || "#0F172A")}
+          {colorControl("Texte des Boutons CTA", "buttonTextColor", DEFAULT_MODERN_THEME.buttonTextColor || "#FFFFFF")}
+          {colorControl("Fond des Badges", "accentBadgeColor", theme.primaryColor || DEFAULT_MODERN_THEME.accentBadgeColor || "#2563EB")}
+          {colorControl("Texte des Badges", "badgeTextColor", DEFAULT_MODERN_THEME.badgeTextColor || "#FFFFFF")}
         </div>
       </div>
     </div>

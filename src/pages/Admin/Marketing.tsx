@@ -3,7 +3,7 @@ import { AnimatePresence } from "motion/react";
 import { useTranslation } from "react-i18next";
 import { PRODUCT_HIERARCHY } from "../../constants";
 import { db } from "../../lib/firebase";
-import { collection, query, orderBy, onSnapshot, doc, limit } from "firebase/firestore";
+import { collection, query, orderBy, getDoc, getDocs, doc, limit } from "firebase/firestore";
 import { Tag, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { CategoriesTab } from "./Marketing/CategoriesTab";
@@ -38,19 +38,31 @@ export const Marketing: React.FC = () => {
   const savingTranslations = false;
 
   useEffect(() => {
-    const unsubCat = onSnapshot(doc(db, "settings", "categories"), (snap) => {
-      if (snap.exists() && snap.data().hierarchy) setHierarchy(snap.data().hierarchy);
-    });
-    return () => { unsubCat(); };
+    let cancelled = false;
+    getDoc(doc(db, "settings", "categories"))
+      .then((snap) => {
+        if (!cancelled && snap.exists() && snap.data().hierarchy) {
+          setHierarchy(snap.data().hierarchy);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
     if (activeTab !== "categories") return;
-    const unsubHistory = onSnapshot(query(collection(db, "category_history"), orderBy("createdAt", "desc"), limit(15)), (snapshot) => {
-      setHistoryLogs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setHistoryLoading(false);
-    });
-    return () => unsubHistory();
+    let cancelled = false;
+    getDocs(query(collection(db, "category_history"), orderBy("createdAt", "desc"), limit(15)))
+      .then((snapshot) => {
+        if (!cancelled) {
+          setHistoryLogs(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+          setHistoryLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setHistoryLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [activeTab]);
 
   const runHierarchyTransaction = async (_desc: string, _fn: unknown) => {};

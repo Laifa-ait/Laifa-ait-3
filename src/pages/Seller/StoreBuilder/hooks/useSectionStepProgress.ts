@@ -9,7 +9,7 @@ export interface UseSectionStepProgressResult {
   justSavedStep: number | null;
   isSavingStep: boolean;
   saveStepError: string | null;
-  selectStep: (step: number) => void;
+  selectStep: (step: number, forceUnlock?: boolean) => void;
   goToPrevStep: () => void;
   saveAndAdvanceStep: (onSaveStep?: () => unknown | Promise<unknown>) => Promise<boolean>;
 }
@@ -42,10 +42,10 @@ export function useSectionStepProgress(
   const unlockedStep = Math.min(totalSteps, Math.max(1, entry.unlockedStep));
 
   const selectStep = useCallback(
-    (step: number) => {
-      if (!isExpert && step > unlockedStep) return;
+    (step: number, forceUnlock = false) => {
+      if (!forceUnlock && !isExpert && step > unlockedStep) return;
       setSaveStepError(null);
-      setSectionActiveStep(progressKey, Math.min(totalSteps, Math.max(1, step)));
+      setSectionActiveStep(progressKey, Math.min(totalSteps, Math.max(1, step)), forceUnlock);
     },
     [isExpert, progressKey, setSectionActiveStep, totalSteps, unlockedStep]
   );

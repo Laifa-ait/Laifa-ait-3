@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { Dispute, DisputeMessage } from '../../domains/dispute/dispute.types';
 import { DisputeDetailsPanel } from './DisputeDetailsPanel';
 import { LightboxModal } from './LightboxModal';
+import { startVisibilityAwarePolling } from '../../utils/visibilityPolling';
 
 export const DisputeChat: React.FC<{ disputeId: string, onClose?: () => void }> = ({ disputeId, onClose }) => {
   const { t } = useTranslation();
@@ -38,8 +39,7 @@ export const DisputeChat: React.FC<{ disputeId: string, onClose?: () => void }> 
 
   useEffect(() => {
     fetchDisputeDetails();
-    const interval = setInterval(fetchDisputeDetails, 5000);
-    return () => clearInterval(interval);
+    return startVisibilityAwarePolling(fetchDisputeDetails, 15_000);
   }, [fetchDisputeDetails]);
 
   useEffect(() => {

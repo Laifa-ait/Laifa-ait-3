@@ -40,7 +40,7 @@ export class LegacyStoreAdapter {
     const shopSlug = userData.shopSlug || pubData.shopSlug || userData.slug || pubData.slug || this.buildDefaultSlug(sellerId, shopName);
     const shopDescription =
       userData.shopDescription || pubData.shopDescription || userData.description || pubData.description ||
-      "Bienvenue dans notre boutique officielle sur Olmart Algérie.";
+      "Bienvenue dans notre boutique officielle sur Olmart.";
     const wilaya = userData.wilaya || pubData.wilaya || "Alger";
     const commune = userData.commune || pubData.commune || "";
     const logoUrl = userData.logoUrl || pubData.logoUrl || userData.photoURL || pubData.photoURL || userData.avatarUrl || pubData.avatarUrl || "";
@@ -51,23 +51,45 @@ export class LegacyStoreAdapter {
       sellerId, shopName, shopSlug, shopDescription, wilaya, commune,
       ...(logoUrl ? { logoUrl } : {}),
       ...(bannerUrl ? { bannerUrl } : {}),
-      brandStory: userData.brandStory || pubData.brandStory || "Artisanat et commerce d'excellence en direct d'Algérie.",
+      brandStory: userData.brandStory || pubData.brandStory || "Sélection contemporaine exigeante, conçue pour durer et livrée rapidement.",
       returnPolicy:
         userData.returnPolicy || pubData.returnPolicy ||
         "Retours acceptés sous 14 jours si le produit est intact dans son emballage d'origine.",
       avgPreparationTime: userData.avgPreparationTime || pubData.avgPreparationTime || "24h - 48h",
       legalStatus: userData.legalStatus || pubData.legalStatus || "Commerçant enregistré",
       theme: {
-        sector: "artisanat", primaryColor: "#B45309", secondaryColor: "#18181B", accentColor: "#B45309",
-        canvasColor: "#FAF6F0", surfaceColor: "#FFFFFF",
-        fontFamily: "'Cormorant Garamond', 'Plus Jakarta Sans', system-ui, sans-serif",
-        accentBadgeColor: "#B45309", borderRadiusPx: 16, spacingYPx: 28, titleFontSizePx: 36, bodyFontSizePx: 15,
-        surfaceTexture: "cotton-paper", ambientLighting: "golden-hour", cardMaterial: "solid-matte",
-        frameShape: "casbah-arch", letterSpacing: 0.01, lineHeight: 1.12,
-        headingAccentStyle: "metallic-gold", headingUnderlineStyle: "brush-stroke",
+        sector: "mode",
+        primaryColor: "#0F172A",
+        secondaryColor: "#1E293B",
+        accentColor: "#2563EB",
+        canvasColor: "#F8FAFC",
+        surfaceColor: "#FFFFFF",
+        textColor: "#0F172A",
+        mutedTextColor: "#475569",
+        borderColor: "#E2E8F0",
+        buttonColor: "#0F172A",
+        buttonTextColor: "#FFFFFF",
+        priceColor: "#0F172A",
+        fontFamily: "'Plus Jakarta Sans', 'DM Sans', sans-serif",
+        headingFontFamily: "'Plus Jakarta Sans', sans-serif",
+        bodyFontFamily: "'DM Sans', sans-serif",
+        accentBadgeColor: "#0F172A",
+        badgeTextColor: "#FFFFFF",
+        borderRadiusPx: 12,
+        spacingYPx: 32,
+        titleFontSizePx: 36,
+        bodyFontSizePx: 15,
+        surfaceTexture: "none",
+        ambientLighting: "natural",
+        cardMaterial: "solid-matte",
+        frameShape: "soft-modern",
+        letterSpacing: -0.02,
+        lineHeight: 1.15,
+        headingAccentStyle: "accent-color",
+        headingUnderlineStyle: "hairline",
       },
       seo: {
-        metaTitle: `${shopName} | Olmart Algérie`,
+        metaTitle: `${shopName} | Olmart`,
         metaDescription: shopDescription.slice(0, 160),
         ...(ogImage ? { ogImage } : {}),
       },
@@ -78,78 +100,78 @@ export class LegacyStoreAdapter {
 
   static buildDefaultSections(config: StoreConfig, activeProductIds: string[] = []): CustomPageSection[] {
     const cleanBanner = config.bannerUrl && config.bannerUrl.trim() ? config.bannerUrl : "";
-    const defaultHeadingStyles = { headingAccentStyle: "metallic-gold" as const, headingUnderlineStyle: "brush-stroke" as const };
+    const defaultHeadingStyles = { headingAccentStyle: "accent-color" as const, headingUnderlineStyle: "hairline" as const };
 
     return [
       {
-        id: "sec_hero", type: "hero_banner", title: "Acte 1 — Hero Scénographique",
+        id: "sec_hero", type: "hero_banner", title: "Bannière Principale",
         settings: {
           heroLayout: "editorial-split",
-          title: config.shopName ? `${config.shopName} — Produits & Nouveautés` : "Sélection Produits Phares",
+          title: config.shopName ? `${config.shopName} — Collection & Essentiels` : "Sélection Contemporaine",
           subtitle: config.shopDescription || "Commandez en ligne en toute confiance avec livraison dans les 69 wilayas.",
-          badgeText: "BOUTIQUE OFFICIELLE", imageUrl: cleanBanner,
-          ctaText: "Voir les Produits", ctaLink: "#catalog",
-          secondaryCtaText: "Catégories", secondaryCtaLink: "#collections",
-          socialProofBadge: "LIVRAISON 69 WILAYAS • PAIEMENT À LA LIVRAISON",
-          showSocialProofBadge: false, ctaStyle: "pill", textAlignment: "left",
+          badgeText: "NOUVELLE ÉDITION", imageUrl: cleanBanner,
+          ctaText: "Découvrir les Produits", ctaLink: "#catalog",
+          secondaryCtaText: "Rayons", secondaryCtaLink: "#collections",
+          socialProofBadge: "LIVRAISON 69 WILAYAS • PAIEMENT À LA RÉCEPTION",
+          showSocialProofBadge: false, ctaStyle: "solid", textAlignment: "left",
           overlayOpacity: 0, showBadge: true, showSubtitle: true, showCta: true,
         },
         styles: { containerWidth: "full", paddingY: "lg", borderRadius: "none", ...defaultHeadingStyles },
         isVisible: true, order: 0,
       },
       {
-        id: "sec_marquee", type: "kinetic_marquee", title: "Acte 2 — Ruban Cinétique",
+        id: "sec_marquee", type: "kinetic_marquee", title: "Bandeau d'Information",
         settings: {
-          textFr: "LIVRAISON 69 WILAYAS • PAIEMENT À LA LIVRAISON (COD) • PIÈCES CERTIFIÉES & VÉRIFIÉES",
-          textAr: "توصيل إلى 69 ولاية • الدفع عند الاستلام • قطع أصلية ومضمونة",
+          textFr: "LIVRAISON 69 WILAYAS • PAIEMENT À LA LIVRAISON • QUALITÉ CONTRÔLÉE",
+          textAr: "توصيل إلى 69 ولاية • الدفع عند الاستلام • جودة مضمونة",
           showBilingual: true, speed: "normal", textStyle: "alternating",
-          separator: "star", direction: "ltr", tiltDeg: 0, uppercase: true,
+          separator: "dot", direction: "ltr", tiltDeg: 0, uppercase: true,
         },
         styles: { containerWidth: "full", paddingY: "sm" },
         isVisible: true, order: 1,
       },
       {
-        id: "sec_categories", type: "featured_categories", title: "Acte 3 — Portes des Collections",
+        id: "sec_categories", type: "featured_categories", title: "Rayons & Collections",
         settings: {
           title: "Nos *Collections* & {Univers}",
-          subtitle: "Parcourez nos sélections thématiques façonnées pour chaque instant.",
-          layout: "arch",
+          subtitle: "Parcourez nos sélections thématiques.",
+          layout: "grid",
           categories: [
-            { id: "cat_signature", name: "Pièces Signature", subtitle: "Créations iconiques", slug: "pieces-signature", badge: "N° 01", imageUrl: "" },
-            { id: "cat_nouveautes", name: "Nouvelle Édition", subtitle: "Arrivages & séries limitées", slug: "nouvelle-edition", badge: "N° 02", imageUrl: "" },
-            { id: "cat_essentiels", name: "Les Intemporels", subtitle: "Savoir-faire & élégance durable", slug: "les-intemporels", badge: "N° 03", imageUrl: "" },
+            { id: "cat_signature", name: "Pièces Signature", subtitle: "Lignes contemporaines", slug: "pieces-signature", badge: "01", imageUrl: "" },
+            { id: "cat_nouveautes", name: "Nouvelle Édition", subtitle: "Derniers arrivages", slug: "nouvelle-edition", badge: "02", imageUrl: "" },
+            { id: "cat_essentiels", name: "Les Intemporels", subtitle: "Qualité & durabilité", slug: "les-intemporels", badge: "03", imageUrl: "" },
           ],
         },
         styles: { containerWidth: "contained", paddingY: "lg", ...defaultHeadingStyles },
         isVisible: true, order: 2,
       },
       {
-        id: "sec_featured", type: "featured_products", title: "Acte 4 — Pièces Maîtresses",
+        id: "sec_featured", type: "featured_products", title: "Sélection Vedette",
         settings: {
-          title: "Pièces *Maîtresses* & {Sélection}",
-          subtitle: "Nos créations les plus convoitées, disponibles immédiatement.",
+          title: "Pièces *Phares* & {Sélection}",
+          subtitle: "Nos références les plus demandées, disponibles immédiatement.",
           productIds: activeProductIds.slice(0, 4), layout: "grid", cardAspectRatio: "4/5", columnsDesktop: 4,
         },
         styles: { containerWidth: "contained", paddingY: "md", ...defaultHeadingStyles },
         isVisible: activeProductIds.length > 0, order: 3,
       },
       {
-        id: "sec_all_products", type: "product_grid", title: "Acte 5 — Catalogue Complet",
+        id: "sec_all_products", type: "product_grid", title: "Catalogue Complet",
         settings: {
-          title: "Tout le *Catalogue* de la {Maison}",
-          subtitle: "Explorez l'ensemble de nos créations disponibles à la livraison.",
+          title: "Tout le *Catalogue*",
+          subtitle: "Explorez l'ensemble de nos références disponibles à la livraison.",
           maxItems: 12, layout: "grid", cardAspectRatio: "4/5", columnsDesktop: 4,
         },
         styles: { containerWidth: "contained", paddingY: "lg", ...defaultHeadingStyles },
         isVisible: true, order: 4,
       },
       {
-        id: "sec_story", type: "brand_story", title: "Acte 5 — Manifeste & Histoire",
+        id: "sec_story", type: "brand_story", title: "Manifeste de Marque",
         settings: {
-          heading: `L'Esprit de *${config.shopName}* — Savoir-Faire {Algérien}`,
+          heading: `L'Approche *${config.shopName}* — Design & {Qualité}`,
           bodyText:
             config.brandStory ||
-            "Depuis notre création, nous façonnons et sélectionnons nos pièces avec une exigence absolue afin de célébrer l'excellence du savoir-faire algérien.",
+            "Chaque pièce de notre sélection est contrôlée avec rigueur afin d'offrir un design durable et une expérience irréprochable.",
           imageUrl: cleanBanner, signature: config.shopName, yearsOfExperience: 5, dropCap: true,
         },
         styles: { containerWidth: "contained", paddingY: "lg", borderRadius: "lg", ...defaultHeadingStyles },
@@ -185,7 +207,7 @@ export class LegacyStoreAdapter {
       sections: this.buildDefaultSections(config, activeProductIds),
       status: "draft",
       updatedAt: new Date().toISOString(),
-      changeSummary: "Génération automatique en 5 Actes depuis le profil marchand",
+      changeSummary: "Génération automatique moderne depuis le profil marchand",
     };
   }
 }

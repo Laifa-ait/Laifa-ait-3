@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Megaphone, CheckCircle2, XCircle, Search, Clock, Star, Sliders } from 'lucide-react';
 import { db } from '../../lib/firebase';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, limit } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from "react-i18next";
 import { apiGet, apiPost } from '../../lib/api';
@@ -45,25 +45,33 @@ export const SponsorshipsAdmin: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchPacks();
-    const q = query(collection(db, 'sponsorship_requests'), orderBy('requestDate', 'desc'));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+  const fetchRequests = async () => {
+    setLoading(true);
+    try {
+      const q = query(collection(db, 'sponsorship_requests'), orderBy('requestDate', 'desc'), limit(50));
+      const snapshot = await getDocs(q);
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as SponsorshipRequest[];
       setRequests(data);
-      setLoading(false);
-    }, (error) => {
+    } catch (error) {
       console.error("Error fetching sponsorship requests:", error);
       toast.error('Erreur de chargement des requêtes de sponsoring');
+    } finally {
       setLoading(false);
-    });
+    }
+  };
 
-    return () => unsubscribe();
+  useEffect(() => {
+    void fetchPacks();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'packs') {
+      void fetchRequests();
+    }
+  }, [activeTab]);
 
   const handleSavePacks = async (updatedPacks: Record<SponsorshipTier, SponsorshipPackConfig>) => {
     try {
@@ -87,6 +95,7 @@ export const SponsorshipsAdmin: React.FC = () => {
       });
       if (res?.success) {
         toast.success(res.message);
+        await fetchRequests();
       }
     } catch (error: unknown) {
       console.error(error);

@@ -34,7 +34,7 @@ export const useProductModeration = (showConfirmModal: (text: string) => Promise
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const token = await currentUser?.getIdToken(true);
+      const token = await currentUser?.getIdToken();
       if (!token) throw new Error("Non authentifié");
 
       const params = new URLSearchParams({
@@ -62,7 +62,7 @@ export const useProductModeration = (showConfirmModal: (text: string) => Promise
   const loadMore = useCallback(async () => {
     if (!lastVisible) return;
     try {
-      const token = await currentUser?.getIdToken(true);
+      const token = await currentUser?.getIdToken();
       if (!token) throw new Error("Non authentifié");
 
       const params = new URLSearchParams({

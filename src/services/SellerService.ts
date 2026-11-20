@@ -6,6 +6,20 @@ import { Order } from "../domains/order/order.types";
 import { safeLogger } from "../utils/logger";
 
 export class SellerService {
+  private static overviewCache = new Map<string, { data: Record<string, unknown>; cachedAt: number }>();
+  private static inFlightOverview = new Map<string, Promise<Record<string, unknown>>>();
+  private static readonly OVERVIEW_CACHE_TTL_MS = 2 * 60 * 1000;
+
+  static clearOverviewCache(uid?: string): void {
+    if (uid) {
+      SellerService.overviewCache.delete(uid);
+      SellerService.inFlightOverview.delete(uid);
+    } else {
+      SellerService.overviewCache.clear();
+      SellerService.inFlightOverview.clear();
+    }
+  }
+
   static async extractOcr(type: string, documentUrl?: string, base64Data?: string, mimeType?: string) {
     let finalBase64 = base64Data;
     let finalMimeType = mimeType || 'image/jpeg';
@@ -47,14 +61,23 @@ export class SellerService {
   }
 
   static async getOverviewStats(uid: string) {
+    const cached = SellerService.overviewCache.get(uid);
+    if (cached && Date.now() - cached.cachedAt < SellerService.OVERVIEW_CACHE_TTL_MS) {
+      return cached.data;
+    }
+    const existingFlight = SellerService.inFlightOverview.get(uid);
+    if (existingFlight) {
+      return existingFlight;
+    }
+
+    const computePromise = (async () => {
     const now = new Date();
     
-    const pQ = db.collection("products").where("sellerId", "==", uid);
-    const productsSnap = await pQ.get();
+    const [productsSnap, ordersSnap] = await Promise.all([
+      db.collection("products").where("sellerId", "==", uid).limit(300).get(),
+      db.collection("orders").where("sellerIds", "array-contains", uid).limit(250).get(),
+    ]);
     const productCount = productsSnap.docs.length;
-
-    const oQ = db.collection("orders").where("sellerIds", "array-contains", uid).limit(250);
-    const ordersSnap = await oQ.get();
     const allOrders = ordersSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Order[];
 
     let outOfStockCount = 0;
@@ -65,27 +88,14 @@ export class SellerService {
       }
     });
 
-    let totalSales = 0;
-    let orderCount: number;
-    let pendingReturns = 0;
-
-    try {
-      const summaryDoc = await db.collection("financial_summary").doc(uid).get();
-      if (summaryDoc.exists) {
-        // Recompute from order statuses because legacy summaries may include pending orders.
-        orderCount = allOrders.length;
-        totalSales = allOrders.reduce((sum, order) => String(order.status || '').toLowerCase() === 'delivered' ? sum + (Number(order.total) || 0) : sum, 0);
-        pendingReturns = allOrders.filter((order) => ['return_requested', 'return-requested'].includes(String(order.status || '').toLowerCase())).length;
-      } else {
-         orderCount = allOrders.length;
-         totalSales = allOrders.reduce((sum, order) => String(order.status || '').toLowerCase() === 'delivered' ? sum + (Number(order.total) || 0) : sum, 0);
-         pendingReturns = allOrders.filter((order) => ['return_requested', 'return-requested'].includes(String(order.status || '').toLowerCase())).length;
-      }
-    } catch {
-       orderCount = allOrders.length;
-       totalSales = allOrders.reduce((sum, order) => String(order.status || '').toLowerCase() === 'delivered' ? sum + (Number(order.total) || 0) : sum, 0);
-       pendingReturns = allOrders.filter((order) => ['return_requested', 'return-requested'].includes(String(order.status || '').toLowerCase())).length;
-    }
+    const orderCount = allOrders.length;
+    const totalSales = allOrders.reduce(
+      (sum, order) => String(order.status || "").toLowerCase() === "delivered" ? sum + (Number(order.total) || 0) : sum,
+      0
+    );
+    const pendingReturns = allOrders.filter(
+      (order) => ["return_requested", "return-requested"].includes(String(order.status || "").toLowerCase())
+    ).length;
 
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1));
@@ -177,7 +187,7 @@ export class SellerService {
 
     const payoutStats = { available: totalSales, nextPaymentDate: null };
 
-    return {
+    const result = {
       stats: { totalSales, orderCount, productCount, growth, pendingReturns },
       recentOrders,
       topProducts,
@@ -186,5 +196,14 @@ export class SellerService {
       wilayaStats,
       chartData
     };
+    if (SellerService.overviewCache.size > 500) SellerService.overviewCache.clear();
+    SellerService.overviewCache.set(uid, { data: result, cachedAt: Date.now() });
+    return result;
+    })().finally(() => {
+      SellerService.inFlightOverview.delete(uid);
+    });
+
+    SellerService.inFlightOverview.set(uid, computePromise);
+    return computePromise;
   }
 }

@@ -7,8 +7,11 @@ import { useStudioStore, SectionSubElement } from "../../../pages/Seller/StoreBu
 interface SectionTrustAndContactProps {
   section: CustomPageSection;
   theme: CustomPageTheme;
+  wrapperClass?: string;
   isEditable?: boolean;
   onSelect?: () => void;
+  isSubActive?: (sub: string) => boolean;
+  handleSubElementClick?: (sub: string, e: React.MouseEvent) => void;
 }
 
 export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
@@ -18,15 +21,15 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
   const selectedSectionId = useStudioStore((s) => s.selectedSectionId);
   const selectedSubElement = useStudioStore((s) => s.selectedSubElement);
   const rawSettings = (section.settings || {}) as Record<string, unknown>;
-  const primaryColor = section.styles?.headingColor || theme.primaryColor || "#023859";
-  const textColor = section.styles?.textColor || theme.secondaryColor || "#18181B";
+  const primaryColor = section.styles?.headingColor || theme.primaryColor || "#0F172A";
+  const textColor = section.styles?.textColor || theme.secondaryColor || "#0F172A";
   const accentColor = theme.accentColor || primaryColor;
   const surfaceBg = section.styles?.backgroundColor || theme.surfaceColor || "#FFFFFF";
   const radiusPx = theme.borderRadiusPx ?? 16;
 
   const isSubSelected = (sub: SectionSubElement) => Boolean(isEditable && selectedSectionId === section.id && selectedSubElement === sub);
   const subRing = (sub: SectionSubElement) =>
-    isEditable ? `${isSubSelected(sub) ? "ring-2 ring-amber-400 rounded-lg" : "hover:ring-1 hover:ring-sky-400/50 rounded-lg"} cursor-pointer transition-all` : "";
+    isEditable ? `${isSubSelected(sub) ? "ring-2 ring-[var(--studio-focus,#2563EB)] rounded-lg" : "hover:ring-1 hover:ring-[var(--studio-focus,#2563EB)]/50 rounded-lg"} cursor-pointer transition-all` : "";
   const handleSubClick = (e: React.MouseEvent, sub: SectionSubElement) => {
     if (!isEditable) return;
     e.stopPropagation();
@@ -44,7 +47,7 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
     const reviews = customReviews.filter((r) => (r.rating ?? 5) >= minRating).slice(0, maxReviews);
 
     return (
-      <section onClick={onSelect} style={{ backgroundColor: surfaceBg, color: textColor }} className={`w-full py-12 px-5 sm:px-8 border-b border-black/5 ${isEditable ? "cursor-pointer" : ""}`}>
+      <section onClick={isEditable ? onSelect : undefined} style={{ backgroundColor: surfaceBg, color: textColor }} className={`w-full py-12 px-5 sm:px-8 border-b border-black/5 ${isEditable ? "cursor-pointer" : ""}`}>
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-3">
             <div>
@@ -53,11 +56,9 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
               </span>
               <EditorialHeading
                 text={(rawSettings.title as string) || section.title || "Ils nous font *confiance*"}
-                as="h2"
-                theme={theme}
-                accentColorOverride={accentColor}
+                as="h2" theme={theme} accentColorOverride={accentColor}
                 onClick={(e) => handleSubClick(e, "title")}
-                className={`text-2xl sm:text-3xl font-black tracking-tight px-1 ${subRing("title")}`}
+                className={`text-2xl sm:text-3xl font-black tracking-tight px-1 break-words ${subRing("title")}`}
               />
             </div>
             {reviews.length > 0 && (
@@ -84,7 +85,7 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
                         <Star key={idx} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                       ))}
                     </div>
-                    <p className="text-sm opacity-80 leading-relaxed mb-4">&ldquo;{rev.text}&rdquo;</p>
+                    <p className="text-sm opacity-80 leading-relaxed mb-4 break-words">&ldquo;{rev.text}&rdquo;</p>
                   </div>
                   <div className="flex items-center justify-between pt-3 border-t border-black/5 text-xs">
                     <span className="font-bold">{rev.author || "Client"} {rev.wilaya ? `• ${rev.wilaya}` : ""}</span>
@@ -105,15 +106,13 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
     const carriersText = (rawSettings.carriersText as string) || "Livraison à domicile & Stop-Desk dans les 69 Wilayas";
     const highlightText = (rawSettings.codText as string) || "Vérification du colis & paiement espèces à la livraison disponibles";
     return (
-      <section onClick={onSelect} style={{ backgroundColor: surfaceBg, color: textColor }} className={`w-full py-10 px-5 sm:px-8 border-b border-black/5 ${isEditable ? "cursor-pointer" : ""}`}>
+      <section onClick={isEditable ? onSelect : undefined} style={{ backgroundColor: surfaceBg, color: textColor }} className={`w-full py-10 px-5 sm:px-8 border-b border-black/5 ${isEditable ? "cursor-pointer" : ""}`}>
         <div className="max-w-6xl mx-auto">
           <EditorialHeading
             text={(rawSettings.title as string) || section.title || "Livraison *69 Wilayas*"}
-            as="h2"
-            theme={theme}
-            accentColorOverride={accentColor}
+            as="h2" theme={theme} accentColorOverride={accentColor}
             onClick={(e) => handleSubClick(e, "title")}
-            className={`text-xl sm:text-2xl font-black tracking-tight mb-6 px-1 inline-block ${subRing("title")}`}
+            className={`text-xl sm:text-2xl font-black tracking-tight mb-6 px-1 inline-block break-words ${subRing("title")}`}
           />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div onClick={(e) => handleSubClick(e, "card-0")} style={{ borderRadius: `${radiusPx}px` }} className={`p-5 bg-black/[0.02] border border-black/5 flex items-start gap-3.5 ${subRing("card-0")}`}>
@@ -147,7 +146,7 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
     const delayDays = Number(rawSettings.delayDays || 7);
     const feeBy = rawSettings.returnShippingFeeBy === "seller" ? "pris en charge par la boutique" : "à la charge de l'acheteur (sauf défaut avéré)";
     return (
-      <section onClick={onSelect} style={{ backgroundColor: surfaceBg, color: textColor }} className={`w-full py-10 px-5 sm:px-8 border-b border-black/5 ${isEditable ? "cursor-pointer" : ""}`}>
+      <section onClick={isEditable ? onSelect : undefined} style={{ backgroundColor: surfaceBg, color: textColor }} className={`w-full py-10 px-5 sm:px-8 border-b border-black/5 ${isEditable ? "cursor-pointer" : ""}`}>
         <div className="max-w-4xl mx-auto p-6 sm:p-8 rounded-2xl bg-black/[0.02] border border-black/5 flex flex-col sm:flex-row items-start gap-5">
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 text-white" style={{ backgroundColor: primaryColor }}>
             <RotateCcw className="w-6 h-6" />
@@ -155,13 +154,11 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
           <div>
             <EditorialHeading
               text={(rawSettings.title as string) || section.title || "Politique de *Retours & Échanges*"}
-              as="h2"
-              theme={theme}
-              accentColorOverride={accentColor}
+              as="h2" theme={theme} accentColorOverride={accentColor}
               onClick={(e) => handleSubClick(e, "title")}
-              className={`text-xl font-black tracking-tight px-1 inline-block ${subRing("title")}`}
+              className={`text-xl font-black tracking-tight px-1 inline-block break-words ${subRing("title")}`}
             />
-            <p onClick={(e) => handleSubClick(e, "description")} className={`text-sm opacity-80 mt-2 leading-relaxed px-1 ${subRing("description")}`}>
+            <p onClick={(e) => handleSubClick(e, "description")} className={`text-sm opacity-80 mt-2 leading-relaxed px-1 break-words ${subRing("description")}`}>
               {(rawSettings.conditions as string) || `Vous disposez de ${delayDays} jours après réception de votre colis pour demander un échange ou un retour.`}
             </p>
             <p className="text-xs font-semibold opacity-65 mt-2">
@@ -180,27 +177,25 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
       { question: "Puis-je payer à la livraison (Cash on Delivery) ?", answer: "Oui, vous réglez votre commande en espèces directement au livreur lors de la remise du colis." },
     ];
     return (
-      <section onClick={onSelect} style={{ backgroundColor: surfaceBg, color: textColor }} className={`w-full py-12 px-5 sm:px-8 border-b border-black/5 ${isEditable ? "cursor-pointer" : ""}`}>
+      <section onClick={isEditable ? onSelect : undefined} style={{ backgroundColor: surfaceBg, color: textColor }} className={`w-full py-12 px-5 sm:px-8 border-b border-black/5 ${isEditable ? "cursor-pointer" : ""}`}>
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center gap-2.5 mb-6">
             <HelpCircle className="w-5 h-5" style={{ color: primaryColor }} />
             <EditorialHeading
               text={(rawSettings.title as string) || section.title || "Questions *Fréquentes*"}
-              as="h2"
-              theme={theme}
-              accentColorOverride={accentColor}
+              as="h2" theme={theme} accentColorOverride={accentColor}
               onClick={(e) => handleSubClick(e, "title")}
-              className={`text-2xl font-black tracking-tight px-1 ${subRing("title")}`}
+              className={`text-2xl font-black tracking-tight px-1 break-words ${subRing("title")}`}
             />
           </div>
           <div className="space-y-3">
             {items.map((item, idx) => (
               <details key={idx} onClick={(e) => handleSubClick(e, `faq-${idx}`)} open={idx === 0} style={{ borderRadius: `${Math.min(radiusPx, 16)}px` }} className={`group bg-black/[0.02] border border-black/5 px-5 py-4 ${subRing(`faq-${idx}`)}`}>
-                <summary className="font-bold text-sm cursor-pointer list-none flex items-center justify-between">
-                  <span>{item.question}</span>
-                  <ChevronDown className="w-4 h-4 opacity-50 group-open:rotate-180 transition-transform" />
+                <summary className="font-bold text-sm cursor-pointer list-none flex items-center justify-between gap-2">
+                  <span className="break-words">{item.question}</span>
+                  <ChevronDown className="w-4 h-4 opacity-50 group-open:rotate-180 transition-transform shrink-0" />
                 </summary>
-                <p className="text-xs sm:text-sm opacity-75 mt-2.5 leading-relaxed">{item.answer}</p>
+                <p className="text-xs sm:text-sm opacity-75 mt-2.5 leading-relaxed break-words">{item.answer}</p>
               </details>
             ))}
           </div>
@@ -210,26 +205,21 @@ export const SectionTrustAndContact: React.FC<SectionTrustAndContactProps> = ({
   }
 
   return (
-    <section onClick={onSelect} style={{ backgroundColor: surfaceBg, color: textColor }} className={`w-full py-10 px-5 sm:px-8 border-t border-black/10 ${isEditable ? "cursor-pointer" : ""}`}>
+    <section data-testid="contact-footer-section" onClick={isEditable ? onSelect : undefined} style={{ backgroundColor: surfaceBg, color: textColor }} className={`w-full py-10 px-5 sm:px-8 border-t border-black/10 ${isEditable ? "cursor-pointer" : ""}`}>
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
         <div>
           <EditorialHeading
             text={(rawSettings.title as string) || section.title || "Assistance & *Suivi Client*"}
-            as="h3"
-            theme={theme}
-            accentColorOverride={accentColor}
+            as="h3" theme={theme} accentColorOverride={accentColor}
             onClick={(e) => handleSubClick(e, "title")}
-            className={`text-lg font-black tracking-tight px-1 inline-block ${subRing("title")}`}
+            className={`text-lg font-black tracking-tight px-1 inline-block break-words ${subRing("title")}`}
           />
-          <p onClick={(e) => handleSubClick(e, "subtitle")} className={`text-xs opacity-70 mt-1 px-1 ${subRing("subtitle")}`}>
+          <p onClick={(e) => handleSubClick(e, "subtitle")} className={`text-xs opacity-70 mt-1 px-1 break-words ${subRing("subtitle")}`}>
             {(rawSettings.subtitle as string) || "Service client et suivi de commande assurés via les notifications internes Olmart."}
           </p>
         </div>
         <div className="flex flex-wrap gap-3 text-xs font-semibold">
-          <span
-            data-testid="contact-footer-internal-channel"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-black/[0.04]"
-          >
+          <span data-testid="contact-footer-internal-channel" className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-black/[0.04]">
             <Bell className="w-3.5 h-3.5" style={{ color: accentColor }} />
             <span>Notifications internes Olmart</span>
           </span>

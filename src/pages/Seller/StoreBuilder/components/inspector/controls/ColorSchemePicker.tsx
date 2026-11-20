@@ -9,6 +9,7 @@ import {
   isDarkColor,
   readableTextColor,
 } from "../../../../../../components/Store/sections/themeColorUtils";
+import { DEFAULT_MODERN_THEME } from "../../../constants/studioThemeDefaults";
 
 interface ColorSchemePickerProps {
   styles: CustomPageSectionStyles;
@@ -30,21 +31,21 @@ export interface ComputedColorScheme {
 }
 
 export function buildHarmoniousColorSchemes(theme?: CustomPageTheme): ComputedColorScheme[] {
-  const primary = theme?.primaryColor || "#B85B35";
-  const canvas = theme?.canvasColor || "#FFFFFF";
+  const primary = theme?.primaryColor || DEFAULT_MODERN_THEME.primaryColor;
+  const canvas = theme?.canvasColor || DEFAULT_MODERN_THEME.canvasColor || "#FFFFFF";
   const surface =
     theme?.surfaceColor && theme.surfaceColor.toUpperCase() !== "#FFFFFF"
       ? theme.surfaceColor
-      : "#FAF6F0";
-  const accent = theme?.accentColor || primary || "#F97316";
+      : "#F8FAFC";
+  const accent = theme?.accentColor || primary || DEFAULT_MODERN_THEME.accentColor;
   const isPrimaryDark = isDarkColor(primary);
-  const scheme3BtnBg = isPrimaryDark ? "#FFFFFF" : "#111827";
+  const scheme3BtnBg = isPrimaryDark ? "#FFFFFF" : "#0F172A";
 
   return [
     {
       id: "scheme_1",
-      name: "Scheme 1 • Clair",
-      subtitle: "Fond pur & bouton primaire",
+      name: "1 • Fond Clair",
+      subtitle: "Fond blanc & bouton coloré",
       backgroundColor: canvas,
       textColor: readableTextColor(canvas),
       buttonBgColor: primary,
@@ -52,8 +53,8 @@ export function buildHarmoniousColorSchemes(theme?: CustomPageTheme): ComputedCo
     },
     {
       id: "scheme_2",
-      name: "Scheme 2 • Doux",
-      subtitle: "Surface crème subtile",
+      name: "2 • Fond Doux",
+      subtitle: "Gris léger & bouton coloré",
       backgroundColor: surface,
       textColor: readableTextColor(surface),
       buttonBgColor: primary,
@@ -61,18 +62,18 @@ export function buildHarmoniousColorSchemes(theme?: CustomPageTheme): ComputedCo
     },
     {
       id: "scheme_3",
-      name: "Scheme 3 • Marque",
-      subtitle: "Fond primaire & contraste auto",
+      name: "3 • Couleur Marque",
+      subtitle: "Fond coloré & bouton contrasté",
       backgroundColor: primary,
-      textColor: isPrimaryDark ? "#FFFFFF" : "#111827",
+      textColor: isPrimaryDark ? "#FFFFFF" : "#0F172A",
       buttonBgColor: scheme3BtnBg,
-      buttonTextColor: isPrimaryDark ? "#111827" : "#FFFFFF",
+      buttonTextColor: isPrimaryDark ? "#0F172A" : "#FFFFFF",
     },
     {
       id: "scheme_4",
-      name: "Scheme 4 • Sombre",
-      subtitle: "Premium nuit & accent",
-      backgroundColor: "#111827",
+      name: "4 • Fond Sombre",
+      subtitle: "Fond nuit & texte blanc",
+      backgroundColor: "#0F172A",
       textColor: "#FFFFFF",
       buttonBgColor: accent,
       buttonTextColor: readableTextColor(accent),
@@ -100,13 +101,14 @@ export const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({
   return (
     <div className="space-y-3 select-none">
       <div className="flex items-center justify-between">
-        <label className="text-[12px] font-bold text-[#011C40] flex items-center gap-1.5">
-          <Palette className="w-3.5 h-3.5 text-[#023859]" />
-          <span>Palettes Harmoniques (WCAG AA)</span>
+        <label className="text-[12px] font-bold text-[var(--studio-black)] flex items-center gap-1.5">
+          <Palette className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
+          <span>Combinaisons de couleurs prêtes à l&apos;emploi</span>
         </label>
         {styles.backgroundColor && (
           <button
             type="button"
+            data-testid="section-color-scheme-reset"
             onClick={() =>
               onStylesChange({
                 colorScheme: undefined,
@@ -116,7 +118,7 @@ export const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({
                 buttonTextColor: undefined,
               })
             }
-            className="text-[10px] font-semibold text-[#667085] hover:text-[#023859] cursor-pointer"
+            className="text-[10px] font-semibold text-[var(--studio-muted)] hover:text-[var(--studio-primary)] cursor-pointer"
           >
             Réinitialiser
           </button>
@@ -130,6 +132,7 @@ export const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({
             <button
               key={scheme.id}
               type="button"
+              data-testid={`section-color-scheme-${scheme.id}`}
               onClick={() =>
                 onStylesChange({
                   colorScheme: scheme.id,
@@ -141,8 +144,8 @@ export const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({
               }
               className={`rounded-xl border p-2.5 text-left transition-all cursor-pointer ${
                 isSelected
-                  ? "border-[#023859] ring-2 ring-[#54ACBF]/35 shadow-xs bg-[#F0F7FA]/60"
-                  : "border-[#E4E7EC] bg-white hover:border-[#54ACBF]"
+                  ? "border-[var(--studio-primary)] ring-2 ring-[var(--studio-focus)]/25 shadow-xs bg-[var(--studio-highlight-soft)]"
+                  : "border-[var(--studio-border)] bg-[var(--studio-white)] hover:border-[var(--studio-border-strong)]"
               }`}
             >
               <div
@@ -154,7 +157,7 @@ export const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({
                     Aa
                   </span>
                   <span style={{ color: scheme.textColor }} className="text-[8px] opacity-90 font-medium mt-0.5">
-                    Titre & texte
+                    Titre &amp; texte
                   </span>
                 </div>
                 <span
@@ -166,11 +169,11 @@ export const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({
               </div>
               <div className="flex items-center justify-between gap-1">
                 <div className="min-w-0">
-                  <span className="block text-[11px] font-bold text-[#011C40] truncate">{scheme.name}</span>
-                  <span className="block text-[9px] text-[#667085] truncate">{scheme.subtitle}</span>
+                  <span className="block text-[11px] font-bold text-[var(--studio-black)] truncate">{scheme.name}</span>
+                  <span className="block text-[9px] text-[var(--studio-muted)] truncate">{scheme.subtitle}</span>
                 </div>
                 {isSelected && (
-                  <span className="w-4 h-4 rounded-full bg-[#023859] text-white flex items-center justify-center shrink-0">
+                  <span className="w-4 h-4 rounded-sm bg-[var(--studio-primary)] text-[var(--studio-white)] flex items-center justify-center shrink-0">
                     <Check className="w-2.5 h-2.5" />
                   </span>
                 )}
@@ -182,39 +185,42 @@ export const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({
 
       <button
         type="button"
+        data-testid="section-color-custom-toggle"
         onClick={() => setShowCustom((prev) => !prev)}
-        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-[#E4E7EC] bg-[#F8FBFC] hover:bg-[#F0F7FA] text-[11px] font-semibold text-[#023859] cursor-pointer transition-colors"
+        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-[var(--studio-border)] bg-[var(--studio-background)] hover:bg-[var(--studio-highlight-soft)] text-[11px] font-semibold text-[var(--studio-primary)] cursor-pointer transition-colors"
       >
         <span className="flex items-center gap-1.5">
-          <Sliders className="w-3 h-3 text-[#023859]" />
-          <span>Couleurs personnalisées (Avancé)</span>
+          <Sliders className="w-3 h-3 text-[var(--studio-primary)]" />
+          <span>Choisir mes propres couleurs</span>
         </span>
-        <span className="text-[10px] text-[#26658C]">{showCustom ? "Masquer ▲" : "Déplier ▼"}</span>
+        <span className="text-[10px] text-[var(--studio-muted)]">{showCustom ? "Masquer ▲" : "Déplier ▼"}</span>
       </button>
 
       {showCustom && (
-        <div className="p-2.5 rounded-xl border border-[#E4E7EC] bg-white space-y-2">
+        <div className="p-2.5 rounded-xl border border-[var(--studio-border)] bg-[var(--studio-white)] space-y-2">
           {(
             [
-              { label: "Fond sur-mesure", field: "backgroundColor" as const, def: "#ffffff" },
-              { label: "Texte sur-mesure", field: "textColor" as const, def: "#111827" },
+              { label: "Couleur de fond", field: "backgroundColor" as const, def: "#ffffff" },
+              { label: "Couleur du texte", field: "textColor" as const, def: "#0f172a" },
+              { label: "Fond du bouton", field: "buttonBgColor" as const, def: "#0f172a" },
+              { label: "Texte du bouton", field: "buttonTextColor" as const, def: "#ffffff" },
             ] as const
           ).map((row) => (
             <div key={row.field} className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-semibold text-[#17191C]">{row.label}</span>
+              <span className="text-[11px] font-semibold text-[var(--studio-black)]">{row.label}</span>
               <div className="flex items-center gap-1.5">
                 <input
                   type="color"
                   value={styles[row.field] || row.def}
                   onChange={(e) => onStylesChange({ colorScheme: "custom", [row.field]: e.target.value })}
-                  className="w-7 h-7 rounded border border-[#E4E7EC] cursor-pointer"
+                  className="w-7 h-7 rounded border border-[var(--studio-border)] cursor-pointer"
                 />
                 <input
                   type="text"
                   value={styles[row.field] || ""}
                   placeholder={row.def.toUpperCase()}
                   onChange={(e) => onStylesChange({ colorScheme: "custom", [row.field]: e.target.value || undefined })}
-                  className="w-24 h-7 px-2 border border-[#E4E7EC] rounded text-[11px] font-mono"
+                  className="w-24 h-7 px-2 border border-[var(--studio-border)] rounded text-[11px] font-mono"
                 />
               </div>
             </div>
@@ -224,3 +230,4 @@ export const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({
     </div>
   );
 };
+

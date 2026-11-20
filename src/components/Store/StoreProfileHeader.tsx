@@ -48,7 +48,7 @@ export const StoreProfileHeader: React.FC<StoreProfileHeaderProps> = ({
       <div
         style={{
           background:
-            "linear-gradient(135deg, var(--store-secondary, #18181B) 0%, var(--store-primary, #B45309) 100%)",
+            "linear-gradient(135deg, var(--store-secondary, #0F172A) 0%, var(--store-primary, #1E293B) 100%)",
         }}
         className="relative h-28 sm:h-40 md:h-48 w-full overflow-hidden"
       >
@@ -63,7 +63,7 @@ export const StoreProfileHeader: React.FC<StoreProfileHeaderProps> = ({
             <div className="relative z-10 hidden sm:flex items-center gap-2 text-white/85 text-xs font-semibold tracking-wide">
               <span>Boutique Officielle Certifiée</span>
               <span aria-hidden="true">·</span>
-              <span>Livraison 69 Wilayas</span>
+              <span>Livraison Nationale</span>
             </div>
           </div>
         )}
@@ -71,8 +71,8 @@ export const StoreProfileHeader: React.FC<StoreProfileHeaderProps> = ({
         {isOwner && (
           <label className="absolute top-3 right-3 sm:top-4 sm:right-4 cursor-pointer z-20">
             <input type="file" accept="image/*" className="hidden" onChange={onBannerSelect} disabled={uploadingBanner} />
-            <div className="px-3 py-1.5 bg-black/70 hover:bg-black/85 backdrop-blur-md text-white rounded-xl text-xs font-semibold border border-white/15 transition-all flex items-center gap-1.5 shadow-sm">
-              {uploadingBanner ? <Spinner size="sm" className="text-white" /> : <Camera className="w-3.5 h-3.5" style={{ color: "var(--store-accent, #F59E0B)" }} />}
+            <div className="px-3 py-1.5 bg-black/70 hover:bg-black/85 backdrop-blur-md text-white rounded-lg text-xs font-semibold border border-white/15 transition-all flex items-center gap-1.5 shadow-sm">
+              {uploadingBanner ? <Spinner size="sm" className="text-white" /> : <Camera className="w-3.5 h-3.5" style={{ color: "var(--store-accent, #2563EB)" }} />}
               <span>{uploadingBanner ? d("uploadingCover") : d("editCover")}</span>
             </div>
           </label>
@@ -89,7 +89,7 @@ export const StoreProfileHeader: React.FC<StoreProfileHeaderProps> = ({
                 ) : (
                   <div
                     style={{
-                      backgroundColor: "var(--store-primary, #B45309)",
+                      backgroundColor: "var(--store-primary, #0F172A)",
                       color: "#FFFFFF",
                       fontFamily: "var(--store-font-heading, inherit)",
                     }}
@@ -114,12 +114,12 @@ export const StoreProfileHeader: React.FC<StoreProfileHeaderProps> = ({
             <div className="space-y-1 min-w-0 pt-0.5">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1
-                  style={{ color: "var(--store-secondary, #18181B)", fontFamily: "var(--store-font-heading, inherit)" }}
+                  style={{ color: "var(--store-secondary, #0F172A)", fontFamily: "var(--store-font-heading, inherit)" }}
                   className="text-lg sm:text-2xl font-extrabold tracking-tight leading-snug"
                 >
                   {shopName}
                 </h1>
-                <span style={{ color: "var(--store-primary, #B45309)" }} className="inline-flex items-center gap-1 text-xs font-bold" title="Vendeur Vérifié">
+                <span style={{ color: "var(--store-primary, #0F172A)" }} className="inline-flex items-center gap-1 text-xs font-bold" title="Vendeur Vérifié">
                   <ShieldCheck className="w-4 h-4 shrink-0" />
                   <span className="text-[11px] font-semibold">Vérifié</span>
                 </span>
@@ -128,7 +128,7 @@ export const StoreProfileHeader: React.FC<StoreProfileHeaderProps> = ({
               <div className="flex items-center gap-2 text-xs opacity-80 flex-wrap tabular-nums">
                 {storeInfo.wilaya && (
                   <>
-                    <span style={{ color: "var(--store-primary, #B45309)" }} className="inline-flex items-center gap-1 font-semibold">
+                    <span style={{ color: "var(--store-primary, #0F172A)" }} className="inline-flex items-center gap-1 font-semibold">
                       <MapPin className="w-3.5 h-3.5 shrink-0" />
                       {storeInfo.wilaya}
                     </span>
@@ -136,7 +136,7 @@ export const StoreProfileHeader: React.FC<StoreProfileHeaderProps> = ({
                   </>
                 )}
 
-                <span style={{ color: "var(--store-secondary, #18181B)" }} className="inline-flex items-center gap-1 font-semibold">
+                <span style={{ color: "var(--store-secondary, #0F172A)" }} className="inline-flex items-center gap-1 font-semibold">
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
                   {storeInfo.rating != null && storeInfo.rating > 0 ? storeInfo.rating.toFixed(1) : "5.0"}
                 </span>
@@ -144,15 +144,15 @@ export const StoreProfileHeader: React.FC<StoreProfileHeaderProps> = ({
                 <span aria-hidden="true" className="opacity-40">·</span>
 
                 <span className="inline-flex items-center gap-1">
-                  <Package className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--store-primary, #B45309)" }} />
-                  <strong style={{ color: "var(--store-secondary, #18181B)" }} className="font-bold">{productsCount}</strong>{" "}
+                  <Package className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--store-primary, #0F172A)" }} />
+                  <strong style={{ color: "var(--store-secondary, #0F172A)" }} className="font-bold">{productsCount}</strong>{" "}
                   {productsCount > 1 ? "articles" : "article"}
                 </span>
 
                 <span aria-hidden="true" className="opacity-40">·</span>
 
                 <span>
-                  <strong style={{ color: "var(--store-secondary, #18181B)" }} className="font-bold">{storeInfo.followersCount || 0}</strong>{" "}
+                  <strong style={{ color: "var(--store-secondary, #0F172A)" }} className="font-bold">{storeInfo.followersCount || 0}</strong>{" "}
                   {d("subscribers").toLowerCase()}
                 </span>
               </div>
@@ -165,18 +165,18 @@ export const StoreProfileHeader: React.FC<StoreProfileHeaderProps> = ({
                 type="button" onClick={onFollowToggle} disabled={followLoading}
                 style={
                   isFollowing
-                    ? { backgroundColor: "var(--store-canvas, #FAF6F0)", color: "var(--store-secondary, #18181B)", borderRadius: "var(--store-border-radius, 12px)" }
-                    : { backgroundColor: "var(--store-primary, #B45309)", color: "#FFFFFF", borderRadius: "var(--store-border-radius, 12px)" }
+                    ? { backgroundColor: "var(--store-canvas, #F8FAFC)", color: "var(--store-secondary, #0F172A)", borderRadius: "var(--store-border-radius, 10px)" }
+                    : { backgroundColor: "var(--store-primary, #0F172A)", color: "#FFFFFF", borderRadius: "var(--store-border-radius, 10px)" }
                 }
                 className={`px-5 py-2 font-bold text-xs sm:text-sm transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
-                  isFollowing ? "border border-black/15 hover:opacity-85" : "shadow-xs hover:opacity-90"
+                  isFollowing ? "border border-slate-200 hover:opacity-85" : "shadow-xs hover:opacity-90"
                 }`}
               >
                 {followLoading ? (
                   <Spinner size="sm" className={isFollowing ? "text-slate-600" : "text-white"} />
                 ) : isFollowing ? (
                   <>
-                    <UserCheck className="w-4 h-4" style={{ color: "var(--store-primary, #B45309)" }} />
+                    <UserCheck className="w-4 h-4" style={{ color: "var(--store-primary, #0F172A)" }} />
                     <span>Abonné</span>
                   </>
                 ) : (
@@ -198,26 +198,26 @@ export const StoreProfileHeader: React.FC<StoreProfileHeaderProps> = ({
       </div>
 
       <div
-        style={{ backgroundColor: "var(--store-canvas, #FAF6F0)", color: "var(--store-secondary, #18181B)" }}
-        className="border-t border-black/10 px-4 sm:px-7 py-2.5 flex items-center justify-between gap-4 overflow-x-auto no-scrollbar text-[11px] sm:text-xs font-medium"
+        style={{ backgroundColor: "var(--store-canvas, #F8FAFC)", color: "var(--store-secondary, #0F172A)" }}
+        className="border-t border-slate-200/80 px-4 sm:px-7 py-2.5 flex items-center justify-between gap-4 overflow-x-auto no-scrollbar text-[11px] sm:text-xs font-medium"
       >
         <div className="flex items-center gap-1.5 whitespace-nowrap shrink-0">
-          <Truck className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--store-primary, #B45309)" }} />
-          <span>Livraison 69 Wilayas</span>
+          <Truck className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--store-primary, #0F172A)" }} />
+          <span>Livraison Nationale</span>
         </div>
         <span aria-hidden="true" className="opacity-25">·</span>
         <div className="flex items-center gap-1.5 whitespace-nowrap shrink-0">
-          <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--store-primary, #B45309)" }} />
+          <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--store-primary, #0F172A)" }} />
           <span>Paiement à la livraison</span>
         </div>
         <span aria-hidden="true" className="opacity-25">·</span>
         <div className="flex items-center gap-1.5 whitespace-nowrap shrink-0">
-          <Clock className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--store-primary, #B45309)" }} />
+          <Clock className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--store-primary, #0F172A)" }} />
           <span>Expédition {prepTime}</span>
         </div>
         <span aria-hidden="true" className="opacity-25">·</span>
         <div className="flex items-center gap-1.5 whitespace-nowrap shrink-0">
-          <RotateCcw className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--store-primary, #B45309)" }} />
+          <RotateCcw className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--store-primary, #0F172A)" }} />
           <span>{returnBadgeLabel}</span>
         </div>
       </div>

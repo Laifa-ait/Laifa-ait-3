@@ -723,13 +723,11 @@ Attendus : liste de questions/réponses, ajout, suppression, réorganisation, é
 
 Ne pas insérer de réponses présentées comme officielles si elles ne correspondent pas à la politique réelle de la boutique.
 
-### 16. `contact_footer` — Pied de boutique et contact
+### 16. `contact_footer` — Pied de boutique et assistance interne
 
-Rôle : permettre au visiteur de retrouver les coordonnées et les liens de la boutique.
+Rôle : permettre au visiteur de retrouver la localisation (wilaya/commune), les horaires de service et le canal d'assistance officiel de la boutique.
 
-Attendus : téléphone, e-mail, adresse, wilaya/commune, horaires, réseaux sociaux et liens présents dans les données réelles du vendeur.
-
-Les coordonnées réelles doivent être proposées depuis le profil du vendeur lorsque les données sont disponibles. Ne pas ajouter de faux numéro ou d'e-mail d'exemple dans une boutique publiée.
+Attendus : wilaya/commune d'expédition, horaires d'ouverture et indication claire que toutes les interactions client-vendeur passent exclusivement par les notifications internes Olmart (aucun lien de contact externe tel que téléphone, WhatsApp ou e-mail externe ne doit être exposé ou encouragé).
 
 ## 5.6 Réglages communs des sections
 

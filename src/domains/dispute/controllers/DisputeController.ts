@@ -629,11 +629,12 @@ router.post("/:id/upload", authenticateToken, async (req: AuthenticatedRequest, 
     const fileUrl = `/api/v1/disputes/${disputeId}/attachments/${attachmentId}`;
 
     // 7. Audit log
-    await db.collection("adminActions").add({
+    await db.collection("audit_logs").add({
       action: "dispute-file-upload",
-      uid: userId,
-      email: req.user.email || "inconnu",
-      disputeId,
+      adminId: userId,
+      adminEmail: req.user.email || "inconnu",
+      targetId: disputeId,
+      resourceType: "dispute",
       attachmentId,
       fileName: sanitizedName,
       fileSize: buffer.length,

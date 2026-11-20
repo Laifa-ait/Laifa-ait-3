@@ -28,16 +28,16 @@ export const ArtisanCategoryBookingGrid: React.FC<ArtisanCategoryBookingGridProp
               <Sparkles className="w-4 h-4" />
             </span>
             <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-              {t('artisan_grid_title')}
+              {t('artisan_grid_title', 'Métiers & Services Rapides')}
             </h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-            {t('artisan_grid_subtitle')}
+            {t('artisan_grid_subtitle', 'Sélectionnez un métier pour trouver un artisan indépendant près de chez vous')}
           </p>
         </div>
 
         <div className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full shrink-0 w-fit">
-          {t('artisan_grid_coverage')}
+          {t('artisan_grid_coverage', 'Couverture nationale · Algérie')}
         </div>
       </div>
 

@@ -19,7 +19,6 @@ export const NeoCategoryGrid: React.FC<{
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isGridMode, setIsGridMode] = useState(false);
 
-  // Strict final deduplication guard so no two cards ever share the same canonical category
   const uniqueCategories = useMemo<CategoryCardData[]>(() => {
     const seen = new Set<string>();
     const result: CategoryCardData[] = [];
@@ -61,37 +60,37 @@ export const NeoCategoryGrid: React.FC<{
   );
 
   return (
-    <section className="w-full max-w-[96rem] mx-auto px-4 sm:px-6 md:px-8 mb-10 sm:mb-14 pt-2 relative z-20">
-      {/* Editorial Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-5 sm:mb-6 pb-3 border-b border-[#EFE6E6]">
-        <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-[0.22em] text-[#A54055]">
-            <span className="w-2 h-2 rounded-full bg-[#E99856]" />
-            <span>
-              {t("home.categories.official_catalog")} • {uniqueCategories.length}{" "}
-              {t("home.categories.departments_unit")}
+    <section className="w-full max-w-[90rem] mx-auto px-4 sm:px-6 md:px-8 mb-12 sm:mb-16 pt-1 relative z-20">
+      {/* Editorial Section Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 pb-4 border-b border-[#E3E9E5]">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-medium text-[#0D5C4B]">
+            <span>{t("home.categories.official_catalog")}</span>
+            <span aria-hidden="true" className="text-[#839497]">·</span>
+            <span className="font-mono tabular-nums text-[#5F7073]">
+              {uniqueCategories.length} {t("home.categories.departments_unit")}
             </span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-sans font-bold text-[#1A1836] tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-display font-bold text-[#0F1B1D] tracking-tight text-balance">
             {t("home.categories.explore_by")}
           </h2>
         </div>
 
-        {/* Controls: View Mode Toggle (Galerie / Grille Bento) + Scroll Arrows */}
+        {/* View Mode Toggle + Carousel Arrows */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
             type="button"
             onClick={() => setIsGridMode((prev) => !prev)}
-            className="px-3.5 py-2 rounded-xl border border-[#EFE6E6] hover:border-[#42164B] bg-white hover:bg-[#1A1836] text-[#1A1836] hover:text-white text-xs font-bold flex items-center gap-2 transition-all shadow-2xs cursor-pointer"
+            className="px-4 py-2 rounded-xl border border-[#D4DFD9] hover:border-[#0D5C4B] bg-white hover:bg-[#0D5C4B] text-[#0F1B1D] hover:text-white text-xs font-semibold flex items-center gap-2 transition-colors duration-200 shadow-2xs cursor-pointer whitespace-nowrap"
           >
             {isGridMode ? (
               <>
-                <GalleryHorizontal className="w-3.5 h-3.5 text-[#E99856]" />
+                <GalleryHorizontal className="w-3.5 h-3.5 text-[#E59A42]" />
                 <span>{t("home.categories.gallery_view")}</span>
               </>
             ) : (
               <>
-                <LayoutGrid className="w-3.5 h-3.5 text-[#E99856]" />
+                <LayoutGrid className="w-3.5 h-3.5 text-[#0D5C4B] group-hover:text-white" />
                 <span>
                   {t("home.categories.see_all")} ({uniqueCategories.length})
                 </span>
@@ -104,7 +103,7 @@ export const NeoCategoryGrid: React.FC<{
               <button
                 type="button"
                 onClick={() => handleManualScroll("left")}
-                className="w-9 h-9 rounded-xl border border-[#EFE6E6] hover:border-[#42164B] bg-white flex items-center justify-center text-[#1A1836] hover:bg-[#1A1836] hover:text-white active:scale-95 transition-all shadow-2xs cursor-pointer"
+                className="w-9 h-9 rounded-xl border border-[#D4DFD9] hover:border-[#0D5C4B] bg-white flex items-center justify-center text-[#0F1B1D] hover:bg-[#0D5C4B] hover:text-white active:scale-95 transition-colors duration-200 shadow-2xs cursor-pointer"
                 aria-label={t("home.categories.prev_departments")}
               >
                 <ChevronLeft className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`} />
@@ -112,7 +111,7 @@ export const NeoCategoryGrid: React.FC<{
               <button
                 type="button"
                 onClick={() => handleManualScroll("right")}
-                className="w-9 h-9 rounded-xl border border-[#EFE6E6] hover:border-[#42164B] bg-white flex items-center justify-center text-[#1A1836] hover:bg-[#1A1836] hover:text-white active:scale-95 transition-all shadow-2xs cursor-pointer"
+                className="w-9 h-9 rounded-xl border border-[#D4DFD9] hover:border-[#0D5C4B] bg-white flex items-center justify-center text-[#0F1B1D] hover:bg-[#0D5C4B] hover:text-white active:scale-95 transition-colors duration-200 shadow-2xs cursor-pointer"
                 aria-label={t("home.categories.next_departments")}
               >
                 <ChevronRight className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`} />
@@ -122,7 +121,6 @@ export const NeoCategoryGrid: React.FC<{
         </div>
       </div>
 
-      {/* Category Cards Showcase: Grid Mode or Horizontal Editorial Gallery */}
       {isGridMode ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
           {uniqueCategories.map((card, index) => (

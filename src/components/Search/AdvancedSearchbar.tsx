@@ -98,7 +98,7 @@ export const AdvancedSearchbar: React.FC<AdvancedSearchbarProps> = ({
               setShowDropdown(false);
               inputRef.current?.blur();
             }}
-            className="fixed inset-0 bg-[#1A1836]/45 backdrop-blur-xs z-[90] transition-opacity duration-200"
+            className="fixed inset-0 bg-[#0F1B1D]/45 backdrop-blur-xs z-[90] transition-opacity duration-200"
           />,
           document.body
         )}
@@ -110,12 +110,12 @@ export const AdvancedSearchbar: React.FC<AdvancedSearchbarProps> = ({
         <div
           className={`flex items-center w-full rounded-2xl transition-all duration-200 h-11 sm:h-12 p-1.5 ${
             isOverlayActive
-              ? "bg-white border-2 border-[#622347] shadow-lg ring-4 ring-[#A54055]/15"
-              : "bg-[#FAF7F6] hover:bg-white border border-[#EFE6E6] hover:border-[#E0B4B2] shadow-2xs"
+              ? "bg-white border-2 border-[#0D5C4B] shadow-lg ring-4 ring-[#0D5C4B]/12"
+              : "bg-[#F4F6F4] hover:bg-white border border-[#E3E9E5] hover:border-[#C3D3CB] shadow-2xs"
           }`}
         >
-          <div className="flex items-center justify-center shrink-0 text-[#A54055] ps-3 pe-2">
-            <Search className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.3]" />
+          <div className="flex items-center justify-center shrink-0 text-[#0D5C4B] ps-3 pe-2">
+            <Search className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.2]" />
           </div>
 
           <div className="relative flex-1 h-full flex items-center overflow-hidden">
@@ -147,12 +147,12 @@ export const AdvancedSearchbar: React.FC<AdvancedSearchbarProps> = ({
               }
               autoComplete="off"
               spellCheck="false"
-              className="bg-transparent border-none focus:outline-none w-full h-full px-1 font-semibold text-[#1A1836] placeholder:text-[#6E5A6F]/75 text-[13px] sm:text-[14px]"
+              className="bg-transparent border-none focus:outline-none w-full h-full px-1 font-medium text-[#0F1B1D] placeholder:text-[#5F7073]/80 text-[13px] sm:text-[14px]"
             />
           </div>
 
           {isSearching ? (
-            <Loader2 className="w-4 h-4 animate-spin mx-2 text-[#A54055] shrink-0" />
+            <Loader2 className="w-4 h-4 animate-spin mx-2 text-[#0D5C4B] shrink-0" />
           ) : localQuery ? (
             <button
               type="button"
@@ -160,7 +160,7 @@ export const AdvancedSearchbar: React.FC<AdvancedSearchbarProps> = ({
                 setLocalQuery("");
                 setResults([]);
               }}
-              className="p-1.5 rounded-full hover:bg-[#F4EDED] text-[#6E5A6F] hover:text-[#1A1836] mx-1 cursor-pointer border-none bg-transparent"
+              className="p-1.5 rounded-full hover:bg-[#EFF3F1] text-[#5F7073] hover:text-[#0F1B1D] mx-1 cursor-pointer border-none bg-transparent"
             >
               <X className="w-4 h-4" />
             </button>
@@ -169,17 +169,17 @@ export const AdvancedSearchbar: React.FC<AdvancedSearchbarProps> = ({
           <button
             type="button"
             onClick={handleSearchSubmit}
-            className="h-full px-4 sm:px-6 bg-gradient-to-r from-[#42164B] via-[#622347] to-[#A54055] hover:from-[#622347] hover:via-[#A54055] hover:to-[#E99856] text-white font-bold text-xs sm:text-[13px] rounded-xl shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all duration-200 shrink-0 cursor-pointer border-none whitespace-nowrap"
+            className="h-full px-4 sm:px-6 bg-[#0D5C4B] hover:bg-[#084236] active:bg-[#0F1B1D] text-white font-bold text-xs sm:text-[13px] rounded-xl shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-colors duration-200 shrink-0 cursor-pointer border-none whitespace-nowrap"
           >
             <span>{t("nav.search_btn", "Rechercher")}</span>
           </button>
         </div>
 
         {isOverlayActive && (
-          <div className="absolute left-0 right-0 top-full mt-2 w-full md:left-1/2 md:-translate-x-1/2 md:w-[760px] lg:w-[860px] bg-white border border-[#EFE6E6] shadow-2xl z-[150] rounded-2xl md:rounded-3xl overflow-hidden max-h-[75vh] md:max-h-[80vh] overflow-y-auto">
+          <div className="absolute left-0 right-0 top-full mt-2 w-full md:left-1/2 md:-translate-x-1/2 md:w-[760px] lg:w-[860px] bg-white border border-[#E3E9E5] shadow-2xl z-[150] rounded-2xl md:rounded-3xl overflow-hidden max-h-[75vh] md:max-h-[80vh] overflow-y-auto">
             <div className="p-3.5 sm:p-5 space-y-3.5">
-              <div className="flex items-center justify-between pb-2 border-b border-[#EFE6E6]">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#42164B]">
+              <div className="flex items-center justify-between pb-2 border-b border-[#E3E9E5]">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#0D5C4B]">
                   {String(localQuery || "").trim()
                     ? t("search_direct_results", "Résultats directs")
                     : t("explore_catalog", "Articles recommandés")}
@@ -190,7 +190,7 @@ export const AdvancedSearchbar: React.FC<AdvancedSearchbarProps> = ({
                     setIsFocused(false);
                     setShowDropdown(false);
                   }}
-                  className="p-1 rounded-full hover:bg-[#FAF7F6] text-[#6E5A6F] hover:text-[#1A1836] cursor-pointer border-none bg-transparent shrink-0"
+                  className="p-1 rounded-full hover:bg-[#F7F8F6] text-[#5F7073] hover:text-[#0F1B1D] cursor-pointer border-none bg-transparent shrink-0"
                   aria-label={t("search.close", "Fermer")}
                 >
                   <X className="w-4 h-4" />

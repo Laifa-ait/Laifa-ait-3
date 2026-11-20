@@ -5,6 +5,7 @@ import {
   resolveHeroImageFilterCss,
 } from "./hero/heroVisualEffectsHelper";
 import { readableTextColor } from "./themeColorUtils";
+import { DEFAULT_MODERN_THEME } from "../../../pages/Seller/StoreBuilder/constants/studioThemeDefaults";
 
 export function resolveSectionPaddingY(
   paddingY?: "sm" | "md" | "lg" | "xl" | number,
@@ -26,31 +27,25 @@ export function resolveSectionPaddingX(paddingX?: number): number {
 }
 
 export function resolveBorderRadiusClass(radius?: "none" | "sm" | "md" | "lg" | "full"): string {
-  switch (radius) {
-    case "none": return "rounded-none";
-    case "sm": return "rounded-lg";
-    case "lg": return "rounded-3xl";
-    case "full": return "rounded-full";
-    case "md":
-    default: return "rounded-[var(--store-border-radius,16px)]";
-  }
+  if (radius === "none") return "rounded-none";
+  if (radius === "sm") return "rounded-lg";
+  if (radius === "lg") return "rounded-3xl";
+  if (radius === "full") return "rounded-full";
+  return "rounded-[var(--store-border-radius,16px)]";
 }
 
 export function resolveSectionBorderRadiusCss(
   styles: CustomPageSectionStyles = {},
   fallbackRadiusPx?: number
 ): string | undefined {
+  const tokenPx =
+    styles.borderRadius === "none" ? 0 : styles.borderRadius === "sm" ? 12 : styles.borderRadius === "md" ? 24 : styles.borderRadius === "lg" || styles.borderRadius === "full" ? 40 : undefined;
   if (styles.usePerCornerRadius) {
-    const base =
-      fallbackRadiusPx ??
-      (styles.borderRadius === "none" ? 0 : styles.borderRadius === "sm" ? 8 : styles.borderRadius === "lg" ? 24 : 16);
-    const tl = Math.max(0, Math.min(80, styles.borderRadiusTlPx ?? base));
-    const tr = Math.max(0, Math.min(80, styles.borderRadiusTrPx ?? base));
-    const br = Math.max(0, Math.min(80, styles.borderRadiusBrPx ?? base));
-    const bl = Math.max(0, Math.min(80, styles.borderRadiusBlPx ?? base));
+    const base = fallbackRadiusPx ?? tokenPx ?? 16;
+    const [tl, tr, br, bl] = [styles.borderRadiusTlPx, styles.borderRadiusTrPx, styles.borderRadiusBrPx, styles.borderRadiusBlPx].map((v) => Math.max(0, Math.min(80, v ?? base)));
     return `${tl}px ${tr}px ${br}px ${bl}px`;
   }
-  return undefined;
+  return tokenPx !== undefined ? `${tokenPx}px` : undefined;
 }
 
 export function resolveShadowClass(
@@ -62,8 +57,8 @@ export function resolveShadowClass(
     case "lg":
     case "xl": return "shadow-lg";
     case "floating": return "shadow-xl shadow-slate-900/10";
-    case "glow": return "shadow-lg ring-1 ring-[var(--store-primary,#023859)]/30";
-    case "brutal": return "border-2 border-[var(--store-secondary,#17191C)] shadow-[5px_5px_0px_0px_var(--store-secondary,#17191C)]";
+    case "glow": return "shadow-lg ring-1 ring-[var(--store-primary,#0F172A)]/30";
+    case "brutal": return "border-2 border-[var(--store-secondary,#1E293B)] shadow-[5px_5px_0px_0px_var(--store-secondary,#1E293B)]";
     case "none":
     default: return "";
   }
@@ -174,12 +169,19 @@ export function buildSectionContainerStyle(
     styles.useCornerColors &&
     (styles.cornerColorTl || styles.cornerColorTr || styles.cornerColorBr || styles.cornerColorBl)
       ? [
-          `radial-gradient(circle at 0% 0%, ${styles.cornerColorTl || baseBg || "#FAF6F0"} 0%, transparent 62%)`,
-          `radial-gradient(circle at 100% 0%, ${styles.cornerColorTr || baseBg || "#F3E8D6"} 0%, transparent 62%)`,
-          `radial-gradient(circle at 100% 100%, ${styles.cornerColorBr || baseBg || "#EFE2CC"} 0%, transparent 62%)`,
+          `radial-gradient(circle at 0% 0%, ${styles.cornerColorTl || baseBg || "#F8FAFC"} 0%, transparent 62%)`,
+          `radial-gradient(circle at 100% 0%, ${styles.cornerColorTr || baseBg || "#F1F5F9"} 0%, transparent 62%)`,
+          `radial-gradient(circle at 100% 100%, ${styles.cornerColorBr || baseBg || "#E2E8F0"} 0%, transparent 62%)`,
           `radial-gradient(circle at 0% 100%, ${styles.cornerColorBl || baseBg || "#FFFFFF"} 0%, transparent 62%)`,
         ].join(", ")
       : undefined;
+
+  const borderWidthPx =
+    typeof styles.sectionBorderWidthPx === "number"
+      ? Math.max(0, Math.min(8, styles.sectionBorderWidthPx))
+      : styles.sectionBorderColor
+        ? 1.5
+        : 0;
 
   return {
     backgroundColor: baseBg,
@@ -190,22 +192,22 @@ export function buildSectionContainerStyle(
     paddingLeft: `${resolveSectionPaddingX(styles.paddingX)}px`,
     paddingRight: `${resolveSectionPaddingX(styles.paddingX)}px`,
     borderRadius: perCornerRadius,
-    borderColor: styles.sectionBorderColor || undefined,
-    borderWidth: styles.sectionBorderColor ? "1.5px" : undefined,
-    borderStyle: styles.sectionBorderColor ? "solid" : undefined,
+    borderColor: borderWidthPx > 0 ? styles.sectionBorderColor || theme?.borderColor || "#E2E8F0" : undefined,
+    borderWidth: borderWidthPx > 0 ? `${borderWidthPx}px` : undefined,
+    borderStyle: borderWidthPx > 0 ? "solid" : undefined,
     boxShadow: boxShadowCss,
     fontSize: typeof bodySize === "number" ? `${bodySize}px` : "var(--store-body-size, 15px)",
     fontFamily: bodyFont || "var(--store-font-body, inherit)",
-    "--section-heading-color": styles.headingColor || styles.textColor || theme?.secondaryColor || "#18181B",
+    "--section-heading-color": styles.headingColor || styles.textColor || theme?.secondaryColor || DEFAULT_MODERN_THEME.secondaryColor,
     "--section-subtitle-color": styles.subtitleColor || styles.textColor || theme?.mutedTextColor || "#64748B",
-    "--section-kicker-color": styles.kickerColor || styles.iconColor || theme?.accentColor || theme?.primaryColor || "#B45309",
-    "--section-card-bg": styles.cardBgColor || theme?.surfaceColor || "#FFFFFF",
-    "--section-card-text": styles.cardTextColor || styles.textColor || theme?.secondaryColor || "#18181B",
-    "--section-card-border": styles.cardBorderColor || theme?.borderColor || "#E4E7EC",
-    "--section-price-color": styles.priceColor || styles.cardTextColor || theme?.priceColor || theme?.secondaryColor || "#18181B",
-    "--section-badge-bg": styles.badgeBgColor || theme?.accentBadgeColor || theme?.primaryColor || "#023859",
+    "--section-kicker-color": styles.kickerColor || styles.iconColor || theme?.accentColor || theme?.primaryColor || DEFAULT_MODERN_THEME.accentColor,
+    "--section-card-bg": styles.cardBgColor || theme?.surfaceColor || DEFAULT_MODERN_THEME.surfaceColor,
+    "--section-card-text": styles.cardTextColor || styles.textColor || theme?.secondaryColor || DEFAULT_MODERN_THEME.secondaryColor,
+    "--section-card-border": styles.cardBorderColor || theme?.borderColor || DEFAULT_MODERN_THEME.borderColor || "#E2E8F0",
+    "--section-price-color": styles.priceColor || styles.cardTextColor || theme?.priceColor || theme?.secondaryColor || DEFAULT_MODERN_THEME.primaryColor,
+    "--section-badge-bg": styles.badgeBgColor || theme?.accentBadgeColor || theme?.primaryColor || DEFAULT_MODERN_THEME.primaryColor,
     "--section-badge-text": styles.badgeTextColor || theme?.badgeTextColor || "#FFFFFF",
-    "--section-icon-color": styles.iconColor || theme?.accentColor || theme?.primaryColor || "#B45309",
+    "--section-icon-color": styles.iconColor || theme?.accentColor || theme?.primaryColor || DEFAULT_MODERN_THEME.accentColor,
     "--section-overlay-color": styles.overlayColor || "#000000",
     ...(filterCss ? ({ "--section-image-filter": filterCss } as React.CSSProperties) : {}),
   } as React.CSSProperties;
@@ -217,7 +219,7 @@ export const SectionDividerRenderer: React.FC<{
   theme?: CustomPageTheme;
 }> = ({ divider, color, theme }) => {
   if (!divider || divider === "none") return null;
-  const fillColor = color || theme?.primaryColor || "var(--store-primary, #B45309)";
+  const fillColor = color || theme?.primaryColor || "var(--store-primary, #0F172A)";
   if (divider === "wave") {
     return (
       <div className="w-full overflow-hidden leading-none pointer-events-none pt-2 opacity-30">
@@ -230,18 +232,14 @@ export const SectionDividerRenderer: React.FC<{
   if (divider === "slant") {
     return (
       <div className="w-full overflow-hidden leading-none pointer-events-none pt-2 opacity-30">
-        <svg viewBox="0 0 1200 40" preserveAspectRatio="none" className="w-full h-4">
-          <polygon points="0,40 1200,0 1200,40" fill={fillColor} />
-        </svg>
+        <svg viewBox="0 0 1200 40" preserveAspectRatio="none" className="w-full h-4"><polygon points="0,40 1200,0 1200,40" fill={fillColor} /></svg>
       </div>
     );
   }
   if (divider === "curve") {
     return (
       <div className="w-full overflow-hidden leading-none pointer-events-none pt-2 opacity-30">
-        <svg viewBox="0 0 1200 50" preserveAspectRatio="none" className="w-full h-5">
-          <path d="M0,0 Q600,50 1200,0 L1200,50 L0,50 Z" fill={fillColor} />
-        </svg>
+        <svg viewBox="0 0 1200 50" preserveAspectRatio="none" className="w-full h-5"><path d="M0,0 Q600,50 1200,0 L1200,50 L0,50 Z" fill={fillColor} /></svg>
       </div>
     );
   }

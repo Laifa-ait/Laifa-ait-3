@@ -5,10 +5,12 @@ import { lazyWithRetry } from "../utils/lazyWithRetry";
 
 // Artisans & Bricolage Pages
 const ArtisansHome = lazyWithRetry(() => import("../pages/Artisans/ArtisansHome"), "ArtisansHome");
+const ArtisanOfferDetailPage = lazyWithRetry(() => import("../pages/Artisans/ArtisanOfferDetailPage"), "ArtisanOfferDetailPage");
 const ArtisanDetailPage = lazyWithRetry(() => import("../pages/Artisans/ArtisanDetailPage"), "ArtisanDetailPage");
 const ArtisanApplyPage = lazyWithRetry(() => import("../pages/Artisans/ArtisanApplyPage"), "ArtisanApplyPage");
 const ArtisanDashboardPage = lazyWithRetry(() => import("../pages/Artisans/ArtisanDashboardPage"), "ArtisanDashboardPage");
 const ClientArtisanQuotesPage = lazyWithRetry(() => import("../pages/Artisans/ClientArtisanQuotesPage"), "ClientArtisanQuotesPage");
+const ClientArtisanMessagesPage = lazyWithRetry(() => import("../pages/Artisans/ClientArtisanMessagesPage"), "ClientArtisanMessagesPage");
 const ArtisanBroadcastsPage = lazyWithRetry(() => import("../pages/Artisans/ArtisanBroadcastsPage"), "ArtisanBroadcastsPage");
 
 // Olma Immo Pages
@@ -60,10 +62,13 @@ export const renderEcosystemRoutes = () => (
     {/* Artisans Ecosystem Routes */}
     <Route path="/bricolage" element={<PageWrapper><ArtisansHome /></PageWrapper>} />
     <Route path="/artisans" element={<PageWrapper><ArtisansHome /></PageWrapper>} />
+    <Route path="/artisans/offres/:id" element={<PageWrapper><ArtisanOfferDetailPage /></PageWrapper>} />
     <Route path="/artisans/profile/:id" element={<PageWrapper><ArtisanDetailPage /></PageWrapper>} />
     <Route path="/artisans/devenir-artisan" element={<PageWrapper><ArtisanApplyPage /></PageWrapper>} />
     <Route path="/artisans/dashboard" element={<PageWrapper><ArtisanDashboardPage /></PageWrapper>} />
+    <Route path="/artisans/espace" element={<Navigate to="/artisans/dashboard" replace />} />
     <Route path="/artisans/mes-demandes" element={<PageWrapper><ClientArtisanQuotesPage /></PageWrapper>} />
+    <Route path="/artisans/messages" element={<PageWrapper><ClientArtisanMessagesPage /></PageWrapper>} />
     <Route path="/artisans/annonces" element={<PageWrapper><ArtisanBroadcastsPage /></PageWrapper>} />
     <Route path="/bricolage/profile" element={<Navigate to="/artisans/dashboard" replace />} />
     <Route path="/services/bricolage" element={<Navigate to="/artisans" replace />} />

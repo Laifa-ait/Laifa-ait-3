@@ -24,6 +24,7 @@ import { useStudioStore } from "../../../pages/Seller/StoreBuilder/store/useStud
 interface SectionHeroBannerProps {
   section: CustomPageSection<"hero_banner">;
   theme: CustomPageTheme;
+  products?: import("../../../domains/product/product.types").Product[];
   previewViewport?: "desktop" | "tablet" | "mobile";
   isEditable?: boolean;
   isSelected?: boolean;
@@ -36,6 +37,7 @@ interface SectionHeroBannerProps {
 export const SectionHeroBanner: React.FC<SectionHeroBannerProps> = ({
   section,
   theme,
+  products = [],
   previewViewport = "desktop",
   isEditable = false,
   onSelect,
@@ -50,11 +52,29 @@ export const SectionHeroBanner: React.FC<SectionHeroBannerProps> = ({
 
   const styles = section.styles || {};
   const rawSettings = normalizeHeroSettingsAdapter(section.settings);
+  const styleBorderRadiusPx =
+    styles.borderRadius === "none" ? 0
+    : styles.borderRadius === "sm" ? 12
+    : styles.borderRadius === "md" ? 24
+    : styles.borderRadius === "lg" || styles.borderRadius === "full" ? 40
+    : undefined;
+
+  const mappedFrameArch: HeroBannerSettings["archShape"] | undefined =
+    styles.frameShape === "pill" ? "capsule"
+    : styles.frameShape === "cut-corners" || styles.frameShape === "diamond" || styles.frameShape === "chamfered-tech" ? "asymmetric-leaf"
+    : styles.frameShape === "sharp-couture" || styles.frameShape === "architectural-sharp" ? "floating-frame"
+    : styles.frameShape === "arch-minimal" || styles.frameShape === "soft-modern" ? "roman-arch"
+    : undefined;
 
   const settings: HeroBannerSettings = {
     ...rawSettings,
     bannerBgColor: styles.backgroundColor || rawSettings.bannerBgColor,
     bannerBorderColor: styles.sectionBorderColor || rawSettings.bannerBorderColor,
+    bannerBorderWidthPx:
+      typeof rawSettings.bannerBorderWidthPx === "number"
+        ? rawSettings.bannerBorderWidthPx
+        : styles.sectionBorderWidthPx,
+    bannerFloating: rawSettings.bannerFloating ?? styles.floatingCard ?? false,
     titleColor: styles.headingColor || styles.textColor || rawSettings.titleColor,
     subtitleColor: styles.subtitleColor || styles.textColor || rawSettings.subtitleColor,
     badgeBgColor: styles.badgeBgColor || rawSettings.badgeBgColor,
@@ -65,18 +85,17 @@ export const SectionHeroBanner: React.FC<SectionHeroBannerProps> = ({
     ctaStyle: (styles.buttonStyle as HeroBannerSettings["ctaStyle"]) || rawSettings.ctaStyle,
     ctaShadow: (styles.buttonShadow as HeroBannerSettings["ctaShadow"]) || rawSettings.ctaShadow,
     ctaBorderRadiusPx:
-      typeof styles.buttonBorderRadiusPx === "number"
-        ? styles.buttonBorderRadiusPx
-        : rawSettings.ctaBorderRadiusPx,
+      typeof styles.buttonBorderRadiusPx === "number" ? styles.buttonBorderRadiusPx : rawSettings.ctaBorderRadiusPx,
     ctaBorderWidthPx:
-      typeof styles.buttonBorderWidthPx === "number"
-        ? styles.buttonBorderWidthPx
-        : rawSettings.ctaBorderWidthPx,
+      typeof styles.buttonBorderWidthPx === "number" ? styles.buttonBorderWidthPx : rawSettings.ctaBorderWidthPx,
     ctaShowArrow:
-      typeof styles.buttonShowArrow === "boolean"
-        ? styles.buttonShowArrow
-        : rawSettings.ctaShowArrow,
+      typeof styles.buttonShowArrow === "boolean" ? styles.buttonShowArrow : rawSettings.ctaShowArrow,
     bannerShadow: (styles.shadow as HeroBannerSettings["bannerShadow"]) || rawSettings.bannerShadow,
+    bannerShadowEnabled: rawSettings.bannerShadowEnabled ?? styles.shadowEnabled,
+    bannerShadowColor: rawSettings.bannerShadowColor || styles.shadowColor,
+    overlayColor: rawSettings.overlayColor || styles.overlayColor,
+    borderRadiusPx:
+      typeof rawSettings.borderRadiusPx === "number" ? rawSettings.borderRadiusPx : styleBorderRadiusPx,
     useCornerColors: styles.useCornerColors ?? rawSettings.useCornerColors,
     cornerColorTl: styles.cornerColorTl || rawSettings.cornerColorTl,
     cornerColorTr: styles.cornerColorTr || rawSettings.cornerColorTr,
@@ -93,13 +112,7 @@ export const SectionHeroBanner: React.FC<SectionHeroBannerProps> = ({
     imageSaturation: styles.imageSaturation ?? rawSettings.imageSaturation,
     imageSepia: styles.imageSepia ?? rawSettings.imageSepia,
     imageBlurPx: styles.imageBlurPx ?? rawSettings.imageBlurPx,
-    archShape:
-      rawSettings.archShape ||
-      (styles.frameShape === "pill"
-        ? "capsule"
-        : styles.frameShape === "cut-corners" || styles.frameShape === "diamond"
-          ? "asymmetric-leaf"
-          : "roman-arch"),
+    archShape: rawSettings.archShape || mappedFrameArch || "roman-arch",
   };
 
   const sectionOpacity =
@@ -135,7 +148,7 @@ export const SectionHeroBanner: React.FC<SectionHeroBannerProps> = ({
   };
 
   const getSubRing = (sub: HeroSubElement): string =>
-    isSubSelected(sub) ? "ring-2 ring-blue-500 ring-offset-2 rounded-lg" : "";
+    isSubSelected(sub) ? "ring-2 ring-[#005BD3] ring-offset-2 rounded-lg" : "";
 
   const handleTextPatch = (field: keyof HeroBannerSettings, val: string): void => {
     if (onInlineUpdate) {
@@ -153,11 +166,27 @@ export const SectionHeroBanner: React.FC<SectionHeroBannerProps> = ({
     }
   };
 
+  const isFloatingBanner = Boolean(settings.bannerFloating);
+  const explicitContained =
+    settings.containerMode === "contained" ||
+    styles.containerWidth === "contained" ||
+    styles.containerWidth === "narrow";
+  const isFullWidthContainer =
+    !isFloatingBanner &&
+    (settings.containerMode === "full" ||
+      (styles.containerWidth === "full" && settings.containerMode !== "contained") ||
+      (Boolean(settings.fullTopWidth) && settings.containerMode !== "contained") ||
+      (profile.heroLayout === "cinema-full" && !explicitContained));
+
   const sharedStyleProps = {
     settings,
+    sectionStyles: styles,
     theme,
     profile,
+    previewViewport,
+    products,
     isEditable,
+    isEdgeToEdge: isFullWidthContainer,
     activeSubElement: resolvedSubElement,
     isSubSelected,
     selectSub,
@@ -165,15 +194,18 @@ export const SectionHeroBanner: React.FC<SectionHeroBannerProps> = ({
     handleTextPatch,
   };
 
-  const isFullWidthContainer =
-    settings.containerMode === "full" ||
-    styles.containerWidth === "full" ||
-    Boolean(settings.fullTopWidth);
-
   const hasCustomPaddingY = styles.paddingY !== undefined;
-  const hasCustomPaddingX = styles.paddingX !== undefined;
+  const hasCustomPaddingX = !isFullWidthContainer && styles.paddingX !== undefined;
   const padY = hasCustomPaddingY ? resolveSectionPaddingY(styles.paddingY, theme.spacingYPx) : undefined;
   const padX = hasCustomPaddingX ? resolveSectionPaddingX(styles.paddingX) : undefined;
+
+  const wrapperClass = isFloatingBanner
+    ? "max-w-6xl mx-auto px-4 sm:px-8 py-5 sm:py-8"
+    : isFullWidthContainer
+      ? "w-full px-0"
+      : styles.containerWidth === "narrow"
+        ? "max-w-3xl mx-auto px-3 sm:px-6 py-3 sm:py-5"
+        : "max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-5";
 
   const renderArchitecturalStyle = (): React.ReactNode => {
     switch (profile.heroLayout) {
@@ -195,26 +227,17 @@ export const SectionHeroBanner: React.FC<SectionHeroBannerProps> = ({
     <section
       onClick={isEditable ? onSelect : undefined}
       data-testid="section-hero-banner-root"
-      className="@container relative w-full overflow-x-hidden transition-colors duration-300 motion-reduce:transition-none"
+      data-banner-presentation={isFloatingBanner ? "floating" : isFullWidthContainer ? "full-bleed" : "contained"}
+      className="@container relative w-full overflow-visible transition-colors duration-300 motion-reduce:transition-none"
       style={{
-        backgroundColor: styles.backgroundColor || theme.canvasColor || "#FAF8F5",
-        color: styles.textColor || theme.secondaryColor || "#111827",
+        backgroundColor: theme.canvasColor || "var(--store-canvas, #F8FAFC)",
+        color: styles.textColor || theme.secondaryColor || "var(--store-text, #0F172A)",
         ...(sectionOpacity < 100 ? { opacity: sectionOpacity / 100 } : {}),
         ...(padY !== undefined ? { paddingTop: `${padY}px`, paddingBottom: `${padY}px` } : {}),
         ...(padX !== undefined ? { paddingLeft: `${padX}px`, paddingRight: `${padX}px` } : {}),
       }}
     >
-      <div
-        className={
-          isFullWidthContainer
-            ? "w-full"
-            : styles.containerWidth === "narrow"
-              ? "max-w-3xl mx-auto px-3 sm:px-6 py-3 sm:py-5"
-              : "max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-5"
-        }
-      >
-        {renderArchitecturalStyle()}
-      </div>
+      <div className={wrapperClass}>{renderArchitecturalStyle()}</div>
       <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
     </section>
   );

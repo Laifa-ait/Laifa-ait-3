@@ -65,7 +65,7 @@ export const CategoryShopifyBento: React.FC<CategoryShopifyBentoProps> = ({
   cardSkin = "editorial",
   imagePosition = "center",
   imageFit = "cover",
-  primaryColor = "#023859",
+  primaryColor = "#0F172A",
   previewViewport = "desktop",
   isEditable,
   selectedSectionId,
@@ -175,11 +175,11 @@ export const CategoryShopifyBento: React.FC<CategoryShopifyBentoProps> = ({
               />
 
               <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 pointer-events-none">
-                <span className="px-2 py-0.5 rounded-full bg-black/45 backdrop-blur-md border border-white/30 text-[10px] font-mono font-bold text-white tabular-nums">
+                <span className="px-2 py-0.5 rounded-sm bg-slate-950/60 backdrop-blur-md border border-white/25 text-[10px] font-mono font-bold text-white tabular-nums">
                   BENTO #{idxLabel}
                 </span>
                 {showBadge && cat.badge && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide text-white shadow-2xs truncate max-w-[110px]" style={{ backgroundColor: cat.badgeColor || primaryColor }}>
+                  <span className="px-2 py-0.5 rounded-sm text-[10px] font-semibold tracking-wide text-white shadow-2xs truncate max-w-[110px]" style={{ backgroundColor: cat.badgeColor || primaryColor }}>
                     {cat.badge}
                   </span>
                 )}
@@ -187,7 +187,7 @@ export const CategoryShopifyBento: React.FC<CategoryShopifyBentoProps> = ({
 
               {isEditable && (
                 <div className="absolute top-3 right-3 z-20 flex items-center gap-1 opacity-85 @[768px]:opacity-0 @[768px]:group-hover:opacity-100 transition-opacity duration-150">
-                  <button type="button" onClick={(e) => onEditItem(idx, e)} className="bg-[#023859]/90 hover:bg-[#011C40] text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-xs flex items-center gap-1 cursor-pointer border border-white/20">
+                  <button type="button" onClick={(e) => onEditItem(idx, e)} className="bg-slate-900/90 hover:bg-slate-950 text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-xs flex items-center gap-1 cursor-pointer border border-white/20">
                     <Camera className="w-2.5 h-2.5" />
                     <span className="hidden @[768px]:inline">Photo</span>
                   </button>

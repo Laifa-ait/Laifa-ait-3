@@ -34,7 +34,7 @@ describe("Studio Redesign Chrome, Section Filter & Catalog Page Wiring", () => {
   beforeEach(() => { vi.clearAllMocks(); });
   afterEach(() => { document.body.innerHTML = ""; });
 
-  it("renders unboxed StudioTopBar metadata, handles History rollback, Direct Publish summary & Audit/Cmd triggers", () => {
+  it("renders unboxed StudioTopBar metadata, handles History rollback, Direct Publish summary & Audit/Cmd triggers", async () => {
     const onPublish = vi.fn();
     const onRollback = vi.fn();
     const onOpenAudit = vi.fn();
@@ -90,6 +90,10 @@ describe("Studio Redesign Chrome, Section Filter & Catalog Page Wiring", () => {
 
     const rollbackBtn = Array.from(container.querySelectorAll("button")).find((btn) => btn.textContent?.includes("Restaurer"));
     act(() => { rollbackBtn?.click(); });
+    const confirmRollbackBtn = container.querySelector<HTMLButtonElement>('[data-testid="history-confirm-restore-4"]');
+    if (confirmRollbackBtn) {
+      await act(async () => { confirmRollbackBtn.click(); });
+    }
     expect(onRollback).toHaveBeenCalledWith(4);
 
     act(() => { container.querySelector<HTMLButtonElement>('[data-testid="topbar-publish-btn"]')?.click(); });

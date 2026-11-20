@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { apiGet, apiPost } from "../lib/api";
 import { normalizeTimestamp } from "../utils/date";
+import { startVisibilityAwarePolling } from "../utils/visibilityPolling";
 import { BuyerSupportChat, SupportTicket, SupportMessage } from "../components/Buyer/Support/BuyerSupportChat";
 import { BuyerNewTicketModal } from "../components/Buyer/Support/BuyerNewTicketModal";
 
@@ -52,8 +53,7 @@ export const BuyerSupport: React.FC = () => {
       }
     };
     fetchTickets();
-    const interval = setInterval(fetchTickets, 8000);
-    return () => clearInterval(interval);
+    return startVisibilityAwarePolling(fetchTickets, 60_000);
   }, [currentUser]);
 
   useEffect(() => {
@@ -73,8 +73,7 @@ export const BuyerSupport: React.FC = () => {
       }
     };
     fetchMessages();
-    const interval = setInterval(fetchMessages, 4000);
-    return () => clearInterval(interval);
+    return startVisibilityAwarePolling(fetchMessages, 20_000);
   }, [selectedTicket]);
 
   const refreshAll = async (ticketId: string) => {

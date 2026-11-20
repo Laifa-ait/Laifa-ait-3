@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Wrench, RefreshCw, Users, Tag, History } from 'lucide-react';
+import { Wrench, RefreshCw, Users, Tag, History, Megaphone, Briefcase } from 'lucide-react';
 import {
   adminFetchAllArtisans,
   adminFetchStats,
@@ -17,9 +17,11 @@ import { AdminArtisansTable } from '../../components/Admin/artisans/AdminArtisan
 import { AdminTradesManager } from '../../components/Admin/artisans/AdminTradesManager';
 import { AdminAuditLogsList } from '../../components/Admin/artisans/AdminAuditLogsList';
 import { AdminStatusModal } from '../../components/Admin/artisans/AdminStatusModal';
+import { AdminArtisanAdsTab } from '../../components/Admin/artisans/AdminArtisanAdsTab';
+import { AdminArtisanOffersTab } from '../../components/Admin/artisans/AdminArtisanOffersTab';
 
 export const ArtisansAdmin: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'artisans' | 'trades' | 'audit'>('artisans');
+  const [activeTab, setActiveTab] = useState<'artisans' | 'offers' | 'ads' | 'trades' | 'audit'>('artisans');
   const [stats, setStats] = useState<ArtisanStatsSummary | null>(null);
   const [artisans, setArtisans] = useState<ArtisanProfile[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -101,39 +103,26 @@ export const ArtisansAdmin: React.FC = () => {
 
       {/* KPI Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-          <p className="text-xs font-bold text-slate-400 uppercase">Total Artisans</p>
-          <p className="text-2xl font-black text-slate-900 mt-1">{stats?.totalArtisans || 0}</p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-          <p className="text-xs font-bold text-amber-600 uppercase">En attente</p>
-          <p className="text-2xl font-black text-amber-600 mt-1">{stats?.pendingCount || 0}</p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-          <p className="text-xs font-bold text-blue-600 uppercase">En Examen</p>
-          <p className="text-2xl font-black text-blue-600 mt-1">{stats?.underReviewCount || 0}</p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-          <p className="text-xs font-bold text-emerald-600 uppercase">Approuvés</p>
-          <p className="text-2xl font-black text-emerald-600 mt-1">{stats?.approvedCount || 0}</p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-          <p className="text-xs font-bold text-red-600 uppercase">Refusés / Bloqués</p>
-          <p className="text-2xl font-black text-red-600 mt-1">
-            {(stats?.rejectedCount || 0) + (stats?.suspendedCount || 0)}
-          </p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-          <p className="text-xs font-bold text-purple-600 uppercase">Devis Traités</p>
-          <p className="text-2xl font-black text-purple-600 mt-1">{stats?.totalQuoteRequests || 0}</p>
-        </div>
+        {[
+          { label: 'Total Artisans', val: stats?.totalArtisans || 0, cls: 'text-slate-900', subCls: 'text-slate-400' },
+          { label: 'En attente', val: stats?.pendingCount || 0, cls: 'text-amber-600', subCls: 'text-amber-600' },
+          { label: 'En Examen', val: stats?.underReviewCount || 0, cls: 'text-blue-600', subCls: 'text-blue-600' },
+          { label: 'Approuvés', val: stats?.approvedCount || 0, cls: 'text-emerald-600', subCls: 'text-emerald-600' },
+          { label: 'Refusés / Bloqués', val: (stats?.rejectedCount || 0) + (stats?.suspendedCount || 0), cls: 'text-red-600', subCls: 'text-red-600' },
+          { label: 'Devis Traités', val: stats?.totalQuoteRequests || 0, cls: 'text-purple-600', subCls: 'text-purple-600' },
+        ].map((kpi) => (
+          <div key={kpi.label} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+            <p className={`text-xs font-bold uppercase ${kpi.subCls}`}>{kpi.label}</p>
+            <p className={`text-2xl font-black mt-1 tabular-nums ${kpi.cls}`}>{kpi.val}</p>
+          </div>
+        ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab('artisans')}
-          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shrink-0 ${
             activeTab === 'artisans'
               ? 'bg-slate-900 text-white shadow-xs'
               : 'text-slate-600 hover:bg-slate-100'
@@ -144,8 +133,32 @@ export const ArtisansAdmin: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('offers')}
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shrink-0 ${
+            activeTab === 'offers'
+              ? 'bg-slate-900 text-white shadow-xs'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Briefcase className="w-4 h-4" />
+          <span>Offres de Travaux</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ads')}
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shrink-0 ${
+            activeTab === 'ads'
+              ? 'bg-slate-900 text-white shadow-xs'
+              : 'text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/80'
+          }`}
+        >
+          <Megaphone className="w-4 h-4" />
+          <span>Publicité & Revenus (Olma Ads)</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('trades')}
-          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shrink-0 ${
             activeTab === 'trades'
               ? 'bg-slate-900 text-white shadow-xs'
               : 'text-slate-600 hover:bg-slate-100'
@@ -157,7 +170,7 @@ export const ArtisansAdmin: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('audit')}
-          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shrink-0 ${
             activeTab === 'audit'
               ? 'bg-slate-900 text-white shadow-xs'
               : 'text-slate-600 hover:bg-slate-100'
@@ -226,12 +239,18 @@ export const ArtisansAdmin: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 2: TRADES CATEGORIES */}
+      {/* TAB 1B: OFFERS MODERATION */}
+      {activeTab === 'offers' && <AdminArtisanOffersTab trades={trades} />}
+
+      {/* TAB 2: GOOGLE-STYLE AD MANAGER */}
+      {activeTab === 'ads' && <AdminArtisanAdsTab trades={trades} />}
+
+      {/* TAB 3: TRADES CATEGORIES */}
       {activeTab === 'trades' && (
         <AdminTradesManager trades={trades} onTradesUpdated={loadData} />
       )}
 
-      {/* TAB 3: AUDIT LOGS */}
+      {/* TAB 4: AUDIT LOGS */}
       {activeTab === 'audit' && <AdminAuditLogsList auditLogs={auditLogs} />}
 
       {/* Confirmation Modal */}

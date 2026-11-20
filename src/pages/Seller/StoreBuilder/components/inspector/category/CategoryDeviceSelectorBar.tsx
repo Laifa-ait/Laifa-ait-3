@@ -76,7 +76,7 @@ export const CategoryDeviceSelectorBar: React.FC<CategoryDeviceSelectorBarProps>
               onClick={() => onSelectDevice(tab.id)}
               className={`py-2 px-2 rounded-lg border text-left transition-all cursor-pointer flex flex-col gap-0.5 ${
                 isSelected
-                  ? "border-[#023859] bg-[#023859] text-white shadow-2xs"
+                  ? "border-[var(--studio-primary)] bg-[var(--studio-primary)] text-white shadow-2xs"
                   : "border-slate-200 bg-white hover:border-slate-300 text-slate-700"
               }`}
             >

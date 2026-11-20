@@ -1,9 +1,11 @@
 import React, { useEffect } from "react";
 import type { CustomPageTheme } from "../../domains/seller/customPage.types";
 import { readableTextColor } from "./sections/themeColorUtils";
+import { DEFAULT_MODERN_THEME } from "../../pages/Seller/StoreBuilder/constants/studioThemeDefaults";
 
 const GOOGLE_FONT_SPEC_MAP: Record<string, string> = {
   "Plus Jakarta Sans": "Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400",
+  Archivo: "Archivo:wght@400;500;600;700;800",
   "Playfair Display": "Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,400;1,600",
   "Cormorant Garamond": "Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600",
   Outfit: "Outfit:wght@400;500;600;700;800",
@@ -77,7 +79,7 @@ export function resolveHeadingFontStack(theme?: CustomPageTheme | null): string 
   return (
     theme?.headingFontFamily ||
     theme?.fontFamily ||
-    "'Cormorant Garamond', 'Plus Jakarta Sans', system-ui, sans-serif"
+    "'Plus Jakarta Sans', 'DM Sans', system-ui, sans-serif"
   );
 }
 
@@ -85,7 +87,7 @@ export function resolveBodyFontStack(theme?: CustomPageTheme | null): string {
   return (
     theme?.bodyFontFamily ||
     theme?.fontFamily ||
-    "'Plus Jakarta Sans', system-ui, sans-serif"
+    "'DM Sans', 'Plus Jakarta Sans', system-ui, sans-serif"
   );
 }
 
@@ -93,14 +95,14 @@ export function buildStoreThemeCssVariables(
   theme: CustomPageTheme,
   isDarkMode = false
 ): React.CSSProperties & Record<`--${string}`, string> {
-  const primary = theme.primaryColor || "#B45309";
-  const secondary = isDarkMode ? "#F8FAFC" : theme.secondaryColor || "#18181B";
+  const primary = theme.primaryColor || DEFAULT_MODERN_THEME.primaryColor;
+  const secondary = isDarkMode ? "#F8FAFC" : theme.secondaryColor || DEFAULT_MODERN_THEME.secondaryColor;
   const accent = theme.accentColor || primary;
-  const canvas = isDarkMode ? "#0F172A" : theme.canvasColor || "#FAF6F0";
-  const surface = isDarkMode ? "#1E293B" : theme.surfaceColor || "#FFFFFF";
+  const canvas = isDarkMode ? "#0F172A" : theme.canvasColor || DEFAULT_MODERN_THEME.canvasColor;
+  const surface = isDarkMode ? "#1E293B" : theme.surfaceColor || DEFAULT_MODERN_THEME.surfaceColor;
   const textColor = isDarkMode ? "#F8FAFC" : theme.textColor || secondary;
-  const mutedTextColor = isDarkMode ? "#94A3B8" : theme.mutedTextColor || "#64748B";
-  const borderColor = isDarkMode ? "#334155" : theme.borderColor || "#E4E7EC";
+  const mutedTextColor = isDarkMode ? "#94A3B8" : theme.mutedTextColor || DEFAULT_MODERN_THEME.mutedTextColor || "#64748B";
+  const borderColor = isDarkMode ? "#334155" : theme.borderColor || DEFAULT_MODERN_THEME.borderColor || "#E2E8F0";
   const buttonColor = theme.buttonColor || primary;
   const buttonTextColor = theme.buttonTextColor || readableTextColor(buttonColor);
   const badgeBgColor = theme.accentBadgeColor || accent || primary;
@@ -108,7 +110,7 @@ export function buildStoreThemeCssVariables(
   const priceColor = theme.priceColor || secondary;
   const headingFont = resolveHeadingFontStack(theme);
   const bodyFont = resolveBodyFontStack(theme);
-  const radiusPx = typeof theme.borderRadiusPx === "number" ? theme.borderRadiusPx : 16;
+  const radiusPx = typeof theme.borderRadiusPx === "number" ? theme.borderRadiusPx : 12;
   const spacingYPx = typeof theme.spacingYPx === "number" ? theme.spacingYPx : 28;
   const titleSizePx = typeof theme.titleFontSizePx === "number" ? theme.titleFontSizePx : 36;
   const bodySizePx = typeof theme.bodyFontSizePx === "number" ? theme.bodyFontSizePx : 15;

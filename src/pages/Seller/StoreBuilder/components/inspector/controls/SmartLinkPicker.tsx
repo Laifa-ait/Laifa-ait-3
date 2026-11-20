@@ -136,11 +136,11 @@ export const SmartLinkPicker: React.FC<SmartLinkPickerProps> = ({
         className={`w-full flex items-center justify-between gap-2 text-left ${collapsible ? "cursor-pointer" : "cursor-default"}`}
       >
         <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5 min-w-0">
-          <Link2 className="w-3.5 h-3.5 text-[#023859] shrink-0" />
+          <Link2 className="w-3.5 h-3.5 text-[var(--studio-primary)] shrink-0" />
           <span className="truncate">{label}</span>
         </span>
         <span className="flex items-center gap-1 shrink-0">
-          <span className="text-[10px] font-bold text-[#023859] bg-[#F0F7FA] px-2 py-0.5 rounded-md border border-[#54ACBF]/40 max-w-[155px] truncate">
+          <span className="text-[10px] font-bold text-[var(--studio-primary)] bg-[var(--studio-highlight-soft)] px-2 py-0.5 rounded-md border border-[var(--studio-border-strong)] max-w-[155px] truncate">
             {humanReadableTarget}
           </span>
           {collapsible && <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${isExpanded ? "rotate-180" : ""}`} />}
@@ -164,7 +164,7 @@ export const SmartLinkPicker: React.FC<SmartLinkPickerProps> = ({
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
                   className={`py-1.5 px-1 rounded-md flex items-center justify-center gap-1 cursor-pointer transition-colors ${
-                    isAct ? "bg-[#023859] text-white shadow-2xs" : "text-slate-600 hover:bg-slate-100"
+                    isAct ? "bg-[var(--studio-primary)] text-white shadow-2xs" : "text-slate-600 hover:bg-slate-100"
                   }`}
                 >
                   <Icon className="w-3 h-3 shrink-0" />
@@ -190,11 +190,11 @@ export const SmartLinkPicker: React.FC<SmartLinkPickerProps> = ({
                       type="button"
                       onClick={() => onChange(targetHref)}
                       className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-left text-[11px] font-semibold cursor-pointer ${
-                        isSel ? "border-[#023859] bg-[#F0F7FA] text-[#011C40] font-bold" : "border-slate-200 bg-white text-slate-700"
+                        isSel ? "border-[var(--studio-primary)] bg-[var(--studio-highlight-soft)] text-[var(--studio-black)] font-bold" : "border-slate-200 bg-white text-slate-700"
                       }`}
                     >
                       <span className="truncate">Rayon : {cat.name}</span>
-                      {isSel && <CheckCircle2 className="w-3.5 h-3.5 text-[#023859] shrink-0" />}
+                      {isSel && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--studio-primary)] shrink-0" />}
                     </button>
                   );
                 })
@@ -214,11 +214,11 @@ export const SmartLinkPicker: React.FC<SmartLinkPickerProps> = ({
                     type="button"
                     onClick={() => onChange(sec.id)}
                     className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-left text-[11px] font-semibold cursor-pointer ${
-                      isSel ? "border-[#023859] bg-[#F0F7FA] text-[#011C40] font-bold" : "border-slate-200 bg-white text-slate-700"
+                      isSel ? "border-[var(--studio-primary)] bg-[var(--studio-highlight-soft)] text-[var(--studio-black)] font-bold" : "border-slate-200 bg-white text-slate-700"
                     }`}
                   >
                     <span className="truncate">{sec.label}</span>
-                    {isSel && <CheckCircle2 className="w-3.5 h-3.5 text-[#023859] shrink-0" />}
+                    {isSel && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--studio-primary)] shrink-0" />}
                   </button>
                 );
               })}
@@ -233,7 +233,7 @@ export const SmartLinkPicker: React.FC<SmartLinkPickerProps> = ({
                   value={value}
                   onChange={(e) => onChange(safeNavigationHref(e.target.value) ?? e.target.value)}
                   placeholder="Ex: #catalog, /shop/promo ou https://..."
-                  className="h-8 w-full rounded-lg border border-slate-200 bg-white pl-2.5 pr-7 text-[11px] font-mono text-slate-900 focus:border-[#023859] focus:outline-none"
+                  className="h-8 w-full rounded-lg border border-slate-200 bg-white pl-2.5 pr-7 text-[11px] font-mono text-slate-900 focus:border-[var(--studio-primary)] focus:outline-none"
                 />
                 <span className="absolute right-2 top-1/2 -translate-y-1/2">
                   {isCustomValid ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}

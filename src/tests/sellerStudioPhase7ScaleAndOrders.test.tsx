@@ -193,7 +193,7 @@ describe("Phase 7 — Scalabilité (300–500 Produits), Synchro Catégories, Ho
     };
 
     const publicView = renderInDom(<StoreSectionRenderer section={bestAutoSec} theme={THEME} products={[productsNoSales[0]]} />);
-    expect(publicView.container.textContent).not.toContain("PIÈCES PLÉBISCITÉES");
+    expect(publicView.container.textContent).not.toContain("MEILLEURES VENTES");
     expect(publicView.container.textContent).toContain("SÉLECTION DE LA BOUTIQUE");
     expect(publicView.container.querySelector('[data-testid="best-sellers-public-no-sales-state"]')).not.toBeNull();
     publicView.unmount();
@@ -201,7 +201,7 @@ describe("Phase 7 — Scalabilité (300–500 Produits), Synchro Catégories, Ho
     // Réactivation produit suspendu -> réapparaît immédiatement avec ses ventes réelles
     const reactivated = [{ ...productsNoSales[1], status: "active" as Product["status"] }];
     const publicActiveView = renderInDom(<StoreSectionRenderer section={bestAutoSec} theme={THEME} products={reactivated} />);
-    expect(publicActiveView.container.textContent).toContain("PIÈCES PLÉBISCITÉES");
+    expect(publicActiveView.container.textContent).toContain("MEILLEURES VENTES");
     expect(publicActiveView.container.textContent).toContain("Bague Suspendue");
     publicActiveView.unmount();
 

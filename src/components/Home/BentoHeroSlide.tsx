@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { ArrowUpRight, Clock, Sparkles } from "lucide-react";
+import { ArrowUpRight, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Banner } from "../../domains/home/homepage.types";
-import { getOptimizedImageUrl, getBannerFallbackImage } from "../../utils/imageUtils";
+import { getOptimizedImageUrl } from "../../utils/imageUtils";
+import defaultHeroImg from "../../assets/images/olmart_hero_flagship_1795059554378.jpg";
 
 interface BentoHeroSlideProps {
   banner: Banner;
@@ -16,8 +17,8 @@ const SHADOW_MAP: Record<string, string> = {
   none: "",
   soft: "shadow-md",
   medium: "shadow-xl",
-  strong: "shadow-[0_20px_50px_rgba(26,24,54,0.7)]",
-  glow: "shadow-[0_0_40px_rgba(233,152,86,0.5)] ring-2 ring-[#E99856]/40",
+  strong: "shadow-[0_20px_50px_rgba(15,27,29,0.7)]",
+  glow: "shadow-[0_0_40px_rgba(229,154,66,0.45)] ring-1 ring-[#E59A42]/40",
 };
 
 export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
@@ -52,10 +53,9 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
   const buttonText = getTranslatedValue(banner, "button_text");
 
   const rawDesktop = banner.desktop_image || banner.desktopImage || banner.imageUrl;
-  const desktopImageUrl = getOptimizedImageUrl(rawDesktop, 1400, title);
+  const desktopImageUrl = rawDesktop ? getOptimizedImageUrl(rawDesktop, 1400, title) : defaultHeroImg;
   const rawMobile = banner.mobile_image || banner.mobileImageUrl || rawDesktop;
-  const mobileImageUrl = getOptimizedImageUrl(rawMobile, 800, title);
-  const fallbackBannerUrl = getBannerFallbackImage(banner);
+  const mobileImageUrl = rawMobile ? getOptimizedImageUrl(rawMobile, 800, title) : defaultHeroImg;
 
   const [imgError, setImgError] = useState(false);
   useEffect(() => {
@@ -66,11 +66,11 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
   const hasContent = Boolean(title || subtitle || buttonText || banner.badge || banner.discount_label);
 
   const marginPx = banner.image_margin ?? 0;
-  const bgColor = banner.bg_color || "#1A1836";
+  const bgColor = banner.bg_color || "#0F1B1D";
   const imageFit = banner.image_fit || "cover";
   const imagePosition = banner.image_position || "center";
-  const overlayOpacity = banner.overlay_opacity ?? 65;
-  const overlayColor = banner.overlay_color || "#1A1836";
+  const overlayOpacity = banner.overlay_opacity ?? 70;
+  const overlayColor = banner.overlay_color || "#0F1B1D";
   const shadowClass = SHADOW_MAP[banner.shadow_intensity || "none"] || "";
 
   const alignClass =
@@ -109,15 +109,15 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
           )}
           <img
             loading="eager"
-            src={imgError ? fallbackBannerUrl : desktopImageUrl || fallbackBannerUrl}
+            src={imgError ? defaultHeroImg : desktopImageUrl || defaultHeroImg}
             alt={title || t("home.hero.banner_alt")}
             style={{ objectFit: imageFit, objectPosition: imagePosition }}
             className="w-full h-full"
             referrerPolicy="no-referrer"
             onError={(e) => {
               if (!imgError) setImgError(true);
-              if (e.currentTarget.src !== fallbackBannerUrl) {
-                e.currentTarget.src = fallbackBannerUrl;
+              if (e.currentTarget.src !== defaultHeroImg) {
+                e.currentTarget.src = defaultHeroImg;
               }
             }}
           />
@@ -127,44 +127,43 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: `linear-gradient(to top, ${overlayColor} 0%, ${overlayColor}99 45%, transparent 100%)`,
+              background: `linear-gradient(100deg, ${overlayColor}E6 0%, ${overlayColor}99 42%, transparent 82%), linear-gradient(to top, ${overlayColor}CC 0%, transparent 55%)`,
               opacity: overlayOpacity / 100,
             }}
           />
         )}
 
         {banner.discount_label && (
-          <div className="absolute top-4 end-4 z-20 px-3 py-1 rounded-full bg-[#A54055] text-white text-xs sm:text-sm font-black uppercase tracking-wider shadow-lg flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-[#E99856]" />
-            <span>{t(banner.discount_label, banner.discount_label)}</span>
+          <div className="absolute top-4 end-4 z-20 px-3 py-1 rounded-lg bg-[#C83E4D] text-white text-xs sm:text-sm font-bold tracking-wide shadow-md">
+            {t(banner.discount_label, banner.discount_label)}
           </div>
         )}
 
         {banner.show_countdown && (
-          <div className="absolute top-4 start-4 z-20 px-3 py-1.5 rounded-xl bg-[#1A1836]/85 backdrop-blur-md border border-[#E0B4B2]/25 text-white text-[11px] font-mono font-bold flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-[#E99856] animate-pulse" />
+          <div className="absolute top-4 start-4 z-20 px-3 py-1.5 rounded-lg bg-[#0F1B1D]/85 backdrop-blur-md border border-white/15 text-white text-[11px] font-mono tabular-nums font-semibold flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-[#E59A42]" />
             <span>{t("home.flash.badge")}</span>
           </div>
         )}
 
         {hasContent && (
           <div
-            className={`absolute inset-0 p-4 sm:p-6 md:p-8 flex flex-col ${posClass} ${alignClass} z-10 max-w-[90%] sm:max-w-[75%] md:max-w-[62%]`}
+            className={`absolute inset-0 p-6 sm:p-8 md:p-12 flex flex-col ${posClass} ${alignClass} z-10 max-w-[92%] sm:max-w-[72%] md:max-w-[58%]`}
           >
             {banner.badge && (
               <div
-                style={{ color: banner.badge_color || "#E99856" }}
-                className="inline-flex items-center gap-2 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest mb-1.5 sm:mb-2 drop-shadow-xs"
+                style={{ color: banner.badge_color || "#E59A42" }}
+                className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold tracking-[0.16em] uppercase mb-2.5"
               >
                 <span>{t("home.hero.prestige_tag")}</span>
-                <span aria-hidden="true" className="opacity-70">·</span>
+                <span aria-hidden="true" className="opacity-60">·</span>
                 <span>{t(banner.badge, banner.badge)}</span>
               </div>
             )}
 
             {title && (
               <h2
-                className="text-xl sm:text-3xl md:text-4xl font-display font-bold tracking-tight mb-1.5 sm:mb-2 leading-tight drop-shadow-md text-balance"
+                className="text-2xl sm:text-4xl md:text-[2.75rem] font-display font-bold tracking-tight mb-2.5 sm:mb-3 leading-[1.12] text-balance"
                 style={{ color: banner.title_color || "#FFFFFF" }}
               >
                 {title}
@@ -173,14 +172,14 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
 
             {subtitle && (
               <p
-                className="text-xs sm:text-sm font-medium mb-3 sm:mb-4 max-w-md leading-relaxed drop-shadow-sm text-[#E0B4B2]/95"
+                className="text-sm sm:text-[15px] font-normal mb-5 sm:mb-6 max-w-lg leading-relaxed text-[#E2ECE9]"
                 style={{ color: banner.subtitle_color || undefined }}
               >
                 {subtitle}
               </p>
             )}
 
-            <div className="pt-0.5 flex flex-wrap items-center gap-2.5">
+            <div className="pt-0.5 flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={(e) => {
@@ -195,14 +194,14 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
                       }
                     : undefined
                 }
-                className={`group relative inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-extrabold text-xs sm:text-sm tracking-tight transition-all duration-200 cursor-pointer border-none shadow-md active:scale-95 whitespace-nowrap ${
+                className={`group relative inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm tracking-tight transition-all duration-200 cursor-pointer border-none shadow-md active:scale-[0.98] whitespace-nowrap ${
                   !hasCustomButtonColor
-                    ? "bg-gradient-to-r from-[#E99856] to-[#f0aa6e] text-[#1A1836] hover:from-[#f3ab6e] hover:to-[#E99856]"
+                    ? "bg-[#E59A42] hover:bg-[#ECA856] text-[#0F1B1D]"
                     : "hover:brightness-105"
                 }`}
               >
                 <span>{buttonText || t("home.hero.default_cta")}</span>
-                <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 stroke-[2.5]" />
+                <ArrowUpRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 stroke-[2.25]" />
               </button>
 
               {banner.secondary_button_text && (
@@ -216,7 +215,7 @@ export const BentoHeroSlide: React.FC<BentoHeroSlideProps> = ({
                       redirect_type: "custom_url",
                     });
                   }}
-                  className="px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-white/15 hover:bg-white/25 backdrop-blur-md text-white border border-white/30 transition-all cursor-pointer"
+                  className="px-5 py-2.5 sm:py-3 rounded-xl font-semibold text-xs sm:text-sm bg-white/12 hover:bg-white/22 backdrop-blur-md text-white border border-white/25 transition-colors duration-200 cursor-pointer whitespace-nowrap"
                 >
                   {t(banner.secondary_button_text, banner.secondary_button_text)}
                 </button>

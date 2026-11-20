@@ -58,8 +58,8 @@ export const SectionAdvancedTab: React.FC<SectionAdvancedTabProps> = ({
     <div className="space-y-4 select-none" data-testid="section-advanced-tab">
       {/* ID d'ancre de navigation (#id) */}
       <div className="space-y-1.5">
-        <label className="text-[12px] font-semibold text-[#011C40] flex items-center gap-1.5">
-          <Hash className="w-3.5 h-3.5 text-[#023859]" />
+        <label className="text-[12px] font-semibold text-[var(--studio-black)] flex items-center gap-1.5">
+          <Hash className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
           <span>ID d&apos;ancre de navigation (#ancre)</span>
         </label>
         <input
@@ -71,17 +71,17 @@ export const SectionAdvancedTab: React.FC<SectionAdvancedTabProps> = ({
             onSettingsChange("anchorId", clean || undefined);
           }}
           placeholder="ex: nouvelle-collection"
-          className="w-full h-9 px-3 bg-white border border-[#E4E7EC] rounded-lg text-[#17191C] text-[12px] font-mono focus:outline-none focus:border-[#023859]"
+          className="w-full h-9 px-3 bg-white border border-[var(--studio-border)] rounded-lg text-[var(--studio-black)] text-[12px] font-mono focus:outline-none focus:border-[var(--studio-primary)]"
         />
         <p className="text-[10.5px] text-slate-500">
-          Permet un lien direct vers cette section via <code className="font-mono text-[#023859]">#{anchorId || "ancre"}</code>.
+          Permet un lien direct vers cette section via <code className="font-mono text-[var(--studio-primary)]">#{anchorId || "ancre"}</code>.
         </p>
       </div>
 
       {/* Animation d'apparition contrôlée */}
-      <div className="space-y-1.5 pt-2 border-t border-[#E4E7EC]">
-        <label className="text-[12px] font-semibold text-[#011C40] flex items-center gap-1.5">
-          <Wand2 className="w-3.5 h-3.5 text-[#023859]" />
+      <div className="space-y-1.5 pt-2 border-t border-[var(--studio-border)]">
+        <label className="text-[12px] font-semibold text-[var(--studio-black)] flex items-center gap-1.5">
+          <Wand2 className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
           <span>Animation d&apos;apparition</span>
         </label>
         <div className="grid grid-cols-4 gap-1.5">
@@ -102,8 +102,8 @@ export const SectionAdvancedTab: React.FC<SectionAdvancedTabProps> = ({
               }}
               className={`h-8 rounded-lg border text-[11px] font-semibold cursor-pointer transition-colors ${
                 currentAnimation === anim.id
-                  ? "border-[#023859] bg-[#F0F7FA] text-[#023859] font-bold"
-                  : "border-[#E4E7EC] bg-white text-[#667085] hover:bg-[#F7F8FA]"
+                  ? "border-[var(--studio-primary)] bg-[var(--studio-highlight-soft)] text-[var(--studio-primary)] font-bold"
+                  : "border-[var(--studio-border)] bg-white text-[var(--studio-muted)] hover:bg-[var(--studio-background)]"
               }`}
             >
               {anim.label}
@@ -113,16 +113,16 @@ export const SectionAdvancedTab: React.FC<SectionAdvancedTabProps> = ({
       </div>
 
       {/* Visibilité conditionnelle */}
-      <div className="space-y-2 pt-2 border-t border-[#E4E7EC]">
-        <label className="text-[12px] font-semibold text-[#011C40] flex items-center gap-1.5">
-          <Eye className="w-3.5 h-3.5 text-[#023859]" />
+      <div className="space-y-2 pt-2 border-t border-[var(--studio-border)]">
+        <label className="text-[12px] font-semibold text-[var(--studio-black)] flex items-center gap-1.5">
+          <Eye className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
           <span>Visibilité conditionnelle</span>
         </label>
         <select
           data-testid="advanced-visibility-rule-select"
           value={visibilityRule}
           onChange={(e) => onSettingsChange("visibilityRule", e.target.value)}
-          className="h-9 w-full rounded-lg border border-[#E4E7EC] bg-white px-2.5 text-[12px] text-[#17191C] focus:border-[#023859] focus:outline-none"
+          className="h-9 w-full rounded-lg border border-[var(--studio-border)] bg-white px-2.5 text-[12px] text-[var(--studio-black)] focus:border-[var(--studio-primary)] focus:outline-none"
         >
           <option value="always">Toujours afficher (par défaut)</option>
           <option value="in_stock_only">Afficher uniquement si des produits sont en stock</option>
@@ -154,10 +154,10 @@ export const SectionAdvancedTab: React.FC<SectionAdvancedTabProps> = ({
       </div>
 
       {/* Classes CSS contrôlées & isolées (Anti-XSS / Anti-JS) */}
-      <div className="space-y-2 pt-2 border-t border-[#E4E7EC]">
-        <label className="text-[12px] font-semibold text-[#011C40] flex items-center justify-between">
+      <div className="space-y-2 pt-2 border-t border-[var(--studio-border)]">
+        <label className="text-[12px] font-semibold text-[var(--studio-black)] flex items-center justify-between">
           <span className="flex items-center gap-1.5">
-            <Code2 className="w-3.5 h-3.5 text-[#023859]" />
+            <Code2 className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
             <span>Classes CSS contrôlées</span>
           </span>
           <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
@@ -174,7 +174,7 @@ export const SectionAdvancedTab: React.FC<SectionAdvancedTabProps> = ({
                 onClick={() => toggleCssPreset(preset.id)}
                 className={`px-2 py-1 rounded-md border text-[10.5px] font-semibold cursor-pointer ${
                   isAct
-                    ? "bg-[#023859] text-white border-[#023859]"
+                    ? "bg-[var(--studio-primary)] text-white border-[var(--studio-primary)]"
                     : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
                 }`}
               >
@@ -194,14 +194,14 @@ export const SectionAdvancedTab: React.FC<SectionAdvancedTabProps> = ({
             )
           }
           placeholder="ex: olmart-card-elevated shadow-sm"
-          className="w-full h-9 px-3 bg-white border border-[#E4E7EC] rounded-lg text-[#17191C] text-[12px] font-mono focus:outline-none focus:border-[#023859]"
+          className="w-full h-9 px-3 bg-white border border-[var(--studio-border)] rounded-lg text-[var(--studio-black)] text-[12px] font-mono focus:outline-none focus:border-[var(--studio-primary)]"
         />
       </div>
 
       {/* Paramètres d'Accessibilité (WCAG / ARIA) */}
-      <div className="space-y-2 pt-2 border-t border-[#E4E7EC]">
-        <label className="text-[12px] font-semibold text-[#011C40] flex items-center gap-1.5">
-          <Accessibility className="w-3.5 h-3.5 text-[#023859]" />
+      <div className="space-y-2 pt-2 border-t border-[var(--studio-border)]">
+        <label className="text-[12px] font-semibold text-[var(--studio-black)] flex items-center gap-1.5">
+          <Accessibility className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
           <span>Accessibilité (Lecteurs d&apos;écran ARIA)</span>
         </label>
         <input
@@ -210,12 +210,12 @@ export const SectionAdvancedTab: React.FC<SectionAdvancedTabProps> = ({
           value={ariaLabel}
           onChange={(e) => onSettingsChange("ariaLabel", e.target.value)}
           placeholder="Description vocale de la section (aria-label)..."
-          className="w-full h-9 px-3 bg-white border border-[#E4E7EC] rounded-lg text-[#17191C] text-[12px] focus:outline-none focus:border-[#023859]"
+          className="w-full h-9 px-3 bg-white border border-[var(--studio-border)] rounded-lg text-[var(--studio-black)] text-[12px] focus:outline-none focus:border-[var(--studio-primary)]"
         />
         <select
           value={ariaRole}
           onChange={(e) => onSettingsChange("ariaRole", e.target.value)}
-          className="h-9 w-full rounded-lg border border-[#E4E7EC] bg-white px-2.5 text-[12px] text-[#17191C] focus:border-[#023859] focus:outline-none"
+          className="h-9 w-full rounded-lg border border-[var(--studio-border)] bg-white px-2.5 text-[12px] text-[var(--studio-black)] focus:border-[var(--studio-primary)] focus:outline-none"
         >
           <option value="region">Région de contenu standard (region)</option>
           <option value="banner">Bannière principale (banner)</option>
@@ -225,7 +225,7 @@ export const SectionAdvancedTab: React.FC<SectionAdvancedTabProps> = ({
       </div>
 
       {/* ID Technique en lecture seule */}
-      <div className="pt-2 border-t border-[#E4E7EC] flex items-center justify-between text-[11px] text-slate-400 font-mono">
+      <div className="pt-2 border-t border-[var(--studio-border)] flex items-center justify-between text-[11px] text-slate-400 font-mono">
         <span>ID Section :</span>
         <span className="select-all">{sectionId}</span>
       </div>

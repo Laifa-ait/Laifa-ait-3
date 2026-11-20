@@ -13,11 +13,21 @@ export const applyMediaToSection = (
   }
   const settings = selectedSection.settings as unknown as Record<string, unknown>;
   if (selectedSection.type === "hero_banner") {
+    const existingCinematic = settings.cinematicConfig as Record<string, unknown> | undefined;
+    const existingCinematicImg = (existingCinematic?.image || {}) as Record<string, unknown>;
     updateSection(selectedSection.id, {
       settings: {
         ...settings,
         imageUrl: url,
         backgroundImage: url,
+        ...(existingCinematic
+          ? {
+              cinematicConfig: {
+                ...existingCinematic,
+                image: { ...existingCinematicImg, src: url },
+              },
+            }
+          : {}),
       } as unknown as CustomPageSection["settings"],
     });
     onSuccess();

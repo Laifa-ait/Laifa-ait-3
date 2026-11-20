@@ -34,18 +34,18 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({ section, isFrame
   const getCardStyle = () => {
     switch (styleVariant) {
       case "premium":
-        return "border-[#622347]/80";
+        return "border-[#0D5C4B]/70";
       case "immersive":
-        return "border-[#1A1836]";
+        return "border-[#0F1B1D]";
       case "glass":
         return "border-white/70";
       case "elevated":
-        return "border-[#EFE6E6] shadow-md";
+        return "border-[#E3E9E5] shadow-md";
       case "dark":
-        return "border-[#42164B] bg-[#1A1836]";
+        return "border-[#1B3A3D] bg-[#0F1B1D]";
       case "clean":
       default:
-        return "border-[#EFE6E6]";
+        return "border-[#E3E9E5]";
     }
   };
 
@@ -115,7 +115,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({ section, isFrame
       <div className="w-full relative z-10 animate-fade-in" style={customBgStyle}>
         <SectionHeader section={section} isDarkBg={isDarkBg} />
         {products.length === 0 && !isLoading ? (
-          <p className="text-[#9B879C] font-medium text-center py-8 text-xs">
+          <p className="text-[#839497] font-medium text-center py-8 text-xs">
             {t("home.sections.empty")}
           </p>
         ) : (
@@ -126,8 +126,8 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({ section, isFrame
   }
 
   const containerClasses = section.backgroundColor
-    ? "rounded-3xl p-5 sm:p-7 shadow-sm border border-[#EFE6E6] relative animate-fade-in transition-all duration-300"
-    : "bg-white rounded-3xl p-5 sm:p-7 shadow-[0_2px_12px_rgba(26,24,54,0.04)] border border-[#EFE6E6] relative animate-fade-in transition-all duration-300";
+    ? "rounded-3xl p-5 sm:p-7 shadow-xs border border-[#E3E9E5] relative animate-fade-in transition-all duration-300"
+    : "bg-white rounded-3xl p-5 sm:p-7 shadow-[0_2px_12px_rgba(15,27,29,0.04)] border border-[#E3E9E5] relative animate-fade-in transition-all duration-300";
 
   return (
     <section className="py-3 sm:py-5 relative mb-4 sm:mb-6">
@@ -136,7 +136,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({ section, isFrame
           <SectionHeader section={section} isDarkBg={isDarkBg} />
 
           {products.length === 0 && !isLoading ? (
-            <p className={`font-medium text-center py-8 text-xs ${isDarkBg ? "text-[#E0B4B2]/80" : "text-[#9B879C]"}`}>
+            <p className={`font-medium text-center py-8 text-xs ${isDarkBg ? "text-[#B8C8C4]" : "text-[#839497]"}`}>
               {t("home.sections.empty")}
             </p>
           ) : (

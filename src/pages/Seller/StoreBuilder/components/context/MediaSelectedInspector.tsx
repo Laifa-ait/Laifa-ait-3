@@ -58,7 +58,7 @@ export const MediaSelectedInspector: React.FC<MediaSelectedInspectorProps> = ({
   };
 
   return (
-    <div className="p-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl space-y-2.5" data-testid="selected-media-details">
+    <div className="p-3 bg-[var(--studio-surface-subtle)] border border-[var(--studio-border)] rounded-xl space-y-2.5" data-testid="selected-media-details">
       <div className="flex items-center gap-3">
         {selectedMedia.type === "video" ? (
           <div className="w-12 h-12 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0">
@@ -76,7 +76,7 @@ export const MediaSelectedInspector: React.FC<MediaSelectedInspectorProps> = ({
                 onDetectedDimensions(selectedMedia.id, `${img.naturalWidth}×${img.naturalHeight}px`);
               }
             }}
-            className="w-12 h-12 rounded-lg object-cover border border-[#E5E7EB] bg-white shrink-0"
+            className="w-12 h-12 rounded-lg object-cover border border-[var(--studio-border)] bg-white shrink-0"
           />
         )}
         <div className="flex-1 min-w-0">
@@ -84,29 +84,29 @@ export const MediaSelectedInspector: React.FC<MediaSelectedInspectorProps> = ({
             <div className="flex items-center gap-1">
               <input
                 type="text" value={renamingName} onChange={(e) => setRenamingName(e.target.value)}
-                data-testid="media-rename-input" className="w-full px-2 py-1 text-xs bg-white border border-[#D0D5DD] rounded"
+                data-testid="media-rename-input" className="w-full px-2 py-1 text-xs bg-white border border-[var(--studio-border-strong)] rounded"
               />
               <button
                 type="button" data-testid="media-rename-save-btn"
                 onClick={async () => { await onSaveRenameOrFolder(selectedMedia, { name: renamingName.trim() }); setIsRenaming(false); }}
-                className="px-2 py-1 bg-[#023859] text-white text-[10px] font-bold rounded cursor-pointer"
+                className="px-2 py-1 bg-[var(--studio-primary)] text-white text-[10px] font-bold rounded cursor-pointer"
               >
                 OK
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-1.5">
-              <p className="text-xs font-bold text-[#17191C] truncate">{selectedMedia.name || "Média sans titre"}</p>
+              <p className="text-xs font-bold text-[var(--studio-black)] truncate">{selectedMedia.name || "Média sans titre"}</p>
               <button
                 type="button" data-testid="media-rename-start-btn" title="Renommer le fichier"
                 onClick={() => { setRenamingName(selectedMedia.name || ""); setIsRenaming(true); }}
-                className="p-0.5 text-[#667085] hover:text-[#023859] cursor-pointer"
+                className="p-0.5 text-[var(--studio-muted)] hover:text-[var(--studio-primary)] cursor-pointer"
               >
                 <Edit3 className="w-3 h-3" />
               </button>
             </div>
           )}
-          <p className="text-[10px] text-[#667085] mt-0.5" data-testid="selected-media-meta">{metaParts.join(" • ")}</p>
+          <p className="text-[10px] text-[var(--studio-muted)] mt-0.5 tabular-nums" data-testid="selected-media-meta">{metaParts.join(" • ")}</p>
         </div>
       </div>
 
@@ -123,14 +123,14 @@ export const MediaSelectedInspector: React.FC<MediaSelectedInspectorProps> = ({
       )}
 
       <div className="flex items-center justify-between gap-2 text-[11px]">
-        <span className="flex items-center gap-1 text-[#475467] font-semibold">
-          <Folder className="w-3.5 h-3.5 text-[#023859]" /> Dossier :
+        <span className="flex items-center gap-1 text-[var(--studio-text)] font-semibold">
+          <Folder className="w-3.5 h-3.5 text-[var(--studio-primary)]" /> Dossier :
         </span>
         <select
           value={selectedMedia.folder || (selectedMedia.type === "video" ? "videos" : "images")}
           onChange={(e) => onSaveRenameOrFolder(selectedMedia, { folder: e.target.value as MediaFolderCategory })}
           data-testid="media-folder-select"
-          className="px-2 py-1 bg-white border border-[#D0D5DD] rounded-md text-[11px] font-semibold"
+          className="px-2 py-1 bg-white border border-[var(--studio-border-strong)] rounded-md text-[11px] font-semibold"
         >
           <option value="images">Images</option>
           <option value="logos">Logos</option>
@@ -143,9 +143,9 @@ export const MediaSelectedInspector: React.FC<MediaSelectedInspectorProps> = ({
       <div className="flex flex-wrap items-center gap-1.5">
         <button
           type="button" onClick={() => onCopy(selectedMedia.url)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 bg-white border border-[#E5E7EB] rounded-lg text-xs font-bold text-[#17191C] cursor-pointer"
+          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 bg-white border border-[var(--studio-border)] rounded-lg text-xs font-bold text-[var(--studio-black)] cursor-pointer"
         >
-          {copiedUrl === selectedMedia.url ? (<><Check className="w-3.5 h-3.5 text-[#16A34A]" /><span>Copié</span></>) : (<><Copy className="w-3.5 h-3.5" /><span>Copier</span></>)}
+          {copiedUrl === selectedMedia.url ? (<><Check className="w-3.5 h-3.5 text-emerald-600" /><span>Copié</span></>) : (<><Copy className="w-3.5 h-3.5" /><span>Copier</span></>)}
         </button>
         {onReplaceUrl && (selectedUsages.length > 0 || hasBrokenPreview) && (
           <button
@@ -160,7 +160,7 @@ export const MediaSelectedInspector: React.FC<MediaSelectedInspectorProps> = ({
           <button
             type="button" data-testid="media-request-delete-btn" onClick={() => setPendingDeleteConfirm(true)}
             disabled={deletingId === selectedMedia.id}
-            className="flex items-center justify-center gap-1 py-1.5 px-2.5 bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#EF4444] rounded-lg text-xs font-bold cursor-pointer"
+            className="flex items-center justify-center gap-1 py-1.5 px-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold cursor-pointer"
           >
             <Trash2 className="w-3.5 h-3.5" /><span>Supprimer</span>
           </button>
@@ -198,26 +198,26 @@ export const MediaSelectedInspector: React.FC<MediaSelectedInspectorProps> = ({
       )}
 
       {pendingDeleteConfirm && canDelete && onConfirmDelete && (
-        <div className="p-2.5 rounded-lg bg-[#FFFBEB] border border-[#F59E0B] space-y-2" data-testid="media-delete-confirm-banner">
-          <div className="flex items-start gap-2 text-[#92400E]">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-[#D97706] mt-0.5" />
+        <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 space-y-2" data-testid="media-delete-confirm-banner">
+          <div className="flex items-start gap-2 text-rose-900">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
             <div className="text-[11px] leading-snug">
               {selectedUsages.length > 0 ? (
                 <>
-                  <p className="font-black text-[#78350F]">Attention : Ce média est utilisé dans {selectedUsages.length} emplacement(s) !</p>
+                  <p className="font-black text-rose-950">Attention : Ce média est utilisé dans {selectedUsages.length} emplacement(s) !</p>
                   <p className="mt-0.5">Utilisé dans : <strong>{selectedUsages.join(", ")}</strong>. Le supprimer entraînera une image manquante.</p>
                 </>
               ) : (
-                <p className="font-semibold text-[#78350F]">Confirmer la suppression définitive de « {selectedMedia.name || "ce média"} » ?</p>
+                <p className="font-semibold text-rose-950">Confirmer la suppression définitive de « {selectedMedia.name || "ce média"} » ?</p>
               )}
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setPendingDeleteConfirm(false)} className="px-2.5 py-1 rounded bg-white border border-[#D0D5DD] text-[11px] font-semibold cursor-pointer">Annuler</button>
+            <button type="button" onClick={() => setPendingDeleteConfirm(false)} className="px-2.5 py-1 rounded bg-white border border-[var(--studio-border-strong)] text-[11px] font-semibold cursor-pointer">Annuler</button>
             <button
               type="button" data-testid="media-confirm-delete-btn"
               onClick={async () => { await onConfirmDelete(selectedMedia.id); setPendingDeleteConfirm(false); }}
-              className="px-2.5 py-1 rounded bg-[#DC2626] text-white text-[11px] font-bold cursor-pointer"
+              className="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold cursor-pointer"
             >
               Confirmer la suppression
             </button>

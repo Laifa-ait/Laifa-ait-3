@@ -11,6 +11,7 @@ interface StudioSidebarProps {
   navMode: StudioNavMode;
   onSelectNavMode: (mode: StudioNavMode) => void;
   onSaveDraft?: () => unknown | Promise<unknown>;
+  lastSaveError?: string | null;
 }
 
 const EXPERT_ICONS: Record<StudioNavMode, React.ElementType> = {
@@ -31,6 +32,7 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
   navMode,
   onSelectNavMode,
   onSaveDraft,
+  lastSaveError,
 }) => {
   const {
     mode,
@@ -42,7 +44,7 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
     saveStepError,
     selectStep,
     handleSaveAndAdvance,
-  } = useStudioGuidedNavigation({ onSelectNavMode, onSaveDraft });
+  } = useStudioGuidedNavigation({ onSelectNavMode, onSaveDraft, externalSaveError: lastSaveError });
 
   if (mode === "expert") {
     return (

@@ -1,7 +1,8 @@
 import { admin, db } from "../config/firebase-admin";
 import { safeLogger } from "../utils/logger";
 
-const CHECK_INTERVAL = 60 * 1000; // 1 minute
+const CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes (5x fewer idle Firestore lock transactions)
+const LOCK_LEASE_MS = 270 * 1000; // 4.5 minutes lease
 let workerInterval: NodeJS.Timeout | null = null;
 let isJobRunning = false;
 
@@ -30,7 +31,7 @@ export const executeProductPublisherJob = async (): Promise<number> => {
           }
           transaction.set(lockRef, {
             instanceId: process.env.K_REVISION || `instance_${process.pid}`,
-            expiresAt: admin.firestore.Timestamp ? admin.firestore.Timestamp.fromMillis(Date.now() + 50000) : Date.now() + 50000,
+            expiresAt: admin.firestore.Timestamp ? admin.firestore.Timestamp.fromMillis(Date.now() + LOCK_LEASE_MS) : Date.now() + LOCK_LEASE_MS,
             acquiredAt: admin.firestore.FieldValue.serverTimestamp(),
           }, { merge: true });
           return true;

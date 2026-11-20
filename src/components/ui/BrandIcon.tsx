@@ -1,20 +1,18 @@
 import React from "react";
-import {
-  SiFacebook,
-  SiInstagram,
-  SiTiktok,
-  SiYoutube,
-  SiX,
-  SiWhatsapp,
-  SiTelegram,
-  SiGithub,
-  SiGoogle,
-  SiVisa,
-  SiMastercard,
-  SiApplepay,
-  SiGooglepay,
-  type IconType
-} from "@icons-pack/react-simple-icons";
+import type { IconType } from "@icons-pack/react-simple-icons";
+import SiFacebook from "@icons-pack/react-simple-icons/icons/SiFacebook";
+import SiInstagram from "@icons-pack/react-simple-icons/icons/SiInstagram";
+import SiTiktok from "@icons-pack/react-simple-icons/icons/SiTiktok";
+import SiYoutube from "@icons-pack/react-simple-icons/icons/SiYoutube";
+import SiX from "@icons-pack/react-simple-icons/icons/SiX";
+import SiWhatsapp from "@icons-pack/react-simple-icons/icons/SiWhatsapp";
+import SiTelegram from "@icons-pack/react-simple-icons/icons/SiTelegram";
+import SiGithub from "@icons-pack/react-simple-icons/icons/SiGithub";
+import SiGoogle from "@icons-pack/react-simple-icons/icons/SiGoogle";
+import SiVisa from "@icons-pack/react-simple-icons/icons/SiVisa";
+import SiMastercard from "@icons-pack/react-simple-icons/icons/SiMastercard";
+import SiApplepay from "@icons-pack/react-simple-icons/icons/SiApplepay";
+import SiGooglepay from "@icons-pack/react-simple-icons/icons/SiGooglepay";
 
 export type BrandIconName =
   | "facebook"

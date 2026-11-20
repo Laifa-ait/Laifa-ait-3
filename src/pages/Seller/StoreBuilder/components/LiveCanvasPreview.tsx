@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { Suspense, lazy, useState, useEffect, useMemo } from "react";
 import {
   CategoryItem, CollectionPageDesignConfig, CustomPageSection, CustomPageTheme, SellerStoreConfig, StoreCustomPageItem,
 } from "../../../../domains/seller/customPage.types";
@@ -10,24 +10,29 @@ import { ArtisticAtmosphereLayer } from "../../../../components/Store/ArtisticAt
 import { useStoreFontLoader, buildStoreThemeCssVariables } from "../../../../components/Store/useStoreFontLoader";
 import { Sparkles } from "lucide-react";
 import { PreviewControlToolbar, PreviewDevice, PreviewOrientation } from "./preview/PreviewControlToolbar";
-import { PreviewQrModal } from "./preview/PreviewQrModal";
-import { PreviewAuditModal } from "./preview/PreviewAuditModal";
 import { CanvasGridOverlay } from "./preview/CanvasGridOverlay";
-import { InteractiveCartSimulator } from "./preview/InteractiveCartSimulator";
 import { CanvasPageSwitcherBar } from "./preview/CanvasPageSwitcherBar";
+import { CanvasSectionInsertBar } from "./preview/CanvasSectionInsertBar";
+
+const PreviewQrModal = lazy(() => import("./preview/PreviewQrModal").then((m) => ({ default: m.PreviewQrModal })));
+const PreviewAuditModal = lazy(() => import("./preview/PreviewAuditModal").then((m) => ({ default: m.PreviewAuditModal })));
+const InteractiveCartSimulator = lazy(() => import("./preview/InteractiveCartSimulator").then((m) => ({ default: m.InteractiveCartSimulator })));
 import { useStudioStore } from "../store/useStudioStore";
 import { useCanvasPreviewEvents } from "../hooks/useCanvasPreviewEvents";
+import { CatalogLoadStatus } from "../hooks/studioCatalogLoader";
 
 interface LiveCanvasPreviewProps {
   sections: CustomPageSection[];
   theme: CustomPageTheme;
   products: Product[];
+  catalogStatus?: CatalogLoadStatus;
   storeConfig?: SellerStoreConfig | null;
   viewport?: "mobile" | "tablet" | "desktop";
   onViewportChange?: (vp: "mobile" | "tablet" | "desktop") => void;
   selectedSectionId: string | null;
   shopSlug?: string;
   shopName?: string;
+  isMobileSplitCompact?: boolean;
   onSelectSection: (id: string) => void;
   showLeftSidebar?: boolean;
   onToggleLeftSidebar?: () => void;
@@ -38,20 +43,20 @@ interface LiveCanvasPreviewProps {
 function getContainerWidthClass(device: PreviewDevice, orientation: PreviewOrientation): string {
   if (device === "mobile") {
     return orientation === "portrait"
-      ? "w-full sm:w-[390px] max-w-full min-h-[680px] rounded-xl sm:rounded-[28px] border border-slate-300 sm:border-[6px] sm:border-slate-800 shadow-lg"
-      : "w-full sm:w-[720px] max-w-full min-h-[390px] rounded-xl sm:rounded-[28px] border border-slate-300 sm:border-[6px] sm:border-slate-800 shadow-lg";
+      ? "w-full sm:w-[390px] max-w-full min-h-[320px] sm:min-h-[700px] rounded-xl sm:rounded-[30px] border border-slate-300 sm:border-[5px] sm:border-slate-900/90 studio-storefront-frame"
+      : "w-full sm:w-[720px] max-w-full min-h-[320px] sm:min-h-[390px] rounded-xl sm:rounded-[26px] border border-slate-300 sm:border-[5px] sm:border-slate-900/90 studio-storefront-frame";
   }
   if (device === "tablet") {
     return orientation === "portrait"
-      ? "w-full sm:w-[768px] max-w-full min-h-[820px] rounded-xl sm:rounded-[20px] border border-slate-300 sm:border-[6px] sm:border-slate-700 shadow-lg"
-      : "w-full sm:w-[960px] max-w-full min-h-[600px] rounded-xl sm:rounded-[20px] border border-slate-300 sm:border-[6px] sm:border-slate-700 shadow-lg";
+      ? "w-full sm:w-[768px] max-w-full min-h-[420px] sm:min-h-[820px] rounded-xl sm:rounded-[22px] border border-slate-300 sm:border-[4px] sm:border-slate-800/85 studio-storefront-frame"
+      : "w-full sm:w-[960px] max-w-full min-h-[420px] sm:min-h-[600px] rounded-xl sm:rounded-[22px] border border-slate-300 sm:border-[4px] sm:border-slate-800/85 studio-storefront-frame";
   }
-  return "w-full max-w-6xl rounded-xl border border-slate-200/90 shadow-sm";
+  return "w-full max-w-[1220px] rounded-xl border border-[#D8DCE2] studio-storefront-frame";
 }
 
 export const LiveCanvasPreview: React.FC<LiveCanvasPreviewProps> = ({
-  sections, theme, products, storeConfig, viewport: propViewport, onViewportChange,
-  selectedSectionId: propSelectedSectionId, shopSlug, shopName, onSelectSection,
+  sections = [], theme, products = [], catalogStatus, storeConfig, viewport: propViewport, onViewportChange,
+  selectedSectionId: propSelectedSectionId, shopSlug, shopName, isMobileSplitCompact = false, onSelectSection,
   showLeftSidebar = true, onToggleLeftSidebar, showRightSidebar = true, onToggleRightSidebar,
 }) => {
   const storeViewport = useStudioStore((s) => s.viewport);
@@ -82,6 +87,14 @@ export const LiveCanvasPreview: React.FC<LiveCanvasPreviewProps> = ({
   useStoreFontLoader(theme, "studio-canvas");
 
   useEffect(() => {
+    if (!selectedSectionId || typeof document === "undefined") return;
+    const targetEl = document.getElementById(`studio-section-${selectedSectionId}`);
+    if (targetEl && typeof targetEl.scrollIntoView === "function") {
+      targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [selectedSectionId, isMobileSplitCompact]);
+
+  useEffect(() => {
     if (storeConfig?.collectionPageConfig) setLiveCollectionConfig(storeConfig.collectionPageConfig);
   }, [storeConfig?.collectionPageConfig]);
 
@@ -101,57 +114,66 @@ export const LiveCanvasPreview: React.FC<LiveCanvasPreviewProps> = ({
     if (propViewport && propViewport !== storeViewport) storeSetViewport(propViewport);
   }, [propViewport, storeViewport, storeSetViewport]);
 
+  useEffect(() => {
+    const handleSimulateCart = (e: Event) => {
+      const detail = (e as CustomEvent<{ product?: Product }>).detail;
+      const item = detail?.product || products[0];
+      if (item) setSimulatedCart((prev) => [...prev, item]);
+    };
+    window.addEventListener("studio:simulate-cart-add", handleSimulateCart);
+    return () => window.removeEventListener("studio:simulate-cart-add", handleSimulateCart);
+  }, [products]);
+
   useCanvasPreviewEvents({
     setCanvasViewMode, setActiveCategorySlug, setActiveCategoryOverride, setActiveCustomPage,
     setLiveCollectionConfig, setIsAuditModalOpen, setIsQrModalOpen, setIsInteractiveMode,
   });
 
-  const canvasStyle = { isolation: "isolate" as const, ...buildStoreThemeCssVariables(theme, isDarkMode) };
-  const sectionGapPx = typeof theme.spacingYPx === "number" ? theme.spacingYPx : 28;
+  const canvasStyle = useMemo(() => ({ isolation: "isolate" as const, ...buildStoreThemeCssVariables(theme, isDarkMode) }), [theme, isDarkMode]);
+  const handleSelectSectionOnCanvas = React.useCallback((id: string) => { selectSectionInStore(id); onSelectSection(id); }, [selectSectionInStore, onSelectSection]);
+  const sectionGapPx = typeof theme.spacingYPx === "number" ? theme.spacingYPx : 24;
   const isCollectionView = canvasViewMode === "category" || canvasViewMode === "collection" || (canvasViewMode === "custom-page" && activeCustomPage?.templateId === "collection");
   const displayedSections = canvasViewMode === "custom-page" && activeCustomPage?.sectionIds?.length ? sections.filter((s) => activeCustomPage.sectionIds?.includes(s.id)) : sections;
 
   return (
-    <div className={`flex flex-col min-h-0 min-w-0 flex-1 overflow-hidden ${isFullscreen ? "fixed inset-0 z-50 bg-[#F4F5F7]" : "relative h-full"}`}>
-      <PreviewControlToolbar
-        device={device} setDevice={(next) => { storeSetViewport(next); onViewportChange?.(next); }}
-        orientation={orientation} toggleOrientation={() => setOrientation((p) => (p === "portrait" ? "landscape" : "portrait"))}
-        zoom={zoom} setZoom={(val) => setZoom(typeof val === "function" ? val(zoom) : val)}
-        isInteractiveMode={isInteractiveMode} setIsInteractiveMode={setIsInteractiveMode}
-        isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode}
-        showGrid={showGrid} setShowGrid={setShowGrid}
-        isFullscreen={isFullscreen} toggleFullscreen={() => setIsFullscreen(!isFullscreen)}
-        onOpenQrModal={() => setIsQrModalOpen(true)} onOpenAuditModal={() => setIsAuditModalOpen(true)}
-        showLeftSidebar={showLeftSidebar} onToggleLeftSidebar={onToggleLeftSidebar}
-        showRightSidebar={showRightSidebar} onToggleRightSidebar={onToggleRightSidebar}
-      />
+    <div className={`flex flex-col min-h-0 min-w-0 flex-1 overflow-hidden ${isFullscreen ? "fixed inset-0 z-50 bg-[var(--studio-background)]" : "relative h-full"}`}>
+      <div className={isMobileSplitCompact ? "hidden md:block shrink-0" : "shrink-0"}>
+        <PreviewControlToolbar
+          device={device} setDevice={(next) => { storeSetViewport(next); onViewportChange?.(next); }}
+          orientation={orientation} toggleOrientation={() => setOrientation((p) => (p === "portrait" ? "landscape" : "portrait"))}
+          zoom={zoom} setZoom={(val) => setZoom(typeof val === "function" ? val(zoom) : val)}
+          isInteractiveMode={isInteractiveMode} setIsInteractiveMode={setIsInteractiveMode}
+          isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} showGrid={showGrid} setShowGrid={setShowGrid}
+          isFullscreen={isFullscreen} toggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+          onOpenQrModal={() => setIsQrModalOpen(true)} onOpenAuditModal={() => setIsAuditModalOpen(true)}
+          showLeftSidebar={showLeftSidebar} onToggleLeftSidebar={onToggleLeftSidebar}
+          showRightSidebar={showRightSidebar} onToggleRightSidebar={onToggleRightSidebar}
+          pageSwitcherSlot={
+            <CanvasPageSwitcherBar
+              canvasViewMode={canvasViewMode} activeCategorySlug={activeCategorySlug} allCategories={allCategories}
+              customPages={storeConfig?.customPages} activeCustomPage={activeCustomPage}
+              onSelectHome={() => { setCanvasViewMode("home"); setActiveCategorySlug(null); setActiveCustomPage(null); }}
+              onSelectCollection={() => { setCanvasViewMode("collection"); setActiveCategorySlug(null); setActiveCustomPage(null); }}
+              onSelectCategorySlug={(slug) => { if (!slug) { setCanvasViewMode("home"); setActiveCategorySlug(null); } else { setCanvasViewMode("category"); setActiveCategorySlug(slug); } }}
+              onSelectCustomPage={(cp) => { setCanvasViewMode("custom-page"); setActiveCustomPage(cp); setActiveCategorySlug(null); }}
+            />
+          }
+        />
+      </div>
 
-      <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y studio-canvas-backdrop pt-4 pb-8 px-3 sm:px-6 relative flex flex-col items-center">
+      <div className={`min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y studio-canvas-backdrop relative flex flex-col items-center ${isMobileSplitCompact ? "py-1.5 px-2 sm:px-6" : "pt-4 pb-10 px-3 sm:px-6"}`}>
         <CanvasGridOverlay showGrid={showGrid} />
         <div className="transition-transform duration-200 origin-top flex justify-center w-full" style={{ transform: `scale(${zoom})` }}>
-          <div className={`olmart-store-canvas-scope @container/store @container transition-all duration-300 relative overflow-hidden ${getContainerWidthClass(device, orientation)}`} data-studio-preview-viewport={device} style={canvasStyle}>
+          <div
+            className={`olmart-store-canvas-scope @container/store @container transition-all duration-300 relative overflow-hidden bg-white ${getContainerWidthClass(device, orientation)}`}
+            data-studio-preview-viewport={device} data-studio-interactive={isInteractiveMode ? "true" : undefined} style={canvasStyle}
+          >
             <ArtisticAtmosphereLayer theme={theme} isDarkMode={isDarkMode} />
 
             <div className="relative z-10">
-              <CanvasPageSwitcherBar
-                canvasViewMode={canvasViewMode} activeCategorySlug={activeCategorySlug} allCategories={allCategories}
-                customPages={storeConfig?.customPages} activeCustomPage={activeCustomPage}
-                onSelectHome={() => { setCanvasViewMode("home"); setActiveCategorySlug(null); setActiveCustomPage(null); }}
-                onSelectCollection={() => { setCanvasViewMode("collection"); setActiveCategorySlug(null); setActiveCustomPage(null); }}
-                onSelectCategorySlug={(slug) => { if (!slug) { setCanvasViewMode("home"); setActiveCategorySlug(null); } else { setCanvasViewMode("category"); setActiveCategorySlug(slug); } }}
-                onSelectCustomPage={(cp) => { setCanvasViewMode("custom-page"); setActiveCustomPage(cp); setActiveCategorySlug(null); }}
-              />
-
               <StoreCustomHeaderBar
-                storeConfig={storeConfig}
-                theme={theme}
-                shopName={shopName}
-                isEditable={!isInteractiveMode}
-                onSelectHeader={() =>
-                  window.dispatchEvent(
-                    new CustomEvent("studio:select-nav-mode", { detail: { mode: "header" } })
-                  )
-                }
+                storeConfig={storeConfig} theme={theme} shopName={shopName} isEditable={!isInteractiveMode}
+                onSelectHeader={() => window.dispatchEvent(new CustomEvent("studio:select-nav-mode", { detail: { mode: "header" } }))}
                 onNavigateView={(mode) => { setCanvasViewMode(mode); setActiveCategorySlug(null); }}
               />
 
@@ -167,41 +189,47 @@ export const LiveCanvasPreview: React.FC<LiveCanvasPreviewProps> = ({
                   onBackToHome={() => { setCanvasViewMode("home"); setActiveCategorySlug(null); }}
                 />
               ) : displayedSections.length === 0 ? (
-                <div className="p-14 text-center text-[#667085] space-y-3" data-testid="canvas-empty-state">
-                  <Sparkles className="w-8 h-8 text-amber-600 mx-auto" />
-                  <p className="font-bold text-sm text-[#17191C]">Votre page ne contient aucune section</p>
-                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                    Ajoutez votre première section pour construire l&apos;aperçu de votre vitrine en direct.
-                  </p>
+                <div className="p-14 text-center text-[var(--studio-muted)] space-y-3" data-testid="canvas-empty-state">
+                  <Sparkles className="w-8 h-8 text-slate-400 mx-auto" />
+                  <p className="font-bold text-sm text-[var(--studio-black)]">Votre page ne contient aucune section</p>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">Ajoutez votre première section pour construire l&apos;aperçu de votre vitrine en direct.</p>
                   {!isInteractiveMode && (
                     <button
-                      type="button"
-                      data-testid="canvas-empty-add-section-btn"
+                      type="button" data-testid="canvas-empty-add-section-btn"
                       onClick={() => window.dispatchEvent(new CustomEvent("studio:open-add-section-modal"))}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors cursor-pointer"
-                    >
-                      + Ajouter une première section
-                    </button>
+                    >+ Ajouter une première section</button>
                   )}
                 </div>
               ) : (
-                <div className="flex flex-col p-2 @sm:p-4" style={{ gap: `${sectionGapPx}px`, paddingTop: `${Math.round(sectionGapPx * 0.5)}px`, paddingBottom: `${Math.round(sectionGapPx * 0.5)}px` }}>
+                <div className="flex flex-col" style={{ gap: `${sectionGapPx}px`, paddingBottom: `${Math.round(sectionGapPx * 0.75)}px` }}>
                   {canvasViewMode === "custom-page" && activeCustomPage && (
-                    <div className="px-4 py-3 rounded-xl border border-slate-200 bg-white/90 flex items-center justify-between" data-testid="canvas-custom-page-banner">
+                    <div className="mx-3 mt-3 px-4 py-3 rounded-xl border border-slate-200 bg-white/90 flex items-center justify-between" data-testid="canvas-custom-page-banner">
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Page personnalisée • /store/{shopSlug || "boutique"}/p/{activeCustomPage.slug}</span>
-                        <h2 className="text-base font-black text-slate-900">{activeCustomPage.title}</h2>
+                        <span className="text-[11px] font-medium text-slate-500">Page personnalisée · /store/{shopSlug || "boutique"}/p/{activeCustomPage.slug}</span>
+                        <h2 className="text-base font-bold text-slate-900">{activeCustomPage.title}</h2>
                       </div>
-                      <button type="button" onClick={() => { setCanvasViewMode("home"); setActiveCustomPage(null); }} className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700">Retour Accueil</button>
+                      <button type="button" onClick={() => { setCanvasViewMode("home"); setActiveCustomPage(null); }} className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 cursor-pointer">Retour Accueil</button>
                     </div>
                   )}
                   {displayedSections.map((section, idx) => (
-                    <StoreSectionRenderer
-                      key={section.id} section={section} theme={theme} products={products}
-                      isEditable={!isInteractiveMode} isSelected={!isInteractiveMode && section.id === selectedSectionId}
-                      sectionIndex={idx} totalSections={displayedSections.length} previewViewport={device}
-                      onSelectSection={isInteractiveMode ? () => { if (products[0]) setSimulatedCart((p) => [...p, products[0]]); } : (id) => { selectSectionInStore(id); onSelectSection(id); }}
-                    />
+                    <React.Fragment key={section.id}>
+                      <StoreSectionRenderer
+                        section={section} theme={theme} products={products}
+                        isEditable={!isInteractiveMode} isSelected={!isInteractiveMode && section.id === selectedSectionId}
+                        sectionIndex={idx} totalSections={displayedSections.length} previewViewport={device}
+                        onSelectSection={isInteractiveMode ? undefined : handleSelectSectionOnCanvas}
+                      />
+                      {!isInteractiveMode && (
+                        <div className="px-3">
+                          <CanvasSectionInsertBar
+                            afterIndex={idx}
+                            insertAtIndex={idx + 1}
+                            sectionTitle={section.title}
+                          />
+                        </div>
+                      )}
+                    </React.Fragment>
                   ))}
                 </div>
               )}
@@ -210,9 +238,9 @@ export const LiveCanvasPreview: React.FC<LiveCanvasPreviewProps> = ({
         </div>
       </div>
 
-      <InteractiveCartSimulator isInteractiveMode={isInteractiveMode} cartItems={simulatedCart} onClearCart={() => setSimulatedCart([])} />
-      <PreviewQrModal isOpen={isQrModalOpen} onClose={() => setIsQrModalOpen(false)} shopSlug={shopSlug} shopName={shopName} />
-      <PreviewAuditModal isOpen={isAuditModalOpen} onClose={() => setIsAuditModalOpen(false)} sections={sections} theme={theme} products={products} storeConfig={storeConfig} shopName={shopName} shopSlug={shopSlug} />
+      {isInteractiveMode && <Suspense fallback={null}><InteractiveCartSimulator isInteractiveMode={isInteractiveMode} cartItems={simulatedCart} onClearCart={() => setSimulatedCart([])} /></Suspense>}
+      {isQrModalOpen && <Suspense fallback={null}><PreviewQrModal isOpen={isQrModalOpen} onClose={() => setIsQrModalOpen(false)} shopSlug={shopSlug} shopName={shopName} /></Suspense>}
+      {isAuditModalOpen && <Suspense fallback={null}><PreviewAuditModal isOpen={isAuditModalOpen} onClose={() => setIsAuditModalOpen(false)} sections={sections} theme={theme} products={products} catalogStatus={catalogStatus} storeConfig={storeConfig} shopName={shopName} shopSlug={shopSlug} /></Suspense>}
     </div>
   );
 };

@@ -21,15 +21,16 @@ interface CarouselDesignAndPresetTabProps {
 }
 
 const renderCarouselStyleSvg = (id: PromoCarouselStyleVariant, isSelected: boolean) => {
-  const stroke = isSelected ? "#023859" : "#64748B";
-  const fillPrimary = isSelected ? "#023859" : "#94A3B8";
-  const fillSoft = isSelected ? "#D8EBF5" : "#E2E8F0";
+  const stroke = isSelected ? "var(--studio-primary)" : "var(--studio-muted)";
+  const fillPrimary = isSelected ? "var(--studio-primary)" : "var(--studio-border-strong)";
+  const fillSoft = isSelected ? "var(--studio-highlight-soft)" : "var(--studio-border)";
+  const fillCard = "var(--studio-white)";
 
   if (id === "floating_glass") {
     return (
       <svg viewBox="0 0 56 36" className="w-12 h-8 shrink-0">
         <rect x="2" y="2" width="52" height="32" rx="4" fill={fillSoft} stroke={stroke} strokeWidth="1.4" />
-        <rect x="9" y="9" width="38" height="18" rx="3.5" fill="#FFFFFF" stroke={fillPrimary} strokeWidth="1.4" />
+        <rect x="9" y="9" width="38" height="18" rx="3.5" fill={fillCard} stroke={fillPrimary} strokeWidth="1.4" />
         <rect x="14" y="13" width="18" height="2.5" rx="1" fill={fillPrimary} />
         <rect x="14" y="18" width="26" height="2" rx="1" fill={stroke} />
       </svg>
@@ -38,7 +39,7 @@ const renderCarouselStyleSvg = (id: PromoCarouselStyleVariant, isSelected: boole
   if (id === "split_magazine") {
     return (
       <svg viewBox="0 0 56 36" className="w-12 h-8 shrink-0">
-        <rect x="2" y="2" width="23" height="32" rx="3.5" fill="#FFFFFF" stroke={stroke} strokeWidth="1.4" />
+        <rect x="2" y="2" width="23" height="32" rx="3.5" fill={fillCard} stroke={stroke} strokeWidth="1.4" />
         <rect x="6" y="8" width="15" height="3" rx="1" fill={fillPrimary} />
         <rect x="6" y="14" width="13" height="2" rx="1" fill={stroke} />
         <rect x="6" y="24" width="12" height="4" rx="1.5" fill={fillPrimary} />
@@ -101,8 +102,8 @@ export const CarouselDesignAndPresetTab: React.FC<CarouselDesignAndPresetTabProp
   return (
     <div className="space-y-4 select-none">
       <div className="space-y-2">
-        <span className="text-[11px] font-extrabold text-[#011C40] uppercase tracking-wider flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-[#023859]" />
+        <span className="text-[11px] font-extrabold text-[var(--studio-black)] uppercase tracking-wider flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
           <span>Style visuel du Carrousel (5 designs)</span>
         </span>
         <div className="grid grid-cols-2 gap-2">
@@ -115,14 +116,14 @@ export const CarouselDesignAndPresetTab: React.FC<CarouselDesignAndPresetTabProp
                 onClick={() => onSettingsChange("carouselStyle", opt.id)}
                 className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
                   isSel
-                    ? "border-[#023859] bg-[#F0F7FA] text-[#011C40] ring-1 ring-[#023859]/30 shadow-2xs"
-                    : "border-slate-200 bg-white hover:border-[#54ACBF] text-slate-700"
+                    ? "border-[var(--studio-primary)] bg-[var(--studio-primary-soft)] text-[var(--studio-black)] ring-1 ring-[var(--studio-primary)]/25 shadow-2xs"
+                    : "border-[var(--studio-border)] bg-white hover:border-[var(--studio-border-strong)] text-[var(--studio-text)]"
                 }`}
               >
                 <div className="flex items-center justify-between w-full gap-1">
                   {renderCarouselStyleSvg(opt.id, isSel)}
                   {isSel ? (
-                    <span className="w-4 h-4 rounded-full bg-[#023859] text-white flex items-center justify-center shrink-0">
+                    <span className="w-4 h-4 rounded-full bg-[var(--studio-primary)] text-white flex items-center justify-center shrink-0">
                       <Check className="w-2.5 h-2.5" />
                     </span>
                   ) : (
@@ -144,7 +145,7 @@ export const CarouselDesignAndPresetTab: React.FC<CarouselDesignAndPresetTabProp
       <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
         <div className="space-y-1.5">
           <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
-            <Sliders className="w-3.5 h-3.5 text-[#023859]" />
+            <Sliders className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
             <span>Hauteur du Carrousel</span>
           </span>
           <div className="grid grid-cols-4 gap-1">
@@ -160,8 +161,8 @@ export const CarouselDesignAndPresetTab: React.FC<CarouselDesignAndPresetTabProp
                 onClick={() => onSettingsChange("bannerHeight", h.id)}
                 className={`py-1.5 rounded-lg border text-[10px] font-bold cursor-pointer ${
                   bannerHeight === h.id
-                    ? "bg-[#023859] border-[#023859] text-white"
-                    : "bg-white border-slate-200 text-slate-700"
+                    ? "bg-[var(--studio-primary)] border-[var(--studio-primary)] text-white"
+                    : "bg-white border-[var(--studio-border)] text-[var(--studio-text)]"
                 }`}
               >
                 {h.label}
@@ -173,7 +174,7 @@ export const CarouselDesignAndPresetTab: React.FC<CarouselDesignAndPresetTabProp
         <label className="block space-y-1">
           <div className="flex justify-between text-[11px] font-semibold text-slate-700">
             <span>Contraste du voile sombre (Lisibilité)</span>
-            <span className="font-mono font-bold text-[#023859]">{overlayOpacity}%</span>
+            <span className="font-mono font-bold text-[var(--studio-primary)] tabular-nums">{overlayOpacity}%</span>
           </div>
           <input
             type="range"
@@ -182,7 +183,7 @@ export const CarouselDesignAndPresetTab: React.FC<CarouselDesignAndPresetTabProp
             step={5}
             value={overlayOpacity}
             onChange={(e) => onSettingsChange("overlayOpacity", Number(e.target.value))}
-            className="w-full accent-[#023859] cursor-pointer"
+            className="w-full accent-[var(--studio-primary)] cursor-pointer"
           />
         </label>
       </div>
@@ -203,8 +204,8 @@ export const CarouselDesignAndPresetTab: React.FC<CarouselDesignAndPresetTabProp
 
       <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
         <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
-          <Play className="w-3.5 h-3.5 text-[#023859]" />
-          <span>Navigation & Défilement</span>
+          <Play className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
+          <span>Navigation &amp; Défilement</span>
         </span>
         <label className="flex items-center justify-between text-xs font-medium text-slate-700 cursor-pointer">
           <span>Défilement automatique</span>
@@ -212,14 +213,14 @@ export const CarouselDesignAndPresetTab: React.FC<CarouselDesignAndPresetTabProp
             type="checkbox"
             checked={settings.autoplay !== false}
             onChange={(e) => onSettingsChange("autoplay", e.target.checked)}
-            className="accent-[#023859]"
+            className="accent-[var(--studio-primary)]"
           />
         </label>
         {settings.autoplay !== false && (
           <label className="block space-y-1">
             <div className="flex justify-between text-[11px] text-slate-600">
               <span>Durée par diapositive</span>
-              <span className="font-mono font-bold text-[#023859]">{Number(settings.intervalSec || 5)}s</span>
+              <span className="font-mono font-bold text-[var(--studio-primary)] tabular-nums">{Number(settings.intervalSec || 5)}s</span>
             </div>
             <input
               type="range"
@@ -228,7 +229,7 @@ export const CarouselDesignAndPresetTab: React.FC<CarouselDesignAndPresetTabProp
               step={1}
               value={Number(settings.intervalSec || 5)}
               onChange={(e) => onSettingsChange("intervalSec", Number(e.target.value))}
-              className="w-full accent-[#023859] cursor-pointer"
+              className="w-full accent-[var(--studio-primary)] cursor-pointer"
             />
           </label>
         )}
@@ -238,7 +239,7 @@ export const CarouselDesignAndPresetTab: React.FC<CarouselDesignAndPresetTabProp
             type="checkbox"
             checked={settings.showArrows !== false}
             onChange={(e) => onSettingsChange("showArrows", e.target.checked)}
-            className="accent-[#023859]"
+            className="accent-[var(--studio-primary)]"
           />
         </label>
       </div>

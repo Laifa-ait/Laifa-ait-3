@@ -12,6 +12,7 @@ import { Helmet } from "react-helmet-async";
 import { useUserHabits } from "../../hooks/useUserHabits";
 import { useHomeData } from "../../hooks/useHomeData";
 import { useHomeCategoryConfig } from "./hooks/useHomeCategoryConfig";
+import defaultHeroImg from "../../assets/images/olmart_hero_flagship_1795059554378.jpg";
 
 interface HomeHeroBanner extends Partial<Banner> {
   id: string;
@@ -139,8 +140,8 @@ export const Home: React.FC = () => {
     return [
       {
         id: "default-1",
-        desktop_image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=1200",
-        imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=1200",
+        desktop_image: defaultHeroImg,
+        imageUrl: defaultHeroImg,
         title: t("home.hero.default_title"),
         subtitle: t("home.hero.default_subtitle"),
         button_text: t("home.hero.default_cta"),
@@ -150,26 +151,26 @@ export const Home: React.FC = () => {
   }, [dbBanners, filterByTargeting, t]);
 
   return (
-    <div className="relative w-full overflow-hidden bg-[#FAF7F6] font-sans text-[#1A1836]">
+    <div className="relative w-full overflow-hidden bg-[#F7F8F6] font-sans text-[#0F1B1D]">
       <Helmet>
         <title>{t("seo_home_title")}</title>
         <meta name="description" content={t("seo_home_description")} />
         <meta name="keywords" content={t("seo_home_keywords")} />
         <meta
           property="og:image"
-          content={targetedHeroBanners[0]?.desktop_image || targetedHeroBanners[0]?.imageUrl || "/images/placeholders/product.svg"}
+          content={targetedHeroBanners[0]?.desktop_image || targetedHeroBanners[0]?.imageUrl || defaultHeroImg}
         />
         <meta property="og:url" content={typeof window !== "undefined" ? window.location.href : ""} />
       </Helmet>
       <h1 className="sr-only">{t("home.sr_title")}</h1>
 
       {/* Marketplace landing hero */}
-      <section className="relative w-full overflow-hidden pb-7 pt-4 sm:pb-10 sm:pt-7 lg:pt-8">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-32 -top-40 h-[28rem] w-[28rem] rounded-full bg-[#E0B4B2]/35 blur-3xl" />
-        <div aria-hidden="true" className="pointer-events-none absolute -left-40 top-48 h-[22rem] w-[22rem] rounded-full bg-[#E99856]/15 blur-3xl" />
-        <div className="relative mx-auto w-full max-w-[96rem] px-4 sm:px-6 md:px-8">
+      <section className="relative w-full overflow-hidden pb-8 pt-4 sm:pb-12 sm:pt-6 lg:pt-7">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-36 h-[24rem] w-[24rem] rounded-full bg-[#0D5C4B]/[0.06] blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -left-32 top-44 h-[20rem] w-[20rem] rounded-full bg-[#E59A42]/[0.08] blur-3xl" />
+        <div className="relative mx-auto w-full max-w-[90rem] px-4 sm:px-6 md:px-8">
           {isBannersLoading ? (
-            <div className="min-h-[460px] w-full animate-pulse rounded-[1.5rem] border border-[#EFE6E6] bg-white/85 shadow-sm sm:min-h-[430px] lg:min-h-[390px] 2xl:min-h-[410px]" />
+            <div className="min-h-[360px] w-full animate-pulse rounded-3xl border border-[#E3E9E5] bg-white shadow-xs sm:min-h-[430px] lg:min-h-[490px]" />
           ) : (
             <BentoHero banners={targetedHeroBanners} />
           )}

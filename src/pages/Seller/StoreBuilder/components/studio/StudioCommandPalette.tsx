@@ -38,13 +38,9 @@ export const StudioCommandPalette: React.FC<StudioCommandPaletteProps> = ({
   const [query, setQuery] = useState("");
 
   useEffect(() => {
+    if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        if (isOpen) onClose();
-        else window.dispatchEvent(new CustomEvent("studio:open-command-palette"));
-      }
-      if (e.key === "Escape" && isOpen) onClose();
+      if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -57,7 +53,7 @@ export const StudioCommandPalette: React.FC<StudioCommandPaletteProps> = ({
     { id: "audit", label: "Audit qualité & SEO", keywords: "audit qualite contraste seo", icon: Sparkles, run: onOpenAuditModal },
     { id: "identity", label: "Identité & Charte de marque", keywords: "identite nom slogan logo marque", icon: Sparkles, run: () => onSelectNavMode?.("identity") },
     { id: "theme", label: "Thème, couleurs & polices", keywords: "theme couleurs polices design", icon: Palette, run: () => onSelectNavMode?.("theme") },
-    { id: "atelier", label: "Atelier & Matières créatives", keywords: "atelier matieres effets", icon: Palette, run: () => onSelectNavMode?.("atelier") },
+    { id: "atelier", label: "Studio & Finitions créatives", keywords: "studio finitions matieres effets", icon: Palette, run: () => onSelectNavMode?.("atelier") },
     { id: "sections", label: "Structure & Sections de page", keywords: "sections structure blocs accueil", icon: Layers, run: () => onSelectNavMode?.("sections") },
     { id: "catalog", label: "Catalogue produits", keywords: "catalogue produits articles stock", icon: Layers, run: () => onSelectNavMode?.("catalog") },
     { id: "media", label: "Médiathèque & Images", keywords: "medias images photos bannières", icon: LayoutTemplate, run: () => onSelectNavMode?.("media") },

@@ -3,6 +3,7 @@ import { StudioStoreState } from "./studioStore.types";
 
 export type {
   StudioViewport,
+  SectionSubElement,
   StudioInspectorTab,
   StudioSectionActionType,
   PendingSectionAction,
@@ -157,20 +158,24 @@ export const useStudioStore = create<StudioStoreState>((set, get) => ({
     return nextStep;
   },
 
-  setSectionActiveStep: (key, step) =>
+  setSectionActiveStep: (key, step, forceUnlock = false) =>
     set((state) => {
       const prev = state.sectionStepProgress[key] || {
         activeStep: 1,
         unlockedStep: 1,
         completedSteps: [],
       };
-      if (state.studioExperienceMode === "guided" && step > prev.unlockedStep) {
+      if (!forceUnlock && state.studioExperienceMode === "guided" && step > prev.unlockedStep) {
         return state;
       }
       return {
         sectionStepProgress: {
           ...state.sectionStepProgress,
-          [key]: { ...prev, activeStep: step },
+          [key]: {
+            ...prev,
+            activeStep: step,
+            unlockedStep: forceUnlock ? Math.max(prev.unlockedStep, step) : prev.unlockedStep,
+          },
         },
       };
     }),

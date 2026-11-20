@@ -345,6 +345,9 @@ export const SEED_REAL_ESTATE_PROPERTIES: StoredProperty[] = [
 ];
 
 export async function ensureInitialSeedProperties(firestore: FirebaseFirestore.Firestore) {
+  if (process.env.ALLOW_AUTO_SEED !== 'true' || process.env.NODE_ENV === 'production') {
+    return;
+  }
   try {
     const snap = await firestore.collection('real_estate_properties').limit(1).get();
     if (snap.empty) {

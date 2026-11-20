@@ -10,6 +10,7 @@ import {
   InlineEditConfig,
   emitSectionSettingPatch,
 } from "./sections/CanvasInlineText";
+import { DEFAULT_MODERN_THEME } from "../../pages/Seller/StoreBuilder/constants/studioThemeDefaults";
 
 interface ParsedHeadingToken {
   text: string;
@@ -39,18 +40,26 @@ export function parseEditorialHeadingTokens(rawText: string): ParsedHeadingToken
     });
 }
 
-function HandDrawnUnderlineSvg({ styleVariant, strokeColor }: { styleVariant: EditorialUnderlineStyle; strokeColor: string }) {
+function EditorialUnderlineSvg({ styleVariant, strokeColor }: { styleVariant: EditorialUnderlineStyle; strokeColor: string }) {
+  if (styleVariant === "hairline") {
+    return (
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-1 left-0 w-full h-[1.5px] opacity-85"
+        style={{ backgroundColor: strokeColor }}
+      />
+    );
+  }
   if (styleVariant === "golden-wave") {
     return (
       <svg viewBox="0 0 120 12" preserveAspectRatio="none" aria-hidden="true" className="pointer-events-none absolute -bottom-1.5 left-0 w-full h-2.5 overflow-visible">
-        <path d="M2 7 C 22 1, 42 11, 62 6 C 82 1, 100 11, 118 5" fill="none" stroke={strokeColor} strokeWidth="2.4" strokeLinecap="round" />
+        <path d="M2 7 C 22 2, 42 10, 62 6 C 82 2, 100 10, 118 5" fill="none" stroke={strokeColor} strokeWidth="2" strokeLinecap="round" />
       </svg>
     );
   }
   return (
-    <svg viewBox="0 0 120 12" preserveAspectRatio="none" aria-hidden="true" className="pointer-events-none absolute -bottom-1.5 left-0 w-full h-2.5 overflow-visible">
-      <path d="M3 8.5 Q 58 2.5 117 6.5" fill="none" stroke={strokeColor} strokeWidth="2.8" strokeLinecap="round" />
-      <path d="M14 10.2 Q 66 5.5 112 8.2" fill="none" stroke={strokeColor} strokeWidth="1.2" strokeLinecap="round" opacity="0.65" />
+    <svg viewBox="0 0 120 12" preserveAspectRatio="none" aria-hidden="true" className="pointer-events-none absolute -bottom-1 left-0 w-full h-2 overflow-visible">
+      <path d="M2 7 Q 60 3 118 6.5" fill="none" stroke={strokeColor} strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -93,9 +102,9 @@ export const EditorialHeading: React.FC<EditorialHeadingProps> = ({
   const isArabicText = ARABIC_CHAR_REGEX.test(text);
   const letterSpacingEm = typeof sectionStyles?.letterSpacing === "number" ? sectionStyles.letterSpacing : theme?.letterSpacing;
   const lineHeightVal = typeof sectionStyles?.lineHeight === "number" ? sectionStyles.lineHeight : theme?.lineHeight;
-  const accentStyle: EditorialHeadingAccentStyle = sectionStyles?.headingAccentStyle || theme?.headingAccentStyle || "metallic-gold";
-  const underlineStyle: EditorialUnderlineStyle = sectionStyles?.headingUnderlineStyle || theme?.headingUnderlineStyle || "brush-stroke";
-  const accentHex = accentColorOverride || theme?.accentColor || theme?.primaryColor || "#C59B27";
+  const accentStyle: EditorialHeadingAccentStyle = sectionStyles?.headingAccentStyle || theme?.headingAccentStyle || "accent-color";
+  const underlineStyle: EditorialUnderlineStyle = sectionStyles?.headingUnderlineStyle || theme?.headingUnderlineStyle || "hairline";
+  const accentHex = accentColorOverride || theme?.accentColor || theme?.primaryColor || DEFAULT_MODERN_THEME.accentColor || "#2563EB";
   const headingFont = theme?.headingFontFamily || theme?.fontFamily || "var(--store-font-heading, inherit)";
   const dynamicFontSize = resolveHeadingDynamicFontSize(Tag, theme?.titleFontSizePx);
 
@@ -132,7 +141,7 @@ export const EditorialHeading: React.FC<EditorialHeadingProps> = ({
           else if (e.key === "Escape") { e.preventDefault(); setDraftText(text); setIsEditing(false); emitSectionSettingPatch(editConfig, text); }
         }}
         style={combinedStyle}
-        className={`${className} bg-white/95 text-slate-900 ring-2 ring-[#023859] rounded-lg px-2 py-0.5 outline-none shadow-sm w-full max-w-2xl`}
+        className={`${className} bg-white/95 text-slate-900 ring-2 ring-[var(--studio-focus,#2563EB)] rounded-lg px-2 py-0.5 outline-none shadow-sm w-full max-w-2xl`}
       />
     );
   }
@@ -140,7 +149,7 @@ export const EditorialHeading: React.FC<EditorialHeadingProps> = ({
   return (
     <Tag
       dir={isArabicText ? "rtl" : undefined}
-      className={`${className} ${isEditable && editConfig ? "cursor-text" : ""}`}
+      className={`${className} text-balance ${isEditable && editConfig ? "cursor-text" : ""}`}
       style={combinedStyle}
       onClick={(e) => {
         onClick?.(e);
@@ -159,11 +168,11 @@ export const EditorialHeading: React.FC<EditorialHeadingProps> = ({
           : undefined;
         const gradientClass =
           tok.isItalicAccent && accentStyle === "metallic-gold"
-            ? "bg-clip-text text-transparent bg-gradient-to-r from-[#C59B27] via-[#F7DF8B] to-[#9A7115]"
+            ? "bg-clip-text text-transparent bg-gradient-to-r from-[#C5A059] via-[#E6C77B] to-[#9A7115]"
             : tok.isItalicAccent && accentStyle === "copper-bronze"
-            ? "bg-clip-text text-transparent bg-gradient-to-r from-[#B45309] via-[#F59E0B] to-[#78350F]"
+            ? "bg-clip-text text-transparent bg-gradient-to-r from-[#64748B] via-[#94A3B8] to-[#334155]"
             : "";
-        const underlineStroke = accentStyle === "metallic-gold" ? "#D4AF37" : accentStyle === "copper-bronze" ? "#D97706" : accentHex;
+        const underlineStroke = accentStyle === "metallic-gold" ? "#D4AF37" : accentStyle === "copper-bronze" ? "#64748B" : accentHex;
 
         return (
           <span
@@ -172,7 +181,7 @@ export const EditorialHeading: React.FC<EditorialHeadingProps> = ({
             style={{ fontFamily: tokenFont, color: tok.isItalicAccent && accentStyle === "accent-color" ? accentHex : undefined }}
           >
             {tok.text}
-            {tok.isUnderlined && <HandDrawnUnderlineSvg styleVariant={underlineStyle} strokeColor={underlineStroke} />}
+            {tok.isUnderlined && <EditorialUnderlineSvg styleVariant={underlineStyle} strokeColor={underlineStroke} />}
           </span>
         );
       })}
@@ -193,7 +202,7 @@ interface EditorialDropCapParagraphProps {
 }
 
 export const EditorialDropCapParagraph: React.FC<EditorialDropCapParagraphProps> = ({
-  text, dropCap, accentColor = "#C59B27", theme, className = "", style, onClick, isEditable = false, editConfig,
+  text, dropCap, accentColor = DEFAULT_MODERN_THEME.primaryColor, theme, className = "", style, onClick, isEditable = false, editConfig,
 }) => {
   const trimmed = (text || "").trim();
   const isArabic = ARABIC_CHAR_REGEX.test(trimmed);
@@ -214,10 +223,10 @@ export const EditorialDropCapParagraph: React.FC<EditorialDropCapParagraphProps>
   return (
     <p dir={isArabic ? "rtl" : undefined} onClick={onClick} style={bodyStyle} className={className}>
       <span
-        className={`${isArabic ? "float-right ml-3" : "float-left mr-3"} text-4xl @md:text-5xl font-serif font-extrabold leading-none px-2.5 py-1.5 rounded-lg border shadow-2xs select-none`}
+        className={`${isArabic ? "float-right ml-3" : "float-left mr-3"} text-4xl @md:text-5xl font-serif font-extrabold leading-none px-2.5 py-1.5 rounded-md border select-none`}
         style={{
           fontFamily: isArabic ? "'Amiri', Georgia, serif" : theme?.headingFontFamily || "'Playfair Display', Georgia, serif",
-          color: accentColor, borderColor: `${accentColor}35`, backgroundColor: `${accentColor}10`,
+          color: accentColor, borderColor: `${accentColor}30`, backgroundColor: `${accentColor}0D`,
         }}
       >
         {trimmed.charAt(0)}

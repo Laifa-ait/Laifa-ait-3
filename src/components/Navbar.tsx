@@ -90,10 +90,10 @@ export const Navbar: React.FC = () => {
       <nav
         className={`${
           isProductPage
-            ? "sticky top-0 left-0 right-0 z-40 bg-white/94 text-[#1A1836] backdrop-blur-xl border-b border-[#EFE6E6] shadow-xs"
-            : `sticky top-0 z-[100] bg-white/94 text-[#1A1836] backdrop-blur-xl border-b border-[#EFE6E6] transition-shadow duration-200 ${
+            ? "sticky top-0 left-0 right-0 z-40 bg-white/95 text-[#0F1B1D] backdrop-blur-xl border-b border-[#E3E9E5] shadow-xs"
+            : `sticky top-0 z-[100] bg-white/95 text-[#0F1B1D] backdrop-blur-xl border-b border-[#E3E9E5] transition-shadow duration-200 ${
                 isScrolled
-                  ? "shadow-[0_8px_28px_rgba(26,24,54,0.08)]"
+                  ? "shadow-[0_8px_28px_rgba(15,27,29,0.08)]"
                   : "shadow-2xs"
               }`
         } py-2 sm:py-2.5`}
@@ -110,7 +110,7 @@ export const Navbar: React.FC = () => {
                   navigate("/shop");
                 }
               }}
-              className="w-9 h-9 rounded-full bg-[#FAF7F6] hover:bg-[#F4EDED] text-[#1A1836] flex items-center justify-center shrink-0 cursor-pointer border border-[#E0B4B2]/50 shadow-2xs transition-all active:scale-95"
+              className="w-9 h-9 rounded-full bg-[#F7F8F6] hover:bg-[#EFF3F1] text-[#0F1B1D] flex items-center justify-center shrink-0 cursor-pointer border border-[#D4DFD9] shadow-2xs transition-colors active:scale-95"
               aria-label={t("nav.back", "Retour")}
             >
               <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
@@ -136,10 +136,10 @@ export const Navbar: React.FC = () => {
                 className="flex items-center gap-2.5 shrink-0 select-none cursor-pointer group bg-transparent border-none p-0 whitespace-nowrap"
                 aria-label={t("nav.home_aria", "Accueil Olmart")}
               >
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#42164B] via-[#622347] to-[#A54055] flex items-center justify-center shrink-0 border border-[#E0B4B2]/35 shadow-xs group-hover:scale-105 transition-transform duration-200">
-                  <Store className="w-4.5 h-4.5 text-[#E99856]" />
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0D5C4B] to-[#084236] flex items-center justify-center shrink-0 border border-[#0D5C4B]/20 shadow-xs group-hover:scale-105 transition-transform duration-200">
+                  <Store className="w-4.5 h-4.5 text-[#E59A42]" />
                 </div>
-                <span className="text-2xl sm:text-3xl font-display font-bold tracking-wider text-[#1A1836]">
+                <span className="text-2xl sm:text-3xl font-display font-bold tracking-wider text-[#0F1B1D]">
                   {t("nav.brand_name", isArabic ? "أولمارت" : "OLMART")}
                 </span>
               </button>
@@ -151,11 +151,11 @@ export const Navbar: React.FC = () => {
                 type="button"
                 onClick={() => setIsCartOpen(true)}
                 aria-label={t("nav.my_cart", "Mon Panier")}
-                className="flex items-center justify-center text-[#1A1836] hover:text-[#622347] hover:bg-[#FAF7F6] transition-all duration-200 cursor-pointer relative bg-transparent border-none w-10 h-10 rounded-full active:scale-95"
+                className="flex items-center justify-center text-[#0F1B1D] hover:text-[#0D5C4B] hover:bg-[#F7F8F6] transition-colors duration-200 cursor-pointer relative bg-transparent border-none w-10 h-10 rounded-full active:scale-95"
               >
                 <ShoppingBag className="w-5 h-5 stroke-[1.8]" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-gradient-to-r from-[#622347] to-[#A54055] text-white flex items-center justify-center text-[10px] font-black shadow-xs border border-white tabular-nums">
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#0D5C4B] text-white flex items-center justify-center text-[10px] font-black shadow-xs border border-white tabular-nums">
                     {cartCount}
                   </span>
                 )}
@@ -165,7 +165,7 @@ export const Navbar: React.FC = () => {
                 type="button"
                 onClick={() => setIsMobileMenuOpen(true)}
                 aria-label={t("nav.menu", "Menu")}
-                className="flex items-center justify-center text-[#1A1836] hover:text-[#622347] hover:bg-[#FAF7F6] transition-all duration-200 cursor-pointer bg-transparent border-none w-10 h-10 rounded-full active:scale-95"
+                className="flex items-center justify-center text-[#0F1B1D] hover:text-[#0D5C4B] hover:bg-[#F7F8F6] transition-colors duration-200 cursor-pointer bg-transparent border-none w-10 h-10 rounded-full active:scale-95"
               >
                 <Menu className="w-5 h-5 stroke-[1.8]" />
               </button>

@@ -46,14 +46,14 @@ export const PreviewQrModal: React.FC<PreviewQrModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-[#F8FBFC]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--studio-border)] bg-[var(--studio-background)]">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#F0F7FA] text-[#023859] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[var(--studio-surface-subtle)] text-[var(--studio-primary)] flex items-center justify-center">
               <Smartphone className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[#011C40]">Aperçu Mobile en Direct</h3>
-              <p className="text-[11px] text-slate-500">Testez le rendu en conditions réelles</p>
+              <h3 className="text-sm font-bold text-[var(--studio-black)]">Aperçu Mobile en Direct</h3>
+              <p className="text-[11px] text-[var(--studio-muted)]">Testez le rendu en conditions réelles</p>
             </div>
           </div>
           <button
@@ -68,11 +68,11 @@ export const PreviewQrModal: React.FC<PreviewQrModalProps> = ({
         {/* Content */}
         <div className="p-6 flex flex-col items-center text-center space-y-4">
           {/* QR Code Container */}
-          <div className="p-3 bg-white border-2 border-dashed border-[#54ACBF] rounded-2xl shadow-xs">
+          <div className="p-3 bg-white border-2 border-dashed border-[var(--studio-border-strong)] rounded-2xl shadow-xs">
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
                 previewUrl
-              )}&color=023859&bgcolor=ffffff&margin=1`}
+              )}&color=0F172A&bgcolor=ffffff&margin=1`}
               alt={`QR Code pour tester ${shopName}`}
               className="w-48 h-48 rounded-lg block"
               loading="lazy"
@@ -92,7 +92,7 @@ export const PreviewQrModal: React.FC<PreviewQrModalProps> = ({
               className={`h-8 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer ${
                 copied
                   ? "bg-green-600 text-white"
-                  : "bg-white border border-slate-200 text-[#023859] hover:bg-[#F0F7FA]"
+                  : "bg-white border border-[var(--studio-border)] text-[var(--studio-primary)] hover:bg-[var(--studio-surface-subtle)]"
               }`}
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -106,7 +106,7 @@ export const PreviewQrModal: React.FC<PreviewQrModalProps> = ({
               href={whatsappShareUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="h-10 rounded-xl bg-[#25D366]/10 text-[#128C7E] hover:bg-[#25D366]/20 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+              className="h-10 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
             >
               <Share2 className="w-3.5 h-3.5" />
               <span>WhatsApp</span>
@@ -116,7 +116,7 @@ export const PreviewQrModal: React.FC<PreviewQrModalProps> = ({
               href={previewUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="h-10 rounded-xl bg-[#023859] hover:bg-[#011C40] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+              className="h-10 rounded-xl bg-[var(--studio-primary)] hover:bg-[var(--studio-primary-hover)] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               <span>Ouvrir onglet</span>

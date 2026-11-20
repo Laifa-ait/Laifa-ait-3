@@ -155,7 +155,13 @@ router.post(
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Erreur lors de la publication";
       safeLogger.error("[SellerStudioController] POST /layout/publish error", { error: msg });
-      return res.status(400).json({ error: msg });
+      const statusCode =
+        msg.includes("CONFLICT_NEWER_VERSION") || msg.includes("Conflit de révision")
+          ? 409
+          : msg.includes("Violation d'accès")
+          ? 403
+          : 400;
+      return res.status(statusCode).json({ error: msg });
     }
   }
 );
@@ -173,12 +179,22 @@ router.post(
         return res.status(401).json({ error: "Non authentifié" });
       }
 
-      const restoredLayout = await StoreLayoutService.rollbackLayout(sellerId, req.body.versionNumber);
+      const restoredLayout = await StoreLayoutService.rollbackLayout(
+        sellerId,
+        req.body.versionNumber,
+        req.body.expectedRevision
+      );
       return res.json({ success: true, data: restoredLayout });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Erreur lors de la restauration";
       safeLogger.error("[SellerStudioController] POST /layout/rollback error", { error: msg });
-      const statusCode = msg.includes("introuvable") ? 404 : 400;
+      const statusCode = msg.includes("introuvable")
+        ? 404
+        : msg.includes("CONFLICT_NEWER_VERSION") || msg.includes("Conflit de version")
+        ? 409
+        : msg.includes("Violation d'accès")
+        ? 403
+        : 400;
       return res.status(statusCode).json({ error: msg });
     }
   }

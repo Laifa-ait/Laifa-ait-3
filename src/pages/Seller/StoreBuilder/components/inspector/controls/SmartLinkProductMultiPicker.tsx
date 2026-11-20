@@ -81,7 +81,7 @@ export const SmartLinkProductMultiPicker: React.FC<SmartLinkProductMultiPickerPr
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Filtrer vos produits..."
-            className="h-7 w-full rounded-lg border border-slate-200 bg-white pl-7 pr-6 text-[11px] text-[#011C40] focus:border-[#023859] focus:outline-none"
+            className="h-7 w-full rounded-lg border border-slate-200 bg-white pl-7 pr-6 text-[11px] text-[var(--studio-black)] focus:border-[var(--studio-primary)] focus:outline-none"
           />
           {searchQuery && (
             <button
@@ -98,16 +98,16 @@ export const SmartLinkProductMultiPicker: React.FC<SmartLinkProductMultiPickerPr
           type="button"
           onClick={handleToggleSelectAll}
           disabled={filteredProducts.length === 0}
-          className="h-7 px-2 rounded-lg bg-white border border-slate-200 hover:border-[#023859] text-[10px] font-bold text-[#011C40] inline-flex items-center gap-1 shrink-0 cursor-pointer disabled:opacity-40"
+          className="h-7 px-2 rounded-lg bg-white border border-slate-200 hover:border-[var(--studio-primary)] text-[10px] font-bold text-[var(--studio-black)] inline-flex items-center gap-1 shrink-0 cursor-pointer disabled:opacity-40"
         >
           {allFilteredSelected ? (
             <>
-              <Square className="w-3 h-3 text-[#023859]" />
+              <Square className="w-3 h-3 text-[var(--studio-primary)]" />
               <span>Tout décocher</span>
             </>
           ) : (
             <>
-              <CheckSquare className="w-3 h-3 text-[#023859]" />
+              <CheckSquare className="w-3 h-3 text-[var(--studio-primary)]" />
               <span>Tout sélectionner</span>
             </>
           )}
@@ -115,9 +115,9 @@ export const SmartLinkProductMultiPicker: React.FC<SmartLinkProductMultiPickerPr
       </div>
 
       {/* Counter bar */}
-      <div className="flex items-center justify-between px-1 text-[10px] text-slate-500">
+      <div className="flex items-center justify-between px-1 text-[10px] text-slate-500 tabular-nums">
         <span>Cochez tous les produits à afficher au clic :</span>
-        <span className="font-bold text-[#023859]">
+        <span className="font-bold text-[var(--studio-primary)]">
           {selectedIds.length} / {products.length} sélectionné{selectedIds.length > 1 ? "s" : ""}
         </span>
       </div>
@@ -144,7 +144,7 @@ export const SmartLinkProductMultiPicker: React.FC<SmartLinkProductMultiPickerPr
                 }}
                 className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border text-left text-[11px] cursor-pointer transition-colors ${
                   isSel
-                    ? "border-[#023859] bg-[#F0F7FA] text-[#011C40] font-bold"
+                    ? "border-[var(--studio-primary)] bg-[var(--studio-highlight-soft)] text-[var(--studio-black)] font-bold"
                     : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                 }`}
               >
@@ -153,7 +153,7 @@ export const SmartLinkProductMultiPicker: React.FC<SmartLinkProductMultiPickerPr
                     type="checkbox"
                     checked={isSel}
                     readOnly
-                    className="rounded accent-[#023859] shrink-0 pointer-events-none"
+                    className="rounded accent-[var(--studio-primary)] shrink-0 pointer-events-none"
                   />
                   {thumb && (
                     <img
@@ -164,7 +164,7 @@ export const SmartLinkProductMultiPicker: React.FC<SmartLinkProductMultiPickerPr
                   )}
                   <span className="truncate font-semibold">{prod.name}</span>
                 </div>
-                <span className="text-[10px] font-mono text-slate-500 shrink-0">
+                <span className="text-[10px] font-mono text-slate-500 shrink-0 tabular-nums">
                   {Number(prod.price || 0).toLocaleString("fr-DZ")} DA
                 </span>
               </label>

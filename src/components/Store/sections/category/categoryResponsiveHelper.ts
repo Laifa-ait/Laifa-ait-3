@@ -45,8 +45,8 @@ export function useCategoryContainerDevice(
     return () => observer.disconnect();
   }, [containerRef]);
 
+  if (previewViewport) return previewViewport;
   if (isStudioPreview && previewViewport) return previewViewport;
-  if (previewViewport && previewViewport !== "desktop") return previewViewport;
   return measuredDevice;
 }
 

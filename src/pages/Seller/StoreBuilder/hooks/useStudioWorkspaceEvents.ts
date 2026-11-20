@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { SECTION_CATALOG } from "../constants/sectionCatalog";
 import {
@@ -27,7 +27,7 @@ interface UseStudioWorkspaceEventsProps {
   setShowRightSidebar: (show: boolean) => void;
   setNavMode: (mode: StudioNavMode) => void;
   setMobileColumn: (col: MobileStudioColumn) => void;
-  setIsCommandPaletteOpen: (open: boolean) => void;
+  setIsCommandPaletteOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export function useStudioWorkspaceEvents({
@@ -109,25 +109,44 @@ export function useStudioWorkspaceEvents({
     updateSection, duplicateSection, toggleVisibility, deleteSection, clearPendingSectionAction,
   ]);
 
+  const latestRef = useRef({
+    sections,
+    updateSection,
+    addSection,
+    setShowRightSidebar,
+    setNavMode,
+    setMobileColumn,
+    setIsCommandPaletteOpen,
+  });
+  latestRef.current = {
+    sections,
+    updateSection,
+    addSection,
+    setShowRightSidebar,
+    setNavMode,
+    setMobileColumn,
+    setIsCommandPaletteOpen,
+  };
+
   useEffect(() => {
     const navPageHandler = (event: Event) => {
       const custom = event as CustomEvent<{ openCustomizer?: boolean }>;
       if (custom.detail?.openCustomizer) {
-        setShowRightSidebar(true);
-        setNavMode("pages");
-        setMobileColumn("inspector");
+        latestRef.current.setShowRightSidebar(true);
+        latestRef.current.setNavMode("pages");
+        latestRef.current.setMobileColumn("inspector");
       }
     };
 
     const selectNavModeHandler = (event: Event) => {
       const mode = (event as CustomEvent<{ mode?: StudioNavMode }>).detail?.mode;
       if (!mode) return;
-      setShowRightSidebar(true);
-      setNavMode(mode);
-      setMobileColumn(mode === "sections" ? "tree" : "inspector");
+      latestRef.current.setShowRightSidebar(true);
+      latestRef.current.setNavMode(mode);
+      latestRef.current.setMobileColumn(mode === "sections" ? "tree" : "inspector");
     };
 
-    const cmdHandler = () => setIsCommandPaletteOpen(true);
+    const cmdHandler = () => latestRef.current.setIsCommandPaletteOpen(true);
 
     const autoFixHandler = (event: Event) => {
       const custom = event as CustomEvent<{
@@ -135,15 +154,15 @@ export function useStudioWorkspaceEvents({
       }>;
       const fixType = custom.detail?.fixType;
       if (fixType === "fix-contrast") {
-        setShowRightSidebar(true);
-        setNavMode("theme");
-        setMobileColumn("inspector");
+        latestRef.current.setShowRightSidebar(true);
+        latestRef.current.setNavMode("theme");
+        latestRef.current.setMobileColumn("inspector");
         return;
       }
       if (fixType === "open-seo") {
-        setShowRightSidebar(true);
-        setNavMode("settings");
-        setMobileColumn("inspector");
+        latestRef.current.setShowRightSidebar(true);
+        latestRef.current.setNavMode("settings");
+        latestRef.current.setMobileColumn("inspector");
         return;
       }
       const typeMap: Record<string, CustomPageSectionType> = {
@@ -155,18 +174,19 @@ export function useStudioWorkspaceEvents({
       const targetType = typeMap[fixType || ""];
       if (!targetType) return;
       const found = SECTION_CATALOG.find((s) => s.type === targetType);
-      if (found) addSection(found.type, found.defaultSettings, found.title);
+      if (found) latestRef.current.addSection(found.type, found.defaultSettings, found.title);
     };
 
     const patchSettingsHandler = (event: Event) => {
-      if (!updateSection) return;
+      const { updateSection: updateSec, sections: currentSecs } = latestRef.current;
+      if (!updateSec) return;
       const custom = event as CustomEvent<{ sectionId: string; patch: Record<string, unknown> }>;
       const { sectionId, patch } = custom.detail || {};
       if (!sectionId || !patch) return;
-      const targetSec = sections.find((s) => s.id === sectionId);
+      const targetSec = currentSecs.find((s) => s.id === sectionId);
       if (!targetSec) return;
       const { __sectionTitle, ...cleanPatch } = patch;
-      updateSection(sectionId, {
+      updateSec(sectionId, {
         ...(typeof __sectionTitle === "string" ? { title: __sectionTitle } : {}),
         settings: {
           ...((targetSec.settings as unknown as Record<string, unknown>) || {}),
@@ -186,9 +206,16 @@ export function useStudioWorkspaceEvents({
       if (custom.detail?.tab) {
         useStudioStore.getState().setActiveInspectorTab(custom.detail.tab);
       }
-      setShowRightSidebar(true);
-      setNavMode("sections");
-      setMobileColumn("inspector");
+      latestRef.current.setShowRightSidebar(true);
+      latestRef.current.setNavMode("sections");
+      latestRef.current.setMobileColumn("inspector");
+    };
+
+    const keyDownHandler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        latestRef.current.setIsCommandPaletteOpen((prev) => !prev);
+      }
     };
 
     window.addEventListener("studio:navigate-page", navPageHandler);
@@ -197,6 +224,7 @@ export function useStudioWorkspaceEvents({
     window.addEventListener("studio:audit-autofix", autoFixHandler);
     window.addEventListener("studio:patch-section-settings", patchSettingsHandler);
     window.addEventListener("studio:open-inspector-tab", openInspectorTabHandler);
+    window.addEventListener("keydown", keyDownHandler);
 
     return () => {
       window.removeEventListener("studio:navigate-page", navPageHandler);
@@ -205,6 +233,7 @@ export function useStudioWorkspaceEvents({
       window.removeEventListener("studio:audit-autofix", autoFixHandler);
       window.removeEventListener("studio:patch-section-settings", patchSettingsHandler);
       window.removeEventListener("studio:open-inspector-tab", openInspectorTabHandler);
+      window.removeEventListener("keydown", keyDownHandler);
     };
-  }, [sections, updateSection, addSection, setShowRightSidebar, setNavMode, setMobileColumn, setIsCommandPaletteOpen]);
+  }, []);
 }

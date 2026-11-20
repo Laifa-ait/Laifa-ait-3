@@ -120,10 +120,10 @@ export const CatalogCategoriesSubPanel: React.FC<CatalogCategoriesSubPanelProps>
 
       <form
         onSubmit={handleAddCategory}
-        className="p-3 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB] space-y-2.5"
+        className="p-3 rounded-xl bg-[var(--studio-background)] border border-[var(--studio-border)] space-y-2.5"
       >
-        <h4 className="text-xs font-extrabold text-[#17191C] flex items-center gap-1.5">
-          <Plus className="w-3.5 h-3.5 text-[#023859]" />
+        <h4 className="text-xs font-extrabold text-[var(--studio-black)] flex items-center gap-1.5">
+          <Plus className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
           <span>Nouvelle Catégorie / Rayon</span>
         </h4>
         <input
@@ -131,7 +131,7 @@ export const CatalogCategoriesSubPanel: React.FC<CatalogCategoriesSubPanelProps>
           value={newCatName}
           onChange={(e) => setNewCatName(e.target.value)}
           placeholder="Nom du rayon (ex: Nouveautés)"
-          className="w-full h-8 px-2.5 rounded-lg bg-white border border-[#E5E7EB] text-xs font-medium text-[#17191C] focus:outline-none focus:border-[#023859]"
+          className="w-full h-8 px-2.5 rounded-lg bg-white border border-[var(--studio-border)] text-xs font-medium text-[var(--studio-black)] focus:outline-none focus:border-[var(--studio-primary)]"
           required
         />
         <input
@@ -139,25 +139,25 @@ export const CatalogCategoriesSubPanel: React.FC<CatalogCategoriesSubPanelProps>
           value={newCatSubtitle}
           onChange={(e) => setNewCatSubtitle(e.target.value)}
           placeholder="Sous-titre (ex: Édition limitée)"
-          className="w-full h-8 px-2.5 rounded-lg bg-white border border-[#E5E7EB] text-xs font-medium text-[#17191C] focus:outline-none focus:border-[#023859]"
+          className="w-full h-8 px-2.5 rounded-lg bg-white border border-[var(--studio-border)] text-xs font-medium text-[var(--studio-black)] focus:outline-none focus:border-[var(--studio-primary)]"
         />
         <input
           type="url"
           value={newCatImage}
           onChange={(e) => setNewCatImage(e.target.value)}
           placeholder="URL photo (optionnel — visuel auto sinon)"
-          className="w-full h-8 px-2.5 rounded-lg bg-white border border-[#E5E7EB] text-xs font-medium text-[#17191C] focus:outline-none focus:border-[#023859]"
+          className="w-full h-8 px-2.5 rounded-lg bg-white border border-[var(--studio-border)] text-xs font-medium text-[var(--studio-black)] focus:outline-none focus:border-[var(--studio-primary)]"
         />
         <button
           type="submit"
-          className="w-full h-8 bg-[#023859] hover:bg-[#011C40] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
+          className="w-full h-8 bg-[var(--studio-primary)] hover:bg-[var(--studio-primary-hover)] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
         >
           + Ajouter cette catégorie
         </button>
       </form>
 
       <div className="space-y-2">
-        <span className="text-[11px] font-bold text-[#667085] uppercase tracking-wider block">
+        <span className="text-[11px] font-bold text-[var(--studio-muted)] uppercase tracking-wider block">
           Rayons actifs sur la vitrine ({categoriesList.length})
         </span>
         {categoriesList.map((cat) => {
@@ -166,23 +166,23 @@ export const CatalogCategoriesSubPanel: React.FC<CatalogCategoriesSubPanelProps>
           return (
             <div
               key={cat.id}
-              className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl border border-[#E5E7EB] bg-white"
+              className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl border border-[var(--studio-border)] bg-white"
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 {cat.imageUrl ? (
                   <img
                     src={cat.imageUrl}
                     alt={cat.name}
-                    className="w-9 h-9 rounded-lg object-cover border border-[#E5E7EB] shrink-0"
+                    className="w-9 h-9 rounded-lg object-cover border border-[var(--studio-border)] shrink-0"
                   />
                 ) : (
-                  <div className="w-9 h-9 rounded-lg bg-[#023859]/10 text-[#023859] flex items-center justify-center font-bold text-xs shrink-0">
+                  <div className="w-9 h-9 rounded-lg bg-[var(--studio-primary-soft)] text-[var(--studio-primary)] flex items-center justify-center font-bold text-xs shrink-0">
                     {cat.name.slice(0, 2).toUpperCase()}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-[#17191C] truncate">{cat.name}</p>
-                  <div className="flex items-center gap-1.5 text-[10px] text-[#667085] truncate">
+                  <p className="text-xs font-bold text-[var(--studio-black)] truncate">{cat.name}</p>
+                  <div className="flex items-center gap-1.5 text-[10px] text-[var(--studio-muted)] truncate">
                     <span>{cat.subtitle || `/${cat.slug}`}</span>
                     {products.length > 0 && (
                       <span
@@ -200,7 +200,7 @@ export const CatalogCategoriesSubPanel: React.FC<CatalogCategoriesSubPanelProps>
               <button
                 type="button"
                 onClick={() => handleRemoveCategory(cat.id)}
-                className="p-1.5 rounded-lg text-[#98A2B3] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-[var(--studio-muted)] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>

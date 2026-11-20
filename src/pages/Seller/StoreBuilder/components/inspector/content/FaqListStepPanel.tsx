@@ -19,17 +19,17 @@ export const FaqListStepPanel: React.FC<FaqListStepPanelProps> = ({
   onDelete,
 }) => {
   return (
-    <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+    <div className="space-y-3 bg-[var(--studio-background)] p-3 rounded-xl border border-[var(--studio-border)]">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-xs font-bold text-[#011C40] flex items-center gap-1.5">
-          <HelpCircle className="w-3.5 h-3.5 text-[#023859]" />
+        <h3 className="text-xs font-bold text-[var(--studio-black)] flex items-center gap-1.5">
+          <HelpCircle className="w-3.5 h-3.5 text-[var(--studio-primary)]" />
           <span>Questions / Réponses ({items.length}/24)</span>
         </h3>
         <button
           type="button"
           disabled={items.length >= 24}
           onClick={onAdd}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[11px] font-bold cursor-pointer disabled:opacity-40 transition-colors"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--studio-primary)] hover:bg-[var(--studio-primary-hover)] text-[var(--studio-white)] text-[11px] font-bold cursor-pointer disabled:opacity-40 transition-colors"
         >
           <Plus className="h-3.5 w-3.5" />
           <span>Ajouter</span>
@@ -43,8 +43,8 @@ export const FaqListStepPanel: React.FC<FaqListStepPanelProps> = ({
             key={index}
             className={`space-y-2 rounded-xl border p-3 transition-all ${
               isHighlighted
-                ? "border-[#023859] bg-[#F0F7FA]/60 ring-2 ring-[#54ACBF]/35"
-                : "border-slate-200 bg-white"
+                ? "border-[var(--studio-primary)] bg-[var(--studio-highlight-soft)] ring-2 ring-[var(--studio-focus)]/25"
+                : "border-[var(--studio-border)] bg-[var(--studio-white)]"
             }`}
           >
             <div className="flex gap-2">
@@ -67,7 +67,7 @@ export const FaqListStepPanel: React.FC<FaqListStepPanelProps> = ({
               value={String(item.answer || "")}
               onChange={(e) => onUpdate(index, { answer: e.target.value })}
               placeholder="Réponse"
-              className="w-full rounded-lg border border-[#E4E7EC] p-2.5 text-xs focus:border-[#023859] focus:outline-none"
+              className="w-full rounded-lg border border-[var(--studio-border)] p-2.5 text-xs focus:border-[var(--studio-focus)] focus:outline-none"
             />
           </div>
         );

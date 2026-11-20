@@ -1,211 +1,196 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { apiPut, apiPost } from "../../../../lib/api";
 import { useAuth } from "../../../../context/AuthContext";
 import {
-  StudioDataResponse, StoreConfig, CustomPageSection, CustomPageTheme,
-  StoreHistoryEntry, MediaGalleryItem,
+  StoreConfig, StoreLayoutVersion,
+  StoreHistoryEntry, MediaGalleryItem, CustomPageTheme,
 } from "../../../../domains/seller/customPage.types";
 import { Product } from "../../../../domains/product/product.types";
+import { toast } from "react-hot-toast";
+import { useStudioSaveManager, SaveStatus } from "./useStudioSaveManager";
+import { writeLocalStudioThemeBackup } from "./studioBackupStorage";
 import { useStudioUndoRedo } from "./useStudioUndoRedo";
-import { useStudioSaveManager } from "./useStudioSaveManager";
+import { buildSectionMutationHandlers } from "./studioSectionMutations";
 import { useStudioMediaManager } from "./useStudioMediaManager";
 import { useStudioStore } from "../store/useStudioStore";
-import { buildSectionMutationHandlers } from "./studioSectionMutations";
 import { CatalogLoadStatus, fetchSellerCatalogSafely, fetchStudioBundle } from "./studioCatalogLoader";
-import { toast } from "react-hot-toast";
 
-export type { SaveStatus } from "./useStudioSaveManager";
-export type { CatalogLoadStatus } from "./studioCatalogLoader";
+export type { SaveStatus, CatalogLoadStatus };
 
 export function useSellerStudio() {
   const { currentUser } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
+  const [draftLayout, setDraftLayout] = useState<StoreLayoutVersion | null>(null);
+  const [publishedLayout, setPublishedLayout] = useState<StoreLayoutVersion | null>(null);
   const [historyList, setHistoryList] = useState<StoreHistoryEntry[]>([]);
   const [mediaGallery, setMediaGallery] = useState<MediaGalleryItem[]>([]);
-  const [publishedLayout, setPublishedLayout] = useState<StudioDataResponse["publishedLayout"]>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [catalogStatus, setCatalogStatus] = useState<CatalogLoadStatus>("idle");
+  const [catalogStatus, setCatalogStatus] = useState<CatalogLoadStatus>("loading");
   const [catalogError, setCatalogError] = useState<string | null>(null);
-  const [isPublishing, setIsPublishing] = useState(false);
+  const [catalogTruncated, setCatalogTruncated] = useState<boolean>(false);
+  const [selectedSectionId, setSelectedSectionIdState] = useState<string | null>(null);
 
-  const selectedSectionId = useStudioStore((s) => s.selectedSectionId);
+  const isPublishingRef = useRef<boolean>(false);
+  const isRollingBackRef = useRef<boolean>(false);
+
   const selectSectionInStore = useStudioStore((s) => s.selectSection);
-  const setSelectedSectionId = useCallback((id: string | null) => selectSectionInStore(id), [selectSectionInStore]);
+  const setSelectedSectionId = useCallback(
+    (id: string | null) => { setSelectedSectionIdState(id); selectSectionInStore(id); },
+    [selectSectionInStore]
+  );
 
-  const initialSectionsRef = useRef<CustomPageSection[]>([]);
-  const fetchRequestIdRef = useRef(0);
-  const activeUserIdRef = useRef<string | undefined>(currentUser?.uid);
-  const isPublishingRef = useRef(false);
-
+  const backupKey = currentUser?.uid ? `olmart_studio_backup_${currentUser.uid}` : "olmart_studio_unsaved_backup";
+  const saveManager = useStudioSaveManager({ debounceMs: 1500, maxRetries: 3, backupKey });
   const {
-    saveStatus, setSaveStatus, hasUnsavedChanges, saveDraft, triggerAutoSave,
-    syncServerDraftRevision, recoverableBackup, checkRecoverableBackup, clearLocalBackup,
-    confirmedServerRevision,
-  } = useStudioSaveManager({
-    backupKey: currentUser?.uid ? `olmart_studio_unsaved_backup_${currentUser.uid}` : "olmart_studio_unsaved_backup",
-  });
+    saveStatus, setSaveStatus, hasUnsavedChanges, setHasUnsavedChanges,
+    saveDraft, triggerAutoSave, syncServerDraftRevision, retryCount, lastSaveError,
+    recoverableBackup, checkRecoverableBackup, clearLocalBackup, dismissRecoveryBanner, confirmedServerRevision,
+  } = saveManager;
 
-  const {
-    uploadMedia, deleteMedia, isUploading: isMediaUploading,
-    uploadProgress: mediaUploadProgress, uploadError: mediaUploadError,
-  } = useStudioMediaManager({
-    userId: currentUser?.uid, mediaGallery, setMediaGallery, setStoreConfig,
-  });
-
-  const handleRestoreThemeFromHistory = useCallback((restoredTheme: CustomPageTheme) => {
+  const persistThemeRestore = useCallback(async (restoredTheme: CustomPageTheme) => {
     setStoreConfig((prev) => (prev ? { ...prev, theme: restoredTheme } : prev));
-    setSaveStatus("saving");
-    void apiPut<{ success: boolean; data: StoreConfig }>("/api/v1/seller/store/config", { theme: restoredTheme })
-      .then((res) => { if (res?.data) setStoreConfig(res.data); setSaveStatus("saved"); })
-      .catch((err: unknown) => {
-        setSaveStatus("error");
-        toast.error(err instanceof Error ? err.message : "Échec de la synchronisation du thème restauré avec le serveur");
-      });
-  }, [setSaveStatus]);
+    try {
+      const response = await apiPut<{ success: boolean; data: StoreConfig }>("/api/v1/seller/store/config", { theme: restoredTheme });
+      if (response?.data) setStoreConfig(response.data);
+    } catch { /* Silent restore fallback */ }
+  }, []);
 
+  const historyStorageKey = currentUser?.uid ? `olmart_studio_history_${currentUser.uid}` : "olmart_studio_history_session";
   const {
     sections, setSectionsDirectly, resetHistory, pushState, pushThemeState,
-    undo, redo, canUndo, canRedo, currentActionLabel,
-  } = useStudioUndoRedo(initialSectionsRef.current, triggerAutoSave, {
-    storageKey: currentUser?.uid ? `olmart_studio_undo_${currentUser.uid}` : "olmart_studio_undo_session",
+    undo, redo, canUndo, canRedo, currentActionLabel, historyDepth, futureDepth,
+  } = useStudioUndoRedo(draftLayout?.sections || [], triggerAutoSave, {
+    storageKey: historyStorageKey,
     initialTheme: storeConfig?.theme,
-    onThemeChange: handleRestoreThemeFromHistory,
+    onThemeChange: (restoredTheme) => { void persistThemeRestore(restoredTheme); },
   });
 
-  const fetchStudioData = useCallback(async (resetUndoHistory = false) => {
-    const reqId = ++fetchRequestIdRef.current;
+  const reloadCatalog = useCallback(async () => {
+    setCatalogStatus("loading");
+    setCatalogError(null);
+    const outcome = await fetchSellerCatalogSafely();
+    if (outcome.ok) {
+      setProducts(outcome.products);
+      setCatalogTruncated(outcome.truncated);
+      setCatalogStatus("loaded");
+    } else {
+      setCatalogStatus("error");
+      setCatalogError(outcome.errorMessage);
+    }
+  }, []);
+
+  const refreshData = useCallback(async (discardLocalBackup = false, preserveUndoHistory = false) => {
+    if (!currentUser?.uid) { setLoading(false); return; }
     try {
       setLoading(true);
       setCatalogStatus("loading");
       setCatalogError(null);
       const { studioRes, catalog } = await fetchStudioBundle();
-      if (reqId !== fetchRequestIdRef.current) return;
+      if (studioRes?.data) {
+        const data = studioRes.data;
+        setStoreConfig(data.storeConfig);
+        setDraftLayout(data.draftLayout);
+        setPublishedLayout(data.publishedLayout);
+        setHistoryList(data.historyList || []);
+        setMediaGallery(data.mediaGallery || []);
+        syncServerDraftRevision(data.draftLayout?.draftRevision);
 
-      if (studioRes?.success && studioRes.data) {
-        setStoreConfig(studioRes.data.storeConfig);
-        const draftSections = studioRes.data.draftLayout?.sections || [];
-        syncServerDraftRevision(studioRes.data.draftLayout?.draftRevision ?? 1);
-        initialSectionsRef.current = draftSections;
-        if (resetUndoHistory) {
-          resetHistory(draftSections, studioRes.data.storeConfig?.theme, "Version restaurée");
-          clearLocalBackup();
-          setSaveStatus("saved");
-        } else {
-          setSectionsDirectly(draftSections, studioRes.data.storeConfig?.theme, false);
-          checkRecoverableBackup(studioRes.data.draftLayout?.updatedAt, draftSections);
+        const loadedSections = data.draftLayout?.sections || [];
+        setSectionsDirectly(loadedSections, data.storeConfig?.theme, preserveUndoHistory);
+        if (discardLocalBackup) clearLocalBackup();
+        else checkRecoverableBackup(data.draftLayout?.updatedAt, loadedSections);
+        if (loadedSections.length > 0) {
+          setSelectedSectionIdState((prev) => {
+            if (!prev) { selectSectionInStore(loadedSections[0].id); return loadedSections[0].id; }
+            return prev;
+          });
         }
-        setHistoryList(studioRes.data.historyList || []);
-        setMediaGallery(studioRes.data.mediaGallery || []);
-        setPublishedLayout(studioRes.data.publishedLayout || null);
-        if (draftSections.length > 0) setSelectedSectionId(draftSections[0].id);
       }
-
       if (catalog.ok) {
         setProducts(catalog.products);
+        setCatalogTruncated(catalog.truncated);
         setCatalogStatus("loaded");
-        setCatalogError(null);
       } else {
+        setProducts([]);
+        setCatalogTruncated(false);
         setCatalogStatus("error");
         setCatalogError(catalog.errorMessage);
       }
-    } catch (err: unknown) {
-      if (reqId !== fetchRequestIdRef.current) return;
-      const errMsg = err instanceof Error ? err.message : "Erreur lors du chargement du Studio";
-      setCatalogStatus("error");
-      setCatalogError(errMsg);
-      toast.error(errMsg);
+      setSaveStatus("idle");
+      setHasUnsavedChanges(false);
+    } catch {
+      toast.error("Impossible de charger votre studio boutique");
+      setSaveStatus("error");
     } finally {
-      if (reqId === fetchRequestIdRef.current) setLoading(false);
+      setLoading(false);
     }
-  }, [checkRecoverableBackup, clearLocalBackup, resetHistory, setSaveStatus, setSectionsDirectly, setSelectedSectionId, syncServerDraftRevision]);
+  }, [currentUser?.uid, setSectionsDirectly, selectSectionInStore, setSaveStatus, setHasUnsavedChanges, syncServerDraftRevision, clearLocalBackup, checkRecoverableBackup]);
 
-  const reloadCatalog = useCallback(async () => {
-    setCatalogStatus("loading");
-    setCatalogError(null);
-    const catalog = await fetchSellerCatalogSafely();
-    if (catalog.ok) {
-      setProducts(catalog.products);
-      setCatalogStatus("loaded");
-    } else {
-      setCatalogStatus("error");
-      setCatalogError(catalog.errorMessage);
-      toast.error(catalog.errorMessage || "Impossible de recharger le catalogue");
-    }
-  }, []);
-
-  useEffect(() => {
-    const uid = currentUser?.uid;
-    if (activeUserIdRef.current !== uid) {
-      activeUserIdRef.current = uid;
-      setStoreConfig(null);
-      setProducts([]);
-      setCatalogStatus("idle");
-      setCatalogError(null);
-      setHistoryList([]);
-      setMediaGallery([]);
-      setPublishedLayout(null);
-      resetHistory([], undefined, "Changement de session");
-    }
-    void fetchStudioData();
-  }, [currentUser?.uid, fetchStudioData, resetHistory]);
+  useEffect(() => { void refreshData(); }, [refreshData]);
 
   const applyRecoveredBackup = useCallback(() => {
-    if (!recoverableBackup) return;
-    pushState(recoverableBackup.sections, undefined, "Restauration sauvegarde locale");
+    if (!recoverableBackup?.sections) return;
+    if (recoverableBackup.theme) void persistThemeRestore(recoverableBackup.theme);
+    pushState(recoverableBackup.sections, recoverableBackup.theme || storeConfig?.theme);
+    dismissRecoveryBanner();
+    toast.success("Modifications locales restaurées");
+  }, [recoverableBackup, pushState, storeConfig?.theme, persistThemeRestore, dismissRecoveryBanner]);
+
+  const dismissRecoveredBackup = useCallback(() => {
     clearLocalBackup();
-    toast.success("Modifications locales non sauvegardées restaurées !");
-  }, [clearLocalBackup, pushState, recoverableBackup]);
+    toast.success("Sauvegarde locale ignorée");
+  }, [clearLocalBackup]);
 
-  const dismissRecoveredBackup = useCallback(() => { clearLocalBackup(); }, [clearLocalBackup]);
-
-  const {
-    addSection, updateSection, reorderSections, deleteSection, toggleVisibility, duplicateSection, replaceSections,
-  } = buildSectionMutationHandlers({
-    sections, selectedSectionId, setSelectedSectionId, pushState,
-    activeSector: storeConfig?.theme?.sector, storeWilaya: storeConfig?.wilaya, products,
-  });
-
-  const saveStoreConfig = async (
-    updatedConfigPayload: Partial<StoreConfig>,
-    options?: { skipUndoPush?: boolean }
-  ) => {
+  const saveStoreConfig = async (updatedConfig: Partial<StoreConfig>, options?: { skipUndoPush?: boolean }) => {
     try {
       setSaveStatus("saving");
-      if (updatedConfigPayload.theme && !options?.skipUndoPush) {
-        pushThemeState(updatedConfigPayload.theme, "Palette & Typographie");
-      }
-      const res = await apiPut<{ success: boolean; data: StoreConfig }>("/api/v1/seller/store/config", updatedConfigPayload);
-      if (res?.data) setStoreConfig(res.data);
+      if (updatedConfig.theme && !options?.skipUndoPush) pushState(sections, updatedConfig.theme);
+      const response = await apiPut<{ success: boolean; data: StoreConfig }>("/api/v1/seller/store/config", updatedConfig);
+      if (response?.data) setStoreConfig(response.data);
       setSaveStatus("saved");
-      toast.success("Paramètres de la boutique mis à jour !");
+      toast.success("Paramètres de la boutique enregistrés");
     } catch (err: unknown) {
+      if (updatedConfig.theme) writeLocalStudioThemeBackup(backupKey, updatedConfig.theme, sections);
       setSaveStatus("error");
-      toast.error(err instanceof Error ? err.message : "Échec de la mise à jour");
+      toast.error(err instanceof Error ? err.message : "Erreur de sauvegarde des paramètres");
       throw err;
     }
   };
 
-  const publishStudio = async (changeSummary?: string): Promise<boolean> => {
+  const sectionMutations = buildSectionMutationHandlers({
+    sections, selectedSectionId, setSelectedSectionId, pushState,
+    activeSector: storeConfig?.theme?.sector, storeWilaya: storeConfig?.wilaya, products,
+  });
+
+  const mediaManager = useStudioMediaManager({
+    userId: currentUser?.uid, mediaGallery, setMediaGallery, setStoreConfig,
+  });
+
+  const publishStudio = async (changeSummary = "Mise à jour depuis le Studio"): Promise<boolean> => {
     if (isPublishingRef.current) return false;
     isPublishingRef.current = true;
-    setIsPublishing(true);
     try {
-      setSaveStatus("saving");
+      setIsPublishing(true);
       const confirmedRevision = await saveDraft(sections);
       if (confirmedRevision === null) return false;
-      await apiPost("/api/v1/seller/studio/layout/publish", {
-        changeSummary: changeSummary || "Mise en ligne de la vitrine",
-        expectedRevision: confirmedRevision,
+      setSaveStatus("saving");
+      const publishRes = await apiPost<{ success: boolean; data?: StoreLayoutVersion }>("/api/v1/seller/studio/layout/publish", {
+        changeSummary, expectedRevision: confirmedRevision,
       });
+      if (publishRes && publishRes.success === false) throw new Error("La publication n'a pas été confirmée par le serveur.");
+      if (publishRes?.data) setPublishedLayout(publishRes.data);
       setSaveStatus("saved");
-      const targetSlug = storeConfig?.shopSlug || storeConfig?.sellerId || "";
-      toast.success(targetSlug ? `Boutique publiée en direct sur /store/${targetSlug} !` : "Boutique publiée avec succès !");
-      await fetchStudioData();
+      setHasUnsavedChanges(false);
+      toast.success("Votre boutique est publiée en ligne !");
+      await refreshData(true, true);
       return true;
     } catch (err: unknown) {
-      setSaveStatus("error");
-      toast.error(err instanceof Error ? err.message : "Échec de la publication");
+      const msg = err instanceof Error ? err.message : "Échec de la publication";
+      if (msg.includes("CONFLICT_NEWER_VERSION") || msg.includes("Conflit de version") || msg.includes("Conflit de révision")) setSaveStatus("conflict");
+      else setSaveStatus("error");
+      toast.error(msg);
       return false;
     } finally {
       isPublishingRef.current = false;
@@ -213,32 +198,46 @@ export function useSellerStudio() {
     }
   };
 
-  const rollbackVersion = async (versionNumber: number) => {
+  const rollbackVersion = async (versionNumber: number): Promise<boolean> => {
+    if (isRollingBackRef.current) return false;
+    isRollingBackRef.current = true;
     try {
       setSaveStatus("saving");
-      await apiPost("/api/v1/seller/studio/layout/rollback", {
+      const res = await apiPost<{ success: boolean; data?: StoreLayoutVersion }>("/api/v1/seller/studio/layout/rollback", {
         versionNumber,
         ...(typeof confirmedServerRevision === "number" ? { expectedRevision: confirmedServerRevision } : {}),
       });
+      if (res && res.success === false) throw new Error("La restauration n'a pas été confirmée par le serveur.");
+      if (typeof res?.data?.draftRevision === "number") syncServerDraftRevision(res.data.draftRevision);
+      if (Array.isArray(res?.data?.sections)) {
+        setDraftLayout(res.data);
+        pushState(res.data.sections, storeConfig?.theme, `Restauration v${versionNumber}`);
+      }
       setSaveStatus("saved");
-      toast.success(`Restauration vers version #${versionNumber} effectuée !`);
-      await fetchStudioData(true);
+      setHasUnsavedChanges(false);
+      toast.success(`Version v${versionNumber} restaurée !`);
+      await refreshData(true, true);
+      return true;
     } catch (err: unknown) {
-      setSaveStatus("error");
-      toast.error(err instanceof Error ? err.message : "Échec de la restauration");
+      const msg = err instanceof Error ? err.message : "Échec de la restauration";
+      if (msg.includes("CONFLICT_NEWER_VERSION") || msg.includes("Conflit de version") || msg.includes("Conflit de révision")) setSaveStatus("conflict");
+      else setSaveStatus("error");
+      toast.error(msg);
+      return false;
+    } finally {
+      isRollingBackRef.current = false;
     }
   };
 
-  const saveDraftNow = useCallback(async () => await saveDraft(sections), [saveDraft, sections]);
-  const forceOverwriteDraft = useCallback(async () => await saveDraft(sections, true), [saveDraft, sections]);
-
   return {
-    loading, saveStatus, isPublishing, storeConfig, sections, products, catalogStatus, catalogError,
-    reloadCatalog, historyList, mediaGallery, publishedLayout, selectedSectionId, setSelectedSectionId,
-    hasUnsavedChanges, recoverableBackup, applyRecoveredBackup, dismissRecoveredBackup, addSection,
-    updateSection, reorderSections, deleteSection, duplicateSection, toggleVisibility, replaceSections,
-    saveStoreConfig, uploadMedia, deleteMedia, isMediaUploading, mediaUploadProgress, mediaUploadError,
-    publishStudio, rollbackVersion, saveDraftNow, forceOverwriteDraft, confirmedServerRevision,
-    triggerAutoSave, refreshData: fetchStudioData, undo, redo, canUndo, canRedo, currentActionLabel,
+    loading, saveStatus, isPublishing, hasUnsavedChanges, retryCount, lastSaveError, recoverableBackup,
+    applyRecoveredBackup, dismissRecoveredBackup, storeConfig, draftLayout, publishedLayout,
+    sections, historyList, mediaGallery, products, catalogStatus, catalogError, catalogTruncated, reloadCatalog,
+    selectedSectionId, setSelectedSectionId, ...sectionMutations, saveStoreConfig,
+    saveDraftNow: () => saveDraft(sections), forceOverwriteDraft: () => saveDraft(sections, true),
+    uploadMedia: mediaManager.uploadMedia, deleteMedia: mediaManager.deleteMedia,
+    isMediaUploading: mediaManager.isUploading, mediaUploadProgress: mediaManager.uploadProgress,
+    mediaUploadError: mediaManager.uploadError, publishStudio, rollbackVersion, refreshData,
+    undo, redo, canUndo, canRedo, resetHistory, pushThemeState, currentActionLabel, historyDepth, futureDepth,
   };
 }

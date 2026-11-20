@@ -1,14 +1,31 @@
 import React from "react";
-import { Palette, Sparkles } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import {
+  CustomPageTheme,
   HeroBannerSettings,
   HeroDeviceMeasureConfig,
   HeroLayoutModelId,
 } from "../../../../../../domains/seller/customPage.types";
 import { Product } from "../../../../../../domains/product/product.types";
 import { ResolvedHeroDeviceProfile } from "../../../../../../components/Store/sections/hero/heroResponsiveHelper";
-import { HERO_COLOR_PALETTES } from "../../../constants/heroBannerModels";
+import {
+  HERO_COLOR_PALETTES,
+  buildThemeHeroPalette,
+  getHeroModelCapabilities,
+} from "../../../constants/heroBannerModels";
+import {
+  CINEMATIC_OVERLAY_DIRECTIONS,
+  CINEMATIC_OVERLAY_PRESETS,
+  CINEMATIC_OVERLAY_ZONES,
+} from "../../../../../../components/Store/sections/CinematicBanner/cinematicBanner.defaults";
+import {
+  CinematicOverlayDirection,
+  CinematicOverlayZone,
+} from "../../../../../../components/Store/sections/CinematicBanner/cinematicBanner.types";
+import { resolveCinematicBannerConfig } from "../../../../../../components/Store/sections/CinematicBanner/cinematicBanner.utils";
 import { HeroPhotoAndCtaStepPanels } from "./HeroPhotoAndCtaStepPanels";
+import { HeroColorElementPickers } from "./HeroColorElementPickers";
+import { DEFAULT_MODERN_THEME } from "../../../constants/studioThemeDefaults";
 
 interface HeroModelSpecificConfigPanelProps {
   activeStep?: "all" | 1 | 2 | 3 | 4;
@@ -17,6 +34,7 @@ interface HeroModelSpecificConfigPanelProps {
   profile: ResolvedHeroDeviceProfile;
   settings: Record<string, unknown>;
   products: Product[];
+  storeTheme?: CustomPageTheme;
   inputClass: string;
   labelClass: string;
   onSettingsChange: (fieldOrPatch: string | Record<string, unknown>, value?: unknown) => void;
@@ -24,165 +42,192 @@ interface HeroModelSpecificConfigPanelProps {
 }
 
 export const HeroModelSpecificConfigPanel: React.FC<HeroModelSpecificConfigPanelProps> = ({
-  activeStep = 1,
-  activeModel,
-  deviceTab,
-  profile,
-  settings,
-  products,
-  inputClass,
-  labelClass,
-  onSettingsChange,
-  onDeviceConfigChange,
+  activeStep = 1, activeModel, deviceTab, profile, settings, products, storeTheme,
+  inputClass, labelClass, onSettingsChange, onDeviceConfigChange,
 }) => {
   const s = settings as Partial<HeroBannerSettings>;
-  const isTextOverImage = activeModel === "cinema-full" || activeModel === "atelier-collage";
+  const theme = storeTheme || DEFAULT_MODERN_THEME;
+  const caps = getHeroModelCapabilities(activeModel);
   const showStep2 = activeStep === "all" || activeStep === 2;
+  const cinematicCfg = caps.supportsOverlayDirection ? resolveCinematicBannerConfig(s, theme) : null;
+
+  const isOverlayActive = s.overlayEnabled !== false && (s.overlayOpacity ?? 0) > 0;
+  const resolvedOverlayColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(s.overlayColor || "")
+    ? (s.overlayColor as string)
+    : "#0A0C10";
 
   const applyPalette = (p: (typeof HERO_COLOR_PALETTES)[number]): void => {
+    const isLightPalette = p.id === "pure-white" || p.id === "cream-earth" || p.id === "sage-linen";
     onSettingsChange({
-      paletteId: p.id,
-      bannerBgColor: p.bannerBgColor,
-      bannerBgGradient: p.bannerBgGradient,
-      titleColor: p.titleColor,
-      subtitleColor: p.subtitleColor,
-      ctaBgColor: p.ctaBgColor,
-      ctaTextColor: p.ctaTextColor,
+      paletteId: p.id, bannerBgColor: p.bannerBgColor, bannerBgGradient: p.bannerBgGradient,
+      titleColor: p.titleColor, subtitleColor: p.subtitleColor, ctaBgColor: p.ctaBgColor,
+      ctaTextColor: p.ctaTextColor, useCornerColors: false,
+      ...(activeModel === "cinema-full"
+        ? {
+            overlayEnabled: true,
+            overlayColor: isLightPalette ? p.bannerBgColor : "#0A0C10",
+            overlayOpacity: Math.max(45, s.overlayOpacity ?? 45),
+          }
+        : {}),
+    });
+  };
+
+  const resetToTheme = (): void => {
+    const tp = buildThemeHeroPalette(theme);
+    onSettingsChange({
+      paletteId: undefined, bannerBgColor: undefined, bannerBgGradient: "", bannerBorderColor: undefined,
+      bannerBorderWidthPx: undefined, bannerShadowColor: undefined, overlayColor: undefined,
+      titleColor: undefined, subtitleColor: undefined, badgeBgColor: undefined, badgeTextColor: undefined,
+      ctaBgColor: undefined, ctaTextColor: undefined, ctaBorderColor: undefined, useCornerColors: false,
+      ...(activeModel === "cinema-full"
+        ? { titleColor: "#FFFFFF", subtitleColor: "#F4F4F5", ctaBgColor: tp.ctaBgColor, ctaTextColor: tp.ctaTextColor }
+        : {}),
+    });
+  };
+
+  const updateOverlay = (patch: {
+    intensity?: number;
+    preset?: "none" | "soft" | "medium" | "strong";
+    direction?: CinematicOverlayDirection;
+    zone?: CinematicOverlayZone;
+    color?: string;
+    enabled?: boolean;
+  }) => {
+    const nextIntensity = patch.intensity ?? s.overlayOpacity ?? 0;
+    const nextEnabled = patch.enabled !== undefined ? patch.enabled : nextIntensity > 0;
+    const prevOverlay = cinematicCfg?.overlay || {
+      preset: "soft" as const, intensity: nextIntensity, direction: "radial" as const, zone: "text-only" as const,
+    };
+    // Si l'utilisateur choisit une direction alors que la zone est "text-only", on bascule automatiquement sur "directional-edge" pour que l'effet soit immédiatement visible
+    const effectiveZone =
+      patch.zone ??
+      (patch.direction && prevOverlay.zone === "text-only" ? "directional-edge" : prevOverlay.zone);
+
+    onSettingsChange({
+      overlayOpacity: nextIntensity,
+      overlayEnabled: nextEnabled,
+      ...(patch.color !== undefined ? { overlayColor: patch.color || undefined } : {}),
+      ...(cinematicCfg
+        ? {
+            cinematicConfig: {
+              ...cinematicCfg,
+              overlay: { ...prevOverlay, ...patch, zone: effectiveZone, intensity: nextIntensity },
+            },
+          }
+        : {}),
     });
   };
 
   return (
     <div className="space-y-4">
       {showStep2 && (
-        <div className="p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-3" data-testid="hero-step-panel-2">
-          <span className="text-[11px] font-black uppercase tracking-wider text-zinc-800 flex items-center gap-1.5">
-            <Palette className="w-3.5 h-3.5 text-zinc-700" /> Étape 2 — Sélecteurs de Couleur par Élément &amp; 4 Coins
-          </span>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-            {HERO_COLOR_PALETTES.map((pal) => (
-              <button
-                key={pal.id}
-                type="button"
-                data-testid={`hero-palette-${pal.id}`}
-                onClick={() => applyPalette(pal)}
-                className={`p-2 rounded-xl border text-start transition-all flex items-center gap-2 cursor-pointer ${
-                  s.paletteId === pal.id
-                    ? "border-zinc-900 ring-1 ring-zinc-900 bg-white"
-                    : "border-zinc-200 bg-white hover:border-zinc-300"
-                }`}
-              >
-                <span className="w-4 h-4 rounded-full border border-black/15 shrink-0" style={{ backgroundColor: pal.bannerBgColor }} />
-                <span className="text-[10px] font-bold text-zinc-800 truncate">{pal.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 gap-1.5 pt-1">
-            <label className="text-[9.5px] font-bold text-zinc-600 flex items-center justify-between bg-white px-2.5 py-1.5 rounded-xl border border-zinc-200">
-              <span>Fond Bannière</span>
-              <input type="color" data-testid="hero-bg-color" value={s.bannerBgColor || "#FAF6F0"} onChange={(e) => onSettingsChange({ bannerBgColor: e.target.value, bannerBgGradient: "", paletteId: "custom" })} className="w-6 h-5 rounded cursor-pointer" />
-            </label>
-            <label className="text-[9.5px] font-bold text-zinc-600 flex items-center justify-between bg-white px-2.5 py-1.5 rounded-xl border border-zinc-200">
-              <span>Bordure Cadre</span>
-              <input type="color" data-testid="hero-banner-border-color" value={s.bannerBorderColor || "#E4E7EC"} onChange={(e) => onSettingsChange("bannerBorderColor", e.target.value)} className="w-6 h-5 rounded cursor-pointer" />
-            </label>
-            <label className="text-[9.5px] font-bold text-zinc-600 flex items-center justify-between bg-white px-2.5 py-1.5 rounded-xl border border-zinc-200">
-              <span>Couleur Titre</span>
-              <input type="color" data-testid="hero-title-color" value={s.titleColor || "#111827"} onChange={(e) => onSettingsChange({ titleColor: e.target.value, paletteId: "custom" })} className="w-6 h-5 rounded cursor-pointer" />
-            </label>
-            <label className="text-[9.5px] font-bold text-zinc-600 flex items-center justify-between bg-white px-2.5 py-1.5 rounded-xl border border-zinc-200">
-              <span>Couleur Phrase</span>
-              <input type="color" data-testid="hero-subtitle-color" value={s.subtitleColor || "#52525B"} onChange={(e) => onSettingsChange({ subtitleColor: e.target.value, paletteId: "custom" })} className="w-6 h-5 rounded cursor-pointer" />
-            </label>
-            <label className="text-[9.5px] font-bold text-zinc-600 flex items-center justify-between bg-white px-2.5 py-1.5 rounded-xl border border-zinc-200">
-              <span>Fond Badge</span>
-              <input type="color" data-testid="hero-badge-bg-color" value={s.badgeBgColor || "#B45309"} onChange={(e) => onSettingsChange("badgeBgColor", e.target.value)} className="w-6 h-5 rounded cursor-pointer" />
-            </label>
-            <label className="text-[9.5px] font-bold text-zinc-600 flex items-center justify-between bg-white px-2.5 py-1.5 rounded-xl border border-zinc-200">
-              <span>Texte Badge</span>
-              <input type="color" data-testid="hero-badge-text-color" value={s.badgeTextColor || "#FFFFFF"} onChange={(e) => onSettingsChange("badgeTextColor", e.target.value)} className="w-6 h-5 rounded cursor-pointer" />
-            </label>
-            <label className="text-[9.5px] font-bold text-zinc-600 flex items-center justify-between bg-white px-2.5 py-1.5 rounded-xl border border-zinc-200">
-              <span>Fond Bouton</span>
-              <input type="color" data-testid="hero-step2-cta-bg-color" value={s.ctaBgColor || "#111827"} onChange={(e) => onSettingsChange("ctaBgColor", e.target.value)} className="w-6 h-5 rounded cursor-pointer" />
-            </label>
-            <label className="text-[9.5px] font-bold text-zinc-600 flex items-center justify-between bg-white px-2.5 py-1.5 rounded-xl border border-zinc-200">
-              <span>Texte Bouton</span>
-              <input type="color" data-testid="hero-step2-cta-text-color" value={s.ctaTextColor || "#FFFFFF"} onChange={(e) => onSettingsChange("ctaTextColor", e.target.value)} className="w-6 h-5 rounded cursor-pointer" />
-            </label>
-          </div>
-
-          <div className="p-2.5 rounded-xl bg-white border border-zinc-200 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase text-zinc-700 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-600" /> Couleur de Chaque Coin (Mesh 4 Coins)
-              </span>
-              <button
-                type="button"
-                data-testid="hero-toggle-corner-colors"
-                onClick={() =>
-                  onSettingsChange({
-                    useCornerColors: !s.useCornerColors,
-                    cornerColorTl: s.cornerColorTl || s.bannerBgColor || "#FAF6F0",
-                    cornerColorTr: s.cornerColorTr || "#F3E8D6",
-                    cornerColorBr: s.cornerColorBr || "#EFE2CC",
-                    cornerColorBl: s.cornerColorBl || "#FFFFFF",
-                  })
-                }
-                className={`px-2 py-0.5 rounded-lg text-[9.5px] font-bold border cursor-pointer ${
-                  s.useCornerColors ? "bg-zinc-900 text-white border-zinc-900" : "bg-zinc-50 text-zinc-600 border-zinc-200"
-                }`}
-              >
-                {s.useCornerColors ? "✓ 4 Coins Actifs" : "Activer 4 Coins"}
+        <div className="space-y-4 select-none" data-testid="hero-step-panel-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12px] font-semibold text-slate-900">Harmonies rapides</span>
+              <button type="button" data-testid="hero-reset-colors-theme-btn" onClick={resetToTheme} className="text-[11px] font-medium text-slate-500 hover:text-slate-900 flex items-center gap-1 cursor-pointer">
+                <RotateCcw className="w-3 h-3" /> Couleurs du site
               </button>
             </div>
-
-            {s.useCornerColors && (
-              <div className="grid grid-cols-2 gap-1.5" data-testid="hero-corner-colors-grid">
-                <label className="text-[9.5px] font-bold text-zinc-600 flex items-center justify-between bg-zinc-50 px-2 py-1 rounded-lg border border-zinc-200">
-                  <span>↖ Haut-Gauche</span>
-                  <input type="color" data-testid="hero-corner-color-tl" value={s.cornerColorTl || "#FAF6F0"} onChange={(e) => onSettingsChange("cornerColorTl", e.target.value)} className="w-5 h-5 rounded cursor-pointer" />
-                </label>
-                <label className="text-[9.5px] font-bold text-zinc-600 flex items-center justify-between bg-zinc-50 px-2 py-1 rounded-lg border border-zinc-200">
-                  <span>↗ Haut-Droit</span>
-                  <input type="color" data-testid="hero-corner-color-tr" value={s.cornerColorTr || "#F3E8D6"} onChange={(e) => onSettingsChange("cornerColorTr", e.target.value)} className="w-5 h-5 rounded cursor-pointer" />
-                </label>
-                <label className="text-[9.5px] font-bold text-zinc-600 flex items-center justify-between bg-zinc-50 px-2 py-1 rounded-lg border border-zinc-200">
-                  <span>↙ Bas-Gauche</span>
-                  <input type="color" data-testid="hero-corner-color-bl" value={s.cornerColorBl || "#FFFFFF"} onChange={(e) => onSettingsChange("cornerColorBl", e.target.value)} className="w-5 h-5 rounded cursor-pointer" />
-                </label>
-                <label className="text-[9.5px] font-bold text-zinc-600 flex items-center justify-between bg-zinc-50 px-2 py-1 rounded-lg border border-zinc-200">
-                  <span>↘ Bas-Droit</span>
-                  <input type="color" data-testid="hero-corner-color-br" value={s.cornerColorBr || "#EFE2CC"} onChange={(e) => onSettingsChange("cornerColorBr", e.target.value)} className="w-5 h-5 rounded cursor-pointer" />
-                </label>
-              </div>
-            )}
+            <div className="grid grid-cols-3 gap-1.5">
+              {HERO_COLOR_PALETTES.map((pal) => (
+                <button
+                  key={pal.id} type="button" data-testid={`hero-palette-${pal.id}`}
+                  onClick={() => applyPalette(pal)}
+                  className={`h-9 px-2 rounded-lg border text-start flex items-center gap-1.5 cursor-pointer transition-all ${
+                    s.paletteId === pal.id ? "border-slate-900 bg-slate-900 text-white shadow-2xs" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                  }`}
+                >
+                  <span className="w-5 h-5 rounded-md border border-black/15 shrink-0 flex items-center justify-center relative overflow-hidden" style={{ background: pal.bannerBgGradient || pal.bannerBgColor }}>
+                    <span className="w-2.5 h-1 rounded-full" style={{ backgroundColor: pal.titleColor }} />
+                    <span className="w-2 h-2 rounded-full absolute bottom-0.5 right-0.5 border border-white/40" style={{ backgroundColor: pal.ctaBgColor }} />
+                  </span>
+                  <span className="text-[11px] font-medium truncate">{pal.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
-          {isTextOverImage && (
-            <div className="pt-1 border-t border-zinc-200/70 space-y-1">
-              <div className="flex items-center justify-between text-[10px] font-bold text-zinc-700">
-                <span>Voile de Contraste sous le texte</span>
-                <span>{s.overlayOpacity ?? 0}% {(s.overlayOpacity ?? 0) === 0 ? "(Image 100% pure)" : ""}</span>
+          {caps.supportsOverlayControls && (
+            <div className="space-y-2.5 pt-3 border-t border-slate-200">
+              <div className="flex items-center justify-between text-[12px] tabular-nums gap-2">
+                <span className="font-semibold text-slate-900">Voile de lisibilité sur photo</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono text-[11px] font-semibold text-slate-700">
+                    {isOverlayActive ? `${s.overlayOpacity ?? 0}%` : "Off"}
+                  </span>
+                  <button
+                    type="button" data-testid="hero-veil-toggle"
+                    onClick={() => updateOverlay({ enabled: !isOverlayActive, intensity: !isOverlayActive ? Math.max(35, s.overlayOpacity ?? 35) : s.overlayOpacity ?? 0 })}
+                    className={`h-6 px-2 rounded-md text-[10.5px] font-semibold border cursor-pointer ${
+                      isOverlayActive ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200"
+                    }`}
+                  >
+                    {isOverlayActive ? "Activé" : "Désactivé"}
+                  </button>
+                </div>
               </div>
-              <input type="range" min={0} max={60} step={5} value={Math.min(60, s.overlayOpacity ?? 0)} onChange={(e) => onSettingsChange("overlayOpacity", Number(e.target.value))} className="w-full accent-zinc-900" />
+
+              <div className="grid grid-cols-4 gap-1">
+                {CINEMATIC_OVERLAY_PRESETS.map((ov) => (
+                  <button
+                    key={ov.id} type="button" data-testid={`hero-veil-preset-${ov.id}`}
+                    onClick={() => updateOverlay({ preset: ov.id, intensity: ov.intensity, enabled: ov.intensity > 0 })}
+                    className={`h-7 rounded-md text-[11px] font-medium border cursor-pointer ${
+                      (isOverlayActive ? s.overlayOpacity ?? 0 : 0) === ov.intensity ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    {ov.label}
+                  </button>
+                ))}
+              </div>
+
+              {isOverlayActive && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range" min={5} max={80} step={5} value={s.overlayOpacity ?? 35}
+                      onChange={(e) => updateOverlay({ intensity: Number(e.target.value), enabled: true })}
+                      className="flex-1 accent-slate-900 cursor-pointer"
+                    />
+                    <label className="h-7 px-2 rounded-md border border-slate-200 bg-white flex items-center gap-1.5 text-[10.5px] font-medium text-slate-700 shrink-0 cursor-pointer">
+                      <span>Teinte</span>
+                      <input
+                        type="color" data-testid="hero-veil-color-input"
+                        value={resolvedOverlayColor}
+                        onChange={(e) => updateOverlay({ color: e.target.value, enabled: true })}
+                        className="w-4 h-4 rounded cursor-pointer"
+                      />
+                    </label>
+                  </div>
+                  {caps.supportsOverlayDirection && cinematicCfg && (
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <select data-testid="hero-veil-zone-select" value={cinematicCfg.overlay.zone} onChange={(e) => updateOverlay({ zone: e.target.value as CinematicOverlayZone })} className={inputClass}>
+                        {CINEMATIC_OVERLAY_ZONES.map((z) => <option key={z.id} value={z.id}>{z.label}</option>)}
+                      </select>
+                      <select data-testid="hero-veil-direction-select" value={cinematicCfg.overlay.direction} onChange={(e) => updateOverlay({ direction: e.target.value as CinematicOverlayDirection })} className={inputClass}>
+                        {CINEMATIC_OVERLAY_DIRECTIONS.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
+
+          <HeroColorElementPickers
+            activeModel={activeModel} settings={s} theme={theme}
+            supportsBadgeAndSecondaryCta={caps.supportsBadgeAndSecondaryCta}
+            onSettingsChange={onSettingsChange}
+          />
         </div>
       )}
 
       <HeroPhotoAndCtaStepPanels
-        activeStep={activeStep}
-        activeModel={activeModel}
-        deviceTab={deviceTab}
-        profile={profile}
-        settings={settings}
-        products={products}
-        inputClass={inputClass}
-        labelClass={labelClass}
-        onSettingsChange={onSettingsChange}
-        onDeviceConfigChange={onDeviceConfigChange}
+        activeStep={activeStep} activeModel={activeModel} deviceTab={deviceTab}
+        profile={profile} settings={settings} products={products} storeTheme={theme}
+        inputClass={inputClass} labelClass={labelClass}
+        onSettingsChange={onSettingsChange} onDeviceConfigChange={onDeviceConfigChange}
       />
     </div>
   );

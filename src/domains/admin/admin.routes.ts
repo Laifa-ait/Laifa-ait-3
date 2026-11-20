@@ -9,6 +9,7 @@ import adminHomepageRouter from "./routes/adminHomepage.routes";
 import adminSystemRouter from "./routes/adminSystem.routes";
 import adminAIRouter from "./routes/adminAI.routes";
 import adminSeedRouter from "./routes/adminSeed.routes";
+import adminFirebaseCleanupRouter from "./routes/adminFirebaseCleanup.routes";
 import adminSponsoredCampaignRouter from "../sponsorship/controllers/adminSponsoredCampaign.controller";
 import adminSubscriptionRouter from "./routes/adminSubscription.routes";
 import adminOverviewRouter from "./routes/adminOverview.routes";
@@ -29,6 +30,7 @@ adminRouter.use(adminHomepageRouter);
 adminRouter.use(adminSystemRouter);
 adminRouter.use(adminAIRouter);
 adminRouter.use(adminSeedRouter);
+adminRouter.use(adminFirebaseCleanupRouter);
 adminRouter.use(adminSponsoredCampaignRouter);
 adminRouter.use(adminSubscriptionRouter);
 

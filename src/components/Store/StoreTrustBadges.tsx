@@ -29,17 +29,17 @@ export const StoreTrustBadges: React.FC<StoreTrustBadgesProps> = ({ storeInfo })
             key={item.title}
             style={{
               backgroundColor: "var(--store-surface, #FFFFFF)",
-              borderRadius: "var(--store-border-radius, 16px)",
-              color: "var(--store-secondary, #18181B)",
+              borderRadius: "var(--store-border-radius, 12px)",
+              color: "var(--store-secondary, #0F172A)",
             }}
-            className="flex items-center gap-2.5 p-3 sm:p-3.5 border border-black/10 shadow-2xs transition-colors"
+            className="flex items-center gap-2.5 p-3 sm:p-3.5 border border-slate-200/80 shadow-2xs transition-colors"
           >
             <div
               style={{
-                backgroundColor: "var(--store-canvas, #FAF6F0)",
-                color: "var(--store-primary, #B45309)",
+                backgroundColor: "var(--store-canvas, #F8FAFC)",
+                color: "var(--store-primary, #0F172A)",
               }}
-              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
             >
               <Icon className="w-4 h-4" />
             </div>

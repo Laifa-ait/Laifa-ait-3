@@ -8,9 +8,12 @@ import {
 } from "./HeroMinimalTextAndGuides";
 import { sanitizeHeroTitle } from "./heroResponsiveHelper";
 import {
+  resolveBannerEffectiveShadow,
   resolveHeroBackgroundStyle,
+  resolveHeroBorderCss,
   resolveHeroBorderRadiusCss,
   resolveHeroBoxShadowCss,
+  resolveHeroShadowAccentColor,
 } from "./heroVisualEffectsHelper";
 
 /**
@@ -18,9 +21,11 @@ import {
  */
 export const HeroSplit: React.FC<HeroArchitecturalStyleProps> = ({
   settings,
+  sectionStyles,
   theme,
   profile,
   isEditable,
+  isEdgeToEdge = false,
   activeSubElement,
   isSubSelected,
   selectSub,
@@ -50,19 +55,23 @@ export const HeroSplit: React.FC<HeroArchitecturalStyleProps> = ({
   const cleanTitle = sanitizeHeroTitle(settings.title, settings.spotlightProductTitle);
   const borderRadiusCss = resolveHeroBorderRadiusCss(settings, profile);
   const bgStyle = resolveHeroBackgroundStyle(settings, theme, theme.surfaceColor);
-  const bannerShadowCss = resolveHeroBoxShadowCss(settings.bannerShadow, theme.primaryColor);
-  const imageShadowCss = resolveHeroBoxShadowCss(settings.imageShadow, theme.primaryColor);
+  const bannerShadowCss = resolveBannerEffectiveShadow(settings, theme);
+  const imageShadowCss = resolveHeroBoxShadowCss(
+    settings.imageShadow,
+    resolveHeroShadowAccentColor(settings, theme, settings.imageShadow === "glow"),
+    settings.imageShadowColor
+  );
 
   return (
     <div
       data-testid="hero-model-editorial-split"
       data-hero-style="HeroSplit"
-      className={`relative grid grid-cols-1 ${!isMobile ? "@2xl:grid-cols-12" : ""} overflow-hidden border border-black/8`}
+      className={`relative grid grid-cols-1 ${!isMobile ? "@2xl:grid-cols-12" : ""} overflow-hidden`}
       style={{
         minHeight: `${profile.heightPx}px`,
         borderRadius: borderRadiusCss,
         boxShadow: bannerShadowCss,
-        borderColor: settings.bannerBorderColor || undefined,
+        border: resolveHeroBorderCss(settings, isEdgeToEdge),
         ...bgStyle,
       }}
     >
@@ -73,28 +82,31 @@ export const HeroSplit: React.FC<HeroArchitecturalStyleProps> = ({
       />
 
       {/* BLOC COULEUR & ÉCRITURE */}
-      <div
-        className={`${textColClass} ${textFirstOnMobile ? "order-1" : "order-2"} ${
-          !isMobile ? (imageOnLeft ? "@2xl:order-2" : "@2xl:order-1") : ""
-        } flex ${posFlex} w-full`}
-        style={{ padding: `${safePad}px` }}
-      >
-        <HeroMinimalTextBlock
-          settings={settings}
-          theme={theme}
-          profile={profile}
-          isEditable={isEditable}
-          activeSubElement={activeSubElement}
-          isSubSelected={isSubSelected}
-          selectSub={selectSub}
-          getSubRing={getSubRing}
-          handleTextPatch={handleTextPatch}
-        />
-      </div>
+      {!settings.hideAllText && (
+        <div
+          className={`${textColClass} ${textFirstOnMobile ? "order-1" : "order-2"} ${
+            !isMobile ? (imageOnLeft ? "@2xl:order-2" : "@2xl:order-1") : ""
+          } flex ${posFlex} w-full`}
+          style={{ padding: `${safePad}px` }}
+        >
+          <HeroMinimalTextBlock
+            settings={settings}
+            sectionStyles={sectionStyles}
+            theme={theme}
+            profile={profile}
+            isEditable={isEditable}
+            activeSubElement={activeSubElement}
+            isSubSelected={isSubSelected}
+            selectSub={selectSub}
+            getSubRing={getSubRing}
+            handleTextPatch={handleTextPatch}
+          />
+        </div>
+      )}
 
       {/* BLOC IMAGE 100% NETTE ET DÉGAGÉE */}
       <div
-        className={`${imgColClass} ${textFirstOnMobile ? "order-2" : "order-1"} ${
+        className={`${settings.hideAllText ? "@2xl:col-span-12" : imgColClass} ${textFirstOnMobile ? "order-2" : "order-1"} ${
           !isMobile ? (imageOnLeft ? "@2xl:order-1" : "@2xl:order-2") : ""
         } relative w-full overflow-hidden ${getSubRing("background")}`}
         style={{

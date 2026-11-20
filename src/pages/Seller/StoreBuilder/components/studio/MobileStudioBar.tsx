@@ -15,7 +15,10 @@ interface MobileStudioBarProps {
   shopName?: string;
   isPublished: boolean;
   isPublishing?: boolean;
+  versionNumber?: number;
+  draftRevision?: number;
   saveStatus: SaveStatus;
+  lastSaveError?: string | null;
   canUndo?: boolean;
   canRedo?: boolean;
   onUndo?: () => void;
@@ -37,7 +40,10 @@ export const MobileStudioBar: React.FC<MobileStudioBarProps> = ({
   shopName,
   isPublished,
   isPublishing = false,
+  versionNumber = 1,
+  draftRevision,
   saveStatus,
+  lastSaveError,
   canUndo,
   canRedo,
   onUndo,
@@ -60,15 +66,25 @@ export const MobileStudioBar: React.FC<MobileStudioBarProps> = ({
   const [localPublishing, setLocalPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
 
-  const readinessReport = useMemo(
-    () => evaluatePublishReadiness({ storeConfig, sections, products, catalogStatus }),
-    [catalogStatus, products, sections, storeConfig]
-  );
+  const readinessReport = useMemo(() => {
+    if (!isPublishModalOpen) return undefined;
+    return evaluatePublishReadiness({
+      storeConfig,
+      sections,
+      products,
+      catalogStatus,
+      draftRevision,
+      currentVersionNumber: versionNumber,
+      hasUnsavedChanges: saveStatus === "unsaved" || saveStatus === "saving",
+    });
+  }, [isPublishModalOpen, catalogStatus, draftRevision, products, saveStatus, sections, storeConfig, versionNumber]);
 
   const effectivePublishing = isPublishing || localPublishing;
+  const publishingLockRef = React.useRef(false);
 
   const handleConfirmPublish = async () => {
-    if (effectivePublishing) return;
+    if (effectivePublishing || publishingLockRef.current) return;
+    publishingLockRef.current = true;
     setPublishError(null);
     try {
       const outcome = onPublish(changeSummary.trim() || undefined);
@@ -88,6 +104,7 @@ export const MobileStudioBar: React.FC<MobileStudioBarProps> = ({
     } catch (err: unknown) {
       setPublishError(err instanceof Error ? err.message : "Échec de la publication. Veuillez réessayer.");
     } finally {
+      publishingLockRef.current = false;
       setLocalPublishing(false);
     }
   };
@@ -117,6 +134,7 @@ export const MobileStudioBar: React.FC<MobileStudioBarProps> = ({
           navMode={navMode}
           onSelectNavMode={onSelectNavMode}
           onSaveDraft={onSaveDraft}
+          lastSaveError={lastSaveError}
         />
       </div>
 
@@ -126,6 +144,7 @@ export const MobileStudioBar: React.FC<MobileStudioBarProps> = ({
         navMode={navMode}
         onSelectNavMode={onSelectNavMode}
         onSaveDraft={onSaveDraft}
+        lastSaveError={lastSaveError}
         shopName={shopName}
       />
 

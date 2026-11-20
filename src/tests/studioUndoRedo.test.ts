@@ -205,4 +205,33 @@ describe("useStudioUndoRedo Real Production Hook Tests", () => {
 
     expect(result.current.setSectionsDirectly).toBe(initialSetDirectlyRef);
   });
+
+  it("should debounce sessionStorage persistence during rapid edits and flush on pagehide", () => {
+    vi.useFakeTimers();
+    try {
+      const storageKey = "test_studio_undo_debounce";
+      const onSectionsChange = vi.fn();
+      const { result } = renderHook(() =>
+        useStudioUndoRedo([section1], onSectionsChange, { storageKey })
+      );
+
+      act(() => {
+        result.current.pushState([section1, section2], undefined, "Modification");
+      });
+
+      // Immediately after pushState, sessionStorage write should be deferred (zero main-thread freeze)
+      expect(window.sessionStorage.getItem(storageKey)).toBeNull();
+
+      // Dispatching pagehide flushes immediately without waiting for debounce timer
+      act(() => {
+        window.dispatchEvent(new Event("pagehide"));
+      });
+      const flushed = window.sessionStorage.getItem(storageKey);
+      expect(flushed).not.toBeNull();
+      expect(JSON.parse(flushed!).present.sections).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
+

@@ -8,12 +8,14 @@ interface MobileGuidedJourneyBarProps {
   navMode: StudioNavMode;
   onSelectNavMode: (mode: StudioNavMode) => void;
   onSaveDraft?: () => unknown | Promise<unknown>;
+  lastSaveError?: string | null;
 }
 
 export const MobileGuidedJourneyBar: React.FC<MobileGuidedJourneyBarProps> = ({
   navMode,
   onSelectNavMode,
   onSaveDraft,
+  lastSaveError,
 }) => {
   const {
     mode,
@@ -25,7 +27,7 @@ export const MobileGuidedJourneyBar: React.FC<MobileGuidedJourneyBarProps> = ({
     saveStepError,
     selectStep,
     handleSaveAndAdvance,
-  } = useStudioGuidedNavigation({ onSelectNavMode, onSaveDraft });
+  } = useStudioGuidedNavigation({ onSelectNavMode, onSaveDraft, externalSaveError: lastSaveError });
 
   if (mode !== "guided") {
     return null;

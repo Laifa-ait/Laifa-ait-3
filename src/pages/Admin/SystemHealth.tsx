@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { TelemetryPanel } from "./components/TelemetryPanel";
+import { startVisibilityAwarePolling } from "../../utils/visibilityPolling";
 
 interface PerfDataPoint {
   time: string;
@@ -76,8 +77,7 @@ export const SystemHealth: React.FC = () => {
 
   useEffect(() => {
     fetchLiveMetrics();
-    const timer = setInterval(fetchLiveMetrics, 15000);
-    return () => clearInterval(timer);
+    return startVisibilityAwarePolling(fetchLiveMetrics, 60_000);
   }, [fetchLiveMetrics]);
 
   return (

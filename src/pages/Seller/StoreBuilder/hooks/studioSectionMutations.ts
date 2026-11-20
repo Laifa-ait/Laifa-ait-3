@@ -9,6 +9,7 @@ import {
   buildSectorAwareSectionDefaults,
   DEFAULT_STUDIO_SECTOR,
 } from "../constants/sectorCoherenceDefaults";
+import { fastDeepClone } from "./studioBackupStorage";
 import { toast } from "react-hot-toast";
 
 export function createNewStudioSection(params: {
@@ -111,8 +112,8 @@ export function createDuplicatedStudioSection(original: CustomPageSection): Cust
     ...original,
     id: `sec_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     title: `${original.title || original.type} (Copie)`,
-    settings: JSON.parse(JSON.stringify(original.settings || {})),
-    styles: JSON.parse(JSON.stringify(original.styles || {})),
+    settings: fastDeepClone(original.settings || {}),
+    styles: fastDeepClone(original.styles || {}),
   };
 }
 
@@ -127,11 +128,23 @@ export function buildSectionMutationHandlers(params: {
 }) {
   const { sections, selectedSectionId, setSelectedSectionId, pushState, activeSector, storeWilaya, products } = params;
 
-  const addSection = (type: CustomPageSectionType, defaultSettings: Record<string, unknown>, defaultTitle?: string) => {
+  const addSection = (
+    type: CustomPageSectionType,
+    defaultSettings: Record<string, unknown>,
+    defaultTitle?: string,
+    insertAtIndex?: number
+  ) => {
+    const targetIdx =
+      typeof insertAtIndex === "number" && insertAtIndex >= 0 && insertAtIndex <= sections.length
+        ? insertAtIndex
+        : sections.length;
     const newSection = createNewStudioSection({
-      type, defaultSettings, defaultTitle, activeSector, storeWilaya, products, order: sections.length,
+      type, defaultSettings, defaultTitle, activeSector, storeWilaya, products, order: targetIdx,
     });
-    pushState([...sections, newSection], undefined, `Ajout section: ${newSection.title || type}`);
+    const nextSections = [...sections];
+    nextSections.splice(targetIdx, 0, newSection);
+    const normalized = nextSections.map((sec, idx) => ({ ...sec, order: idx }));
+    pushState(normalized, undefined, `Ajout section: ${newSection.title || type}`);
     setSelectedSectionId(newSection.id);
     toast.success("Nouvelle section ajoutée");
   };

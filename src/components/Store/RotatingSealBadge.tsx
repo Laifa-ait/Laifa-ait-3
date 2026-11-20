@@ -10,14 +10,14 @@ interface RotatingSealBadgeProps {
 }
 
 /**
- * Sceau Rotatif d'Atelier (RotatingSealBadge)
- * Badge circulaire SVG tournant lentement à 360° ("FAIT MAIN EN ALGÉRIE • ÉDITION LIMITÉE •")
+ * Sceau Rotatif Studio (RotatingSealBadge)
+ * Badge circulaire SVG tournant lentement à 360° ("ÉDITION STUDIO • DESIGN CONTEMPORAIN •")
  */
 export const RotatingSealBadge: React.FC<RotatingSealBadgeProps> = ({
-  text = "FAIT MAIN EN ALGÉRIE • ÉDITION LIMITÉE •",
-  accentColor = "#B45309",
+  text = "ÉDITION STUDIO • DESIGN CONTEMPORAIN •",
+  accentColor = "#2563EB",
   surfaceColor = "#FFFFFF",
-  textColor = "#18181B",
+  textColor = "#0F172A",
   className = "",
 }) => {
   const uid = useId().replace(/:/g, "");

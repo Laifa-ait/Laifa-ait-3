@@ -210,46 +210,13 @@ authUserDataRouter.post("/notifications/read-all", authenticateToken, async (req
   }
 });
 
-authUserDataRouter.get("/user-habits", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  const uid = req.user?.uid || "";
-  const cacheKey = `habits:${uid}`;
-  try {
-    if (isServerCacheEnabled()) {
-      const cached = userDataCache.get<Record<string, unknown>>(cacheKey);
-      if (cached) return res.json(cached);
-    }
-    const docSnap = await db.collection("user_habits").doc(uid).get();
-    const payload = docSnap.exists ? (docSnap.data() || {}) : { historique_recherches: [], categories_visitees: {} };
-    if (isServerCacheEnabled()) userDataCache.set(cacheKey, payload);
-    return res.json(payload);
-  } catch (error: unknown) {
-    safeLogger.error("Get user-habits error", { err: error instanceof Error ? error.message : String(error) });
-    return res.status(500).json({ error: "Erreur interne" });
-  }
+authUserDataRouter.get("/user-habits", authenticateToken, async (_req: AuthenticatedRequest, res: Response) => {
+  // Collection `user_habits` supprimée : le suivi comportemental passe par localStorage + /api/v1/user/affinity-digest.
+  return res.json({ historique_recherches: [], categories_visitees: {} });
 });
 
-authUserDataRouter.post("/user-habits", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const uid = req.user?.uid || "";
-    const body = (req.body || {}) as Record<string, unknown>;
-    const safeHabits: Record<string, unknown> = { updatedAt: new Date().toISOString() };
-    if (Array.isArray(body.historique_recherches)) {
-      safeHabits.historique_recherches = body.historique_recherches.filter((s): s is string => typeof s === "string").slice(0, 50).map((s) => s.slice(0, 120));
-    }
-    if (body.categories_visitees && typeof body.categories_visitees === "object" && !Array.isArray(body.categories_visitees)) {
-      const safeCats: Record<string, number> = {};
-      Object.entries(body.categories_visitees as Record<string, unknown>).slice(0, 50).forEach(([k, v]) => {
-        if (typeof v === "number" && Number.isFinite(v) && k.length <= 80) safeCats[k] = v;
-      });
-      safeHabits.categories_visitees = safeCats;
-    }
-    await db.collection("user_habits").doc(uid).set(safeHabits, { merge: true });
-    userDataCache.del(`habits:${uid}`);
-    return res.json({ success: true });
-  } catch (error: unknown) {
-    safeLogger.error("Post user-habits error", { err: error instanceof Error ? error.message : String(error) });
-    return res.status(500).json({ error: "Erreur interne" });
-  }
+authUserDataRouter.post("/user-habits", authenticateToken, async (_req: AuthenticatedRequest, res: Response) => {
+  return res.json({ success: true });
 });
 
 authUserDataRouter.get("/following/:shopId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {

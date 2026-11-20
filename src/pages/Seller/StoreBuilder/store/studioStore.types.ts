@@ -1,4 +1,5 @@
 export type StudioViewport = "desktop" | "tablet" | "mobile";
+export type SectionSubElement = string;
 
 export type StudioInspectorTab =
   | "content"
@@ -61,7 +62,7 @@ export interface StudioStoreState {
   setStudioExperienceMode: (mode: StudioExperienceMode) => void;
   setActiveStudioStep: (step: 1 | 2 | 3 | 4) => void;
   completeAndAdvanceStudioStep: (step: 1 | 2 | 3 | 4) => 1 | 2 | 3 | 4;
-  setSectionActiveStep: (key: string, step: number) => void;
+  setSectionActiveStep: (key: string, step: number, forceUnlock?: boolean) => void;
   completeAndAdvanceSectionStep: (key: string, step: number, maxStep: number) => number;
   resetStepProgress: () => void;
 }

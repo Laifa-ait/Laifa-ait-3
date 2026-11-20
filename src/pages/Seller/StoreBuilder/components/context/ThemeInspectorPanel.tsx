@@ -1,13 +1,23 @@
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Check, Flame, LayoutTemplate, Palette, RefreshCw, RotateCcw, Sparkles, Type } from "lucide-react";
 import {
   CustomPageSection, CustomPageTheme, MediaGalleryItem, SellerStoreConfig,
 } from "../../../../../domains/seller/customPage.types";
-import { ThemeArchetypesTab } from "./ThemeArchetypesTab";
-import { ThemeColorPaletteTab } from "./ThemeColorPaletteTab";
-import { ThemeTypographyTab } from "./ThemeTypographyTab";
-import { ThemeEcommerceWidgetsTab } from "./ThemeEcommerceWidgetsTab";
 import { ThemeAtelierMaterialsTab } from "./ThemeAtelierMaterialsTab";
+import { extractSaveErrorMessage, validateThemeHexColors } from "../../utils/studioConfigSanitizers";
+
+const ThemeArchetypesTab = React.lazy(() =>
+  import("./ThemeArchetypesTab").then((m) => ({ default: m.ThemeArchetypesTab }))
+);
+const ThemeColorPaletteTab = React.lazy(() =>
+  import("./ThemeColorPaletteTab").then((m) => ({ default: m.ThemeColorPaletteTab }))
+);
+const ThemeTypographyTab = React.lazy(() =>
+  import("./ThemeTypographyTab").then((m) => ({ default: m.ThemeTypographyTab }))
+);
+const ThemeEcommerceWidgetsTab = React.lazy(() =>
+  import("./ThemeEcommerceWidgetsTab").then((m) => ({ default: m.ThemeEcommerceWidgetsTab }))
+);
 
 export type ThemeInspectorTabId = "architectures" | "atelier" | "colors" | "typography" | "widgets";
 
@@ -27,6 +37,7 @@ interface ThemeInspectorPanelProps {
 
 import {
   DEFAULT_GLOBAL_DESIGN_SYSTEM,
+  buildUpdatedHeroPhotoPatch,
   countSectionsWithColorOverrides,
   stripHardcodedSectionColors,
 } from "./themeInspectorDefaults";
@@ -53,7 +64,15 @@ export const ThemeInspectorPanel: React.FC<ThemeInspectorPanelProps> = ({
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const overrideCount = countSectionsWithColorOverrides(sections);
+
+  useEffect(() => () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current); }, []);
+  const flashSavedSuccess = useCallback(() => {
+    setSavedSuccess(true);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setSavedSuccess(false), 2500);
+  }, []);
 
   useEffect(() => setActiveTab(initialTab), [initialTab]);
   useEffect(() => {
@@ -74,46 +93,41 @@ export const ThemeInspectorPanel: React.FC<ThemeInspectorPanelProps> = ({
     onThemeChangeLive?.(DEFAULT_GLOBAL_DESIGN_SYSTEM);
   };
 
+  const runThemeMutation = async (fallback: string, action: () => Promise<void>) => {
+    setSaving(true); setSavedSuccess(false); setError(null);
+    try { await action(); flashSavedSuccess(); }
+    catch (err) { setError(extractSaveErrorMessage(err, fallback)); }
+    finally { setSaving(false); }
+  };
+
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    setSaving(true); setSavedSuccess(false); setError(null);
-    try {
-      await onSaveTheme(theme);
-      setSavedSuccess(true);
-      window.setTimeout(() => setSavedSuccess(false), 2500);
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Échec de l'enregistrement du thème.");
-    } finally {
-      setSaving(false);
-    }
+    const colorErr = validateThemeHexColors(theme);
+    if (colorErr) { setError(colorErr); return; }
+    await runThemeMutation("Échec de l'enregistrement du thème.", () => onSaveTheme(theme));
   };
 
   const handleApplyFullArchetype = async (newSections: CustomPageSection[], newTheme: CustomPageTheme) => {
     setTheme(newTheme); onThemeChangeLive?.(newTheme);
-    if (onApplyFullArchetype) await onApplyFullArchetype(newSections, newTheme);
-    else { if (onReplaceSections) onReplaceSections(newSections); await onSaveTheme(newTheme); }
-    setSavedSuccess(true); window.setTimeout(() => setSavedSuccess(false), 2500);
+    await runThemeMutation("Échec de l'application du modèle.", async () => {
+      if (onApplyFullArchetype) await onApplyFullArchetype(newSections, newTheme);
+      else { onReplaceSections?.(newSections); await onSaveTheme(newTheme); }
+    });
   };
 
   const handleApplyThemeOnly = async (newTheme: CustomPageTheme) => {
     setTheme(newTheme); onThemeChangeLive?.(newTheme);
-    await onSaveTheme(newTheme);
-    setSavedSuccess(true); window.setTimeout(() => setSavedSuccess(false), 2500);
+    await runThemeMutation("Échec de l'enregistrement du thème.", () => onSaveTheme(newTheme));
   };
 
   const handleClearSectionOverrides = () => {
-    if (sections.length > 0 && onReplaceSections) {
-      onReplaceSections(stripHardcodedSectionColors(sections));
-      setSavedSuccess(true);
-      window.setTimeout(() => setSavedSuccess(false), 2500);
-    }
+    if (sections.length > 0 && onReplaceSections) { onReplaceSections(stripHardcodedSectionColors(sections)); flashSavedSuccess(); }
   };
 
   const handleUpdateActiveHeroPhoto = (imageUrl: string) => {
     const heroSec = sections.find((s) => s.type === "hero_banner");
-    if (!heroSec || !onUpdateSection) return;
-    const currentSettings = (heroSec.settings || {}) as Record<string, unknown>;
-    onUpdateSection(heroSec.id, { settings: { ...currentSettings, imageUrl } as unknown as CustomPageSection["settings"] });
+    const patch = buildUpdatedHeroPhotoPatch(heroSec, imageUrl);
+    if (heroSec && patch && onUpdateSection) onUpdateSection(heroSec.id, patch);
   };
 
   return (
@@ -194,28 +208,33 @@ export const ThemeInspectorPanel: React.FC<ThemeInspectorPanelProps> = ({
             onApplyPresetWithFiveActs={(newSecs, newTheme) => void handleApplyFullArchetype(newSecs, newTheme)}
           />
         )}
-        {activeTab === "architectures" && (
-          <ThemeArchetypesTab
-            currentTheme={theme}
-            sections={sections}
-            mediaGallery={mediaGallery}
-            onUploadMedia={onUploadMedia}
-            onUpdateActiveHeroPhoto={handleUpdateActiveHeroPhoto}
-            onApplyThemeOnly={(newTheme) => void handleApplyThemeOnly(newTheme)}
-            onApplyFullArchetype={(newSecs, newTheme) => void handleApplyFullArchetype(newSecs, newTheme)}
-          />
+        {activeTab !== "atelier" && (
+          <Suspense fallback={<div className="p-4 text-center text-xs text-slate-400">Chargement…</div>}>
+            {activeTab === "architectures" && (
+              <ThemeArchetypesTab
+                currentTheme={theme}
+                sections={sections}
+                mediaGallery={mediaGallery}
+                onUploadMedia={onUploadMedia}
+                onUpdateActiveHeroPhoto={handleUpdateActiveHeroPhoto}
+                onApplyThemeOnly={(newTheme) => void handleApplyThemeOnly(newTheme)}
+                onApplyFullArchetype={(newSecs, newTheme) => void handleApplyFullArchetype(newSecs, newTheme)}
+              />
+            )}
+            {activeTab === "colors" && <ThemeColorPaletteTab theme={theme} onUpdateTheme={(patch) => updateTheme(patch)} onErrorChange={setError} />}
+            {activeTab === "typography" && <ThemeTypographyTab theme={theme} onUpdateTheme={updateTheme} />}
+            {activeTab === "widgets" && <ThemeEcommerceWidgetsTab sections={sections} onUpdateSection={onUpdateSection || (() => undefined)} onReplaceSections={onReplaceSections} />}
+          </Suspense>
         )}
-        {activeTab === "colors" && <ThemeColorPaletteTab theme={theme} onUpdateTheme={(patch) => updateTheme(patch)} onErrorChange={setError} />}
-        {activeTab === "typography" && <ThemeTypographyTab theme={theme} onUpdateTheme={updateTheme} />}
-        {activeTab === "widgets" && <ThemeEcommerceWidgetsTab sections={sections} onUpdateSection={onUpdateSection || (() => undefined)} onReplaceSections={onReplaceSections} />}
         {error && <p role="alert" className="rounded-lg bg-rose-50 border border-rose-200 p-3 text-[11px] font-medium text-rose-700">{error}</p>}
       </div>
 
       <div className="shrink-0 border-t border-slate-200 bg-white p-3">
         <button
           type="button"
+          data-testid="theme-save-btn"
           onClick={() => void handleSave()}
-          disabled={saving || Boolean(error)}
+          disabled={saving}
           className="flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
         >
           {saving ? (<><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Enregistrement…</>) : "Enregistrer le thème global"}

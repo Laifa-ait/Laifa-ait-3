@@ -107,10 +107,12 @@ export const ArtisanApplyForm: React.FC<ArtisanApplyFormProps> = ({
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">Nom commercial / Atelier</label>
+            <label className="text-xs font-bold text-slate-700">
+              Surnom ou nom affiché (facultatif)
+            </label>
             <input
               type="text"
-              placeholder="Ex: Plomberie Express DZ"
+              placeholder="Ex: Karim Plombier Alger (laisser vide si votre nom suffit)"
               value={professionalName}
               onChange={(e) => setProfessionalName(e.target.value)}
               className="w-full h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium"

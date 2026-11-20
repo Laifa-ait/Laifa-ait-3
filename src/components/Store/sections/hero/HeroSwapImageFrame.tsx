@@ -1,8 +1,25 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Images } from "lucide-react";
 import { HeroBannerSettings } from "../../../../domains/seller/customPage.types";
-import { useReducedMotion } from "motion/react";
 import { resolveHeroImageFilterCss } from "./heroVisualEffectsHelper";
+
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState<boolean>(() =>
+    typeof window !== "undefined" && typeof window.matchMedia === "function"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handleChange = () => setReduced(mediaQuery.matches);
+    mediaQuery.addEventListener?.("change", handleChange);
+    return () => mediaQuery.removeEventListener?.("change", handleChange);
+  }, []);
+
+  return reduced;
+}
 
 export function resolveHeroSwapImages(
   settings: HeroBannerSettings,
@@ -60,7 +77,7 @@ export const HeroSwapImageFrame: React.FC<HeroSwapImageFrameProps> = ({
   onClickFrame,
   children,
 }) => {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = usePrefersReducedMotion();
   const slides = useMemo(
     () => resolveHeroSwapImages(settings, activeImageSrc, fallbackImage),
     [settings, activeImageSrc, fallbackImage]

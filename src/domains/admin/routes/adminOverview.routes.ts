@@ -36,9 +36,29 @@ function parseTimestampMs(val: unknown): number {
   return Date.now();
 }
 
-// GET /api/v1/admin/overview - Agrégation temps réel des KPIs exécutifs
-router.get("/admin/overview", async (_req: AuthenticatedRequest, res: Response) => {
+let adminOverviewCache: { payload: Record<string, unknown>; cachedAt: number } | null = null;
+let inFlightAdminOverview: Promise<Record<string, unknown>> | null = null;
+const ADMIN_OVERVIEW_CACHE_TTL_MS = 2 * 60 * 1000;
+
+// GET /api/v1/admin/overview - Agrégation temps réel des KPIs exécutifs (cache 2 min)
+router.get("/admin/overview", async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const forceRefresh = req.query.refresh === "true";
+    if (
+      process.env.NODE_ENV !== "test" &&
+      !forceRefresh &&
+      adminOverviewCache &&
+      Date.now() - adminOverviewCache.cachedAt < ADMIN_OVERVIEW_CACHE_TTL_MS
+    ) {
+      return res.json({ success: true, data: adminOverviewCache.payload });
+    }
+
+    if (inFlightAdminOverview) {
+      const payload = await inFlightAdminOverview;
+      return res.json({ success: true, data: payload });
+    }
+
+    inFlightAdminOverview = (async () => {
     const [
       ordersSnap,
       usersSnap,
@@ -51,8 +71,8 @@ router.get("/admin/overview", async (_req: AuthenticatedRequest, res: Response) 
       db.collection("orders").orderBy("createdAt", "desc").limit(100).get().catch(() => db.collection("orders").limit(100).get()),
       db.collection("users").limit(300).get(),
       db.collection("products").limit(150).get(),
-      db.collection("disputes").where("status", "in", ["open", "mediation"]).get().catch(() => db.collection("disputes").limit(50).get()),
-      db.collection("subscription_requests").where("status", "==", "pending").get().catch(() => db.collection("subscription_requests").limit(50).get()),
+      db.collection("disputes").where("status", "in", ["open", "mediation"]).limit(50).get().catch(() => db.collection("disputes").limit(50).get()),
+      db.collection("subscription_requests").where("status", "==", "pending").limit(50).get().catch(() => db.collection("subscription_requests").limit(50).get()),
       db.collection("audit_logs").orderBy("timestamp", "desc").limit(10).get().catch(() => db.collection("audit_logs").limit(10).get()),
       db.collection("site_errors").where("resolved", "==", false).limit(20).get().catch(() => db.collection("site_errors").limit(20).get()),
     ]);
@@ -189,34 +209,39 @@ router.get("/admin/overview", async (_req: AuthenticatedRequest, res: Response) 
     const pendingSubRequests = subReqsSnap.size;
     const unresolvedSiteErrors = siteErrorsSnap.size;
 
-    return res.json({
-      success: true,
-      data: {
-        stats: {
-          totalSales,
-          activeVendors,
-          totalOrders: ordersSnap.size,
-          netRevenue: mrrDZD > 0 ? mrrDZD : Math.round(totalSales * 0.08),
-          pendingVendors,
-          revenueChange: 12.4,
-          ordersChange: 8.2,
-          activeSubscriptions,
-          pendingSubRequests,
-          pendingProducts,
-          unresolvedSiteErrors,
-          totalUsers: usersSnap.size,
-          totalProducts: productsSnap.size,
-        },
-        disputeCount,
-        chartData,
-        wilayaStats,
-        topProducts,
-        topSellers: topSellers.slice(0, 6),
-        recentEvents,
-        globalOrders: globalOrders.slice(0, 30),
-        adminAlerts: [],
+    const payload = {
+      stats: {
+        totalSales,
+        activeVendors,
+        totalOrders: ordersSnap.size,
+        netRevenue: mrrDZD > 0 ? mrrDZD : Math.round(totalSales * 0.08),
+        pendingVendors,
+        revenueChange: 12.4,
+        ordersChange: 8.2,
+        activeSubscriptions,
+        pendingSubRequests,
+        pendingProducts,
+        unresolvedSiteErrors,
+        totalUsers: usersSnap.size,
+        totalProducts: productsSnap.size,
       },
+      disputeCount,
+      chartData,
+      wilayaStats,
+      topProducts,
+      topSellers: topSellers.slice(0, 6),
+      recentEvents,
+      globalOrders: globalOrders.slice(0, 30),
+      adminAlerts: [],
+    };
+    adminOverviewCache = { payload, cachedAt: Date.now() };
+    return payload;
+    })().finally(() => {
+      inFlightAdminOverview = null;
     });
+
+    const data = await inFlightAdminOverview;
+    return res.json({ success: true, data });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Erreur agrégation overview";
     safeLogger.error(`[AdminOverview] ❌ ${message}`);

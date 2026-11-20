@@ -41,12 +41,15 @@ export class AdminWorkspaceService {
 
             transaction.update(sellerRef, { trustScore: newTrustScore });
 
-            const notificationRef = db.collection("notifications").doc();
+            const notificationRef = db.collection("user_notifications").doc();
             transaction.set(notificationRef, {
+              recipientId: targetSellerUid,
+              senderId: "system",
               userId: targetSellerUid,
               title: "Litige résolu en faveur du client",
               message: `La commande #${orderId.substring(0, 8)} a été remboursée. Votre Trust Score a baissé de 10 points. Si c'est une erreur, ouvrez une contestation via le Support.`,
               type: "ALERT",
+              orderId,
               read: false,
               createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });

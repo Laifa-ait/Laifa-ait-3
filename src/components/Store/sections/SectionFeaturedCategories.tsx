@@ -191,7 +191,7 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
     >
       <div className={resolveContainerWidthClass(styles.containerWidth)}>
         {(title || subtitle) && (
-          <div className={`mb-4 @[768px]:mb-5 flex items-center justify-between gap-3 ${textAlign === "center" ? "text-center" : textAlign === "right" ? "text-right" : "text-left"}`}>
+          <div className={`mb-4 @[768px]:mb-5 flex items-center justify-between gap-3 ${textAlign === "center" ? "text-center" : textAlign === "right" ? "text-end" : "text-start"}`}>
             <div className="flex-1 min-w-0">
               {title && (
                 <EditorialHeading
@@ -203,11 +203,11 @@ export const SectionFeaturedCategories: React.FC<SectionFeaturedCategoriesProps>
                   isEditable={isEditable}
                   editConfig={{ sectionId: section.id, settingKey: "title", alsoUpdateSectionTitle: true }}
                   onClick={(e) => isEditable && triggerSubTab("style", e)}
-                  className={`text-base @[768px]:text-xl @[1024px]:text-2xl font-extrabold tracking-tight rounded px-1 ${isEditable ? "cursor-pointer hover:ring-1 hover:ring-[#26658C]" : ""}`}
+                  className={`text-base @[768px]:text-xl @[1024px]:text-2xl font-extrabold tracking-tight rounded px-1 break-words ${isEditable ? "cursor-pointer hover:ring-1 hover:ring-[#26658C]" : ""}`}
                   style={{ color: resolvedHeadingColor }}
                 />
               )}
-              {subtitle && <p className="text-[11px] @[768px]:text-xs @[1024px]:text-sm opacity-80 mt-0.5" style={{ color: resolvedSubtitleColor }}>{subtitle}</p>}
+              {subtitle && <p className="text-[11px] @[768px]:text-xs @[1024px]:text-sm opacity-80 mt-0.5 break-words" style={{ color: resolvedSubtitleColor }}>{subtitle}</p>}
             </div>
           </div>
         )}

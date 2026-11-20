@@ -296,14 +296,6 @@ router.put("/api/v1/seller/products/:id", authenticateToken, authorizeSeller, as
     clearProductStoreCache();
     clearProductSearchCache();
 
-    await db.collection("product_history").add({
-      productId: id,
-      sellerId: uid,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      action: "edit",
-      changes: productDataToSave
-    }).catch(() => null);
-
     if (productDataToSave.status === "pending") {
       await db.collection("internal_notifications").add({
         type: "PRODUCT_MODIFICATION",
@@ -372,13 +364,6 @@ router.delete("/api/v1/seller/products/:id", authenticateToken, authorizeSeller,
     clearProductCatalogCache();
     clearProductStoreCache();
     clearProductSearchCache();
-
-    await db.collection("product_history").add({
-      productId: id,
-      sellerId: uid,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      action: "delete"
-    }).catch(() => null);
 
     return res.json({ success: true });
   } catch (error: unknown) {

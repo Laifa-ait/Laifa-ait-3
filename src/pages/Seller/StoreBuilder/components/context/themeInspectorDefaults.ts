@@ -2,33 +2,10 @@ import {
   CustomPageSection,
   CustomPageTheme,
 } from "../../../../../domains/seller/customPage.types";
+import { DEFAULT_MODERN_THEME } from "../../constants/studioThemeDefaults";
 
 export const DEFAULT_GLOBAL_DESIGN_SYSTEM: CustomPageTheme = {
-  sector: "artisanat",
-  canvasColor: "#F4ECE1",
-  surfaceColor: "#FFFDF9",
-  borderColor: "#DFCBB2",
-  primaryColor: "#B84A27",
-  secondaryColor: "#29170E",
-  textColor: "#3D2518",
-  mutedTextColor: "#7C5A46",
-  accentColor: "#C88A2B",
-  accentBadgeColor: "#B84A27",
-  badgeTextColor: "#FFFDF9",
-  buttonColor: "#29170E",
-  buttonTextColor: "#FFFDF9",
-  priceColor: "#9A3412",
-  fontFamily: "'Cormorant Garamond', 'Plus Jakarta Sans', serif",
-  headingFontFamily: "'Cormorant Garamond', serif",
-  bodyFontFamily: "'Plus Jakarta Sans', sans-serif",
-  borderRadiusPx: 16,
-  spacingYPx: 28,
-  titleFontSizePx: 36,
-  bodyFontSizePx: 15,
-  surfaceTexture: "cotton-paper",
-  ambientLighting: "golden-hour",
-  cardMaterial: "solid-matte",
-  frameShape: "casbah-arch",
+  ...DEFAULT_MODERN_THEME,
 };
 
 export function stripHardcodedSectionColors(sections: CustomPageSection[]): CustomPageSection[] {
@@ -120,4 +97,25 @@ export function countSectionsWithColorOverrides(sections: CustomPageSection[]): 
     return hasStyleOverride || hasSettingOverride;
   }).length;
 }
+
+export function buildUpdatedHeroPhotoPatch(
+  heroSection: CustomPageSection | undefined,
+  imageUrl: string
+): Partial<CustomPageSection> | null {
+  if (!heroSection) return null;
+  const cur = (heroSection.settings || {}) as Record<string, unknown>;
+  const cin = cur.cinematicConfig as Record<string, Record<string, unknown>> | undefined;
+  const desktop = (cin?.responsive?.desktop as Record<string, unknown>) || {};
+  const nextCin = cin
+    ? {
+        ...cin,
+        image: { ...(cin.image || {}), src: imageUrl },
+        responsive: { ...(cin.responsive || {}), desktop: { ...desktop, imageSrc: imageUrl } },
+      }
+    : undefined;
+  return {
+    settings: { ...cur, imageUrl, ...(nextCin ? { cinematicConfig: nextCin } : {}) } as unknown as CustomPageSection["settings"],
+  };
+}
+
 

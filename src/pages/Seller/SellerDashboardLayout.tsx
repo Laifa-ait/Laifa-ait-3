@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { Store, Menu, Home } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -8,8 +8,11 @@ import { SellerDashboardAlerts } from "./components/layout/SellerDashboardAlerts
 import { SellerMobileBottomNav } from "./components/layout/SellerMobileBottomNav";
 import { SellerMobileDrawer } from "./components/layout/SellerMobileDrawer";
 import { SellerDesktopSidebar } from "./components/layout/SellerDesktopSidebar";
-import { SellerOnboardingTour } from "./components/SellerOnboardingTour";
 import { NotificationCenter } from "../../components/NotificationCenter";
+
+const SellerOnboardingTour = React.lazy(() =>
+  import("./components/SellerOnboardingTour").then((m) => ({ default: m.SellerOnboardingTour }))
+);
 
 export const SellerDashboardLayout: React.FC = () => {
   const { t } = useTranslation();
@@ -27,7 +30,11 @@ export const SellerDashboardLayout: React.FC = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#FAF7F8] text-[#1A1836]" id="seller-dashboard-root">
-      <SellerOnboardingTour forceRun={forceTour} onTourEnd={() => setForceTour(false)} />
+      {!isStudio && (
+        <Suspense fallback={null}>
+          <SellerOnboardingTour forceRun={forceTour} onTourEnd={() => setForceTour(false)} />
+        </Suspense>
+      )}
 
       {/* Mobile Top Header */}
       {!isStudio && (

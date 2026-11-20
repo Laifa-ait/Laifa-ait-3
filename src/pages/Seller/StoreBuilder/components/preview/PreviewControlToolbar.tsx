@@ -29,6 +29,7 @@ interface PreviewControlToolbarProps {
   onToggleLeftSidebar?: () => void;
   showRightSidebar?: boolean;
   onToggleRightSidebar?: () => void;
+  pageSwitcherSlot?: React.ReactNode;
 }
 
 const ZOOM_PRESETS = [
@@ -43,6 +44,7 @@ export const PreviewControlToolbar: React.FC<PreviewControlToolbarProps> = ({
   isInteractiveMode, setIsInteractiveMode, showGrid, setShowGrid,
   isFullscreen, toggleFullscreen, onOpenQrModal, onOpenAuditModal,
   showLeftSidebar = true, onToggleLeftSidebar, showRightSidebar = true, onToggleRightSidebar,
+  pageSwitcherSlot,
 }) => {
   const handleZoomIn = () => setZoom((prev) => Math.min(Number((prev + 0.1).toFixed(2)), 1.5));
   const handleZoomOut = () => setZoom((prev) => Math.max(Number((prev - 0.1).toFixed(2)), 0.5));
@@ -53,7 +55,10 @@ export const PreviewControlToolbar: React.FC<PreviewControlToolbarProps> = ({
   };
 
   return (
-    <div className="w-full h-9 min-h-[36px] bg-white border-b border-slate-200 px-2.5 flex items-center justify-between gap-2 z-20 select-none overflow-x-auto no-scrollbar">
+    <div
+      data-testid="studio-canvas-chrome-bar"
+      className="w-full h-10 min-h-[40px] bg-white border-b border-[#E3E5E8] px-2.5 flex items-center justify-between gap-2 z-20 select-none overflow-x-auto no-scrollbar"
+    >
       {/* Left: Panel Toggles & Orientation/Device in Fullscreen */}
       <div className="flex items-center gap-1.5 shrink-0">
         {onToggleLeftSidebar && (
@@ -120,6 +125,13 @@ export const PreviewControlToolbar: React.FC<PreviewControlToolbarProps> = ({
           <span>{isInteractiveMode ? "Éditer" : "Tester"}</span>
         </button>
       </div>
+
+      {/* Center: Shopify-style Page Switcher outside the storefront frame */}
+      {pageSwitcherSlot && (
+        <div className="flex items-center justify-center min-w-0">
+          {pageSwitcherSlot}
+        </div>
+      )}
 
       {/* Right: Canvas Zoom, Grid, QR, Fullscreen & Right Panel Toggle */}
       <div className="flex items-center gap-1 shrink-0">

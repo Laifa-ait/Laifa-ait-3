@@ -35,13 +35,15 @@ export default defineConfig(({mode, command}) => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              // 1. Core React Engine first so CJS wrappers stay in vendor-react
+              // 1. Core React Engine first so CJS/React runtime helpers stay in vendor-react
               if (
                 id.includes('/react/') ||
                 id.includes('/react-dom/') ||
                 id.includes('/react-router/') ||
                 id.includes('/react-router-dom/') ||
-                id.includes('/scheduler/')
+                id.includes('/scheduler/') ||
+                id.includes('/react-is/') ||
+                id.includes('/use-sync-external-store/')
               ) {
                 return 'vendor-react';
               }
@@ -58,33 +60,18 @@ export default defineConfig(({mode, command}) => {
               if (id.includes('@firebase/app') || id.includes('firebase/app')) {
                 return 'vendor-firebase-app';
               }
-              // 3. State Management & Query
+              // 3. State Management, Query, Icons, i18n & Error monitoring
               if (id.includes('@tanstack/react-query') || id.includes('query-core')) {
                 return 'vendor-query';
               }
               if (id.includes('zustand')) {
                 return 'vendor-zustand';
               }
-              // 4. Animations & Design System Icons
-              if (id.includes('framer-motion') || id.includes('/motion/')) {
-                return 'vendor-animations';
-              }
               if (id.includes('lucide-react')) {
                 return 'vendor-icons';
               }
-              // 5. Internationalization
               if (id.includes('i18next') || id.includes('react-i18next')) {
                 return 'vendor-i18n';
-              }
-              // 6. Heavy optional toolkits (PDF, Charts, Error monitoring)
-              if (id.includes('jspdf')) {
-                return 'vendor-pdf';
-              }
-              if (id.includes('html2canvas')) {
-                return 'vendor-html2canvas';
-              }
-              if (id.includes('recharts') || id.includes('d3-')) {
-                return 'vendor-charts';
               }
               if (id.includes('@sentry')) {
                 return 'vendor-sentry';
@@ -101,13 +88,12 @@ export default defineConfig(({mode, command}) => {
       dedupe: ['react', 'react-dom'],
     },
     optimizeDeps: {
-      holdUntilCrawlEnd: true,
+      entries: ['index.html'],
+      holdUntilCrawlEnd: false,
       include: [
         'react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime',
-        'react-router-dom', 'react-i18next', 'i18next', 'i18next-browser-languagedetector', 'i18next-http-backend',
-        'react-helmet-async', 'react-error-boundary', 'react-hot-toast', 'clsx', 'tailwind-merge',
-        'firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage',
-        'lucide-react', 'motion/react', '@tanstack/react-query', 'zustand', 'date-fns'
+        'react-router-dom', 'react-i18next', 'i18next',
+        'clsx', 'tailwind-merge', '@tanstack/react-query', 'zustand'
       ]
     },
     server: {
@@ -117,11 +103,19 @@ export default defineConfig(({mode, command}) => {
         ignored: [
           '**/node_modules/**',
           '**/dist/**',
+          '**/dist-server/**',
           '**/.git/**',
+          '**/.aistudio/**',
           '**/coverage/**',
           '**/.husky/**',
           '**/docs/**',
-          '**/k6/**'
+          '**/k6/**',
+          '**/e2e/**',
+          '**/scripts/**',
+          '**/LOGO/**',
+          '**/src/tests/**',
+          '**/public/avatars/**',
+          '**/public/brands/**'
         ]
       }
     },

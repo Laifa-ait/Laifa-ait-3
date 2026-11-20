@@ -9,6 +9,7 @@ import {
 import { ArrowLeft, Search, SlidersHorizontal, PackageOpen, Sparkles, Grid, LayoutList } from "lucide-react";
 import { SectionProductItemCard } from "./sections/SectionProductItemCard";
 import { EditorialHeading } from "./EditorialHeading";
+import { useStorefrontViewport } from "./sections/responsiveInheritanceHelper";
 
 interface StoreCollectionPageViewProps {
   activeCategory: CategoryItem | null;
@@ -29,8 +30,9 @@ const INITIAL_PAGE_LIMIT = 48;
 
 export const StoreCollectionPageView: React.FC<StoreCollectionPageViewProps> = ({
   activeCategory, allCategories, products, theme, config, pageTitle, pageSubtitle,
-  isStudioPreview = false, previewViewport = "desktop", onSelectCategory, onBackToHome,
+  isStudioPreview = false, previewViewport, onSelectCategory, onBackToHome,
 }) => {
+  const effectiveViewport = useStorefrontViewport(previewViewport);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"featured" | "price-asc" | "price-desc" | "newest">("featured");
   const [colsOverride, setColsOverride] = useState<2 | 3 | 4 | null>(null);
@@ -46,8 +48,8 @@ export const StoreCollectionPageView: React.FC<StoreCollectionPageViewProps> = (
   const showCtaButton = config?.showCtaButton !== false;
   const ctaLabel = config?.ctaLabel || "Voir le détail";
 
-  const accentColor = theme.accentColor || theme.primaryColor || "#B45309";
-  const textColor = theme.secondaryColor || "#18181B";
+  const accentColor = theme.accentColor || theme.primaryColor || "#0F172A";
+  const textColor = theme.secondaryColor || "#0F172A";
 
   const activeProducts = useMemo(() => products.filter(isCatalogProductPubliclyActive), [products]);
 
@@ -85,27 +87,27 @@ export const StoreCollectionPageView: React.FC<StoreCollectionPageViewProps> = (
   const title = activeCategory?.name || pageTitle || "Catalogue & *Collections*";
   const subtitle =
     activeCategory?.description || activeCategory?.subtitle || pageSubtitle ||
-    "Explorez nos pièces façonnées avec soin et commandez en paiement à la livraison sur les 69 wilayas.";
+    "Explorez nos pièces sélectionnées et commandez en paiement à la livraison sur tout le territoire.";
 
   const gridColsClass =
-    previewViewport === "mobile" ? "grid-cols-2 gap-3.5"
-    : previewViewport === "tablet" ? "grid-cols-2 @3xl:grid-cols-3 gap-4"
+    effectiveViewport === "mobile" ? "grid-cols-2 gap-3.5"
+    : effectiveViewport === "tablet" ? "grid-cols-2 @3xl:grid-cols-3 gap-4"
     : columnsDesktop === 2 ? "grid-cols-2 gap-6"
     : columnsDesktop === 3 ? "grid-cols-2 @3xl:grid-cols-3 gap-5"
     : "grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-4 gap-5";
 
   return (
-    <div className="min-h-[560px] flex flex-col transition-all select-none" style={{ backgroundColor: theme.canvasColor || "#FAF6F0", color: textColor }}>
-      <div className="px-4 sm:px-8 py-3 border-b border-black/[0.06] flex items-center justify-between gap-2 text-xs">
+    <div className="min-h-[560px] flex flex-col transition-all select-none" style={{ backgroundColor: theme.canvasColor || "#F8FAFC", color: textColor }}>
+      <div className="px-4 sm:px-8 py-3 border-b border-slate-200/80 flex items-center justify-between gap-2 text-xs">
         <div className="flex items-center gap-2 min-w-0">
-          <button type="button" onClick={onBackToHome} className="inline-flex items-center gap-1.5 font-semibold text-zinc-700 hover:text-zinc-950 px-3 py-1.5 rounded-full bg-white/80 border border-black/10 transition-colors cursor-pointer shrink-0">
+          <button type="button" onClick={onBackToHome} className="inline-flex items-center gap-1.5 font-semibold text-slate-700 hover:text-slate-950 px-3 py-1.5 rounded-lg bg-white border border-slate-200 transition-colors cursor-pointer shrink-0">
             <ArrowLeft className="w-3.5 h-3.5" /><span>Accueil Vitrine</span>
           </button>
-          <span className="text-zinc-300">/</span>
-          <span className="font-semibold text-zinc-800 truncate">{activeCategory ? activeCategory.name : "Collections"}</span>
+          <span className="text-slate-300">/</span>
+          <span className="font-semibold text-slate-800 truncate">{activeCategory ? activeCategory.name : "Collections"}</span>
         </div>
         {isStudioPreview && (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-800 border border-amber-500/20 text-[10px] font-bold shrink-0">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-sm bg-blue-50 text-blue-900 border border-blue-200 text-[10px] font-bold shrink-0">
             <Sparkles className="w-3 h-3" /> Aperçu Collection
           </span>
         )}
@@ -113,10 +115,10 @@ export const StoreCollectionPageView: React.FC<StoreCollectionPageViewProps> = (
 
       <header className="pt-8 sm:pt-12 pb-6 px-4 sm:px-8 max-w-7xl w-full mx-auto">
         <span className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.28em] mb-2" style={{ color: accentColor }}>
-          {activeCategory?.badge || "COLLECTION EXCLUSIVITÉ"}
+          {activeCategory?.badge || "COLLECTION STUDIO"}
         </span>
-        <EditorialHeading as="h1" text={title} theme={theme} accentColorOverride={accentColor} className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight" style={{ color: textColor }} />
-        {subtitle && <p className="text-xs sm:text-sm opacity-65 max-w-xl mt-2 leading-relaxed">{subtitle}</p>}
+        <EditorialHeading as="h1" text={title} theme={theme} accentColorOverride={accentColor} className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight break-words text-balance" style={{ color: textColor }} />
+        {subtitle && <p className="text-xs sm:text-sm opacity-65 max-w-xl mt-2 leading-relaxed break-words">{subtitle}</p>}
       </header>
 
       <div className="px-4 sm:px-8 pb-8 max-w-7xl w-full mx-auto flex-1 flex flex-col">
@@ -126,7 +128,7 @@ export const StoreCollectionPageView: React.FC<StoreCollectionPageViewProps> = (
               type="button"
               onClick={() => { setVisibleLimit(INITIAL_PAGE_LIMIT); onSelectCategory(null); }}
               style={!activeCategory ? { backgroundColor: textColor, color: "#FFFFFF" } : undefined}
-              className={`px-4 py-2 rounded-full text-xs font-medium transition-all whitespace-nowrap cursor-pointer shrink-0 ${!activeCategory ? "shadow-sm" : "bg-black/[0.04] text-zinc-600 hover:bg-black/[0.08]"}`}
+              className={`px-4 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap cursor-pointer shrink-0 ${!activeCategory ? "shadow-sm" : "bg-slate-900/[0.04] text-slate-600 hover:bg-slate-900/[0.08]"}`}
             >
               Tous les rayons ({activeProducts.length})
             </button>
@@ -137,7 +139,7 @@ export const StoreCollectionPageView: React.FC<StoreCollectionPageViewProps> = (
                   key={cat.id} type="button"
                   onClick={() => { setVisibleLimit(INITIAL_PAGE_LIMIT); onSelectCategory(cat); }}
                   style={isSelected ? { backgroundColor: textColor, color: "#FFFFFF" } : undefined}
-                  className={`px-4 py-2 rounded-full text-xs font-medium transition-all whitespace-nowrap cursor-pointer shrink-0 ${isSelected ? "shadow-sm" : "bg-black/[0.04] text-zinc-600 hover:bg-black/[0.08]"}`}
+                  className={`px-4 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap cursor-pointer shrink-0 ${isSelected ? "shadow-sm" : "bg-slate-900/[0.04] text-slate-600 hover:bg-slate-900/[0.08]"}`}
                 >
                   {cat.name}
                 </button>
@@ -146,28 +148,28 @@ export const StoreCollectionPageView: React.FC<StoreCollectionPageViewProps> = (
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-7 pb-4 border-b border-black/[0.06]">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-7 pb-4 border-b border-slate-200/80">
           <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-md">
             {showSearch && (
               <div className="relative flex-1">
-                <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setVisibleLimit(INITIAL_PAGE_LIMIT); }}
                   placeholder="Rechercher une pièce dans ce rayon..."
-                  className="w-full pl-9 pr-4 py-2.5 border border-black/10 bg-white/80 backdrop-blur-sm rounded-full text-xs text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-500 transition-colors"
+                  className="w-full ps-9 pe-4 py-2.5 border border-slate-200 bg-white rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-slate-500 transition-colors"
                 />
               </div>
             )}
           </div>
 
           <div className="flex items-center gap-2.5">
-            <span className="text-[11px] font-medium text-zinc-500">
-              <strong className="text-zinc-900">{filteredProducts.length}</strong> pièce{filteredProducts.length > 1 ? "s" : ""}
+            <span className="text-[11px] font-medium text-slate-500 tabular-nums">
+              <strong className="text-slate-900">{filteredProducts.length}</strong> pièce{filteredProducts.length > 1 ? "s" : ""}
             </span>
             {showSortDropdown && (
-              <div className="flex items-center gap-1.5 border border-black/10 bg-white/80 backdrop-blur-sm rounded-full px-3.5 py-2">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-400" />
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="text-xs font-medium text-zinc-700 bg-transparent focus:outline-none cursor-pointer">
+              <div className="flex items-center gap-1.5 border border-slate-200 bg-white rounded-lg px-3.5 py-2">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="text-xs font-medium text-slate-700 bg-transparent focus:outline-none cursor-pointer">
                   <option value="featured">Tri : Mis en avant</option>
                   <option value="price-asc">Prix : Croissant</option>
                   <option value="price-desc">Prix : Décroissant</option>
@@ -175,7 +177,7 @@ export const StoreCollectionPageView: React.FC<StoreCollectionPageViewProps> = (
                 </select>
               </div>
             )}
-            {previewViewport === "desktop" && (
+            {effectiveViewport === "desktop" && (
               <div className="hidden sm:flex items-center bg-black/[0.04] p-0.5 rounded-full">
                 {([3, 4] as const).map((colCount) => (
                   <button

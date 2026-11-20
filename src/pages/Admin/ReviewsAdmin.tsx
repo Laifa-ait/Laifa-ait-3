@@ -31,7 +31,7 @@ export const ReviewsAdmin: React.FC = () => {
   const fetchReviews = useCallback(async () => {
     setLoading(true);
     try {
-      const token = await currentUser?.getIdToken(true);
+      const token = await currentUser?.getIdToken();
       if (!token) return;
 
       const params = new URLSearchParams();
@@ -72,7 +72,7 @@ export const ReviewsAdmin: React.FC = () => {
   const handleApprove = async (reviewId: string) => {
     setActionLoading(true);
     try {
-      const token = await currentUser?.getIdToken(true);
+      const token = await currentUser?.getIdToken();
       const res = await fetch(`/api/v1/reviews/${reviewId}/approve`, {
         method: "POST",
         headers: {
@@ -107,7 +107,7 @@ export const ReviewsAdmin: React.FC = () => {
 
     setActionLoading(true);
     try {
-      const token = await currentUser?.getIdToken(true);
+      const token = await currentUser?.getIdToken();
       const res = await fetch(`/api/v1/reviews/${reviewId}/delete`, {
         method: "POST",
         headers: {

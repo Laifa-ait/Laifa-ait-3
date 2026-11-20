@@ -127,11 +127,22 @@ export function resolveProductFeedItems(
     };
   }
 
-  if (sectionType === "best_sellers" && pool.some((p) => Number(p.salesCount || 0) > 0)) {
-    pool.sort((a, b) => {
+  const hasSalesInPool = pool.some((p) => Number(p.salesCount || 0) > 0);
+  if (sectionType === "best_sellers" && hasSalesInPool) {
+    const salesOnlyPool = pool.filter((p) => Number(p.salesCount || 0) > 0);
+    salesOnlyPool.sort((a, b) => {
       const salesDiff = Number(b.salesCount || 0) - Number(a.salesCount || 0);
       return salesDiff !== 0 ? salesDiff : parseProductTimestampMs(b.createdAt) - parseProductTimestampMs(a.createdAt);
     });
+    return {
+      items: salesOnlyPool.slice(0, maxItems),
+      effectiveMode: "auto",
+      missingProductIds,
+      inactiveProductIds,
+      undatedProductIds: [],
+      hasRealSalesData: true,
+      obsoleteCategoryFilter,
+    };
   }
 
   return {
@@ -140,7 +151,7 @@ export function resolveProductFeedItems(
     missingProductIds,
     inactiveProductIds,
     undatedProductIds: [],
-    hasRealSalesData: pool.some((p) => Number(p.salesCount || 0) > 0),
+    hasRealSalesData: hasSalesInPool,
     obsoleteCategoryFilter,
   };
 }

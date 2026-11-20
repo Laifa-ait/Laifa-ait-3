@@ -7,7 +7,7 @@ import {
   PromoSlide,
 } from "../../../domains/seller/customPage.types";
 import { resolveBannerPosition } from "../../../pages/Seller/StoreBuilder/components/inspector/controls/AlignmentMatrix3x3";
-import { safeNavigationHref } from "./safeNavigationHref";
+import { handleSmartLinkClick, safeNavigationHref } from "./safeNavigationHref";
 import { EditorialHeading } from "../EditorialHeading";
 import {
   resolveSectionButtonInlineStyle,
@@ -41,7 +41,7 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
   slide, nextSlide, slideIndex, totalSlides, carouselStyle, heightClass,
   overlayOpacity, globalPosition, styles, theme, isEditable, onFocusSlide, onNextSlide,
 }) => {
-  const accentColor = styles.iconColor || styles.buttonBgColor || theme.primaryColor || "var(--store-primary, #B45309)";
+  const accentColor = styles.iconColor || styles.buttonBgColor || theme.primaryColor || "var(--store-primary, #0F172A)";
   const headingColor = styles.headingColor || styles.textColor || "#FFFFFF";
   const subtitleColor = styles.subtitleColor || styles.textColor || "rgba(255,255,255,0.9)";
   const badgeBgColor = styles.badgeBgColor || `${accentColor}40`;
@@ -52,6 +52,8 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
   const alpha = Math.min(0.9, Math.max(0, overlayOpacity / 100));
   const imgFilter = resolveSectionImageFilterCss(styles);
   const btnStyle = resolveSectionButtonInlineStyle(styles, theme);
+  const slideImageSrc = slide.imageUrl?.trim() || ELEGANT_HERO_FALLBACK_IMG;
+  const nextSlideImageSrc = nextSlide?.imageUrl?.trim() || slideImageSrc;
 
   const renderActionCta = () => {
     const commonClass =
@@ -60,6 +62,8 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
       return (
         <button
           type="button"
+          data-testid={`promo-slide-cta-${slideIndex}`}
+          title="Cliquer pour modifier ce bouton"
           onClick={(e) => { e.stopPropagation(); onFocusSlide?.(); }}
           style={btnStyle}
           className={commonClass}
@@ -70,7 +74,12 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
       );
     }
     return (
-      <a href={safeHref} style={btnStyle} className={commonClass}>
+      <a
+        href={safeHref}
+        onClick={(e) => handleSmartLinkClick(safeHref, e, slide.title || ctaLabel)}
+        style={btnStyle}
+        className={commonClass}
+      >
         <span>{ctaLabel}</span>
         {styles.buttonShowArrow !== false && <ArrowRight className="w-4 h-4" />}
       </a>
@@ -86,7 +95,7 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
       >
         <div
           style={{ backgroundColor: styles.cardBgColor || undefined, borderColor: styles.cardBorderColor || "rgba(255,255,255,0.1)" }}
-          className="@md:col-span-5 p-6 @sm:p-8 @md:p-10 flex flex-col justify-between gap-5 bg-gradient-to-br from-[#0F172A] to-[#022C43] border-b @md:border-b-0 @md:border-r"
+          className="@md:col-span-5 p-6 @sm:p-8 @md:p-10 flex flex-col justify-between gap-5 bg-gradient-to-br from-[#0F172A] to-[#022C43] border-b @md:border-b-0 @md:border-e"
         >
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
@@ -104,17 +113,14 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
             </div>
             {slide.title && (
               <EditorialHeading
-                as="h2"
-                text={slide.title}
-                theme={theme}
-                sectionStyles={styles}
+                as="h2" text={slide.title} theme={theme} sectionStyles={styles}
                 accentColorOverride={styles.kickerColor || accentColor}
-                className="text-xl @sm:text-2xl @md:text-3xl font-black tracking-tight leading-tight"
+                className="text-xl @sm:text-2xl @md:text-3xl font-black tracking-tight leading-tight break-words"
                 style={{ color: headingColor }}
               />
             )}
             {slide.subtitle && (
-              <p className="text-xs @sm:text-sm leading-relaxed line-clamp-3" style={{ color: subtitleColor }}>{slide.subtitle}</p>
+              <p className="text-xs @sm:text-sm leading-relaxed line-clamp-3 break-words" style={{ color: subtitleColor }}>{slide.subtitle}</p>
             )}
           </div>
           <div className="space-y-3 pt-2 pb-10 @md:pb-8">
@@ -127,10 +133,12 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
             <div>{renderActionCta()}</div>
           </div>
         </div>
-        <div className={`@md:col-span-7 relative ${heightClass} bg-slate-900 overflow-hidden`}>
-          {slide.imageUrl && (
-            <img src={slide.imageUrl} alt={slide.title || "Offre"} onError={handleSlideImageError} style={{ filter: imgFilter }} className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
-          )}
+        <div
+          data-testid={`promo-slide-image-${slideIndex}`}
+          title={isEditable ? "Cliquer pour changer la photo" : undefined}
+          className={`@md:col-span-7 relative ${heightClass} bg-slate-900 overflow-hidden ${isEditable ? "cursor-pointer" : ""}`}
+        >
+          <img src={slideImageSrc} alt={slide.title || "Offre"} onError={handleSlideImageError} style={{ filter: imgFilter }} className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
         </div>
       </div>
     );
@@ -140,7 +148,7 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
     return (
       <div onClick={isEditable ? onFocusSlide : undefined} className={`grid grid-cols-1 @md:grid-cols-12 gap-3 p-3 bg-slate-950 ${heightClass}`}>
         <div className="@md:col-span-9 relative rounded-2xl overflow-hidden bg-slate-900 h-full">
-          {slide.imageUrl && <img src={slide.imageUrl} alt={slide.title || "Lookbook"} onError={handleSlideImageError} style={{ filter: imgFilter }} className="w-full h-full object-cover" />}
+          <img src={slideImageSrc} alt={slide.title || "Lookbook"} onError={handleSlideImageError} style={{ filter: imgFilter }} className="w-full h-full object-cover" />
           <div
             className={`absolute inset-0 p-6 @sm:p-8 pb-16 flex flex-col ${globalPosition.flexContainerClass}`}
             style={{ background: `linear-gradient(to top, rgba(2,6,23,${Math.max(0.75, alpha)}), rgba(2,6,23,${alpha * 0.35}), transparent)` }}
@@ -153,16 +161,12 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
               )}
               {slide.title && (
                 <EditorialHeading
-                  as="h2"
-                  text={slide.title}
-                  theme={theme}
-                  sectionStyles={styles}
-                  accentColorOverride={styles.kickerColor || accentColor}
-                  style={{ color: headingColor }}
-                  className="text-xl @sm:text-3xl font-black leading-tight drop-shadow-xs"
+                  as="h2" text={slide.title} theme={theme} sectionStyles={styles}
+                  accentColorOverride={styles.kickerColor || accentColor} style={{ color: headingColor }}
+                  className="text-xl @sm:text-3xl font-black leading-tight drop-shadow-xs break-words"
                 />
               )}
-              {slide.subtitle && <p className="text-xs @sm:text-sm line-clamp-2" style={{ color: subtitleColor }}>{slide.subtitle}</p>}
+              {slide.subtitle && <p className="text-xs @sm:text-sm line-clamp-2 break-words" style={{ color: subtitleColor }}>{slide.subtitle}</p>}
               <div className="pt-1 flex flex-wrap items-center gap-2.5">
                 {renderActionCta()}
                 {slide.highlightPrice && (
@@ -175,9 +179,7 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
           </div>
         </div>
         <div onClick={(e) => { e.stopPropagation(); onNextSlide?.(); }} className="hidden @md:flex @md:col-span-3 relative rounded-2xl overflow-hidden bg-slate-900 h-full cursor-pointer group border border-white/10">
-          {(nextSlide?.imageUrl || slide.imageUrl) && (
-            <img src={nextSlide?.imageUrl || slide.imageUrl} alt="" onError={handleSlideImageError} style={{ filter: imgFilter }} className="w-full h-full object-cover opacity-65 group-hover:opacity-90 group-hover:scale-105 transition-all duration-500" />
-          )}
+          <img src={nextSlideImageSrc} alt="" onError={handleSlideImageError} style={{ filter: imgFilter }} className="w-full h-full object-cover opacity-65 group-hover:opacity-90 group-hover:scale-105 transition-all duration-500" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-4 flex flex-col justify-end">
             <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400 font-bold">Suivant →</span>
             <span className="text-xs font-bold text-white line-clamp-2 mt-0.5">{nextSlide?.title || "Diapositive suivante"}</span>
@@ -192,9 +194,9 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
 
   return (
     <div onClick={isEditable ? onFocusSlide : undefined} className={`relative ${heightClass} w-full bg-slate-950 overflow-hidden`}>
-      {slide.imageUrl && <img src={slide.imageUrl} alt={slide.title || "Promotion"} onError={handleSlideImageError} style={{ filter: imgFilter }} className="w-full h-full object-cover transition-all duration-700" />}
+      <img src={slideImageSrc} alt={slide.title || "Promotion"} onError={handleSlideImageError} style={{ filter: imgFilter }} className="w-full h-full object-cover transition-all duration-700" />
       {isSpotlight && (slide.highlightPrice || slide.badge) && (
-        <div style={{ backgroundColor: styles.badgeBgColor || "#FBBF24", color: styles.badgeTextColor || "#020617" }} className="absolute top-4 right-4 z-10 px-3.5 py-2 rounded-2xl font-black text-xs @sm:text-sm shadow-xl flex items-center gap-1.5 border-2 border-white">
+        <div style={{ backgroundColor: styles.badgeBgColor || "#FBBF24", color: styles.badgeTextColor || "#020617" }} className="absolute top-4 end-4 z-10 px-3.5 py-2 rounded-2xl font-black text-xs @sm:text-sm shadow-xl flex items-center gap-1.5 border-2 border-white">
           <Sparkles className="w-4 h-4 shrink-0" /><span>{slide.highlightPrice || slide.badge}</span>
         </div>
       )}
@@ -219,11 +221,11 @@ export const PromoCarouselSlideRenderer: React.FC<PromoCarouselSlideRendererProp
           {slide.title && (
             <EditorialHeading
               as="h2" text={slide.title} theme={theme} sectionStyles={styles} accentColorOverride={styles.kickerColor || accentColor}
-              className="font-black text-xl @sm:text-3xl @md:text-4xl tracking-tight leading-tight drop-shadow-sm" style={{ color: headingColor }}
+              className="font-black text-xl @sm:text-3xl @md:text-4xl tracking-tight leading-tight drop-shadow-sm break-words" style={{ color: headingColor }}
             />
           )}
           {slide.subtitle && (
-            <p className="text-xs @sm:text-sm @md:text-base leading-relaxed max-w-xl line-clamp-2 @sm:line-clamp-3" style={{ color: subtitleColor }}>{slide.subtitle}</p>
+            <p className="text-xs @sm:text-sm @md:text-base leading-relaxed max-w-xl line-clamp-2 @sm:line-clamp-3 break-words" style={{ color: subtitleColor }}>{slide.subtitle}</p>
           )}
           <div className="pt-1.5 flex flex-wrap items-center gap-2.5">
             {renderActionCta()}

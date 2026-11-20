@@ -25,6 +25,9 @@ router.get(
  * Enforces that if Firebase Admin SDK initialization failed or Firestore ping fails,
  * the probe returns unavailable / degraded (503).
  */
+let lastReadinessPing: { status: string; checkedAt: number } | null = null;
+const READINESS_PING_CACHE_TTL_MS = 60 * 1000;
+
 async function checkReadiness(): Promise<{ ready: boolean; firebase: string; frontend?: string }> {
   const firebaseState = getFirebaseInitState();
   if (firebaseState === FirebaseInitState.FAILED || !isFirebaseReady()) {
@@ -40,7 +43,7 @@ async function checkReadiness(): Promise<{ ready: boolean; firebase: string; fro
     return { ready: false, firebase: "unavailable" };
   }
 
-  // Lightweight Firestore ping with 3-second cold-start resilient timeout
+  // Lightweight Firestore ping with 3-second cold-start resilient timeout & 60s TTL cache
   let firebaseStatus = "ok";
   const isMockedCollection = typeof (db?.collection as { mock?: unknown })?.mock !== "undefined";
   const hasExplicitAdminCreds = Boolean(
@@ -51,23 +54,34 @@ async function checkReadiness(): Promise<{ ready: boolean; firebase: string; fro
     (process.env.NODE_ENV !== "test" && !process.env.VITEST && hasExplicitAdminCreds);
 
   if (shouldPingFirestore) {
-    try {
-      let pingTimer: NodeJS.Timeout | null = null;
-      const timeoutPromise = new Promise((_, reject) => {
-        pingTimer = setTimeout(() => reject(new Error("Firestore timeout")), 3000);
-      });
+    if (
+      !isMockedCollection &&
+      lastReadinessPing &&
+      Date.now() - lastReadinessPing.checkedAt < READINESS_PING_CACHE_TTL_MS
+    ) {
+      firebaseStatus = lastReadinessPing.status;
+    } else {
       try {
-        await Promise.race([
-          db.collection("_health").doc("probe").get(),
-          timeoutPromise
-        ]);
-      } finally {
-        if (pingTimer) clearTimeout(pingTimer);
+        let pingTimer: NodeJS.Timeout | null = null;
+        const timeoutPromise = new Promise((_, reject) => {
+          pingTimer = setTimeout(() => reject(new Error("Firestore timeout")), 3000);
+        });
+        try {
+          await Promise.race([
+            db.collection("_health").doc("probe").get(),
+            timeoutPromise
+          ]);
+        } finally {
+          if (pingTimer) clearTimeout(pingTimer);
+        }
+      } catch (pingErr: unknown) {
+        const errMsg = pingErr instanceof Error ? pingErr.message : String(pingErr);
+        safeLogger.warn("[Readiness Probe] ⚠️ Firestore ping failed", { err: errMsg });
+        firebaseStatus = "unreachable";
       }
-    } catch (pingErr: unknown) {
-      const errMsg = pingErr instanceof Error ? pingErr.message : String(pingErr);
-      safeLogger.warn("[Readiness Probe] ⚠️ Firestore ping failed", { err: errMsg });
-      firebaseStatus = "unreachable";
+      if (!isMockedCollection) {
+        lastReadinessPing = { status: firebaseStatus, checkedAt: Date.now() };
+      }
     }
   }
 

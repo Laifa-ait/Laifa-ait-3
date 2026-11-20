@@ -36,27 +36,38 @@ export async function attachDevViteMiddleware(app: Express): Promise<boolean> {
 
   let viteInstance: ViteDevServer | null = null;
   let viteFailed = false;
+  let viteInitPromise: Promise<void> | null = null;
 
-  const viteInitPromise = (async () => {
-    try {
-      const { createServer: createViteServer } = await import("vite");
-      const vite = await createViteServer({
-        server: {
-          middlewareMode: true,
-          allowedHosts: true,
-        },
-        appType: "spa",
-      });
-      viteInstance = vite;
-      activeViteServer = vite;
-      safeLogger.info("[Olmart Gateway] ⚡ Vite Dev Server middleware ready");
-    } catch (err: unknown) {
-      viteFailed = true;
-      safeLogger.error("[Olmart Vite] ❌ Vite dev middleware failed to initialize, falling back to static file serving", {
-        err: err instanceof Error ? err.message : String(err),
-      });
+  const ensureViteInitialized = (): Promise<void> => {
+    if (viteInstance || viteFailed) {
+      return Promise.resolve();
     }
-  })();
+    if (!viteInitPromise) {
+      viteInitPromise = (async () => {
+        try {
+          const { createServer: createViteServer } = await import("vite");
+          const vite = await createViteServer({
+            server: {
+              middlewareMode: true,
+              allowedHosts: true,
+              hmr: false,
+              ws: false,
+            },
+            appType: "spa",
+          });
+          viteInstance = vite;
+          activeViteServer = vite;
+          safeLogger.info("[Olmart Gateway] ⚡ Vite Dev Server middleware ready");
+        } catch (err: unknown) {
+          viteFailed = true;
+          safeLogger.error("[Olmart Vite] ❌ Vite dev middleware failed to initialize, falling back to static file serving", {
+            err: err instanceof Error ? err.message : String(err),
+          });
+        }
+      })();
+    }
+    return viteInitPromise;
+  };
 
   const devRouter = express.Router();
 
@@ -74,7 +85,7 @@ export async function attachDevViteMiddleware(app: Express): Promise<boolean> {
     }
 
     if (!viteInstance && !viteFailed) {
-      await viteInitPromise;
+      await ensureViteInitialized();
     }
 
     if (viteFailed || !viteInstance) {
@@ -98,7 +109,7 @@ export async function attachDevViteMiddleware(app: Express): Promise<boolean> {
     }
 
     if (!viteInstance && !viteFailed) {
-      await viteInitPromise;
+      await ensureViteInitialized();
     }
 
     const ext = path.extname(req.path);

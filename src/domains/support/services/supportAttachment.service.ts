@@ -122,11 +122,12 @@ export class SupportAttachmentService {
 
     const fileUrl = `/api/v1/support/tickets/${ticketId}/attachments/${attachmentId}`;
 
-    await db.collection("adminActions").add({
+    await db.collection("audit_logs").add({
       action: "support-file-upload",
-      uid,
-      email: userEmail || "inconnu",
-      ticketId,
+      adminId: uid,
+      adminEmail: userEmail || "inconnu",
+      targetId: ticketId,
+      resourceType: "support_ticket",
       fileName: sanitizedName,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       status: "success"

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X, Key, Eye, EyeOff, Check, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
@@ -8,6 +8,7 @@ import {
   updateUserPassword,
   sendPasswordReset,
 } from "../../../services/auth.service";
+import { PasswordResetSentView } from "./PasswordResetSentView";
 
 interface PasswordChangeModalProps {
   isOpen: boolean;
@@ -28,44 +29,58 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
   const [showNew, setShowNew] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resetSending, setResetSending] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setResendCooldown((prev) => (prev > 1 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
 
   if (!isOpen) return null;
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
+  const handleClose = (): void => {
+    setResetSent(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    onClose();
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!currentPassword.trim()) {
-      return toast.error(t("Veuillez saisir votre mot de passe actuel."));
+      toast.error(t("Veuillez saisir votre mot de passe actuel."));
+      return;
     }
     if (newPassword.length < 6) {
-      return toast.error(t("Le nouveau mot de passe doit comporter au moins 6 caractères."));
+      toast.error(t("Le nouveau mot de passe doit comporter au moins 6 caractères."));
+      return;
     }
     if (newPassword !== confirmPassword) {
-      return toast.error(t("Les deux mots de passe ne correspondent pas."));
+      toast.error(t("Les deux mots de passe ne correspondent pas."));
+      return;
     }
 
     const fbUser = getCurrentAuthUser();
-    if (!fbUser) return toast.error(t("Utilisateur non connecté."));
+    if (!fbUser) {
+      toast.error(t("Utilisateur non connecté."));
+      return;
+    }
 
     setLoading(true);
     try {
-      // 1. Reauthenticate against Firebase Auth storage
       await reauthenticateUser(fbUser, currentPassword);
-
-      // 2. Real password update in Firebase Authentication
       await updateUserPassword(fbUser, newPassword);
-
-      toast.success(t("Votre mot de passe a été modifié avec succès dans Firebase !"));
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      onClose();
+      toast.success(t("Votre mot de passe a été modifié avec succès !"));
+      handleClose();
     } catch (err: unknown) {
-      console.error("Password update error:", err);
+      console.error("[Security] ❌ Password update error:", err);
       const authErr = err as { code?: string; message?: string };
-      if (
-        authErr.code === "auth/wrong-password" ||
-        authErr.code === "auth/invalid-credential"
-      ) {
+      if (authErr.code === "auth/wrong-password" || authErr.code === "auth/invalid-credential") {
         toast.error(t("Mot de passe actuel incorrect."));
       } else if (authErr.code === "auth/weak-password") {
         toast.error(t("Le mot de passe choisi est trop faible."));
@@ -77,153 +92,119 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
     }
   };
 
-  const handleForgotPassword = async () => {
-    if (!userEmail) return toast.error(t("Adresse email non disponible."));
+  const handleForgotPassword = async (): Promise<void> => {
+    if (!userEmail) {
+      toast.error(t("Adresse email non disponible."));
+      return;
+    }
     setResetSending(true);
     try {
       await sendPasswordReset(userEmail);
-      toast.success(
-        t("Un email de réinitialisation sécurisé a été envoyé à votre adresse : ") + userEmail
-      );
-    } catch (err) {
-      console.error("Password reset error:", err);
-      toast.error(t("Impossible d'envoyer l'email de réinitialisation."));
+      setResetSent(true);
+      setResendCooldown(60);
+    } catch (err: unknown) {
+      console.error("[Security] ❌ Password reset error:", err);
+      const authErr = err as { code?: string };
+      if (authErr.code === "auth/too-many-requests") {
+        toast.error(t("Trop de tentatives récentes. Veuillez patienter quelques minutes."));
+      } else {
+        toast.error(t("Impossible d'envoyer l'email de réinitialisation."));
+      }
     } finally {
       setResetSending(false);
     }
   };
 
+  const inputClass =
+    "w-full ps-9 pe-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-[#0d5c4b] focus:ring-2 focus:ring-[#0d5c4b]/15 text-slate-900 placeholder:text-slate-400 transition-colors";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-[28px] max-w-md w-full border border-[#dadce0] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#f1f3f4]">
-          <h3 className="text-base sm:text-lg font-semibold text-[#202124]">
-            {t("Modifier le mot de passe")}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white rounded-[24px] max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h3 className="text-base sm:text-lg font-semibold text-slate-900">
+            {resetSent ? t("Réinitialisation du mot de passe") : t("Modifier le mot de passe")}
           </h3>
           <button
             type="button"
-            onClick={onClose}
-            className="w-9 h-9 flex items-center justify-center rounded-full text-[#5f6368] hover:bg-[#f1f3f4] transition-colors cursor-pointer border-none bg-transparent"
+            onClick={handleClose}
+            aria-label={t("Fermer")}
+            className="w-9 h-9 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer border-none bg-transparent"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content */}
-        <form onSubmit={handlePasswordSubmit} className="p-6 overflow-y-auto space-y-4 text-left">
-          <p className="text-xs text-[#5f6368] leading-relaxed">
-            {t(
-              "Choisissez un mot de passe robuste d'au moins 6 caractères contenant lettres, chiffres et symboles pour sécuriser votre compte."
-            )}
-          </p>
+        {resetSent && userEmail ? (
+          <PasswordResetSentView
+            userEmail={userEmail}
+            resendCooldown={resendCooldown}
+            resetSending={resetSending}
+            onResend={() => void handleForgotPassword()}
+            onBackToForm={() => setResetSent(false)}
+            onClose={handleClose}
+          />
+        ) : (
+          <form onSubmit={handlePasswordSubmit} className="p-6 overflow-y-auto space-y-4 text-left">
+            <p className="text-xs text-slate-500 leading-relaxed">
+              {t("Choisissez un mot de passe robuste d'au moins 6 caractères contenant lettres, chiffres et symboles pour sécuriser votre compte.")}
+            </p>
 
-          {/* Current Password */}
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-[#5f6368] block">
-              {t("Mot de passe actuel")}
-            </label>
-            <div className="relative">
-              <Key className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5f6368]" />
-              <input
-                type={showCurrent ? "text" : "password"}
-                required
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full ps-9 pe-10 py-2.5 bg-white border border-[#dadce0] rounded-xl text-sm outline-none focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 text-[#202124]"
-              />
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-600 block">{t("Mot de passe actuel")}</label>
+              <div className="relative">
+                <Key className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input type={showCurrent ? "text" : "password"} required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" className={inputClass} />
+                <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-800 border-none bg-transparent cursor-pointer">
+                  {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-600 block">{t("Nouveau mot de passe")}</label>
+              <div className="relative">
+                <Key className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input type={showNew ? "text" : "password"} required minLength={6} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" className={inputClass} />
+                <button type="button" onClick={() => setShowNew(!showNew)} className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-800 border-none bg-transparent cursor-pointer">
+                  {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-600 block">{t("Confirmer le nouveau mot de passe")}</label>
+              <div className="relative">
+                <Key className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type={showNew ? "text" : "password"} required value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••"
+                  className="w-full ps-9 pe-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-[#0d5c4b] focus:ring-2 focus:ring-[#0d5c4b]/15 text-slate-900 placeholder:text-slate-400 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="pt-1">
               <button
-                type="button"
-                onClick={() => setShowCurrent(!showCurrent)}
-                className="absolute end-3 top-1/2 -translate-y-1/2 text-[#5f6368] hover:text-[#202124] border-none bg-transparent cursor-pointer"
+                type="button" disabled={resetSending} onClick={() => void handleForgotPassword()}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-[#0d5c4b] hover:underline cursor-pointer border-none bg-transparent p-0 disabled:opacity-50"
               >
-                {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {resetSending && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>{resetSending ? t("Envoi de l'email en cours...") : t("Mot de passe actuel oublié ? Envoyer un email de réinitialisation")}</span>
               </button>
             </div>
-          </div>
 
-          {/* New Password */}
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-[#5f6368] block">
-              {t("Nouveau mot de passe")}
-            </label>
-            <div className="relative">
-              <Key className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5f6368]" />
-              <input
-                type={showNew ? "text" : "password"}
-                required
-                minLength={6}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full ps-9 pe-10 py-2.5 bg-white border border-[#dadce0] rounded-xl text-sm outline-none focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 text-[#202124]"
-              />
-              <button
-                type="button"
-                onClick={() => setShowNew(!showNew)}
-                className="absolute end-3 top-1/2 -translate-y-1/2 text-[#5f6368] hover:text-[#202124] border-none bg-transparent cursor-pointer"
-              >
-                {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+              <button type="button" onClick={handleClose} className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-colors cursor-pointer">
+                {t("Annuler")}
+              </button>
+              <button type="submit" disabled={loading} className="flex items-center gap-2 px-5 py-2.5 bg-[#0d5c4b] hover:bg-[#084236] text-white text-sm font-medium rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 border-none">
+                {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                <span>{loading ? t("Mise à jour...") : t("Modifier le mot de passe")}</span>
               </button>
             </div>
-          </div>
-
-          {/* Confirm Password */}
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-[#5f6368] block">
-              {t("Confirmer le nouveau mot de passe")}
-            </label>
-            <div className="relative">
-              <Key className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5f6368]" />
-              <input
-                type={showNew ? "text" : "password"}
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full ps-9 pe-3 py-2.5 bg-white border border-[#dadce0] rounded-xl text-sm outline-none focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 text-[#202124]"
-              />
-            </div>
-          </div>
-
-          {/* Forgot password reset link */}
-          <div className="pt-1">
-            <button
-              type="button"
-              disabled={resetSending}
-              onClick={handleForgotPassword}
-              className="text-xs font-medium text-[#1a73e8] hover:underline cursor-pointer border-none bg-transparent p-0 disabled:opacity-50"
-            >
-              {resetSending
-                ? t("Envoi en cours...")
-                : t("Mot de passe actuel oublié ? Envoyer un email de réinitialisation")}
-            </button>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#f1f3f4]">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-[#1a73e8] hover:bg-[#1a73e8]/10 rounded-full transition-colors cursor-pointer border-none bg-transparent"
-            >
-              {t("Annuler")}
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex items-center gap-2 px-6 py-2 bg-[#1a73e8] hover:bg-[#1557b0] text-white text-sm font-medium rounded-full shadow-xs transition-colors cursor-pointer disabled:opacity-50 border-none"
-            >
-              {loading ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Check className="w-4 h-4" />
-              )}
-              <span>{loading ? t("Mise à jour...") : t("Modifier le mot de passe")}</span>
-            </button>
-          </div>
-        </form>
+          </form>
+        )}
       </div>
     </div>
   );

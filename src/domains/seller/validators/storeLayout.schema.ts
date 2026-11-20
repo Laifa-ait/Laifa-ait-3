@@ -17,7 +17,7 @@ const optionalSafeMediaUrl = z
 
 const hexColor = z
   .union([
-    z.string().regex(HEX_COLOR_REGEX, "Format hexadécimal invalide (#RRGGBB)"),
+    z.string().trim().regex(HEX_COLOR_REGEX, "Format hexadécimal invalide (#RRGGBB)"),
     z.literal(""),
     z.null(),
   ])
@@ -52,6 +52,7 @@ const frameShapeEnum = z
   .enum([
     "sharp-couture",
     "soft-modern",
+    "arch-minimal",
     "casbah-arch",
     "medallion-oval",
     "polaroid-atelier",
@@ -75,7 +76,7 @@ const headingAccentStyleEnum = z
   .transform((v) => v ?? undefined);
 
 const headingUnderlineStyleEnum = z
-  .enum(["brush-stroke", "golden-wave"])
+  .enum(["hairline", "brush-stroke", "golden-wave"])
   .nullable()
   .optional()
   .transform((v) => v ?? undefined);
@@ -254,7 +255,7 @@ const heroBannerSchema = z.object({
       subtitleColor: hexColor,
       ctaBgColor: hexColor,
       ctaTextColor: hexColor,
-      ctaStyle: z.enum(["solid", "outline", "pill", "glass", "sharp"]).nullable().optional().transform((v) => v ?? undefined),
+      ctaStyle: z.enum(["solid", "outline", "pill", "glass", "sharp", "rounded", "minimal"]).nullable().optional().transform((v) => v ?? undefined),
       ctaShadow: studioShadowEnum.nullable().optional().transform((v) => v ?? undefined),
       showBadge: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
       showSubtitle: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
@@ -263,7 +264,7 @@ const heroBannerSchema = z.object({
       showSocialProofBadge: z.boolean().nullable().optional().transform((v) => (v === null ? undefined : v)),
       secondaryCtaText: optStr(80),
       secondaryCtaLink: optStr(3000),
-      secondaryCtaStyle: z.enum(["solid", "outline", "pill", "glass", "sharp"]).nullable().optional().transform((v) => v ?? undefined),
+      secondaryCtaStyle: z.enum(["solid", "outline", "pill", "glass", "sharp", "rounded", "minimal"]).nullable().optional().transform((v) => v ?? undefined),
       secondaryCtaShadow: studioShadowEnum.nullable().optional().transform((v) => v ?? undefined),
       secondaryCtaBgColor: hexColor,
       secondaryCtaTextColor: hexColor,
@@ -278,6 +279,32 @@ const heroBannerSchema = z.object({
       spotlightProductImage: optionalSafeMediaUrl,
       spotlightProductId: optStr(120),
       hotspots: z.array(heroHotspotSchema).max(8).optional(),
+      textFrame: z
+        .object({
+          enabled: z.boolean().optional(),
+          placement: z.enum(["auto", "overlay", "docked-below", "docked-above"]).optional(),
+          fillMode: z.enum(["solid", "gradient"]).optional(),
+          bgColor: hexColor,
+          gradientColor2: hexColor,
+          gradientAngle: z.number().min(0).max(360).optional(),
+          opacity: z.number().min(0).max(100).optional(),
+          blurPx: z.number().min(0).max(24).optional(),
+          borderWidthPx: z.number().min(0).max(6).optional(),
+          borderStyle: z.enum(["solid", "dashed", "dotted", "double"]).optional(),
+          borderColor: hexColor,
+          borderOpacity: z.number().min(0).max(100).optional(),
+          borderRadiusPx: z.number().min(0).max(48).optional(),
+          paddingXPx: z.number().min(0).max(64).optional(),
+          paddingYPx: z.number().min(0).max(64).optional(),
+          maxWidthMode: z.enum(["auto", "custom", "full"]).optional(),
+          maxWidthPx: z.number().min(240).max(800).optional(),
+          shadow: z.enum(["none", "sm", "md", "lg", "floating", "glow", "brutal"]).optional(),
+          shadowColor: hexColor,
+          offsetXPx: z.number().min(-60).max(60).optional(),
+          offsetYPx: z.number().min(-60).max(60).optional(),
+        })
+        .passthrough()
+        .optional(),
     })
     .passthrough(),
   styles: sectionStylesSchema,
@@ -339,7 +366,7 @@ const kineticMarqueeSchema = z.object({
   settings: z
     .object({
       ...commonSectionSettings,
-      textFr: z.string().max(300).nullable().optional().transform((v) => v ?? "FAIT MAIN EN ALGÉRIE • ÉDITION LIMITÉE • LIVRAISON 69 WILAYAS"),
+      textFr: z.string().max(300).nullable().optional().transform((v) => v ?? "COLLECTION CONTEMPORAINE • ÉDITION STUDIO • LIVRAISON NATIONALE"),
       textAr: optStr(300),
       showBilingual: z.boolean().nullable().optional().transform((v) => v ?? true),
       speed: z.enum(["slow", "normal", "fast"]).nullable().optional().transform((v) => v ?? "normal"),
@@ -827,7 +854,14 @@ export const storeConfigSchema = z
     seo: storeConfigSeoSchema.optional(),
     customPages: z.array(customPageItemSchema).max(30).optional(),
     collectionPageConfig: collectionPageConfigSchema.optional(),
-    mediaGallery: z.array(mediaGalleryItemSchema).max(100).optional(),
+    mediaGallery: z
+      .array(mediaGalleryItemSchema)
+      .max(500, "Maximum 500 médias autorisés dans la médiathèque")
+      .refine(
+        (items) => items.reduce((acc, item) => acc + (item.url?.length || 0) + (item.name?.length || 0) + 120, 0) <= 750_000,
+        "Le volume total de la médiathèque dépasse la limite de stockage autorisée."
+      )
+      .optional(),
     announcementBar: z
       .object({
         enabled: z.boolean().default(false),
@@ -877,7 +911,14 @@ export const storeConfigSchema = z
         minOrderAmountDZD: z.number().nonnegative().max(10000000).optional(),
         whatsappOrderEnabled: z.boolean().default(false),
         whatsappNumber: optStr(40),
-        preparationTimeHours: optStr(60),
+        preparationTimeHours: z
+          .union([z.string().max(60), z.number().min(0).max(10000), z.null()])
+          .optional()
+          .transform((val) => {
+            if (val === null || val === undefined) return undefined;
+            const s = String(val).trim();
+            return s.length > 0 ? s.slice(0, 60) : undefined;
+          }),
         showTrustBadges: z.boolean().default(true),
       })
       .passthrough()
@@ -932,4 +973,5 @@ export const publishLayoutSchema = z.object({
 
 export const rollbackLayoutSchema = z.object({
   versionNumber: z.number().int().positive("Le numéro de version doit être positif"),
+  expectedRevision: z.number().int().nonnegative().optional(),
 });

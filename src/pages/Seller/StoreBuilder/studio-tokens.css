@@ -1,28 +1,36 @@
 :root {
-  --studio-primary: #0F172A;
-  --studio-primary-hover: #1E293B;
-  --studio-primary-soft: #F1F5F9;
-  --studio-accent-teal: #023859;
-  --studio-focus: #0369A1;
-  --studio-black: #0F172A;
-  --studio-text: #334155;
-  --studio-muted: #64748B;
-  --studio-background: #F6F7F9;
+  --studio-primary: #111827;
+  --studio-primary-hover: #1F2937;
+  --studio-primary-soft: #F3F4F6;
+  --studio-accent-teal: #111827;
+  --studio-accent-ink: #1F2937;
+  --studio-focus: #005BD3;
+  --studio-focus-ring: rgba(0, 91, 211, 0.16);
+  --studio-black: #111827;
+  --studio-text: #374151;
+  --studio-muted: #6B7280;
+  --studio-background: #F1F2F4;
+  --studio-surface-subtle: #F6F7F9;
   --studio-white: #FFFFFF;
-  --studio-border: #E5E7EB;
-  --studio-border-strong: #CBD5E1;
+  --studio-border: #E3E5E8;
+  --studio-border-strong: #CDD2D9;
+  --studio-highlight-soft: #EEF4FF;
   --studio-green: #16A34A;
   --studio-red: #DC2626;
+  --studio-amber: #D97706;
   --studio-radius: 8px;
-  --studio-sidebar-width: 272px;
+  --studio-sidebar-width: 276px;
   --studio-inspector-width: 360px;
-  --studio-topbar-height: 52px;
+  --studio-topbar-height: 54px;
 }
 
 .studio-canvas-backdrop {
-  background-color: #F4F5F7;
-  background-image: radial-gradient(#DCE1E8 1px, transparent 1px);
-  background-size: 16px 16px;
+  background-color: var(--studio-background);
+  background-image: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.65) 0%, rgba(241, 242, 244, 0) 68%);
+}
+
+.studio-storefront-frame {
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06), 0 14px 36px -10px rgba(17, 24, 39, 0.12);
 }
 
 .studio-panel {
@@ -32,7 +40,7 @@
 }
 
 .studio-hairline-divider {
-  border-color: #F1F5F9;
+  border-color: var(--studio-surface-subtle);
 }
 
 .studio-btn-primary {
@@ -62,12 +70,12 @@
 
 .studio-input:focus {
   outline: none;
-  border-color: var(--studio-accent-teal);
-  box-shadow: 0 0 0 2px rgba(2, 56, 89, 0.12);
+  border-color: var(--studio-focus);
+  box-shadow: 0 0 0 2px var(--studio-focus-ring);
 }
 
 .studio-topbar {
-  height: 52px;
+  height: var(--studio-topbar-height);
   flex-shrink: 0;
 }
 
@@ -90,3 +98,4 @@
     display: flex !important;
   }
 }
+

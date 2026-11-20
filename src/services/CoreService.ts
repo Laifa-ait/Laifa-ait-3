@@ -39,15 +39,17 @@ export class CoreService {
   private static initialProductsChecked = false;
   private static cachedHomeData: Record<string, unknown> | null = null;
   private static cachedHomeDataAt = 0;
-  private static readonly HOME_DATA_TTL_MS = 5 * 60 * 1000; // 5 minutes server L2 cache
+  private static inFlightHomeDataPromise: Promise<Record<string, unknown>> | null = null;
+  private static readonly HOME_DATA_TTL_MS = 10 * 60 * 1000; // 10 minutes server L2 cache
 
   static invalidateHomeDataCache(): void {
     CoreService.cachedHomeData = null;
     CoreService.cachedHomeDataAt = 0;
+    CoreService.inFlightHomeDataPromise = null;
   }
 
   static async ensureInitialProductsSeeded(): Promise<void> {
-    if (process.env.NODE_ENV === "production") return;
+    if (process.env.ALLOW_AUTO_SEED !== "true" || process.env.NODE_ENV === "production") return;
     if (CoreService.initialProductsChecked) return;
     CoreService.initialProductsChecked = true;
     try {
@@ -115,58 +117,67 @@ export class CoreService {
     if (CoreService.cachedHomeData && Date.now() - CoreService.cachedHomeDataAt < CoreService.HOME_DATA_TTL_MS) {
       return CoreService.cachedHomeData;
     }
-
-    const startTime = Date.now();
-    const emptySnap = { docs: [] as FirestoreDocSnapshot[] };
-    try {
-      if (process.env.NODE_ENV !== "production") {
-        await CoreService.ensureInitialProductsSeeded();
-      }
-
-      const [productsSnap, categoriesSnap, sectionsSnap, bannersSnap, tagsSnap, sellersSnap] = await Promise.all([
-        withFirestoreDeadline(
-          () => db.collection("products").where("status", "in", ["active", "approved"]).limit(16).get(),
-          emptySnap,
-          1600,
-          "home_products"
-        ),
-        withFirestoreDeadline(() => db.collection("homepage_categories_v2").limit(24).get(), emptySnap, 1500, "home_cats"),
-        withFirestoreDeadline(() => db.collection("homepage_sections").orderBy("orderIndex", "asc").limit(20).get(), emptySnap, 1500, "home_sections"),
-        withFirestoreDeadline(() => db.collection("banners").limit(20).get(), emptySnap, 1500, "home_banners"),
-        withFirestoreDeadline(() => db.collection("tags").limit(30).get(), emptySnap, 1500, "home_tags"),
-        withFirestoreDeadline(() => db.collection("publicProfiles").limit(12).get(), emptySnap, 1500, "home_sellers"),
-      ]);
-
-      const categories = categoriesSnap.docs.map((doc: FirestoreDocSnapshot) => ({ id: doc.id, ...doc.data() }));
-      const sections = sectionsSnap.docs.map((doc: FirestoreDocSnapshot) => ({ id: doc.id, ...doc.data() }));
-
-      const banners = (bannersSnap.docs.map((doc: FirestoreDocSnapshot) => ({ id: doc.id, ...doc.data() })) as BannerDoc[])
-        .filter((b) => b.is_active !== false && b.isActive !== false)
-        .sort((a, b) => (a.sort_order ?? a.orderIndex ?? 0) - (b.sort_order ?? b.orderIndex ?? 0));
-      const tags = tagsSnap.docs.map((doc: FirestoreDocSnapshot) => ({ id: doc.id, ...doc.data() }));
-      let productsLoaded = (productsSnap.docs.map((doc: FirestoreDocSnapshot) => ({ id: doc.id, ...doc.data() })) as ProductDocItem[])
-        .filter((d) => d && (d.stock === undefined || d.stock > 0));
-      productsLoaded = productsLoaded.sort((a, b) => (b.sellerTrustScore ?? 50) - (a.sellerTrustScore ?? 50));
-      const topTier = productsLoaded.filter((p) => (p.sellerTrustScore ?? 100) >= 75).slice(0, 8);
-      const featuredProducts = topTier.length >= 4 ? topTier : productsLoaded.slice(0, 8);
-      const sellers = sellersSnap.docs.map((doc: FirestoreDocSnapshot) => ({ id: doc.id, ...doc.data() }));
-      safeLogger.info("/api/v1/public/home-data processed", { durationMs: Date.now() - startTime });
-      const result = { categories, sections, banners, tags, featuredProducts, sellers };
-      CoreService.cachedHomeData = result;
-      CoreService.cachedHomeDataAt = Date.now();
-      return result;
-    } catch (err: unknown) {
-      if (CoreService.cachedHomeData) {
-        return CoreService.cachedHomeData;
-      }
-      safeLogger.error("/api/v1/public/home-data failed", { durationMs: Date.now() - startTime, err: err instanceof Error ? err.message : String(err) });
-      throw new Error("Failed to load homepage data", { cause: err });
+    if (CoreService.inFlightHomeDataPromise) {
+      return CoreService.inFlightHomeDataPromise;
     }
+
+    CoreService.inFlightHomeDataPromise = (async () => {
+      const startTime = Date.now();
+      const emptySnap = { docs: [] as FirestoreDocSnapshot[] };
+      try {
+        if (process.env.NODE_ENV !== "production") {
+          await CoreService.ensureInitialProductsSeeded();
+        }
+
+        const [productsSnap, categoriesSnap, sectionsSnap, bannersSnap, tagsSnap, sellersSnap] = await Promise.all([
+          withFirestoreDeadline(
+            () => db.collection("products").where("status", "in", ["active", "approved"]).limit(16).get(),
+            emptySnap,
+            1600,
+            "home_products"
+          ),
+          withFirestoreDeadline(() => db.collection("homepage_categories_v2").limit(24).get(), emptySnap, 1500, "home_cats"),
+          withFirestoreDeadline(() => db.collection("homepage_sections").orderBy("orderIndex", "asc").limit(20).get(), emptySnap, 1500, "home_sections"),
+          withFirestoreDeadline(() => db.collection("banners").limit(20).get(), emptySnap, 1500, "home_banners"),
+          withFirestoreDeadline(() => db.collection("tags").limit(30).get(), emptySnap, 1500, "home_tags"),
+          withFirestoreDeadline(() => db.collection("publicProfiles").limit(12).get(), emptySnap, 1500, "home_sellers"),
+        ]);
+
+        const categories = categoriesSnap.docs.map((doc: FirestoreDocSnapshot) => ({ id: doc.id, ...doc.data() }));
+        const sections = sectionsSnap.docs.map((doc: FirestoreDocSnapshot) => ({ id: doc.id, ...doc.data() }));
+
+        const banners = (bannersSnap.docs.map((doc: FirestoreDocSnapshot) => ({ id: doc.id, ...doc.data() })) as BannerDoc[])
+          .filter((b) => b.is_active !== false && b.isActive !== false)
+          .sort((a, b) => (a.sort_order ?? a.orderIndex ?? 0) - (b.sort_order ?? b.orderIndex ?? 0));
+        const tags = tagsSnap.docs.map((doc: FirestoreDocSnapshot) => ({ id: doc.id, ...doc.data() }));
+        let productsLoaded = (productsSnap.docs.map((doc: FirestoreDocSnapshot) => ({ id: doc.id, ...doc.data() })) as ProductDocItem[])
+          .filter((d) => d && (d.stock === undefined || d.stock > 0));
+        productsLoaded = productsLoaded.sort((a, b) => (b.sellerTrustScore ?? 50) - (a.sellerTrustScore ?? 50));
+        const topTier = productsLoaded.filter((p) => (p.sellerTrustScore ?? 100) >= 75).slice(0, 8);
+        const featuredProducts = topTier.length >= 4 ? topTier : productsLoaded.slice(0, 8);
+        const sellers = sellersSnap.docs.map((doc: FirestoreDocSnapshot) => ({ id: doc.id, ...doc.data() }));
+        safeLogger.info("/api/v1/public/home-data processed", { durationMs: Date.now() - startTime });
+        const result = { categories, sections, banners, tags, featuredProducts, sellers };
+        CoreService.cachedHomeData = result;
+        CoreService.cachedHomeDataAt = Date.now();
+        return result;
+      } catch (err: unknown) {
+        if (CoreService.cachedHomeData) {
+          return CoreService.cachedHomeData;
+        }
+        safeLogger.error("/api/v1/public/home-data failed", { durationMs: Date.now() - startTime, err: err instanceof Error ? err.message : String(err) });
+        throw new Error("Failed to load homepage data", { cause: err });
+      } finally {
+        CoreService.inFlightHomeDataPromise = null;
+      }
+    })();
+
+    return CoreService.inFlightHomeDataPromise;
   }
 
   private static cachedSettings: Record<string, unknown> | null = null;
   private static cachedSettingsAt = 0;
-  private static readonly SETTINGS_TTL_MS = 5 * 60 * 1000;
+  private static readonly SETTINGS_TTL_MS = 10 * 60 * 1000;
 
   static async getPublicSettings() {
     if (CoreService.cachedSettings && Date.now() - CoreService.cachedSettingsAt < CoreService.SETTINGS_TTL_MS) {

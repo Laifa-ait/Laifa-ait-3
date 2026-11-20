@@ -1,4 +1,5 @@
 import type { CustomPageSectionStyles, CustomPageTheme } from "../../../../../../domains/seller/customPage.types";
+import { DEFAULT_MODERN_THEME } from "../../../constants/studioThemeDefaults";
 
 export type SectionColorFieldKey =
   | "backgroundColor"
@@ -62,12 +63,12 @@ export function buildSectionColorGroups(
   const hasOverlay = !sectionType || OVERLAY_SECTIONS.has(sectionType);
   const hasButtons = !sectionType || BUTTON_SECTIONS.has(sectionType);
 
-  const primary = theme?.primaryColor || "#0F172A";
-  const secondary = theme?.secondaryColor || "#1E293B";
+  const primary = theme?.primaryColor || DEFAULT_MODERN_THEME.primaryColor;
+  const secondary = theme?.secondaryColor || DEFAULT_MODERN_THEME.secondaryColor;
   const accent = theme?.accentColor || primary;
-  const surface = theme?.surfaceColor || "#FFFFFF";
-  const canvas = theme?.canvasColor || "#F8FAFC";
-  const border = theme?.borderColor || "#E5E7EB";
+  const surface = theme?.surfaceColor || DEFAULT_MODERN_THEME.surfaceColor || "#FFFFFF";
+  const canvas = theme?.canvasColor || DEFAULT_MODERN_THEME.canvasColor || "#F8FAFC";
+  const border = theme?.borderColor || DEFAULT_MODERN_THEME.borderColor || "#E2E8F0";
 
   return [
     {

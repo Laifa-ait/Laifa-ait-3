@@ -79,15 +79,14 @@ function listenOnPort(server: http.Server, port: number): Promise<http.Server> {
 }
 
 function scheduleWarmups(): void {
-  if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
+  // Search and trending indexes now warm lazily on first actual user request
+  // to avoid burning hundreds of Firestore reads on every cold start / restart.
+  if (process.env.ENABLE_EAGER_WARMUP === "true") {
     const t = setTimeout(() => {
       TrendingSearchesService.warmupTrendingSearches().catch(() => {});
       ProductSearchService.warmupSearchEngine().catch(() => {});
-    }, 4000);
+    }, 6000);
     t.unref?.();
-  } else {
-    TrendingSearchesService.warmupTrendingSearches().catch(() => {});
-    ProductSearchService.warmupSearchEngine().catch(() => {});
   }
 }
 
@@ -96,10 +95,20 @@ export function startServer(portOverride?: number): Promise<http.Server> {
 
   const bindPort = typeof portOverride === "number" ? portOverride : PORT;
   const parsedEnvPort = process.env.PORT ? parseInt(process.env.PORT, 10) : undefined;
-  const hasValidEnvPort = typeof parsedEnvPort === "number" && Number.isInteger(parsedEnvPort) && parsedEnvPort > 0;
+  const nginxOwnedPort = process.env.NGINX_PORT ? parseInt(process.env.NGINX_PORT, 10) : undefined;
+  const isAiStudioProxyContainer = Boolean(
+    nginxOwnedPort ||
+    process.env.CONTROL_PLANE_PORT ||
+    String(process.env.K_SERVICE || "").startsWith("ais-")
+  );
+  const hasValidEnvPort =
+    typeof parsedEnvPort === "number" &&
+    Number.isInteger(parsedEnvPort) &&
+    parsedEnvPort > 0 &&
+    parsedEnvPort !== nginxOwnedPort;
   const isCloudRun = Boolean(process.env.K_SERVICE || process.env.CLOUD_RUN_JOB);
   const envPort =
-    typeof portOverride === "number"
+    typeof portOverride === "number" || isAiStudioProxyContainer
       ? undefined
       : hasValidEnvPort && parsedEnvPort !== bindPort
         ? parsedEnvPort
@@ -134,15 +143,7 @@ export function startServer(portOverride?: number): Promise<http.Server> {
       if (envPort && secondaryOk) {
         safeLogger.info(`[Olmart Gateway] Dual-listener active on 0.0.0.0:${envPort} (Cloud Run ingress ready)`);
       } else if (envPort && secondaryRes.status === "rejected") {
-        const secErr = secondaryRes.reason as NodeJS.ErrnoException;
         secondaryHttpServer = null;
-        if (secErr?.code === "EADDRINUSE" && primaryOk) {
-          safeLogger.info(`[Olmart Gateway] Port ${envPort} already bound (local proxy active). Main traffic on port ${bindPort}.`);
-        } else {
-          safeLogger.warn(`[Olmart Gateway] Secondary listener notice on port ${envPort}`, {
-            err: secErr instanceof Error ? secErr.message : String(secErr),
-          });
-        }
       }
 
       if (!primaryOk) {
@@ -188,8 +189,8 @@ process.on("unhandledRejection", (reason: unknown) => {
   const errorCode = reason && typeof reason === "object" && "code" in reason ? String((reason as { code: unknown }).code) : "";
   safeLogger.error("[Olmart Gateway] ❌ Unhandled Promise Rejection at process level", { err: errorMsg, code: errorCode });
   if (process.env.NODE_ENV === "test") return;
-  const criticalCodes = ["EADDRINUSE", "EACCES", "ERR_SERVER_ALREADY_LISTEN"];
-  if (criticalCodes.includes(errorCode) || errorMsg.includes("FATAL_DB_CORRUPTION")) {
+  // Never kill a healthy listening server due to a background rejection unless DB corruption is flagged
+  if (errorMsg.includes("FATAL_DB_CORRUPTION") || (!httpServer.listening && errorCode === "EACCES")) {
     safeLogger.error("[Olmart Gateway] 🚨 Critical unhandled rejection encountered. Initiating emergency shutdown...", { code: errorCode });
     shutdown("CRITICAL_UNHANDLED_REJECTION");
   }
@@ -197,9 +198,15 @@ process.on("unhandledRejection", (reason: unknown) => {
 
 process.on("uncaughtException", (error: Error) => {
   const errorCode = error && typeof error === "object" && "code" in error ? String((error as { code: unknown }).code) : "";
-  const nonFatalNetworkCodes = ["ECONNRESET", "EPIPE", "ERR_STREAM_PREMATURE_CLOSE", "ERR_STREAM_DESTROYED", "ETIMEDOUT", "ECANCELED"];
-  if (nonFatalNetworkCodes.includes(errorCode)) {
-    safeLogger.warn("[Olmart Gateway] ⚠️ Non-fatal network socket reset caught in uncaughtException, server preserved", { code: errorCode, message: error.message });
+  const nonFatalCodes = [
+    "ECONNRESET", "EPIPE", "ERR_STREAM_PREMATURE_CLOSE", "ERR_STREAM_DESTROYED",
+    "ETIMEDOUT", "ECANCELED", "ECONNABORTED", "EADDRINUSE",
+  ];
+  if (nonFatalCodes.includes(errorCode) && httpServer.listening) {
+    safeLogger.warn("[Olmart Gateway] ⚠️ Non-fatal socket/port error caught in uncaughtException, server preserved", {
+      code: errorCode,
+      message: error.message,
+    });
     return;
   }
   safeLogger.error("[Olmart Gateway] ❌ Uncaught Exception at process level", { err: error.stack || error.message });
@@ -207,7 +214,7 @@ process.on("uncaughtException", (error: Error) => {
 });
 
 if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
-  const attemptBoot = async (retries = 12, delayMs = 1000): Promise<void> => {
+  const attemptBoot = async (retries = 20, delayMs = 500): Promise<void> => {
     if (process.env.NODE_ENV !== "production") {
       const rawSecret = (process.env.CSRF_SECRET || "").trim();
       if (rawSecret.length < 32 || WEAK_CSRF_SECRETS.has(rawSecret.toLowerCase())) {
@@ -233,4 +240,3 @@ if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
   };
   attemptBoot();
 }
-

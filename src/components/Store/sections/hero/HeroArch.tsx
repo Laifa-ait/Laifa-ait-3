@@ -9,9 +9,12 @@ import {
 } from "./HeroMinimalTextAndGuides";
 import { sanitizeHeroTitle } from "./heroResponsiveHelper";
 import {
+  resolveBannerEffectiveShadow,
   resolveHeroBackgroundStyle,
+  resolveHeroBorderCss,
   resolveHeroBorderRadiusCss,
   resolveHeroBoxShadowCss,
+  resolveHeroShadowAccentColor,
 } from "./heroVisualEffectsHelper";
 
 function resolveArchShapeClasses(shape: HeroArchShapeId): {
@@ -42,9 +45,11 @@ function resolveArchShapeClasses(shape: HeroArchShapeId): {
  */
 export const HeroArch: React.FC<HeroArchitecturalStyleProps> = ({
   settings,
+  sectionStyles,
   theme,
   profile,
   isEditable,
+  isEdgeToEdge = false,
   activeSubElement,
   isSubSelected,
   selectSub,
@@ -58,16 +63,16 @@ export const HeroArch: React.FC<HeroArchitecturalStyleProps> = ({
 
   const imgColClass =
     prop === "70-30"
-      ? "@2xl:col-span-7"
+      ? "@2xl:col-span-8"
       : prop === "60-40"
-        ? "@2xl:col-span-6"
-        : "@2xl:col-span-5";
+        ? "@2xl:col-span-7"
+        : "@2xl:col-span-6";
   const textColClass =
     prop === "70-30"
-      ? "@2xl:col-span-5"
+      ? "@2xl:col-span-4"
       : prop === "60-40"
-        ? "@2xl:col-span-6"
-        : "@2xl:col-span-7";
+        ? "@2xl:col-span-5"
+        : "@2xl:col-span-6";
 
   const shapeSpec = resolveArchShapeClasses(profile.archShape);
   const posFlex = resolvePosition9FlexClasses(profile.textPosition9);
@@ -75,20 +80,24 @@ export const HeroArch: React.FC<HeroArchitecturalStyleProps> = ({
   const cleanTitle = sanitizeHeroTitle(settings.title, settings.spotlightProductTitle);
   const borderRadiusCss = resolveHeroBorderRadiusCss(settings, profile);
   const bgStyle = resolveHeroBackgroundStyle(settings, theme, theme.canvasColor);
-  const bannerShadowCss = resolveHeroBoxShadowCss(settings.bannerShadow, theme.primaryColor);
-  const imageShadowCss = resolveHeroBoxShadowCss(settings.imageShadow, theme.primaryColor);
+  const bannerShadowCss = resolveBannerEffectiveShadow(settings, theme);
+  const imageShadowCss = resolveHeroBoxShadowCss(
+    settings.imageShadow,
+    resolveHeroShadowAccentColor(settings, theme, settings.imageShadow === "glow"),
+    settings.imageShadowColor
+  );
 
   return (
     <div
       data-testid="hero-model-arch-palace"
       data-hero-style="HeroArch"
-      className={`relative grid grid-cols-1 ${!isMobile ? "@2xl:grid-cols-12" : ""} items-center gap-6 @2xl:gap-10 overflow-hidden border border-black/8`}
+      className={`relative grid grid-cols-1 ${!isMobile ? "@2xl:grid-cols-12" : ""} items-center gap-6 @2xl:gap-10 overflow-hidden`}
       style={{
         minHeight: `${profile.heightPx}px`,
         padding: `${safePad}px`,
         borderRadius: borderRadiusCss,
         boxShadow: bannerShadowCss,
-        borderColor: settings.bannerBorderColor || undefined,
+        border: resolveHeroBorderCss(settings, isEdgeToEdge),
         ...bgStyle,
       }}
     >
@@ -99,27 +108,30 @@ export const HeroArch: React.FC<HeroArchitecturalStyleProps> = ({
       />
 
       {/* BLOC D'ÉCRITURE STYLE GALERIE D'ART */}
-      <div
-        className={`${textColClass} ${textFirstOnMobile ? "order-1" : "order-2"} ${
-          !isMobile ? (imageOnLeft ? "@2xl:order-2" : "@2xl:order-1") : ""
-        } flex ${posFlex} w-full h-full`}
-      >
-        <HeroMinimalTextBlock
-          settings={settings}
-          theme={theme}
-          profile={profile}
-          isEditable={isEditable}
-          activeSubElement={activeSubElement}
-          isSubSelected={isSubSelected}
-          selectSub={selectSub}
-          getSubRing={getSubRing}
-          handleTextPatch={handleTextPatch}
-        />
-      </div>
+      {!settings.hideAllText && (
+        <div
+          className={`${textColClass} ${textFirstOnMobile ? "order-1" : "order-2"} ${
+            !isMobile ? (imageOnLeft ? "@2xl:order-2" : "@2xl:order-1") : ""
+          } flex ${posFlex} w-full h-full`}
+        >
+          <HeroMinimalTextBlock
+            settings={settings}
+            sectionStyles={sectionStyles}
+            theme={theme}
+            profile={profile}
+            isEditable={isEditable}
+            activeSubElement={activeSubElement}
+            isSubSelected={isSubSelected}
+            selectSub={selectSub}
+            getSubRing={getSubRing}
+            handleTextPatch={handleTextPatch}
+          />
+        </div>
+      )}
 
       {/* DÉCOUPE GÉOMÉTRIQUE ORGANIQUE DE LA PHOTOGRAPHIE */}
       <div
-        className={`${imgColClass} ${textFirstOnMobile ? "order-2" : "order-1"} ${
+        className={`${settings.hideAllText ? "@2xl:col-span-12 max-w-2xl mx-auto" : imgColClass} ${textFirstOnMobile ? "order-2" : "order-1"} ${
           !isMobile ? (imageOnLeft ? "@2xl:order-1" : "@2xl:order-2") : ""
         } flex items-center justify-center w-full`}
       >

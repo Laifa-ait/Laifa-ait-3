@@ -109,10 +109,15 @@ export interface ArtisanApplicationPayload {
 export interface ArtisanQuoteRequest {
   id: string;
   artisanId: string;
+  artisanUserId?: string;
   artisanName?: string;
+  offerId?: string;
+  offerTitle?: string;
+  offerImageUrl?: string;
+  conversationId?: string;
   clientId: string;
   clientName: string;
-  clientPhone: string;
+  clientPhone?: string;
   clientEmail: string;
   tradeId: string;
   tradeName?: string;
@@ -126,6 +131,8 @@ export interface ArtisanQuoteRequest {
   preferredDate?: string;
   status: "pending" | "responded" | "accepted" | "declined" | "completed";
   artisanResponse?: string;
+  proposedPriceDzd?: number;
+  proposedDelay?: string;
   estimatedBudget?: number;
   createdAt: string;
   updatedAt: string;

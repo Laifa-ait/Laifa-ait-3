@@ -214,9 +214,9 @@ describe("Audit Studio Vendeur Olmart — Phases 1 à 5 (A1..A18 & B1..B7)", () 
   });
 
   describe("Phase 4 & 5 — Cohérence Store Interactif, Secteur par défaut et Responsive 12 Modèles (A8, A10, A15, B5)", () => {
-    it("A8, A10, A15 & B5: synchronise isInteractiveMode, unifie DEFAULT_STUDIO_SECTOR sur artisanat et garantit l'Anti-Trou symétrique", () => {
-      expect(DEFAULT_STUDIO_SECTOR).toBe("artisanat");
-      expect(DEFAULT_STUDIO_THEME.sector).toBe("artisanat");
+    it("A8, A10, A15 & B5: synchronise isInteractiveMode, unifie DEFAULT_STUDIO_SECTOR sur mode et garantit l'Anti-Trou symétrique", () => {
+      expect(DEFAULT_STUDIO_SECTOR).toBe("mode");
+      expect(DEFAULT_STUDIO_THEME.sector).toBe("mode");
 
       expect(useStudioStore.getState().isInteractiveMode).toBe(false);
       useStudioStore.getState().toggleInteractiveMode();

@@ -222,9 +222,6 @@ service cloud.firestore {
     }
 
 
-    match /user_habits/{userId} {
-      allow read, write: if isOwner(userId) || isAdmin();
-    }
 
     // =========================================================================
     // 4. COLLECTION PRODUCTS (Marketplace)
@@ -269,22 +266,6 @@ service cloud.firestore {
       );
     }
 
-    match /product_history/{id} {
-      allow read: if isAdmin() || (isSignedIn() && (resource.data.sellerId == request.auth.uid || resource.data.userId == request.auth.uid));
-      allow create: if (isSeller() || isArtisan() || isAdmin()) && (
-        isAdmin() ||
-        (
-          (('sellerId' in incoming() && incoming().sellerId == request.auth.uid) ||
-           ('userId' in incoming() && incoming().userId == request.auth.uid)) &&
-          (!('productId' in incoming()) || (
-            exists(/databases/$(database)/documents/products/$(incoming().productId)) &&
-            (get(/databases/$(database)/documents/products/$(incoming().productId)).data.sellerId == request.auth.uid ||
-             get(/databases/$(database)/documents/products/$(incoming().productId)).data.userId == request.auth.uid)
-          ))
-        )
-      );
-      allow update, delete: if isAdmin();
-    }
 
     // =========================================================================
     // 5. COLLECTION ORDERS & SOUS-COLLECTIONS (Commandes)
@@ -375,12 +356,6 @@ service cloud.firestore {
       }
     }
 
-    match /confirmed_delivery_info/{refId} {
-      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow list: if isAdmin();
-      allow create: if isSignedIn() && (!('userId' in incoming()) || incoming().userId == request.auth.uid);
-      allow update, delete: if isAdmin();
-    }
 
     match /withdrawals/{id} {
       allow read: if isSignedIn() && (resource.data.sellerId == request.auth.uid || isAdmin());
@@ -608,51 +583,9 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // 8. MODULES ADDITIONNELS (OlmaBricolage, OlmaImmo, Messagerie Unifiée)
+    // 8. MODULES ADDITIONNELS (OlmaImmo, Messagerie Unifiée)
+    // Note : Les anciennes collections bricolage_* sont bloquées par le Default Deny.
     // =========================================================================
-    match /bricolage_categories/{categoryId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /bricolage_artisans/{artisanId} {
-      allow read: if true;
-      allow create: if (isOwner(artisanId) || isArtisan() || isAdmin()) && (
-        artisanId == request.auth.uid ||
-        ('userId' in incoming() && incoming().userId == request.auth.uid) ||
-        ('id' in incoming() && incoming().id == request.auth.uid)
-      );
-      allow update: if isAdmin() || (
-        (isOwner(artisanId) || (isArtisan() && (artisanId == request.auth.uid || existing().userId == request.auth.uid))) &&
-        (!('userId' in incoming()) || !('userId' in existing()) || incoming().userId == existing().userId)
-      );
-      allow delete: if isAdmin();
-    }
-
-    match /bricolage_quote_requests/{requestId} {
-      allow read: if isAdmin() || (isSignedIn() && (resource.data.customerId == request.auth.uid || resource.data.artisanId == request.auth.uid || ('userId' in resource.data && resource.data.userId == request.auth.uid)));
-      allow create: if isSignedIn() && (
-        ('customerId' in incoming() && incoming().customerId == request.auth.uid) ||
-        ('userId' in incoming() && incoming().userId == request.auth.uid)
-      );
-      allow update: if isAdmin() || (
-        isSignedIn() &&
-        (existing().customerId == request.auth.uid || existing().artisanId == request.auth.uid || ('userId' in existing() && existing().userId == request.auth.uid)) &&
-        !incoming().diff(existing()).affectedKeys().hasAny(['customerId', 'userId', 'artisanId', 'budget', 'price', 'amount'])
-      );
-      allow delete: if isAdmin();
-    }
-
-    match /bricolage_reviews/{reviewId} {
-      allow read: if true;
-      allow create: if isSignedIn() && (
-        ('reviewerId' in incoming() && incoming().reviewerId == request.auth.uid) ||
-        ('userId' in incoming() && incoming().userId == request.auth.uid) ||
-        ('customerId' in incoming() && incoming().customerId == request.auth.uid) ||
-        ('buyerId' in incoming() && incoming().buyerId == request.auth.uid)
-      );
-      allow update, delete: if isAdmin();
-    }
 
     match /real_estate_properties/{propertyId} {
       allow read: if (('status' in resource.data) && resource.data.status in ["active", "available"]) || isAdmin() || (isSignedIn() && (
@@ -906,10 +839,6 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    match /olma_univers_app/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
 
     match /olma_univers_apps/{id} {
       allow read: if true;
@@ -1129,6 +1058,26 @@ service cloud.firestore {
         !incoming().diff(existing()).affectedKeys().hasAny(['clientId'])
       );
       allow delete: if isAdmin() || (isSignedIn() && existing().clientId == request.auth.uid);
+    }
+
+    match /artisan_offers/{offerId} {
+      allow read: if (('status' in resource.data) && resource.data.status == 'active') ||
+        isAdmin() ||
+        (isSignedIn() && (resource.data.artisanUserId == request.auth.uid || resource.data.artisanId == request.auth.uid));
+      // Mutations gérées exclusivement via les routes API serveur /api/v1/artisans/offers
+      allow write: if false;
+    }
+
+    match /artisan_quote_requests/{quoteId} {
+      allow read: if isAdmin() || (
+        isSignedIn() && (
+          resource.data.clientId == request.auth.uid ||
+          resource.data.artisanUserId == request.auth.uid ||
+          resource.data.artisanId == request.auth.uid
+        )
+      );
+      // Demandes de devis et transitions d'état gérées via transactions ACID serveur /api/v1/artisans/quotes
+      allow write: if false;
     }
 
     match /artisan_reviews/{reviewId} {

@@ -191,12 +191,12 @@ describe("Phase 5 — Verrouillage Hero Atelier Premium (5 Modèles, Isolation R
         heightPx: 2000,
       },
     });
-    expect(outOfBounds.overlayOpacity).toBe(60);
+    expect(outOfBounds.overlayOpacity).toBe(80);
 
     const profile = resolveHeroDeviceProfile(outOfBounds, "desktop");
     expect(profile.focalX).toBe(0);
     expect(profile.focalY).toBe(100);
-    expect(profile.zoom).toBe(1.6);
+    expect(profile.zoom).toBe(2);
     expect(profile.heightPx).toBe(760);
     expect(profile.secondaryFocalX).toBe(0);
     expect(profile.secondaryFocalY).toBe(100);

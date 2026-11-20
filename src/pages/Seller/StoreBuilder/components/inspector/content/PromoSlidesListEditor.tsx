@@ -46,10 +46,11 @@ export const PromoSlidesListEditor: React.FC<PromoSlidesListEditorProps> = ({
 
   useEffect(() => {
     if (selectedSubElement?.startsWith("slide-")) {
-      const parsed = parseInt(selectedSubElement.replace("slide-", ""), 10);
+      const rawIdx = selectedSubElement.replace("slide-", "").split(":")[0];
+      const parsed = parseInt(rawIdx, 10);
       if (!Number.isNaN(parsed) && parsed >= 0 && parsed < slides.length) {
         setActiveSlideIdx(parsed);
-        selectStep(1);
+        selectStep(1, true);
       }
     }
   }, [selectedSubElement, slides.length, selectStep]);
@@ -108,14 +109,14 @@ export const PromoSlidesListEditor: React.FC<PromoSlidesListEditorProps> = ({
         <div className="space-y-3">
           <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-extrabold text-[#011C40]">
+              <span className="text-[11px] font-extrabold text-[var(--studio-black)] tabular-nums">
                 Choisir la slide ({slides.length}/12)
               </span>
               <button
                 type="button"
                 disabled={slides.length >= 12}
                 onClick={handleAddSlide}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#023859] hover:bg-[#011C40] text-white text-[10px] font-bold cursor-pointer disabled:opacity-40"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--studio-primary)] hover:bg-[var(--studio-primary-hover)] text-white text-[10px] font-bold cursor-pointer disabled:opacity-40"
               >
                 <Plus className="w-3 h-3" />
                 <span>Ajouter</span>
@@ -133,8 +134,8 @@ export const PromoSlidesListEditor: React.FC<PromoSlidesListEditorProps> = ({
                       onClick={() => focusSlide(idx)}
                       className={`flex items-center gap-1.5 p-1 pr-2.5 rounded-lg border text-left shrink-0 cursor-pointer transition-all ${
                         isAct
-                          ? "bg-[#023859] border-[#023859] text-white shadow-2xs font-bold"
-                          : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                          ? "bg-[var(--studio-primary)] border-[var(--studio-primary)] text-white shadow-2xs font-bold"
+                          : "bg-white border-[var(--studio-border)] text-[var(--studio-text)] hover:border-[var(--studio-border-strong)]"
                       }`}
                     >
                       {s.imageUrl ? (
@@ -156,7 +157,7 @@ export const PromoSlidesListEditor: React.FC<PromoSlidesListEditorProps> = ({
               <button
                 type="button"
                 onClick={handleAddSlide}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#023859] text-white text-xs font-bold cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--studio-primary)] hover:bg-[var(--studio-primary-hover)] text-white text-xs font-bold cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Créer la première slide</span>

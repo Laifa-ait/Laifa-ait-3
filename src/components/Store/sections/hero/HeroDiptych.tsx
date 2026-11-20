@@ -9,9 +9,12 @@ import {
 } from "./HeroMinimalTextAndGuides";
 import { sanitizeHeroTitle } from "./heroResponsiveHelper";
 import {
+  resolveBannerEffectiveShadow,
   resolveHeroBackgroundStyle,
+  resolveHeroBorderCss,
   resolveHeroBorderRadiusCss,
   resolveHeroBoxShadowCss,
+  resolveHeroShadowAccentColor,
 } from "./heroVisualEffectsHelper";
 
 /**
@@ -20,9 +23,11 @@ import {
  */
 export const HeroDiptych: React.FC<HeroArchitecturalStyleProps> = ({
   settings,
+  sectionStyles,
   theme,
   profile,
   isEditable,
+  isEdgeToEdge = false,
   activeSubElement,
   isSubSelected,
   selectSub,
@@ -34,6 +39,7 @@ export const HeroDiptych: React.FC<HeroArchitecturalStyleProps> = ({
   const gapPx = Math.min(40, Math.max(8, profile.diptychGapPx || 16));
   const hasSecondPhoto = profile.hasSecondaryImage;
   const swapPanels = settings.imageSide === "left";
+  const textFirstOnMobile = settings.mobileStackOrder === "text-first";
   const prop = profile.splitProportion;
 
   const isCenteredOverlay =
@@ -44,8 +50,12 @@ export const HeroDiptych: React.FC<HeroArchitecturalStyleProps> = ({
   const cleanTitle = sanitizeHeroTitle(settings.title, settings.spotlightProductTitle);
   const borderRadiusCss = resolveHeroBorderRadiusCss(settings, profile);
   const bgStyle = resolveHeroBackgroundStyle(settings, theme, theme.surfaceColor);
-  const bannerShadowCss = resolveHeroBoxShadowCss(settings.bannerShadow, theme.primaryColor);
-  const imageShadowCss = resolveHeroBoxShadowCss(settings.imageShadow, theme.primaryColor);
+  const bannerShadowCss = resolveBannerEffectiveShadow(settings, theme);
+  const imageShadowCss = resolveHeroBoxShadowCss(
+    settings.imageShadow,
+    resolveHeroShadowAccentColor(settings, theme, settings.imageShadow === "glow"),
+    settings.imageShadowColor
+  );
   const panelHeightPx = Math.max(200, profile.heightPx - safePad * 2);
 
   const col1Span =
@@ -58,13 +68,13 @@ export const HeroDiptych: React.FC<HeroArchitecturalStyleProps> = ({
       data-testid="hero-model-bento-hero"
       data-hero-style="HeroDiptych"
       data-diptych-mode={hasSecondPhoto ? "dual" : "single-fallback"}
-      className="relative w-full overflow-hidden border border-black/8"
+      className="relative w-full overflow-hidden"
       style={{
         minHeight: `${profile.heightPx}px`,
         padding: `${safePad}px`,
         borderRadius: borderRadiusCss,
         boxShadow: bannerShadowCss,
-        borderColor: settings.bannerBorderColor || undefined,
+        border: resolveHeroBorderCss(settings, isEdgeToEdge),
         ...bgStyle,
       }}
     >
@@ -107,13 +117,17 @@ export const HeroDiptych: React.FC<HeroArchitecturalStyleProps> = ({
                 ? profile.textPosition9.endsWith("right")
                   ? "@2xl:col-span-4 @2xl:order-3"
                   : "@2xl:col-span-4 @2xl:order-1"
-                : "order-1"
+                : textFirstOnMobile
+                  ? "order-1"
+                  : "order-2"
             } flex ${posFlex} p-2 sm:p-4`}
           >
             <HeroMinimalTextBlock
               settings={settings}
+              sectionStyles={sectionStyles}
               theme={theme}
               profile={profile}
+              isEditable={isEditable}
               activeSubElement={activeSubElement}
               isSubSelected={isSubSelected}
               selectSub={selectSub}
@@ -131,7 +145,9 @@ export const HeroDiptych: React.FC<HeroArchitecturalStyleProps> = ({
               ? isCenteredOverlay
                 ? "@2xl:col-span-2"
                 : "@2xl:col-span-8 @2xl:order-2"
-              : "order-2"
+              : textFirstOnMobile
+                ? "order-2"
+                : "order-1"
           } relative ${
             hasSecondPhoto
               ? isMobile
@@ -143,15 +159,16 @@ export const HeroDiptych: React.FC<HeroArchitecturalStyleProps> = ({
         >
           <div
             data-testid="hero-diptych-photo-1"
-            className={`${hasSecondPhoto && !isMobile ? col1Span : ""} ${swapPanels ? "order-2" : "order-1"} relative overflow-hidden rounded-2xl border border-black/8 ${getSubRing("background")}`}
+            className={`${hasSecondPhoto && !isMobile ? col1Span : ""} ${swapPanels ? "order-2" : "order-1"} relative overflow-hidden border border-black/8 ${getSubRing("background")}`}
             style={{
               height: `${isMobile && hasSecondPhoto ? Math.max(180, Math.round(panelHeightPx * 0.65)) : panelHeightPx}px`,
+              borderRadius: `${profile.borderRadiusPx === 0 ? 0 : Math.max(4, profile.borderRadiusPx - 4)}px`,
               boxShadow: imageShadowCss,
             }}
           >
             <HeroPurePhoto
               src={profile.activeImageSrc}
-              alt={settings.imageAlt || cleanTitle || "Visuel Diptyque 1"}
+              alt={settings.imageAlt || cleanTitle || "Image principale"}
               fit={profile.imageFit}
               focalX={profile.focalX}
               focalY={profile.focalY}
@@ -165,9 +182,10 @@ export const HeroDiptych: React.FC<HeroArchitecturalStyleProps> = ({
           {hasSecondPhoto && (
             <div
               data-testid="hero-diptych-photo-2"
-              className={`${!isMobile ? col2Span : ""} ${swapPanels ? "order-1" : "order-2"} relative overflow-hidden rounded-2xl border border-black/8`}
+              className={`${!isMobile ? col2Span : ""} ${swapPanels ? "order-1" : "order-2"} relative overflow-hidden border border-black/8`}
               style={{
                 height: `${isMobile ? Math.max(180, Math.round(panelHeightPx * 0.65)) : panelHeightPx}px`,
+                borderRadius: `${profile.borderRadiusPx === 0 ? 0 : Math.max(4, profile.borderRadiusPx - 4)}px`,
                 boxShadow: imageShadowCss,
               }}
             >
@@ -200,6 +218,7 @@ export const HeroDiptych: React.FC<HeroArchitecturalStyleProps> = ({
               >
                 <HeroMinimalTextBlock
                   settings={settings}
+                  sectionStyles={sectionStyles}
                   theme={theme}
                   profile={profile}
                   isEditable={isEditable}

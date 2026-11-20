@@ -22,6 +22,7 @@ import { useAuth } from "../context/AuthContext";
 import { apiGet } from "../lib/api";
 import { useTranslation } from "react-i18next";
 import { maskSensitiveData, hasExternalChannel } from "../utils/masking";
+import { startVisibilityAwarePolling } from "../utils/visibilityPolling";
 import { toast } from "react-hot-toast";
 
 interface Message {
@@ -105,10 +106,10 @@ export const OrderChatBox: React.FC<{ orderId: string; buyerId: string }> = ({ o
     };
     
     fetchChat();
-    const interval = setInterval(fetchChat, 10000);
+    const stopPolling = startVisibilityAwarePolling(fetchChat, 20_000);
     return () => {
       isCancelled = true;
-      clearInterval(interval);
+      stopPolling();
     };
   }, [orderId, t]);
 

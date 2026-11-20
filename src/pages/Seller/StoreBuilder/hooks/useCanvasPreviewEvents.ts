@@ -39,12 +39,25 @@ export function useCanvasPreviewEvents({
             categorySlug?: string;
             categoryItem?: CategoryItem;
             customPage?: StoreCustomPageItem;
+            scrollToSectionType?: string;
+            scrollToAnchorId?: string;
           }>
         ).detail || {};
       if (detail.viewMode === "home" || detail.viewMode === "about") {
         setCanvasViewMode("home");
         setActiveCategorySlug(null);
         setActiveCategoryOverride?.(null);
+        if (detail.scrollToSectionType || detail.scrollToAnchorId) {
+          setTimeout(() => {
+            const target = detail.scrollToAnchorId
+              ? document.getElementById(detail.scrollToAnchorId) ||
+                document.querySelector(`[data-anchor-id="${detail.scrollToAnchorId}"]`)
+              : document.querySelector(`[data-section-type="${detail.scrollToSectionType}"]`);
+            if (target && typeof target.scrollIntoView === "function") {
+              target.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }, 80);
+        }
       } else if (detail.viewMode === "category") {
         setCanvasViewMode("category");
         setActiveCategoryOverride?.(detail.categoryItem || null);
@@ -81,10 +94,7 @@ export function useCanvasPreviewEvents({
     window.addEventListener("studio:toggle-interactive", toggleInteractive);
     return () => {
       window.removeEventListener("studio:navigate-page", pageNavHandler);
-      window.removeEventListener(
-        "studio:collection-config-updated",
-        colConfigHandler,
-      );
+      window.removeEventListener("studio:collection-config-updated", colConfigHandler);
       window.removeEventListener("studio:open-audit", openAudit);
       window.removeEventListener("studio:open-qr", openQr);
       window.removeEventListener("studio:toggle-interactive", toggleInteractive);

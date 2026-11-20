@@ -60,7 +60,7 @@ export const CategoryShopifyCards: React.FC<CategoryShopifyCardsProps> = ({
   hoverImgClass, hoverCardClass, showTitle = true, showBadge, showItemCount,
   cardSize = "balanced", columnsDesktop = 3, columnsTablet = 2, columnsMobile = 2,
   previewViewport = "desktop", imagePosition = "center", imageFit = "cover",
-  textColor = "#0F172A", primaryColor = "#023859", isEditable,
+  textColor = "#0F172A", primaryColor = "#0F172A", isEditable,
   selectedSectionId, selectedSubElement, sectionId, getCountLabel, onCardClick, onEditItem,
 }) => {
   const [scrollProgress, setScrollProgress] = useState<number>(25);
@@ -107,7 +107,7 @@ export const CategoryShopifyCards: React.FC<CategoryShopifyCardsProps> = ({
               <article key={cat.id || idx} onClick={(e) => onCardClick(cat, idx, e)} className={`group relative snap-start shrink-0 ${slideWidthClass} aspect-[3/4] rounded-2xl overflow-hidden bg-slate-900 border border-slate-200/80 shadow-sm cursor-pointer select-none ${hoverCardClass}`}>
                 <img src={photoUrl} alt={cat.name} referrerPolicy="no-referrer" onError={(e) => handleCategoryImageError(e, idx)} className={`w-full h-full ${posClass} ${fitClass} transition-transform duration-500 ${hoverImgClass}`} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
-                <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-white/90 text-slate-900 text-[10px] font-mono font-bold">LOOK #{idxLabel}</span>
+                <span className="absolute top-3 left-3 px-2 py-0.5 rounded-sm bg-white/95 text-slate-900 text-[10px] font-mono font-bold tabular-nums">LOOK #{idxLabel}</span>
                 <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2 text-white">
                   <div className="min-w-0">
                     {showTitle && <h3 className="font-bold text-sm @[768px]:text-base tracking-tight truncate">{cat.name}</h3>}
@@ -193,7 +193,7 @@ export const CategoryShopifyCards: React.FC<CategoryShopifyCardsProps> = ({
             <article key={cat.id || idx} onClick={(e) => onCardClick(cat, idx, e)} style={{ borderRadius: "24px" }} className={`group relative ${glassDockSizeClass} overflow-hidden bg-slate-900 cursor-pointer select-none shadow-sm ${spanClass} ${hoverCardClass} ${isCardSelected ? "ring-2 ring-[#2563EB]" : ""}`}>
               <img src={photoUrl} alt={cat.name} referrerPolicy="no-referrer" onError={(e) => handleCategoryImageError(e, idx)} className={`w-full h-full ${posClass} ${fitClass} transition-transform duration-500 ${hoverImgClass}`} />
               {isEditable && (
-                <button type="button" onClick={(e) => onEditItem(idx, e)} className="absolute top-3 right-3 z-20 bg-[#023859]/90 text-white text-[9px] font-bold px-2 py-1 rounded-md flex items-center gap-1 cursor-pointer border border-white/20"><Camera className="w-2.5 h-2.5" /></button>
+                <button type="button" onClick={(e) => onEditItem(idx, e)} className="absolute top-3 right-3 z-20 bg-slate-900/90 hover:bg-slate-950 text-white text-[9px] font-bold px-2 py-1 rounded-md flex items-center gap-1 cursor-pointer border border-white/20"><Camera className="w-2.5 h-2.5" /></button>
               )}
               <div
                 style={{

@@ -147,7 +147,7 @@ export const ProductSelectionEditor: React.FC<ProductSelectionEditorProps> = ({
       {activeStep === 3 && (
         <div className="space-y-3" data-testid="product-step-panel-3">
           <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-200 space-y-2.5">
-            <span className="text-[11px] font-bold text-[#011C40] block">
+            <span className="text-[11px] font-bold text-[var(--studio-black)] block">
               Ajustement de la photo produit
             </span>
             <div className="grid grid-cols-2 gap-1.5">
@@ -161,7 +161,7 @@ export const ProductSelectionEditor: React.FC<ProductSelectionEditorProps> = ({
                   onClick={() => onSettingsChange("cardImageFit", fit.id)}
                   className={`h-8 rounded-lg border text-[11px] font-semibold cursor-pointer ${
                     cardImageFit === fit.id
-                      ? "border-[#023859] bg-[#F8FBFC] text-[#011C40] font-bold"
+                      ? "border-[var(--studio-primary)] bg-[var(--studio-background)] text-[var(--studio-black)] font-bold"
                       : "border-slate-200 bg-white text-slate-600"
                   }`}
                 >
@@ -172,7 +172,7 @@ export const ProductSelectionEditor: React.FC<ProductSelectionEditorProps> = ({
 
             {cardImageFit === "cover" && (
               <div className="p-2 rounded-lg bg-white border border-slate-200 space-y-1">
-                <span className="text-[10px] font-bold text-[#023859] flex items-center gap-1">
+                <span className="text-[10px] font-bold text-[var(--studio-primary)] flex items-center gap-1">
                   <Sparkles className="w-3 h-3" />
                   Zone prioritaire de la photo
                 </span>
@@ -188,7 +188,7 @@ export const ProductSelectionEditor: React.FC<ProductSelectionEditorProps> = ({
                       onClick={() => onSettingsChange("cardImagePosition", pos.id)}
                       className={`h-7 rounded border text-[10px] font-bold cursor-pointer ${
                         (settings.cardImagePosition || "center") === pos.id
-                          ? "border-[#023859] bg-[#023859] text-white"
+                          ? "border-[var(--studio-primary)] bg-[var(--studio-primary)] text-white"
                           : "border-slate-200 bg-slate-50 text-slate-600"
                       }`}
                     >

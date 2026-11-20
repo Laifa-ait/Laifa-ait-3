@@ -4,6 +4,7 @@ import { apiGet, apiPost, apiPut } from "../../lib/api";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { AppTimestamp } from "../../utils/date";
+import { startVisibilityAwarePolling } from "../../utils/visibilityPolling";
 import { SupportTicketSidebar } from "../../components/Admin/Support/SupportTicketSidebar";
 import { SupportChatViewport } from "../../components/Admin/Support/SupportChatViewport";
 
@@ -88,8 +89,7 @@ export const SupportAdmin: React.FC = () => {
     setLoadingMessages(true);
     fetchMessages().finally(() => setLoadingMessages(false));
 
-    const interval = setInterval(fetchMessages, 8000);
-    return () => clearInterval(interval);
+    return startVisibilityAwarePolling(fetchMessages, 20_000);
   }, [selectedTicket]);
 
   const currentTicket = tickets.find((tk) => tk.id === selectedTicket);

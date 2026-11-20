@@ -1,17 +1,18 @@
-import React, { useMemo, useState } from "react";
+import React, { Suspense, lazy, useMemo, useState } from "react";
 import "./studio-tokens.css";
 import { StudioTopBar } from "./components/studio/StudioTopBar";
 import { StudioColumnsLayout } from "./components/studio/StudioColumnsLayout";
 import { MobileStudioColumn } from "./components/studio/MobileStudioNavigation";
 import { MobileStudioBar } from "./components/studio/MobileStudioBar";
-import { StudioCommandPalette } from "./components/studio/StudioCommandPalette";
 import { StudioRecoveryAndConflictBar } from "./components/studio/StudioRecoveryAndConflictBar";
+const StudioCommandPalette = lazy(() => import("./components/studio/StudioCommandPalette").then((m) => ({ default: m.StudioCommandPalette })));
 import { StudioNavMode } from "./components/studio/studio.types";
 import { SaveStatus, CatalogLoadStatus } from "./hooks/useSellerStudio";
-import { StudioLocalBackupData } from "./hooks/studioBackupStorage";
+import { StudioLocalBackupData, areStudioValuesEqual } from "./hooks/studioBackupStorage";
 import { useStudioWorkspaceEvents } from "./hooks/useStudioWorkspaceEvents";
 import { applyMediaToSection } from "./utils/studioMediaHandler";
 import { replaceMediaUrlInSections } from "./utils/studioMediaValidation";
+import { buildPendingStoreConfigPatch, hasPendingStoreConfigChanges, extractSaveErrorMessage } from "./utils/studioConfigSanitizers";
 import { StudioMediaProvider } from "./context/StudioMediaContext";
 import { useStudioStore } from "./store/useStudioStore";
 import {
@@ -19,18 +20,13 @@ import {
   SellerStoreConfig, StoreLayoutVersion, StoreHistoryEntry, MediaFolderCategory, MediaGalleryItem,
 } from "../../../domains/seller/customPage.types";
 import { Product } from "../../../domains/product/product.types";
-
-const DEFAULT_STUDIO_THEME: CustomPageTheme = {
-  sector: "artisanat", primaryColor: "#B85B35", secondaryColor: "#1C2A39",
-  accentColor: "#D4AF37", canvasColor: "#FAF6F0", surfaceColor: "#FFFFFF",
-  fontFamily: "'Plus Jakarta Sans', sans-serif",
-};
+import { DEFAULT_MODERN_THEME } from "./constants/studioThemeDefaults";
 
 interface StudioWorkspaceProps {
-  saveStatus: SaveStatus; isPublishing?: boolean;
-  storeConfig?: SellerStoreConfig | null; publishedLayout?: StoreLayoutVersion | null;
+  saveStatus: SaveStatus; lastSaveError?: string | null; isPublishing?: boolean;
+  storeConfig?: SellerStoreConfig | null; draftLayout?: StoreLayoutVersion | null; publishedLayout?: StoreLayoutVersion | null;
   sections: CustomPageSection[]; products?: Product[];
-  catalogStatus?: CatalogLoadStatus; catalogError?: string | null;
+  catalogStatus?: CatalogLoadStatus; catalogError?: string | null; catalogTruncated?: boolean;
   onReloadCatalog?: () => void | Promise<void>;
   historyList?: StoreHistoryEntry[]; mediaGallery?: MediaGalleryItem[];
   onUploadMedia?: (file: File, options?: { folder?: MediaFolderCategory; allowVideo?: boolean }) => Promise<MediaGalleryItem>;
@@ -57,7 +53,7 @@ interface StudioWorkspaceProps {
 
 export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
   const {
-    saveStatus, isPublishing = false, storeConfig, publishedLayout, sections, products = [],
+    saveStatus, lastSaveError = null, isPublishing = false, storeConfig, draftLayout, publishedLayout, sections, products = [],
     catalogStatus, catalogError, onReloadCatalog, historyList = [], mediaGallery = [],
     onUploadMedia, onDeleteMedia, isMediaUploading, mediaUploadProgress, mediaUploadError,
     selectedSectionId, setSelectedSectionId, recoverableBackup, onRestoreBackup, onDismissBackup,
@@ -79,14 +75,18 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
   const [mobileColumn, setMobileColumn] = useState<MobileStudioColumn>("canvas");
   const [liveThemeOverride, setLiveThemeOverride] = useState<CustomPageTheme | null>(null);
   const [liveStorePatch, setLiveStorePatch] = useState<Partial<SellerStoreConfig> | null>(null);
+  const [configSaveError, setConfigSaveError] = useState<string | null>(null);
   const [showLeftSidebar, setShowLeftSidebar] = useState<boolean>(true);
   const [showRightSidebar, setShowRightSidebar] = useState<boolean>(true);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
-  const handleSelectSection = (id: string | null) => { selectSectionInStore(id); setSelectedSectionId(id); };
+  const handleSelectSection = React.useCallback(
+    (id: string | null) => { selectSectionInStore(id); setSelectedSectionId(id); },
+    [selectSectionInStore, setSelectedSectionId]
+  );
   const activeSectionId = storeSelectedSectionId ?? selectedSectionId;
   const selectedSection = sections.find((sec) => sec.id === activeSectionId) || null;
-  const currentTheme: CustomPageTheme = liveThemeOverride || liveStorePatch?.theme || storeConfig?.theme || DEFAULT_STUDIO_THEME;
+  const currentTheme: CustomPageTheme = liveThemeOverride || liveStorePatch?.theme || storeConfig?.theme || DEFAULT_MODERN_THEME;
 
   const effectiveStoreConfig = useMemo<SellerStoreConfig | null>(() => {
     if (!storeConfig && !liveStorePatch && !liveThemeOverride) return null;
@@ -99,72 +99,67 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
     deleteSection, addSection, setShowRightSidebar, setNavMode, setMobileColumn, setIsCommandPaletteOpen,
   });
 
+  const pendingStorePatch = useMemo(() => buildPendingStoreConfigPatch(liveStorePatch, liveThemeOverride), [liveStorePatch, liveThemeOverride]);
+  const hasPendingConfigChanges = useMemo(() => hasPendingStoreConfigChanges(pendingStorePatch, storeConfig, areStudioValuesEqual), [pendingStorePatch, storeConfig]);
+  const effectiveSaveStatus: SaveStatus = configSaveError ? "error" : saveStatus === "saved" && hasPendingConfigChanges ? "unsaved" : saveStatus;
+  const effectiveLastSaveError = configSaveError ?? lastSaveError ?? null;
+
   const isPublished = Boolean(publishedLayout && publishedLayout.sections?.length > 0);
   const handleLiveStorePatch = React.useCallback((patch: Partial<SellerStoreConfig>) => {
+    setConfigSaveError(null);
     if (patch.theme) setLiveThemeOverride(patch.theme);
     setLiveStorePatch((prev) => ({ ...(prev || {}), ...patch }));
   }, []);
 
+  const persistStoreConfig = React.useCallback(async (payload: Partial<SellerStoreConfig>, options?: { skipUndoPush?: boolean }) => {
+    setConfigSaveError(null);
+    try {
+      await saveStoreConfig(payload, options);
+      setLiveStorePatch(null); setLiveThemeOverride(null);
+    } catch (err: unknown) {
+      setConfigSaveError(extractSaveErrorMessage(err, "Échec de l'enregistrement de la configuration."));
+      throw err;
+    }
+  }, [saveStoreConfig]);
+
   const handleSaveStoreConfig = async (updatedConfig: Partial<SellerStoreConfig>) => {
-    handleLiveStorePatch(updatedConfig);
-    await saveStoreConfig(updatedConfig);
-    setLiveStorePatch(null);
-    if (updatedConfig.theme) setLiveThemeOverride(null);
+    const mergedPayload: Partial<SellerStoreConfig> = { ...pendingStorePatch, ...updatedConfig };
+    handleLiveStorePatch(mergedPayload);
+    await persistStoreConfig(mergedPayload);
   };
 
   const handleSaveTheme = async (updatedTheme: CustomPageTheme) => {
     setLiveThemeOverride(updatedTheme);
     setLiveStorePatch((prev) => ({ ...(prev || {}), theme: updatedTheme }));
-    await saveStoreConfig({ theme: updatedTheme });
-    setLiveThemeOverride(null);
-    setLiveStorePatch(null);
+    await persistStoreConfig({ ...(liveStorePatch || {}), theme: updatedTheme });
   };
 
-  const handleUndo = React.useCallback(() => { setLiveThemeOverride(null); setLiveStorePatch(null); undo?.(); }, [undo]);
-  const handleRedo = React.useCallback(() => { setLiveThemeOverride(null); setLiveStorePatch(null); redo?.(); }, [redo]);
+  const handleUndo = React.useCallback(() => { setConfigSaveError(null); setLiveThemeOverride(null); setLiveStorePatch(null); undo?.(); }, [undo]);
+  const handleRedo = React.useCallback(() => { setConfigSaveError(null); setLiveThemeOverride(null); setLiveStorePatch(null); redo?.(); }, [redo]);
 
   const flushPendingStoreConfig = React.useCallback(async (): Promise<boolean> => {
-    const mergedPatch: Partial<SellerStoreConfig> = {
-      ...(liveStorePatch || {}),
-      ...(liveThemeOverride ? { theme: liveThemeOverride } : {}),
-    };
-    const keys = Object.keys(mergedPatch) as Array<keyof SellerStoreConfig>;
-    if (keys.length === 0) return true;
-    const hasDiff = !storeConfig || keys.some((k) => JSON.stringify(mergedPatch[k]) !== JSON.stringify(storeConfig[k]));
-    if (!hasDiff) return true;
-    try {
-      await saveStoreConfig(mergedPatch);
-      setLiveStorePatch(null);
-      setLiveThemeOverride(null);
-      return true;
-    } catch { return false; }
-  }, [liveStorePatch, liveThemeOverride, saveStoreConfig, storeConfig]);
+    if (!hasPendingConfigChanges) { setConfigSaveError(null); return true; }
+    try { await persistStoreConfig(pendingStorePatch); return true; } catch { return false; }
+  }, [hasPendingConfigChanges, pendingStorePatch, persistStoreConfig]);
 
   const handleUnifiedSaveDraft = React.useCallback(async () => {
-    if (!(await flushPendingStoreConfig())) return false;
-    return onSaveDraft ? await onSaveDraft() : true;
+    return (await flushPendingStoreConfig()) ? (onSaveDraft ? await onSaveDraft() : true) : false;
   }, [flushPendingStoreConfig, onSaveDraft]);
 
   const handleUnifiedPublish = React.useCallback(async (changeSummary?: string) => {
-    if (!(await flushPendingStoreConfig())) return false;
-    return await publishStudio(changeSummary);
+    return (await flushPendingStoreConfig()) ? await publishStudio(changeSummary) : false;
   }, [flushPendingStoreConfig, publishStudio]);
 
   const handleApplyFullArchetype = async (newSections: CustomPageSection[], newTheme: CustomPageTheme) => {
-    setLiveThemeOverride(newTheme);
-    setLiveStorePatch((prev) => ({ ...(prev || {}), theme: newTheme }));
+    setLiveThemeOverride(newTheme); setLiveStorePatch((prev) => ({ ...(prev || {}), theme: newTheme }));
     if (onReplaceSections) onReplaceSections(newSections, newTheme);
     if (newSections.length > 0) handleSelectSection(newSections[0].id);
-    await saveStoreConfig({ theme: newTheme }, { skipUndoPush: Boolean(onReplaceSections) });
-    setLiveThemeOverride(null);
-    setLiveStorePatch(null);
+    await persistStoreConfig({ theme: newTheme }, { skipUndoPush: Boolean(onReplaceSections) });
   };
 
-  const handleSelectNavMode = (mode: StudioNavMode) => {
-    setNavMode(mode);
-    setShowRightSidebar(true);
-    setMobileColumn(mode === "sections" ? "tree" : "inspector");
-  };
+  const handleSelectNavMode = React.useCallback((mode: StudioNavMode) => {
+    setNavMode(mode); setShowRightSidebar(true); setMobileColumn(mode === "sections" ? "tree" : "inspector");
+  }, []);
 
   const handleSelectMediaUrl = (url: string) => {
     applyMediaToSection(selectedSection, url, updateSection, () => {
@@ -179,7 +174,7 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
       onReplaceSections(nextSections);
     } else {
       nextSections.forEach((sec, idx) => {
-        if (sec !== sections[idx]) updateSection(sec.id, { settings: sec.settings });
+        if (sec !== sections[idx]) updateSection(sec.id, { settings: sec.settings, styles: sec.styles });
       });
     }
     if (updatedConfigPatch) await handleSaveStoreConfig(updatedConfigPatch);
@@ -193,12 +188,12 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
 
   return (
     <StudioMediaProvider value={mediaContextValue}>
-      <div className="flex flex-col flex-1 h-full bg-[#F6F7F9] text-slate-900 overflow-hidden select-none min-w-0 min-h-0">
+      <div className="flex flex-col flex-1 h-full bg-[var(--studio-background)] text-[var(--studio-black)] overflow-hidden select-none min-w-0 min-h-0">
         <div className="hidden md:block shrink-0">
           <StudioTopBar
-            viewport={viewport} setViewport={setViewport} saveStatus={saveStatus} shopName={effectiveStoreConfig?.shopName || "Ma Boutique"}
+            viewport={viewport} setViewport={setViewport} saveStatus={effectiveSaveStatus} shopName={effectiveStoreConfig?.shopName || "Ma Boutique"}
             shopSlug={effectiveStoreConfig?.shopSlug} sellerId={effectiveStoreConfig?.sellerId} isPublished={isPublished} isPublishing={isPublishing}
-            versionNumber={publishedLayout?.versionNumber} sectionCount={sections.length} productCount={products.length} sections={sections}
+            versionNumber={publishedLayout?.versionNumber} draftRevision={draftLayout?.draftRevision} sectionCount={sections.length} productCount={products.length} sections={sections}
             products={products} catalogStatus={catalogStatus} storeConfig={effectiveStoreConfig} onSelectNavMode={handleSelectNavMode}
             historyList={historyList} previewMode={isInteractiveMode ? "preview" : "edit"} onPreviewModeChange={(m) => setIsInteractiveMode(m === "preview")}
             onOpenAudit={() => window.dispatchEvent(new CustomEvent("studio:open-audit"))} onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
@@ -207,42 +202,44 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = (props) => {
           />
         </div>
         <MobileStudioBar
-          shopName={effectiveStoreConfig?.shopName || "Ma Boutique"} isPublished={isPublished} isPublishing={isPublishing} saveStatus={saveStatus}
+          shopName={effectiveStoreConfig?.shopName || "Ma Boutique"} isPublished={isPublished} isPublishing={isPublishing}
+          versionNumber={publishedLayout?.versionNumber} draftRevision={draftLayout?.draftRevision} saveStatus={effectiveSaveStatus} lastSaveError={effectiveLastSaveError}
           canUndo={Boolean(canUndo)} canRedo={Boolean(canRedo)} onUndo={handleUndo} onRedo={handleRedo} mobileColumn={mobileColumn}
           setMobileColumn={setMobileColumn} navMode={navMode} onSelectNavMode={handleSelectNavMode} sections={sections} products={products}
           catalogStatus={catalogStatus} storeConfig={effectiveStoreConfig} onSaveDraft={handleUnifiedSaveDraft} onPublish={handleUnifiedPublish} onExitStudio={onExitStudio}
         />
         <StudioRecoveryAndConflictBar
-          saveStatus={saveStatus} recoverableBackup={recoverableBackup} onRestoreBackup={onRestoreBackup} onDismissBackup={onDismissBackup}
-          onReloadServerVersion={onReloadServerVersion} onForceOverwriteDraft={onForceOverwriteDraft}
+          saveStatus={effectiveSaveStatus} lastSaveError={effectiveLastSaveError} localSectionCount={sections.length} recoverableBackup={recoverableBackup} onRestoreBackup={onRestoreBackup}
+          onDismissBackup={onDismissBackup} onReloadServerVersion={onReloadServerVersion} onForceOverwriteDraft={onForceOverwriteDraft}
+          onRetrySave={() => { void handleUnifiedSaveDraft(); }}
         />
         <StudioColumnsLayout
           mobileColumn={mobileColumn} showLeftSidebar={showLeftSidebar} showRightSidebar={showRightSidebar} sections={sections}
           selectedSectionId={activeSectionId} navMode={navMode} onSelectNavMode={handleSelectNavMode} setSelectedSectionId={handleSelectSection}
           setNavMode={setNavMode} setShowRightSidebar={setShowRightSidebar} setMobileColumn={setMobileColumn} reorderSections={reorderSections}
           toggleVisibility={toggleVisibility} deleteSection={deleteSection} duplicateSection={duplicateSection} addSection={addSection}
-          currentTheme={currentTheme} products={products} catalogStatus={catalogStatus} catalogError={catalogError} onReloadCatalog={onReloadCatalog}
+          currentTheme={currentTheme} products={products} catalogStatus={catalogStatus} catalogError={catalogError}
+          catalogTruncated={props.catalogTruncated} onReloadCatalog={onReloadCatalog}
           storeConfig={effectiveStoreConfig} viewport={viewport} setViewport={setViewport} setShowLeftSidebar={setShowLeftSidebar}
           selectedSection={selectedSection} mediaGallery={mediaGallery} handleSelectMediaUrl={handleSelectMediaUrl}
           onReplaceMediaUrl={handleReplaceMediaInSections} onUploadMedia={onUploadMedia} onDeleteMedia={onDeleteMedia}
           isMediaUploading={isMediaUploading} mediaUploadProgress={mediaUploadProgress} mediaUploadError={mediaUploadError}
           updateSection={updateSection} handleSaveTheme={handleSaveTheme} setLiveThemeOverride={setLiveThemeOverride}
           onLiveStorePatch={handleLiveStorePatch} saveStoreConfig={handleSaveStoreConfig} handleApplyFullArchetype={handleApplyFullArchetype}
-          onReplaceSections={onReplaceSections} onSaveDraft={handleUnifiedSaveDraft}
+          onReplaceSections={onReplaceSections} onSaveDraft={handleUnifiedSaveDraft} lastSaveError={effectiveLastSaveError}
         />
-        <StudioCommandPalette
-          isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} onAddSection={addSection} onSetViewport={setViewport}
-          onNavigatePage={(viewMode, slug) => window.dispatchEvent(new CustomEvent("studio:navigate-page", { detail: { viewMode, categorySlug: slug } }))}
-          onToggleInteractiveMode={toggleInteractiveMode} isInteractiveMode={isInteractiveMode}
-          onOpenAuditModal={() => window.dispatchEvent(new CustomEvent("studio:open-audit"))}
-          onOpenQrModal={() => window.dispatchEvent(new CustomEvent("studio:open-qr"))}
-          onPublish={() => { void handleUnifiedPublish(); }} onUndo={handleUndo} onRedo={handleRedo}
-          canUndo={canUndo} canRedo={canRedo} onSelectNavMode={handleSelectNavMode}
-        />
+        {isCommandPaletteOpen && (
+          <Suspense fallback={null}><StudioCommandPalette
+            isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} onAddSection={addSection} onSetViewport={setViewport}
+            onNavigatePage={(viewMode, slug) => window.dispatchEvent(new CustomEvent("studio:navigate-page", { detail: { viewMode, categorySlug: slug } }))}
+            onToggleInteractiveMode={toggleInteractiveMode} isInteractiveMode={isInteractiveMode}
+            onOpenAuditModal={() => window.dispatchEvent(new CustomEvent("studio:open-audit"))} onOpenQrModal={() => window.dispatchEvent(new CustomEvent("studio:open-qr"))}
+            onPublish={() => { void handleUnifiedPublish(); }} onUndo={handleUndo} onRedo={handleRedo} canUndo={canUndo} canRedo={canRedo} onSelectNavMode={handleSelectNavMode}
+          /></Suspense>
+        )}
       </div>
     </StudioMediaProvider>
   );
 };
 
 export default StudioWorkspace;
-

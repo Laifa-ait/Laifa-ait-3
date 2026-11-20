@@ -63,7 +63,7 @@ export const CategoryMesh3DRow: React.FC<CategoryMesh3DRowProps> = ({
   showItemCount = false,
   imagePosition = "center",
   imageFit = "cover",
-  primaryColor = "#023859",
+  primaryColor = "#0F172A",
   textColor = "#0F172A",
   isEditable,
   selectedSectionId,
@@ -141,7 +141,7 @@ export const CategoryMesh3DRow: React.FC<CategoryMesh3DRowProps> = ({
             }`}
           >
             {/* Panneau gauche éditorial uni (col-span-5) */}
-            <div className={`col-span-5 min-w-0 p-3 @[768px]:p-4 flex flex-col justify-between z-10 border-r ${isDarkSkin ? "border-white/10 bg-slate-950" : "border-slate-100 bg-[#FAF8F5]"}`}>
+            <div className={`col-span-5 min-w-0 p-3 @[768px]:p-4 flex flex-col justify-between z-10 border-r ${isDarkSkin ? "border-white/10 bg-slate-950" : "border-slate-100 bg-slate-50"}`}>
               <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-[10px] font-mono font-extrabold tracking-wider uppercase text-slate-400">
@@ -149,7 +149,7 @@ export const CategoryMesh3DRow: React.FC<CategoryMesh3DRowProps> = ({
                   </span>
                   {showBadge && cat.badge && (
                     <span
-                      className="inline-block text-[9px] font-semibold tracking-wide px-2 py-0.5 rounded-full text-white leading-none truncate max-w-[85px]"
+                      className="inline-block text-[9px] font-semibold tracking-wide px-2 py-0.5 rounded-sm text-white leading-none truncate max-w-[85px]"
                       style={{ backgroundColor: cat.badgeColor || primaryColor }}
                     >
                       {cat.badge}
@@ -178,7 +178,7 @@ export const CategoryMesh3DRow: React.FC<CategoryMesh3DRowProps> = ({
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-colors ${
                     isDarkSkin
                       ? "bg-white/15 text-white group-hover:bg-white group-hover:text-slate-950"
-                      : "bg-slate-900 text-white group-hover:bg-[#023859]"
+                      : "bg-slate-900 text-white group-hover:bg-slate-800"
                   }`}
                 >
                   <span>Explorer</span>
@@ -203,7 +203,7 @@ export const CategoryMesh3DRow: React.FC<CategoryMesh3DRowProps> = ({
                     e.stopPropagation();
                     onEditItem?.(idx, e);
                   }}
-                  className="absolute top-2 right-2 z-20 bg-[#023859]/90 text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-xs flex items-center gap-1 cursor-pointer border border-white/20"
+                  className="absolute top-2 right-2 z-20 bg-slate-900/90 hover:bg-slate-950 text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-xs flex items-center gap-1 cursor-pointer border border-white/20"
                 >
                   <Camera className="w-2.5 h-2.5" />
                 </button>

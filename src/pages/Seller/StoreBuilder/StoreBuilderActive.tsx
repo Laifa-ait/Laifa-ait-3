@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import "./studio-tokens.css";
 import { useSellerStudio } from "./hooks/useSellerStudio";
 import { StudioWorkspace } from "./StudioWorkspace";
 import {
@@ -32,15 +33,18 @@ export const StoreBuilderActive: React.FC<StoreBuilderActiveProps> = () => {
   const {
     loading,
     saveStatus,
+    lastSaveError,
     isPublishing,
     storeConfig,
     sections,
     products,
     catalogStatus,
     catalogError,
+    catalogTruncated,
     reloadCatalog,
     historyList,
     mediaGallery,
+    draftLayout,
     publishedLayout,
     selectedSectionId,
     setSelectedSectionId,
@@ -73,8 +77,8 @@ export const StoreBuilderActive: React.FC<StoreBuilderActiveProps> = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[500px] h-full bg-[#F6F7F9]">
-        <div className="text-center space-y-2.5 p-7 bg-white rounded-xl border border-slate-200 max-w-xs w-full">
+      <div className="flex items-center justify-center min-h-[500px] h-full bg-[var(--studio-background)]">
+        <div className="text-center space-y-2.5 p-7 bg-[var(--studio-white)] rounded-xl border border-[var(--studio-border)] max-w-xs w-full">
           <Loader2 className="w-6 h-6 text-slate-900 animate-spin mx-auto" />
           <p className="text-[13px] font-semibold text-slate-900">
             Chargement de l&apos;éditeur boutique
@@ -88,16 +92,19 @@ export const StoreBuilderActive: React.FC<StoreBuilderActiveProps> = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#F6F7F9] overflow-hidden">
+    <div className="flex flex-col h-full bg-[var(--studio-background)] overflow-hidden">
       <StudioWorkspace
         saveStatus={saveStatus}
+        lastSaveError={lastSaveError}
         isPublishing={isPublishing}
         storeConfig={storeConfig}
+        draftLayout={draftLayout}
         publishedLayout={publishedLayout}
         sections={sections}
         products={products}
         catalogStatus={catalogStatus}
         catalogError={catalogError}
+        catalogTruncated={catalogTruncated}
         onReloadCatalog={reloadCatalog}
         historyList={historyList}
         mediaGallery={mediaGallery}

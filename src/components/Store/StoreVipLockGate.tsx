@@ -13,7 +13,7 @@ interface StoreVipLockGateProps {
 export const StoreVipLockGate: React.FC<StoreVipLockGateProps> = ({
   shopName,
   logoUrl,
-  primaryColor = "#B45309",
+  primaryColor = "#0F172A",
   vipError,
   vipSubmitting = false,
   onSubmitPassword,

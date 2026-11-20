@@ -17,6 +17,7 @@ import {
 import { FrameShapeSelectorGrid } from "./FrameShapeSelectorGrid";
 import { EditorialTypographyControlBox } from "../inspector/controls/EditorialTypographyControlBox";
 import { ArtisticPresetsList } from "./ArtisticPresetsList";
+import { DEFAULT_MODERN_SECTOR } from "../../constants/studioThemeDefaults";
 
 interface ThemeAtelierMaterialsTabProps {
   theme: CustomPageTheme;
@@ -28,12 +29,7 @@ interface ThemeAtelierMaterialsTabProps {
 }
 
 export const ThemeAtelierMaterialsTab: React.FC<ThemeAtelierMaterialsTabProps> = ({
-  theme,
-  storeConfig,
-  sections = [],
-  onUpdateTheme,
-  onApplyThemeOnly,
-  onApplyPresetWithFiveActs,
+  theme, storeConfig, sections = [], onUpdateTheme, onApplyThemeOnly, onApplyPresetWithFiveActs,
 }) => {
   const [lang, setLang] = useState<"fr" | "ar">("fr");
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
@@ -51,9 +47,7 @@ export const ThemeAtelierMaterialsTab: React.FC<ThemeAtelierMaterialsTabProps> =
   const handleApplyArtisticPreset = (preset: ArtisticStudioPreset) => {
     const nextTheme: CustomPageTheme = { ...theme, ...preset.theme, presetId: preset.id };
     onUpdateTheme(nextTheme);
-    if (onApplyThemeOnly) {
-      onApplyThemeOnly(nextTheme);
-    }
+    if (onApplyThemeOnly) onApplyThemeOnly(nextTheme);
   };
 
   const executeRegenerateFiveActs = () => {
@@ -70,12 +64,12 @@ export const ThemeAtelierMaterialsTab: React.FC<ThemeAtelierMaterialsTabProps> =
       )
     );
     const generated = buildFiveActsHomeLayout(
-      storeConfig?.shopName || "Notre Maison",
+      storeConfig?.shopName || "Notre Studio",
       storeConfig?.shopDescription,
       existingHeroImage || storeConfig?.bannerUrl,
       existingProductIds,
       "editorial-split",
-      theme.sector || "artisanat"
+      theme.sector || DEFAULT_MODERN_SECTOR
     );
     setConfirmRegenerate(false);
     onApplyPresetWithFiveActs(generated, theme);
@@ -111,27 +105,20 @@ export const ThemeAtelierMaterialsTab: React.FC<ThemeAtelierMaterialsTabProps> =
         </p>
 
         {confirmRegenerate ? (
-          <div
-            data-testid="confirm-regenerate-five-acts-banner"
-            className="rounded-xl border border-amber-300 bg-amber-50 p-2.5 space-y-2"
-          >
+          <div data-testid="confirm-regenerate-five-acts-banner" className="rounded-xl border border-amber-300 bg-amber-50 p-2.5 space-y-2">
             <div className="flex items-start gap-2 text-[11px] font-semibold text-amber-950">
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <span>Remplacer la structure actuelle par les 5 sections d&apos;accueil ? Vos produits liés seront conservés.</span>
             </div>
             <div className="flex items-center justify-end gap-1.5">
               <button
-                type="button"
-                data-testid="cancel-regenerate-five-acts-btn"
-                onClick={() => setConfirmRegenerate(false)}
+                type="button" data-testid="cancel-regenerate-five-acts-btn" onClick={() => setConfirmRegenerate(false)}
                 className="h-7 px-2.5 rounded-lg border border-slate-200 bg-white text-[10.5px] font-semibold text-slate-700 cursor-pointer"
               >
                 Annuler
               </button>
               <button
-                type="button"
-                data-testid="confirm-regenerate-five-acts-btn"
-                onClick={executeRegenerateFiveActs}
+                type="button" data-testid="confirm-regenerate-five-acts-btn" onClick={executeRegenerateFiveActs}
                 className="h-7 px-2.5 rounded-lg bg-slate-900 text-white text-[10.5px] font-semibold cursor-pointer"
               >
                 Confirmer la structure
@@ -140,17 +127,11 @@ export const ThemeAtelierMaterialsTab: React.FC<ThemeAtelierMaterialsTabProps> =
           </div>
         ) : (
           <button
-            type="button"
-            data-testid="regenerate-five-acts-btn"
-            onClick={handleRequestRegenerateFiveActs}
+            type="button" data-testid="regenerate-five-acts-btn" onClick={handleRequestRegenerateFiveActs}
             className="w-full h-8 px-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
             <LayoutTemplate className="w-3.5 h-3.5" />
-            <span>
-              {isAr
-                ? "إعادة توليد واجهة المتجر (5 فصول)"
-                : "Générer la structure d'accueil (5 sections)"}
-            </span>
+            <span>{isAr ? "إعادة توليد واجهة المتجر (5 فصول)" : "Générer la structure d'accueil (5 sections)"}</span>
           </button>
         )}
       </div>
@@ -169,21 +150,13 @@ export const ThemeAtelierMaterialsTab: React.FC<ThemeAtelierMaterialsTabProps> =
         <div className="grid grid-cols-2 gap-1.5">
           {SURFACE_TEXTURE_OPTIONS.map((opt) => (
             <button
-              key={opt.id}
-              type="button"
-              onClick={() => onUpdateTheme({ surfaceTexture: opt.id })}
+              key={opt.id} type="button" onClick={() => onUpdateTheme({ surfaceTexture: opt.id })}
               className={`p-2 rounded-lg border text-left transition-colors cursor-pointer ${
-                activeTexture === opt.id
-                  ? "border-slate-900 bg-slate-50"
-                  : "border-slate-200 bg-white hover:border-slate-300"
+                activeTexture === opt.id ? "border-slate-900 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-300"
               }`}
             >
-              <span className="block text-[11px] font-semibold text-slate-900 leading-tight">
-                {isAr ? opt.labelAr : opt.labelFr}
-              </span>
-              <span className="block text-[10px] text-slate-500 leading-tight mt-0.5">
-                {isAr ? opt.sublabelAr : opt.sublabelFr}
-              </span>
+              <span className="block text-[11px] font-semibold text-slate-900 leading-tight">{isAr ? opt.labelAr : opt.labelFr}</span>
+              <span className="block text-[10px] text-slate-500 leading-tight mt-0.5">{isAr ? opt.sublabelAr : opt.sublabelFr}</span>
             </button>
           ))}
         </div>
@@ -196,18 +169,12 @@ export const ThemeAtelierMaterialsTab: React.FC<ThemeAtelierMaterialsTabProps> =
         <div className="grid grid-cols-2 gap-1.5">
           {AMBIENT_LIGHTING_OPTIONS.map((opt) => (
             <button
-              key={opt.id}
-              type="button"
-              onClick={() => onUpdateTheme({ ambientLighting: opt.id })}
+              key={opt.id} type="button" onClick={() => onUpdateTheme({ ambientLighting: opt.id })}
               className={`p-2 rounded-lg border text-left transition-colors cursor-pointer ${
-                activeLighting === opt.id
-                  ? "border-slate-900 bg-slate-50"
-                  : "border-slate-200 bg-white hover:border-slate-300"
+                activeLighting === opt.id ? "border-slate-900 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-300"
               }`}
             >
-              <span className="block text-[11px] font-medium text-slate-900 leading-tight">
-                {isAr ? opt.labelAr : opt.labelFr}
-              </span>
+              <span className="block text-[11px] font-medium text-slate-900 leading-tight">{isAr ? opt.labelAr : opt.labelFr}</span>
             </button>
           ))}
         </div>
@@ -220,18 +187,12 @@ export const ThemeAtelierMaterialsTab: React.FC<ThemeAtelierMaterialsTabProps> =
         <div className="grid grid-cols-3 gap-1.5">
           {CARD_MATERIAL_OPTIONS.map((opt) => (
             <button
-              key={opt.id}
-              type="button"
-              onClick={() => onUpdateTheme({ cardMaterial: opt.id })}
+              key={opt.id} type="button" onClick={() => onUpdateTheme({ cardMaterial: opt.id })}
               className={`p-2 rounded-lg border text-center transition-colors cursor-pointer ${
-                activeMaterial === opt.id
-                  ? "border-slate-900 bg-slate-50"
-                  : "border-slate-200 bg-white hover:border-slate-300"
+                activeMaterial === opt.id ? "border-slate-900 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-300"
               }`}
             >
-              <span className="block text-[10.5px] font-medium text-slate-900 truncate">
-                {isAr ? opt.labelAr : opt.labelFr}
-              </span>
+              <span className="block text-[10.5px] font-medium text-slate-900 truncate">{isAr ? opt.labelAr : opt.labelFr}</span>
             </button>
           ))}
         </div>
@@ -245,8 +206,8 @@ export const ThemeAtelierMaterialsTab: React.FC<ThemeAtelierMaterialsTabProps> =
         <EditorialTypographyControlBox
           letterSpacing={theme.letterSpacing ?? 0}
           lineHeight={theme.lineHeight ?? 1.12}
-          headingAccentStyle={theme.headingAccentStyle || "metallic-gold"}
-          headingUnderlineStyle={theme.headingUnderlineStyle || "brush-stroke"}
+          headingAccentStyle={theme.headingAccentStyle || "accent-color"}
+          headingUnderlineStyle={theme.headingUnderlineStyle || "hairline"}
           accentColor={theme.accentColor || theme.primaryColor}
           isAr={isAr}
           onChange={(patch) => onUpdateTheme(patch)}

@@ -127,21 +127,31 @@ export class ArtisanPublicService {
     }
   }
 
+  private static tradesCache: { data: ArtisanTrade[]; expiresAt: number } | null = null;
+
   static async getTrades(): Promise<ArtisanTrade[]> {
     if (!db) return DEFAULT_ARTISAN_TRADES;
+    const now = Date.now();
+    if (this.tradesCache && this.tradesCache.expiresAt > now) {
+      return this.tradesCache.data;
+    }
 
     try {
       const snapshot = await db.collection(ARTISAN_TRADES_COLLECTION).get();
       if (snapshot.empty) {
+        this.tradesCache = { data: DEFAULT_ARTISAN_TRADES, expiresAt: now + 10 * 60 * 1000 };
         return DEFAULT_ARTISAN_TRADES;
       }
 
-      const trades = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<ArtisanTrade, "id">),
-      }));
+      const trades = snapshot.docs
+        .map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<ArtisanTrade, "id">),
+        }))
+        .filter((t) => t.active !== false);
 
-      return trades.filter((t) => t.active !== false);
+      this.tradesCache = { data: trades, expiresAt: now + 10 * 60 * 1000 };
+      return trades;
     } catch (error) {
       safeLogger.warn("[ArtisanPublicService] getTrades error, falling back to defaults", {
         error: error instanceof Error ? error.message : String(error),

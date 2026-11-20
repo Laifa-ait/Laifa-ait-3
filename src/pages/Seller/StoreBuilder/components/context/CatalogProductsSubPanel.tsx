@@ -9,6 +9,7 @@ interface CatalogProductsSubPanelProps {
   products: Product[];
   catalogStatus?: CatalogLoadStatus;
   catalogError?: string | null;
+  catalogTruncated?: boolean;
   onReloadCatalog?: () => void | Promise<void>;
   productFeedSections: CustomPageSection[];
   activeFeedSection?: CustomPageSection;
@@ -26,6 +27,7 @@ export const CatalogProductsSubPanel: React.FC<CatalogProductsSubPanelProps> = (
   products,
   catalogStatus = "loaded",
   catalogError = null,
+  catalogTruncated = false,
   onReloadCatalog,
   productFeedSections,
   activeFeedSection,
@@ -65,6 +67,18 @@ export const CatalogProductsSubPanel: React.FC<CatalogProductsSubPanelProps> = (
 
   return (
     <div className="p-4 space-y-3">
+      {catalogTruncated && (
+        <div
+          data-testid="catalog-truncated-warning"
+          className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-900 flex items-center gap-2"
+        >
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+          <span>
+            Catalogue volumineux : affichage limité aux {products.length} produits les plus récents (plafond de sécurité atteint).
+          </span>
+        </div>
+      )}
+
       {productFeedSections.length > 1 && (
         <div className="space-y-1">
           <label className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-500 block">
@@ -105,16 +119,13 @@ export const CatalogProductsSubPanel: React.FC<CatalogProductsSubPanelProps> = (
       )}
 
       <div className="relative">
-        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+        <Search className="w-3.5 h-3.5 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2" />
         <input
           type="text"
           value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setVisibleLimit(PAGE_STEP);
-          }}
+          onChange={(e) => { setSearch(e.target.value); setVisibleLimit(PAGE_STEP); }}
           placeholder="Chercher un produit..."
-          className="w-full h-8.5 pl-8 pr-3 rounded-lg bg-slate-50/70 border border-slate-200 text-xs text-slate-900 focus:bg-white focus:border-slate-900 focus:outline-none"
+          className="w-full h-8.5 ps-8 pe-3 rounded-lg bg-slate-50/70 border border-slate-200 text-xs text-slate-900 focus:bg-white focus:border-slate-900 focus:outline-none"
         />
       </div>
 
@@ -128,14 +139,9 @@ export const CatalogProductsSubPanel: React.FC<CatalogProductsSubPanelProps> = (
             <button
               key={pill.id}
               type="button"
-              onClick={() => {
-                setLifecycleFilter(pill.id);
-                setVisibleLimit(PAGE_STEP);
-              }}
+              onClick={() => { setLifecycleFilter(pill.id); setVisibleLimit(PAGE_STEP); }}
               className={`px-2 py-1 rounded-md text-[10.5px] font-medium cursor-pointer transition-colors ${
-                lifecycleFilter === pill.id
-                  ? "bg-slate-900 text-white"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                lifecycleFilter === pill.id ? "bg-slate-900 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
               {pill.label}
@@ -150,24 +156,15 @@ export const CatalogProductsSubPanel: React.FC<CatalogProductsSubPanelProps> = (
           <p className="text-xs font-medium text-slate-700">Chargement du catalogue...</p>
         </div>
       ) : catalogStatus === "error" ? (
-        <div
-          role="alert"
-          data-testid="catalog-load-error"
-          className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-center space-y-2.5"
-        >
+        <div role="alert" data-testid="catalog-load-error" className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-center space-y-2.5">
           <AlertCircle className="w-5 h-5 text-rose-600 mx-auto" />
-          <p className="text-xs font-semibold text-rose-900">
-            {catalogError || "Erreur de chargement du catalogue"}
-          </p>
+          <p className="text-xs font-semibold text-rose-900">{catalogError || "Erreur de chargement du catalogue"}</p>
           {onReloadCatalog && (
             <button
-              type="button"
-              data-testid="catalog-load-retry-btn"
-              onClick={() => void onReloadCatalog()}
+              type="button" data-testid="catalog-load-retry-btn" onClick={() => void onReloadCatalog()}
               className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-rose-700 hover:bg-rose-800 text-white text-[11.5px] font-medium cursor-pointer"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Réessayer</span>
+              <RefreshCw className="w-3.5 h-3.5" /> <span>Réessayer</span>
             </button>
           )}
         </div>
@@ -189,12 +186,8 @@ export const CatalogProductsSubPanel: React.FC<CatalogProductsSubPanelProps> = (
               const thumb = p.images?.[0] || p.image || "";
               return (
                 <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => onToggleFeaturedProduct(p.id)}
-                  className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 text-left transition-colors cursor-pointer ${
-                    isFeatured ? "bg-slate-50" : "bg-white hover:bg-slate-50/60"
-                  }`}
+                  key={p.id} type="button" onClick={() => onToggleFeaturedProduct(p.id)}
+                  className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 text-start transition-colors cursor-pointer ${isFeatured ? "bg-slate-50" : "bg-white hover:bg-slate-50/60"}`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     {thumb ? (
@@ -207,9 +200,7 @@ export const CatalogProductsSubPanel: React.FC<CatalogProductsSubPanelProps> = (
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-slate-900 truncate">{p.name}</p>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] font-medium text-slate-500 tabular-nums">
-                          {Number(p.price || 0).toLocaleString("fr-DZ")} DA
-                        </span>
+                        <span className="text-[11px] font-medium text-slate-500 tabular-nums">{Number(p.price || 0).toLocaleString("fr-DZ")} DA</span>
                         {!meta.isPubliclyVisible ? (
                           <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800">{meta.label}</span>
                         ) : !meta.isPurchasable ? (
@@ -218,11 +209,7 @@ export const CatalogProductsSubPanel: React.FC<CatalogProductsSubPanelProps> = (
                       </div>
                     </div>
                   </div>
-                  <span
-                    className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 border ${
-                      isFeatured ? "bg-slate-900 border-slate-900 text-white" : "bg-white border-slate-200 text-transparent"
-                    }`}
-                  >
+                  <span className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 border ${isFeatured ? "bg-slate-900 border-slate-900 text-white" : "bg-white border-slate-200 text-transparent"}`}>
                     <Check className="w-3 h-3" />
                   </span>
                 </button>
@@ -231,8 +218,7 @@ export const CatalogProductsSubPanel: React.FC<CatalogProductsSubPanelProps> = (
           </div>
           {filteredProducts.length > visibleLimit && (
             <button
-              type="button"
-              onClick={() => setVisibleLimit((prev) => prev + PAGE_STEP)}
+              type="button" onClick={() => setVisibleLimit((prev) => prev + PAGE_STEP)}
               className="w-full h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[11px] font-semibold text-slate-700 cursor-pointer"
             >
               Afficher +{Math.min(PAGE_STEP, filteredProducts.length - visibleLimit)} produits ({filteredProducts.length - visibleLimit} restants)

@@ -178,4 +178,24 @@ describe("useStudioSaveManager Real Production Hook Tests", () => {
     expect(apiModule.apiPut).toHaveBeenCalledTimes(4);
     expect(result.current.saveStatus).toBe("error");
   });
+
+  it("should debounce localStorage backup on triggerAutoSave and flush synchronously on pagehide", async () => {
+    const { result } = renderHook(() => useStudioSaveManager({ debounceMs: 5000 }));
+
+    act(() => {
+      result.current.triggerAutoSave([section1]);
+    });
+
+    expect(result.current.saveStatus).toBe("unsaved");
+    expect(window.localStorage.getItem("olmart_studio_unsaved_backup")).toBeNull();
+
+    act(() => {
+      window.dispatchEvent(new Event("pagehide"));
+    });
+
+    const rawBackup = window.localStorage.getItem("olmart_studio_unsaved_backup");
+    expect(rawBackup).not.toBeNull();
+    expect(JSON.parse(rawBackup!).sections).toHaveLength(1);
+  });
 });
+

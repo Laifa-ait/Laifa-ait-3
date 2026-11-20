@@ -5,8 +5,9 @@ import {
   StoreHeaderNavConfig,
   StoreNavMenuLink,
 } from "../../../../../domains/seller/customPage.types";
-import { Plus, Trash2, Check, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Check, RefreshCw, AlertCircle } from "lucide-react";
 import { HeaderAnnouncementAndLayoutForm } from "./HeaderAnnouncementAndLayoutForm";
+import { buildHeaderNavDefaults, extractSaveErrorMessage } from "../../utils/studioConfigSanitizers";
 
 interface HeaderNavigationInspectorPanelProps {
   storeConfig?: SellerStoreConfig | null;
@@ -33,37 +34,32 @@ export const HeaderNavigationInspectorPanel: React.FC<HeaderNavigationInspectorP
   const onLiveChangeRef = useRef(onLiveChange);
   onLiveChangeRef.current = onLiveChange;
 
-  const [announcement, setAnnouncement] = useState<StoreAnnouncementBarConfig>({
-    enabled: storeConfig?.announcementBar?.enabled ?? true,
-    text: storeConfig?.announcementBar?.text || "Livraison rapide 69 Wilayas • Paiement à la livraison (COD)",
-    bgColor: storeConfig?.announcementBar?.bgColor || "#0F172A",
-    textColor: storeConfig?.announcementBar?.textColor || "#FFFFFF",
-  });
-
-  const [headerCfg, setHeaderCfg] = useState<StoreHeaderNavConfig>({
-    layout: storeConfig?.headerConfig?.layout || "left",
-    sticky: storeConfig?.headerConfig?.sticky ?? true,
-    showSearch: storeConfig?.headerConfig?.showSearch ?? true,
-    showTrustBar: storeConfig?.headerConfig?.showTrustBar ?? true,
-    navLinks:
-      storeConfig?.headerConfig?.navLinks && storeConfig.headerConfig.navLinks.length > 0
-        ? storeConfig.headerConfig.navLinks
-        : [
-            { id: "nav-home", label: "Accueil", target: "home" },
-            { id: "nav-cat", label: "Catalogue", target: "collection" },
-          ],
-  });
-
+  const defaults = buildHeaderNavDefaults(storeConfig);
+  const [announcement, setAnnouncement] = useState<StoreAnnouncementBarConfig>(defaults.announcement);
+  const [headerCfg, setHeaderCfg] = useState<StoreHeaderNavConfig>(defaults.headerCfg);
   const [newLabel, setNewLabel] = useState("");
   const [selectedTargetOption, setSelectedTargetOption] = useState<string>("collection");
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const hasMountedRef = useRef(false);
+  const skipNextEmitRef = useRef(false);
+  const lastSyncSigRef = useRef(storeConfig?.updatedAt || "");
 
   useEffect(() => {
-    onLiveChangeRef.current?.({
-      announcementBar: announcement,
-      headerConfig: headerCfg,
-    });
+    const nextSig = storeConfig?.updatedAt || "";
+    if (!storeConfig || nextSig === lastSyncSigRef.current) return;
+    lastSyncSigRef.current = nextSig;
+    skipNextEmitRef.current = true;
+    const synced = buildHeaderNavDefaults(storeConfig);
+    setAnnouncement(synced.announcement);
+    if (storeConfig.headerConfig) setHeaderCfg(synced.headerCfg);
+  }, [storeConfig]);
+
+  useEffect(() => {
+    if (!hasMountedRef.current) { hasMountedRef.current = true; return; }
+    if (skipNextEmitRef.current) { skipNextEmitRef.current = false; return; }
+    onLiveChangeRef.current?.({ announcementBar: announcement, headerConfig: headerCfg });
   }, [announcement, headerCfg]);
 
   const handleTargetSelectChange = (val: string) => {
@@ -98,10 +94,13 @@ export const HeaderNavigationInspectorPanel: React.FC<HeaderNavigationInspectorP
     e.preventDefault();
     setSaving(true);
     setSavedSuccess(false);
+    setSaveError(null);
     try {
       await onSaveConfig({ announcementBar: announcement, headerConfig: headerCfg });
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 2500);
+    } catch (err: unknown) {
+      setSaveError(extractSaveErrorMessage(err, "Impossible d'enregistrer l'en-tête."));
     } finally {
       setSaving(false);
     }
@@ -198,10 +197,16 @@ export const HeaderNavigationInspectorPanel: React.FC<HeaderNavigationInspectorP
           </div>
         </section>
 
-        <div className="pt-2">
+        <div className="pt-2 space-y-2">
+          {saveError && (
+            <div role="alert" data-testid="header-save-error" className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-medium flex items-start gap-1.5">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" /><span>{saveError}</span>
+            </div>
+          )}
           <button
             type="submit"
             disabled={saving}
+            data-testid="header-save-btn"
             className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[12.5px] font-medium flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-colors"
           >
             {saving ? (

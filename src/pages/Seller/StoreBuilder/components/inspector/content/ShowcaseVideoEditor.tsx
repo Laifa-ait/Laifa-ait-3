@@ -102,7 +102,7 @@ export const ShowcaseVideoEditor: React.FC<ShowcaseVideoEditorProps> = ({
           value={videoUrl}
           onChange={(e) => onSettingsChange("videoUrl", e.target.value)}
           className={inputClass}
-          placeholder="https://.../atelier.mp4"
+          placeholder="https://.../studio.mp4"
         />
         {!isUrlValid && (
           <p data-testid="showcase-video-url-error" className="text-[10.5px] font-medium text-rose-600">
@@ -140,7 +140,7 @@ export const ShowcaseVideoEditor: React.FC<ShowcaseVideoEditorProps> = ({
             data-testid="showcase-video-autoplay"
             checked={isAutoplay}
             onChange={(e) => onSettingsChange({ autoplay: e.target.checked, ...(e.target.checked ? { muted: true } : {}) })}
-            className="accent-[#023859]"
+            className="accent-[var(--studio-primary)]"
           />
         </label>
         <label className="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-medium text-slate-700 cursor-pointer">
@@ -150,7 +150,7 @@ export const ShowcaseVideoEditor: React.FC<ShowcaseVideoEditorProps> = ({
             data-testid="showcase-video-loop"
             checked={Boolean(settings.loop)}
             onChange={(e) => onSettingsChange("loop", e.target.checked)}
-            className="accent-[#023859]"
+            className="accent-[var(--studio-primary)]"
           />
         </label>
       </div>

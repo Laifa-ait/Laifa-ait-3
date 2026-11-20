@@ -122,7 +122,7 @@ export const CanvasInlineText: React.FC<CanvasInlineTextProps> = ({
         ...style,
         minWidth: "120px",
       },
-      className: `${className} bg-white/95 text-slate-900 ring-2 ring-[#023859] rounded-md px-2 py-0.5 outline-none shadow-sm`,
+      className: `${className} bg-white/95 text-slate-900 ring-2 ring-[var(--studio-focus,#2563EB)] rounded-md px-2 py-0.5 outline-none shadow-sm`,
       "data-testid": editConfig ? `canvas-inline-input-${editConfig.settingKey}` : undefined,
     };
 

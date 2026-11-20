@@ -28,15 +28,15 @@ export const StoreProductsFilter: React.FC<StoreProductsFilterProps> = ({
         backgroundColor: "var(--store-surface, #FFFFFF)",
         borderRadius: "var(--store-border-radius, 16px)",
         fontFamily: "var(--store-font-body, inherit)",
-        color: "var(--store-secondary, #18181B)",
+        color: "var(--store-secondary, #0F172A)",
       }}
-      className="border border-black/10 p-3.5 sm:p-4 shadow-2xs space-y-3"
+      className="border border-slate-200/80 p-3.5 sm:p-4 shadow-2xs space-y-3"
     >
       <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
         <div className="relative flex-1">
           <Search
             className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4"
-            style={{ color: "var(--store-primary, #B45309)" }}
+            style={{ color: "var(--store-primary, #0F172A)" }}
           />
           <input
             type="text"
@@ -48,10 +48,10 @@ export const StoreProductsFilter: React.FC<StoreProductsFilterProps> = ({
                 : "Rechercher un article dans cette boutique..."
             }
             style={{
-              backgroundColor: "var(--store-canvas, #FAF6F0)",
-              color: "var(--store-secondary, #18181B)",
+              backgroundColor: "var(--store-canvas, #F8FAFC)",
+              color: "var(--store-secondary, #0F172A)",
             }}
-            className="w-full pl-10 pr-9 py-2.5 border border-black/10 rounded-xl text-xs sm:text-sm font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--store-primary,#B45309)] transition-all"
+            className="w-full pl-10 pr-9 py-2.5 border border-slate-200 rounded-lg text-xs sm:text-sm font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--store-primary,#0F172A)] transition-all"
           />
           {searchQuery && (
             <button
@@ -73,16 +73,16 @@ export const StoreProductsFilter: React.FC<StoreProductsFilterProps> = ({
               style={
                 selectedCategory === null
                   ? {
-                      backgroundColor: "var(--store-primary, #B45309)",
+                      backgroundColor: "var(--store-primary, #0F172A)",
                       color: "#FFFFFF",
-                      borderColor: "var(--store-primary, #B45309)",
+                      borderColor: "var(--store-primary, #0F172A)",
                     }
                   : {
-                      backgroundColor: "var(--store-canvas, #FAF6F0)",
-                      color: "var(--store-secondary, #18181B)",
+                      backgroundColor: "var(--store-canvas, #F8FAFC)",
+                      color: "var(--store-secondary, #0F172A)",
                     }
               }
-              className="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition-all border border-black/10 cursor-pointer"
+              className="px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-all border border-slate-200 cursor-pointer"
             >
               {isRTL ? "الكل" : "Tous les rayons"}
             </button>
@@ -96,20 +96,20 @@ export const StoreProductsFilter: React.FC<StoreProductsFilterProps> = ({
                   style={
                     isActive
                       ? {
-                          backgroundColor: "var(--store-primary, #B45309)",
+                          backgroundColor: "var(--store-primary, #0F172A)",
                           color: "#FFFFFF",
-                          borderColor: "var(--store-primary, #B45309)",
+                          borderColor: "var(--store-primary, #0F172A)",
                         }
                       : {
-                          backgroundColor: "var(--store-canvas, #FAF6F0)",
-                          color: "var(--store-secondary, #18181B)",
+                          backgroundColor: "var(--store-canvas, #F8FAFC)",
+                          color: "var(--store-secondary, #0F172A)",
                         }
                   }
-                  className="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition-all border border-black/10 flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-all border border-slate-200 flex items-center gap-1.5 cursor-pointer"
                 >
                   <span>{cat}</span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-md font-bold tabular-nums ${
+                    className={`text-[10px] px-1.5 py-0.2 rounded-sm font-bold tabular-nums ${
                       isActive ? "bg-white/25 text-white" : "bg-black/10"
                     }`}
                   >
@@ -125,10 +125,10 @@ export const StoreProductsFilter: React.FC<StoreProductsFilterProps> = ({
       {(searchQuery || selectedCategory) && (
         <div
           style={{
-            backgroundColor: "var(--store-canvas, #FAF6F0)",
-            color: "var(--store-secondary, #18181B)",
+            backgroundColor: "var(--store-canvas, #F8FAFC)",
+            color: "var(--store-secondary, #0F172A)",
           }}
-          className="flex items-center justify-between text-xs font-medium p-2.5 px-3.5 rounded-xl border border-black/10"
+          className="flex items-center justify-between text-xs font-medium p-2.5 px-3.5 rounded-lg border border-slate-200"
         >
           <span className="tabular-nums">
             {isRTL
@@ -141,7 +141,7 @@ export const StoreProductsFilter: React.FC<StoreProductsFilterProps> = ({
               setSearchQuery("");
               setSelectedCategory(null);
             }}
-            style={{ color: "var(--store-primary, #B45309)" }}
+            style={{ color: "var(--store-primary, #0F172A)" }}
             className="font-bold text-xs cursor-pointer hover:underline whitespace-nowrap shrink-0"
           >
             {isRTL ? "إعادة تعيين" : "Réinitialiser"}

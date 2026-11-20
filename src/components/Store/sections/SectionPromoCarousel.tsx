@@ -120,9 +120,9 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
         styles.borderRadius
       )} ${resolveShadowClass(styles.shadow)} ${resolveAnimationClass(styles.animation)} ${
         isEditable && isSelected
-          ? "ring-2 ring-[#023859] shadow-xl z-10"
+          ? "ring-2 ring-[var(--studio-primary,#0F172A)] shadow-xl z-10"
           : isEditable
-          ? "hover:ring-2 hover:ring-[#023859]/50 cursor-pointer"
+          ? "hover:ring-2 hover:ring-[var(--studio-focus,#2563EB)]/50 cursor-pointer"
           : ""
       }`}
     >
@@ -131,7 +131,7 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
           data-testid="promo-carousel-empty-state"
           className="p-10 text-center bg-slate-100 rounded-2xl text-slate-600 text-xs font-semibold flex flex-col items-center gap-2"
         >
-          <Sparkles className="w-5 h-5 text-[#023859]" />
+          <Sparkles className="w-5 h-5 text-[var(--studio-primary,#0F172A)]" />
           <span>Aucune diapositive configurée. Ouvrez l&apos;onglet Réglages pour ajouter vos offres.</span>
         </div>
       ) : (
@@ -142,7 +142,7 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
           {isEditable && isSelected && (
             <div
               onClick={(e) => e.stopPropagation()}
-              className="absolute top-3 left-3 z-20 flex items-center gap-1 p-1 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/20 shadow-lg"
+              className="absolute top-3 start-3 z-20 flex items-center gap-1 p-1 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/20 shadow-lg"
             >
               {slides.map((_, idx) => (
                 <button
@@ -150,7 +150,7 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
                   type="button"
                   onClick={(e) => handleGoToSlide(idx, e)}
                   className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer ${
-                    idx === safeIdx ? "bg-[#F97316] text-white shadow-2xs" : "text-white/75 hover:text-white hover:bg-white/10"
+                    idx === safeIdx ? "bg-[var(--studio-focus,#2563EB)] text-white shadow-2xs" : "text-white/75 hover:text-white hover:bg-white/10"
                   }`}
                 >
                   Slide {idx + 1}
@@ -182,7 +182,7 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
           {slides.length > 1 && (
             <div
               onClick={(e) => e.stopPropagation()}
-              className="absolute bottom-3 left-4 right-4 z-20 flex items-center justify-between gap-3 pointer-events-none"
+              className="absolute bottom-3 start-4 end-4 z-20 flex items-center justify-between gap-3 pointer-events-none"
             >
               <div className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-950/65 backdrop-blur-md border border-white/15">
                 {settings.autoplay && (
@@ -191,13 +191,13 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
                     data-testid="promo-carousel-pause-btn"
                     aria-label={isPaused ? "Reprendre le carrousel" : "Mettre en pause le carrousel"}
                     onClick={() => setIsPaused((p) => !p)}
-                    className="text-white/90 hover:text-white pr-1 border-r border-white/20 cursor-pointer"
+                    className="text-white/90 hover:text-white pe-1 border-e border-white/20 cursor-pointer"
                   >
                     {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
                   </button>
                 )}
                 {settings.showSlideCounter !== false && (
-                  <span className="text-[10px] font-mono font-extrabold text-white/90 pr-1 border-r border-white/20">
+                  <span className="text-[10px] font-mono font-extrabold text-white/90 pe-1 border-e border-white/20">
                     {String(safeIdx + 1).padStart(2, "0")}/{String(slides.length).padStart(2, "0")}
                   </span>
                 )}
@@ -210,7 +210,7 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
                         aria-label={`Aller à la diapositive ${idx + 1}`}
                         onClick={(e) => handleGoToSlide(idx, e)}
                         className={`h-2 rounded-full transition-all cursor-pointer ${
-                          idx === safeIdx ? "w-6 bg-[#F97316]" : "w-2 bg-white/55 hover:bg-white"
+                          idx === safeIdx ? "w-6 bg-blue-500" : "w-2 bg-white/55 hover:bg-white"
                         }`}
                       />
                     ))}
@@ -243,7 +243,7 @@ export const SectionPromoCarousel: React.FC<SectionPromoCarouselProps> = ({
         </div>
       )}
 
-      <SectionDividerRenderer divider={styles.divider} theme={theme} />
+      <SectionDividerRenderer divider={styles.divider} color={styles.dividerColor} theme={theme} />
     </div>
   );
 };

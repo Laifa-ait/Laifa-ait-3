@@ -30,10 +30,10 @@ interface SectionStyleTabProps {
 }
 
 const STYLE_STEP_DEFS: StepDefinition[] = [
-  { id: 1, shortLabel: "1. Couleurs", title: "Couleurs de la section", subtitle: "Palette globale, couleurs par élément et opacité." },
-  { id: 2, shortLabel: "2. Coins", title: "Coins & Ombres", subtitle: "Arrondis par coin et profondeur des ombres." },
-  { id: 3, shortLabel: "3. Matières", title: "Filtres & Matières", subtitle: "Rendu photo, textures et silhouettes." },
-  { id: 4, shortLabel: "4. Bouton", title: "Bouton & Typographie", subtitle: "Style des boutons d'action et espacements." },
+  { id: 1, shortLabel: "1. Couleurs", title: "Couleurs de la section", subtitle: "Palette, couleurs de chaque zone et transparence." },
+  { id: 2, shortLabel: "2. Bords", title: "Coins & ombres", subtitle: "Arrondis des coins et ombre portée." },
+  { id: 3, shortLabel: "3. Aspect", title: "Photos, bordure & animation", subtitle: "Retouche photo, bordure du bloc et effet d'apparition." },
+  { id: 4, shortLabel: "4. Bouton", title: "Boutons & texte", subtitle: "Forme des boutons et style du texte." },
 ];
 
 export const SectionStyleTab: React.FC<SectionStyleTabProps> = ({
@@ -68,13 +68,14 @@ export const SectionStyleTab: React.FC<SectionStyleTabProps> = ({
       cardTextColor: undefined, cardBorderColor: undefined, priceColor: undefined,
       badgeBgColor: undefined, badgeTextColor: undefined, iconColor: undefined,
       overlayColor: undefined, dividerColor: undefined, sectionBorderColor: undefined,
+      sectionBorderWidthPx: undefined, floatingCard: undefined,
       colorScheme: undefined, borderRadius: undefined, usePerCornerRadius: false,
-      useCornerColors: false, shadow: undefined, cardShadow: undefined,
-      imageFilterPreset: undefined, imageBrightness: undefined, imageContrast: undefined,
-      imageSaturation: undefined, buttonStyle: undefined, buttonShadow: undefined,
-      buttonBgColor: undefined, buttonTextColor: undefined, buttonBorderColor: undefined,
-      surfaceTexture: undefined, cardMaterial: undefined, frameShape: undefined,
-      letterSpacing: undefined, lineHeight: undefined,
+      useCornerColors: false, shadow: undefined, shadowEnabled: undefined, shadowColor: undefined,
+      cardShadow: undefined, imageFilterPreset: undefined, imageBrightness: undefined,
+      imageContrast: undefined, imageSaturation: undefined, buttonStyle: undefined,
+      buttonShadow: undefined, buttonBgColor: undefined, buttonTextColor: undefined,
+      buttonBorderColor: undefined, surfaceTexture: undefined, cardMaterial: undefined,
+      frameShape: undefined, letterSpacing: undefined, lineHeight: undefined,
     });
     if (onSettingsChange) {
       onSettingsChange({
@@ -83,10 +84,11 @@ export const SectionStyleTab: React.FC<SectionStyleTabProps> = ({
         ...(sectionType === "hero_banner"
           ? {
               bannerBgColor: undefined, bannerBgGradient: undefined, bannerBorderColor: undefined,
+              bannerBorderWidthPx: undefined, bannerFloating: false, overlayColor: undefined,
               titleColor: undefined, subtitleColor: undefined, badgeBgColor: undefined,
               badgeTextColor: undefined, ctaBgColor: undefined, ctaTextColor: undefined,
               ctaBorderColor: undefined, useCornerColors: false, bannerShadow: "none",
-              usePerCornerRadius: false,
+              bannerShadowEnabled: false, bannerShadowColor: undefined, usePerCornerRadius: false,
             }
           : {}),
       });
@@ -133,7 +135,7 @@ export const SectionStyleTab: React.FC<SectionStyleTabProps> = ({
           {onSettingsChange && (
             <div className="space-y-1.5 pt-3 border-t border-slate-200">
               <div className="flex justify-between items-center text-xs tabular-nums">
-                <span className="font-medium text-slate-800">Opacité de la section</span>
+                <span className="font-medium text-slate-800">Transparence du bloc</span>
                 <span className="font-mono text-slate-900 font-semibold">{sectionOpacity}%</span>
               </div>
               <input
@@ -154,6 +156,7 @@ export const SectionStyleTab: React.FC<SectionStyleTabProps> = ({
         sectionType={sectionType}
         activeStep={activeStep as 1 | 2 | 3 | 4}
         styles={styles}
+        theme={theme}
         onStylesChange={onStylesChange}
         onSettingsChange={onSettingsChange}
       />

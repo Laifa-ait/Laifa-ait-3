@@ -125,7 +125,7 @@ describe("Phase 5 — Hero Atelier Premium & Responsive Avancé (5 Compositions)
     expect(pcProfile.heroLayout).toBe("bento-hero");
     expect(pcProfile.focalX).toBe(0);
     expect(pcProfile.focalY).toBe(100);
-    expect(pcProfile.zoom).toBe(1.6);
+    expect(pcProfile.zoom).toBe(2);
 
     expect(tabProfile.heroLayout).toBe("arch-palace");
     expect(tabProfile.hasCustomLayout).toBe(true);

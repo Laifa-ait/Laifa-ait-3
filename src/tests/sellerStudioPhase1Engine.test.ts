@@ -9,9 +9,7 @@ import { StudioRecoveryAndConflictBar } from "../pages/Seller/StoreBuilder/compo
 import * as apiModule from "../lib/api";
 
 vi.mock("../context/AuthContext", () => ({
-  useAuth: () => ({
-    currentUser: { uid: "seller_phase1_uid" },
-  }),
+  useAuth: () => ({ currentUser: { uid: "seller_phase1_uid" } }),
 }));
 
 vi.mock("../lib/api", () => ({
@@ -30,9 +28,7 @@ function renderHook<T>(hookFn: () => T): { result: { current: T } } {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-  act(() => {
-    root.render(React.createElement(TestComponent));
-  });
+  act(() => { root.render(React.createElement(TestComponent)); });
   return { result };
 }
 
@@ -69,18 +65,8 @@ describe("Phase 1 Engine Integration — useSellerStudio & useStudioStore", () =
         return {
           success: true,
           data: {
-            storeConfig: {
-              sellerId: "seller_phase1_uid",
-              shopName: "Atelier Alger",
-              shopSlug: "atelier-alger",
-              isPublished: true,
-            },
-            draftLayout: {
-              versionNumber: 1,
-              draftRevision: 4,
-              sections: initialDraftSections,
-              updatedAt: new Date().toISOString(),
-            },
+            storeConfig: { sellerId: "seller_phase1_uid", shopName: "Atelier Alger", shopSlug: "atelier-alger", isPublished: true },
+            draftLayout: { versionNumber: 1, draftRevision: 4, sections: initialDraftSections, updatedAt: new Date().toISOString() },
             publishedLayout: null,
             historyList: [],
             mediaGallery: [],
@@ -93,67 +79,40 @@ describe("Phase 1 Engine Integration — useSellerStudio & useStudioStore", () =
 
   it("should synchronize selection state with useStudioStore and support reorder, duplicate, and delete with undo/redo", async () => {
     const { result } = renderHook(() => useSellerStudio());
-
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await act(async () => { await Promise.resolve(); });
 
     expect(result.current.sections).toHaveLength(2);
     expect(useStudioStore.getState().selectedSectionId).toBe("sec_hero_1");
 
-    // 1. Reorder sections (0 -> 1)
-    act(() => {
-      result.current.reorderSections(0, 1);
-    });
+    act(() => { result.current.reorderSections(0, 1); });
     expect(result.current.sections[0].id).toBe("sec_prod_2");
     expect(result.current.sections[1].id).toBe("sec_hero_1");
 
-    // 2. Duplicate section
-    act(() => {
-      result.current.duplicateSection("sec_prod_2");
-    });
+    act(() => { result.current.duplicateSection("sec_prod_2"); });
     expect(result.current.sections).toHaveLength(3);
     expect(result.current.sections[1].title).toContain("(Copie)");
 
-    // 3. Delete section
     const duplicatedId = result.current.sections[1].id;
-    act(() => {
-      result.current.deleteSection(duplicatedId);
-    });
+    act(() => { result.current.deleteSection(duplicatedId); });
     expect(result.current.sections).toHaveLength(2);
 
-    // 4. Undo deletion -> back to 3 sections
-    act(() => {
-      result.current.undo();
-    });
+    act(() => { result.current.undo(); });
     expect(result.current.sections).toHaveLength(3);
   });
 
   it("should pass the newly confirmed draftRevision from saveDraft directly to publishStudio (fixing stale closure)", async () => {
-    // Draft starts at draftRevision: 4. Saving draft returns draftRevision: 5.
-    vi.mocked(apiModule.apiPut).mockResolvedValue({
-      success: true,
-      data: { draftRevision: 5 },
-    });
-    vi.mocked(apiModule.apiPost).mockResolvedValue({
-      success: true,
-      data: { versionNumber: 2 },
-    });
+    vi.mocked(apiModule.apiPut).mockResolvedValue({ success: true, data: { draftRevision: 5 } });
+    vi.mocked(apiModule.apiPost).mockResolvedValue({ success: true, data: { versionNumber: 2 } });
 
     const { result } = renderHook(() => useSellerStudio());
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await act(async () => { await Promise.resolve(); });
 
-    await act(async () => {
-      await result.current.publishStudio("Publication Phase 1");
-    });
+    await act(async () => { await result.current.publishStudio("Publication Phase 1"); });
 
     expect(apiModule.apiPut).toHaveBeenCalledWith(
       "/api/v1/seller/studio/layout/draft",
       expect.objectContaining({ expectedRevision: 4 })
     );
-    // Critical check: publish must receive expectedRevision: 5 (the newly returned revision), NOT stale 4!
     expect(apiModule.apiPost).toHaveBeenCalledWith("/api/v1/seller/studio/layout/publish", {
       changeSummary: "Publication Phase 1",
       expectedRevision: 5,
@@ -161,56 +120,38 @@ describe("Phase 1 Engine Integration — useSellerStudio & useStudioStore", () =
   });
 
   it("should abort publishStudio and never call /publish if saveDraft fails or conflicts", async () => {
-    vi.mocked(apiModule.apiPut).mockRejectedValue(
-      new Error("CONFLICT_NEWER_VERSION: Conflit de version détecté")
-    );
+    vi.mocked(apiModule.apiPut).mockRejectedValue(new Error("CONFLICT_NEWER_VERSION: Conflit de version détecté"));
 
     const { result } = renderHook(() => useSellerStudio());
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await act(async () => { await Promise.resolve(); });
 
-    await act(async () => {
-      await result.current.publishStudio("Tentative de publication en conflit");
-    });
+    await act(async () => { await result.current.publishStudio("Tentative de publication en conflit"); });
 
     expect(apiModule.apiPost).not.toHaveBeenCalled();
     expect(result.current.saveStatus).toBe("conflict");
   });
 
   it("should allow resolving conflict via forceOverwriteDraft or rollbackVersion with expectedRevision", async () => {
-    vi.mocked(apiModule.apiPut).mockResolvedValueOnce({
-      success: true,
-      data: { draftRevision: 6 },
-    });
-    vi.mocked(apiModule.apiPost).mockResolvedValueOnce({
-      success: true,
-      data: { draftRevision: 7 },
-    });
+    vi.mocked(apiModule.apiPut).mockResolvedValueOnce({ success: true, data: { draftRevision: 6 } });
+    vi.mocked(apiModule.apiPost).mockResolvedValueOnce({ success: true, data: { draftRevision: 7 } });
 
     const { result } = renderHook(() => useSellerStudio());
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await act(async () => { await Promise.resolve(); });
 
-    await act(async () => {
-      await result.current.forceOverwriteDraft();
-    });
+    await act(async () => { await result.current.forceOverwriteDraft(); });
     expect(apiModule.apiPut).toHaveBeenCalledWith(
       "/api/v1/seller/studio/layout/draft",
       expect.objectContaining({ expectedRevision: 4, forceOverwrite: true })
     );
 
-    await act(async () => {
-      await result.current.rollbackVersion(1);
-    });
+    await act(async () => { await result.current.rollbackVersion(1); });
     expect(apiModule.apiPost).toHaveBeenCalledWith("/api/v1/seller/studio/layout/rollback", {
       versionNumber: 1,
       expectedRevision: 6,
     });
   });
 
-  it("should render StudioRecoveryAndConflictBar for local backup and conflict resolution", async () => {
+  it("should render StudioRecoveryAndConflictBar for local backup and 2-step conflict resolution", async () => {
     const onRestore = vi.fn();
     const onDismiss = vi.fn();
     const onReload = vi.fn();
@@ -223,11 +164,7 @@ describe("Phase 1 Engine Integration — useSellerStudio & useStudioStore", () =
       root.render(
         React.createElement(StudioRecoveryAndConflictBar, {
           saveStatus: "saved",
-          recoverableBackup: {
-            revision: 3,
-            updatedAt: Date.now(),
-            sections: initialDraftSections as never,
-          },
+          recoverableBackup: { localRevision: 3, updatedAt: Date.now(), sections: initialDraftSections as never },
           onRestoreBackup: onRestore,
           onDismissBackup: onDismiss,
         })
@@ -242,6 +179,8 @@ describe("Phase 1 Engine Integration — useSellerStudio & useStudioStore", () =
       root.render(
         React.createElement(StudioRecoveryAndConflictBar, {
           saveStatus: "conflict",
+          localSectionCount: 2,
+          serverRevision: 4,
           onReloadServerVersion: onReload,
           onForceOverwriteDraft: onForce,
         })
@@ -249,26 +188,24 @@ describe("Phase 1 Engine Integration — useSellerStudio & useStudioStore", () =
     });
     const forceBtn = container.querySelector('[data-testid="studio-conflict-overwrite-btn"]') as HTMLButtonElement;
     expect(forceBtn).not.toBeNull();
-    await act(async () => {
-      forceBtn.click();
-    });
+    act(() => { forceBtn.click(); });
+    expect(onForce).not.toHaveBeenCalled();
+
+    const confirmBtn = container.querySelector('[data-testid="studio-conflict-confirm-overwrite-btn"]') as HTMLButtonElement;
+    expect(confirmBtn).not.toBeNull();
+    await act(async () => { confirmBtn.click(); });
     expect(onForce).toHaveBeenCalledTimes(1);
   });
 
   it("should gate guided step progression on unified save success (blocking step unlock on failure)", async () => {
     useStudioStore.setState({
-      studioExperienceMode: "guided",
-      activeStudioStep: 1,
-      unlockedStudioStep: 1,
-      completedStudioSteps: [],
+      studioExperienceMode: "guided", activeStudioStep: 1, unlockedStudioStep: 1, completedStudioSteps: [],
     });
     const onSelectNavMode = vi.fn();
     let shouldSucceed = false;
     const unifiedSave = vi.fn(async () => (shouldSucceed ? 2 : false));
 
-    const { result } = renderHook(() =>
-      useStudioGuidedNavigation({ onSelectNavMode, onSaveDraft: unifiedSave })
-    );
+    const { result } = renderHook(() => useStudioGuidedNavigation({ onSelectNavMode, onSaveDraft: unifiedSave }));
 
     await act(async () => {
       const ok = await result.current.handleSaveAndAdvance();

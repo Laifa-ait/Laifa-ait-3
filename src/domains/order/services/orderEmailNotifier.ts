@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { admin } from "../../../config/firebase-admin";
+import { db } from "../../../config/firebase-admin";
 import { safeLogger } from "../../../utils/logger";
 
 const transporter = nodemailer.createTransport({
@@ -86,7 +86,7 @@ export const sendOrderConfirmationEmails = async (
     }
 
     for (const so of subOrders) {
-      const userSnap = await admin.firestore().collection("users").doc(so.sellerId).get();
+      const userSnap = await db.collection("users").doc(so.sellerId).get();
       const sellerEmail = userSnap.data()?.email;
 
       if (sellerEmail) {

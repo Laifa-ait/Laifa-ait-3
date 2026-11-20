@@ -1,5 +1,4 @@
 import "dotenv/config";
-import * as Sentry from "@sentry/node";
 import express, { Request, Response, NextFunction } from "express";
 import compression from "compression";
 import cookieParser from "cookie-parser";
@@ -49,13 +48,37 @@ if (!process.env.NODE_ENV) {
 }
 
 
+let sentryModulePromise: Promise<typeof import("@sentry/node")> | null = null;
 if (process.env.SENTRY_DSN) {
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    environment: process.env.NODE_ENV || "development",
-    tracesSampleRate: 0.1,
+  sentryModulePromise = import("@sentry/node").then((Sentry) => {
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      environment: process.env.NODE_ENV || "development",
+      tracesSampleRate: 0.1,
+    });
+    return Sentry;
   });
 }
+
+// Guard express.static.mime (send.mime) against mime@2.x hoisting where lookup/charsets.lookup are removed.
+function ensureSendMimeCompatibility(): void {
+  const staticMime = express.static.mime as unknown as {
+    lookup?: (filePath: string) => string | false;
+    getType?: (filePath: string) => string | null;
+    charsets?: { lookup?: (mimeType: string) => string };
+  } | undefined;
+  if (!staticMime) return;
+  if (typeof staticMime.lookup !== "function" && typeof staticMime.getType === "function") {
+    const getType = staticMime.getType.bind(staticMime);
+    staticMime.lookup = (filePath: string) => getType(filePath) || "application/octet-stream";
+  }
+  if (!staticMime.charsets || typeof staticMime.charsets.lookup !== "function") {
+    staticMime.charsets = {
+      lookup: (type: string) => (/^(?:text\/|application\/(?:javascript|json|xml|ld\+json))/.test(type) ? "UTF-8" : ""),
+    };
+  }
+}
+ensureSendMimeCompatibility();
 
 export const app = express();
 
@@ -110,6 +133,10 @@ app.use("/api", csrfProtection);
 
 // Swagger Documentation (Lazy Loaded & Production Restricted)
 let swaggerMiddleware: express.RequestHandler | null = null;
+const swaggerServeHandlers = Array.isArray(swaggerUi.serve)
+  ? (swaggerUi.serve as unknown as express.RequestHandler[])
+  : ([swaggerUi.serve] as unknown as express.RequestHandler[]);
+
 app.use(
   "/api-docs",
   (req: Request, res: Response, next: NextFunction) => {
@@ -120,17 +147,13 @@ app.use(
     }
     return next();
   },
+  ...swaggerServeHandlers,
   (req: Request, res: Response, next: NextFunction) => {
     if (!swaggerMiddleware) {
       const openApiDoc = generateOpenApiSpec();
       swaggerMiddleware = swaggerUi.setup(openApiDoc) as unknown as express.RequestHandler;
     }
-    return (swaggerUi.serve as unknown as express.RequestHandler)(req, res, () => {
-      if (swaggerMiddleware) {
-        return swaggerMiddleware(req, res, next);
-      }
-      return next();
-    });
+    return swaggerMiddleware(req, res, next);
   }
 );
 
@@ -164,11 +187,15 @@ app.all(["/api", "/api/*"], (req: Request, res: Response) => {
   return res.status(404).json({ error: `Endpoint API introuvable: ${req.method} ${req.originalUrl}` });
 });
 
-if (process.env.SENTRY_DSN) {
-  Sentry.setupExpressErrorHandler(app);
+if (sentryModulePromise) {
+  sentryModulePromise
+    .then((Sentry) => {
+      Sentry.setupExpressErrorHandler(app);
+    })
+    .catch(() => {});
 }
 
-app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+export const globalErrorMiddleware = (err: unknown, req: Request, res: Response, _next: NextFunction): void => {
   const isError = err instanceof Error;
   const message = isError ? err.message : String(err);
   const stack = isError ? err.stack : undefined;
@@ -178,8 +205,12 @@ app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
     message,
     stack: stack || ""
   });
-  res.status(500).json({ error: "Une erreur interne du serveur est survenue.", requestId });
-});
+  if (!res.headersSent) {
+    res.status(500).json({ error: "Une erreur interne du serveur est survenue.", requestId });
+  }
+};
+
+app.use(globalErrorMiddleware);
 
 export default app;
 

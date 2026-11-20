@@ -6,6 +6,7 @@ import {
   InitiateConversationDTO
 } from '../types/messaging';
 import { messagingApi } from '../services/messagingApi';
+import { startVisibilityAwarePolling } from '../utils/visibilityPolling';
 import toast from 'react-hot-toast';
 
 export function useMessaging(
@@ -22,8 +23,7 @@ export function useMessaging(
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [hasMoreConversations, setHasMoreConversations] = useState(false);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
-
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const stopPollingRef = useRef<(() => void) | null>(null);
 
   const loadConversations = useCallback(async () => {
     if (!currentUser) return;
@@ -83,19 +83,21 @@ export function useMessaging(
 
   useEffect(() => {
     if (!isOpen || !selectedConversation || !currentUser) {
-      if (pollingRef.current) clearInterval(pollingRef.current);
+      stopPollingRef.current?.();
+      stopPollingRef.current = null;
       return;
     }
-    pollingRef.current = setInterval(async () => {
+    stopPollingRef.current = startVisibilityAwarePolling(async () => {
       try {
         const res = await messagingApi.listMessages(selectedConversation.id, { limit: 20 });
         if (res.success && res.data) setMessages(res.data);
       } catch {
         // silent polling
       }
-    }, 4000);
+    }, 15_000);
     return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
+      stopPollingRef.current?.();
+      stopPollingRef.current = null;
     };
   }, [isOpen, selectedConversation, currentUser]);
 

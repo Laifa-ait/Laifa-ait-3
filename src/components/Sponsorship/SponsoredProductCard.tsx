@@ -63,10 +63,10 @@ export const SponsoredProductCard: React.FC<SponsoredProductCardProps> = ({
       ref={cardRef}
       to={`/product/${product.id}`}
       onClick={() => onClick?.(item)}
-      className="group flex flex-col bg-white rounded-2xl border border-[#EFE6E6] overflow-hidden hover:shadow-[0_12px_28px_rgba(26,24,54,0.09)] hover:border-[#E0B4B2] transition-all duration-200"
+      className="group flex flex-col bg-white rounded-2xl border border-[#E3E9E5] overflow-hidden hover:shadow-[0_12px_28px_rgba(15,27,29,0.08)] hover:border-[#C3D3CB] transition-all duration-200"
     >
       {/* Image Container */}
-      <div className="relative aspect-square bg-[#FAF7F6] overflow-hidden">
+      <div className="relative aspect-square bg-[#F2F5F3] overflow-hidden">
         {product.image ? (
           <img
             src={getOptimizedImageUrl(product.image, 400)}
@@ -76,18 +76,18 @@ export const SponsoredProductCard: React.FC<SponsoredProductCardProps> = ({
             referrerPolicy="no-referrer"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-[#9B879C] text-xs">
+          <div className="w-full h-full flex items-center justify-center text-[#839497] text-xs">
             {t("common.no_image")}
           </div>
         )}
 
         {/* Badges */}
         <div className="absolute top-2.5 start-2.5 flex flex-col gap-1 items-start">
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#1A1836]/85 backdrop-blur-xs text-[#E0B4B2] border border-[#E0B4B2]/30">
-            <Sparkles className="w-3 h-3 text-[#E99856]" /> {t("home.sponsored.badge")}
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#0F1B1D]/88 backdrop-blur-xs text-[#E59A42] border border-white/10">
+            <Sparkles className="w-3 h-3 text-[#E59A42]" /> {t("home.sponsored.badge")}
           </span>
           {discountPercent > 0 && (
-            <span className="text-[10px] font-mono tabular-nums font-extrabold px-1.5 py-0.5 rounded-lg bg-[#A54055] text-white shadow-xs">
+            <span className="text-[10px] font-mono tabular-nums font-extrabold px-1.5 py-0.5 rounded-md bg-[#C83E4D] text-white shadow-xs">
               -{discountPercent}%
             </span>
           )}
@@ -96,27 +96,27 @@ export const SponsoredProductCard: React.FC<SponsoredProductCardProps> = ({
 
       {/* Content */}
       <div className="p-3.5 flex flex-col flex-1">
-        <p className="text-[10px] uppercase font-bold text-[#6E5A6F] tracking-wider mb-0.5 truncate">
+        <p className="text-[10px] uppercase font-bold text-[#5F7073] tracking-wider mb-0.5 truncate">
           {translatedCategory}
         </p>
-        <h3 className="font-semibold text-xs sm:text-sm text-[#1A1836] line-clamp-2 mb-2 group-hover:text-[#622347] transition-colors">
+        <h3 className="font-semibold text-xs sm:text-sm text-[#0F1B1D] line-clamp-2 mb-2 group-hover:text-[#0D5C4B] transition-colors">
           {translatedName}
         </h3>
 
-        <div className="mt-auto pt-2 flex items-baseline justify-between border-t border-[#FAF7F6]">
+        <div className="mt-auto pt-2 flex items-baseline justify-between border-t border-[#EFF3F1]">
           <div>
-            <div className="font-extrabold text-sm text-[#1A1836] font-mono tabular-nums">
+            <div className="font-extrabold text-sm text-[#0F1B1D] font-mono tabular-nums">
               {formatPrice(product.promoPrice || product.price)}
             </div>
             {product.promoPrice && product.promoPrice < product.price && (
-              <div className="text-[10px] text-[#9B879C] line-through font-mono tabular-nums">
+              <div className="text-[10px] text-[#839497] line-through font-mono tabular-nums">
                 {formatPrice(product.price)}
               </div>
             )}
           </div>
           {typeof product.rating === "number" && product.rating > 0 && (
-            <span className="flex items-center gap-0.5 text-[11px] font-bold text-[#1A1836] bg-[#FAF7F6] px-1.5 py-0.5 rounded-full border border-[#EFE6E6] font-mono tabular-nums">
-              <Star className="w-3 h-3 fill-[#E99856] text-[#E99856]" />
+            <span className="flex items-center gap-1 text-[11px] font-bold text-[#2E4144] font-mono tabular-nums">
+              <Star className="w-3 h-3 fill-[#E59A42] text-[#E59A42]" />
               {product.rating.toFixed(1)}
             </span>
           )}

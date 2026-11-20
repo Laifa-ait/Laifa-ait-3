@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Banner } from "../../domains/home/homepage.types";
 import { BentoHeroSlide } from "./BentoHeroSlide";
+import defaultHeroImg from "../../assets/images/olmart_hero_flagship_1795059554378.jpg";
 
 export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
   const { i18n, t } = useTranslation();
@@ -24,7 +25,7 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
       subtitle: t("home.hero.default_subtitle"),
       buttonText: t("home.hero.default_cta"),
       ctaLink: "/shop",
-      imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=1200",
+      imageUrl: defaultHeroImg,
       isActive: true,
     },
   ];
@@ -116,7 +117,7 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className="w-full min-h-[340px] sm:min-h-[420px] md:min-h-[480px] lg:min-h-[500px] relative rounded-3xl overflow-hidden group shadow-[0_20px_48px_-12px_rgba(26,24,54,0.22)] border border-[#42164B]/30 select-none touch-pan-y bg-[#1A1836]"
+      className="w-full min-h-[340px] sm:min-h-[420px] md:min-h-[470px] lg:min-h-[490px] relative rounded-3xl overflow-hidden group shadow-[0_24px_60px_-20px_rgba(15,27,29,0.28)] border border-[#0D5C4B]/20 select-none touch-pan-y bg-[#0F1B1D]"
     >
       <motion.div
         animate={{ x: `${totalPercent}%` }}
@@ -142,7 +143,7 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
             type="button"
             onClick={isRTL ? handleNext : handlePrev}
             aria-label={t("home.hero.prev_slide")}
-            className={`absolute top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-[#1A1836]/80 hover:bg-[#42164B] backdrop-blur-md border border-[#E0B4B2]/25 text-white shadow-lg transition-all opacity-0 group-hover:opacity-100 duration-200 cursor-pointer ${
+            className={`absolute top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-[#0F1B1D]/75 hover:bg-[#0D5C4B] backdrop-blur-md border border-white/15 text-white shadow-lg transition-all opacity-0 group-hover:opacity-100 duration-200 cursor-pointer ${
               isRTL ? "right-3 sm:right-6" : "left-3 sm:left-6"
             }`}
           >
@@ -152,7 +153,7 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
             type="button"
             onClick={isRTL ? handlePrev : handleNext}
             aria-label={t("home.hero.next_slide")}
-            className={`absolute top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-[#1A1836]/80 hover:bg-[#42164B] backdrop-blur-md border border-[#E0B4B2]/25 text-white shadow-lg transition-all opacity-0 group-hover:opacity-100 duration-200 cursor-pointer ${
+            className={`absolute top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-[#0F1B1D]/75 hover:bg-[#0D5C4B] backdrop-blur-md border border-white/15 text-white shadow-lg transition-all opacity-0 group-hover:opacity-100 duration-200 cursor-pointer ${
               isRTL ? "left-3 sm:left-6" : "right-3 sm:right-6"
             }`}
           >
@@ -162,7 +163,7 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
       )}
 
       {activeBanners.length > 1 && (
-        <div className="absolute bottom-3.5 sm:bottom-5 end-3.5 sm:end-6 z-30 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[#1A1836]/80 backdrop-blur-md border border-[#42164B] shadow-md">
+        <div className="absolute bottom-4 sm:bottom-6 end-4 sm:end-7 z-30 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0F1B1D]/75 backdrop-blur-md border border-white/15 shadow-md">
           {activeBanners.map((_, idx) => {
             const isActive = currentIndex === idx;
             return (
@@ -175,8 +176,8 @@ export const BentoHero: React.FC<{ banners: Banner[] }> = ({ banners }) => {
                 }}
                 className={`transition-all duration-300 rounded-full cursor-pointer border-none p-0 ${
                   isActive
-                    ? "w-5 h-1.5 bg-[#E99856] shadow-xs"
-                    : "w-1.5 h-1.5 bg-[#E0B4B2]/45 hover:bg-[#E0B4B2]"
+                    ? "w-6 h-1.5 bg-[#E59A42]"
+                    : "w-1.5 h-1.5 bg-white/45 hover:bg-white/80"
                 }`}
                 aria-label={t("home.hero.go_to_slide", { number: idx + 1 })}
               />

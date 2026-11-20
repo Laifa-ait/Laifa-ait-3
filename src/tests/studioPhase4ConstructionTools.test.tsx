@@ -129,7 +129,7 @@ describe("Phase 4 — Outils de Construction (Pages, Templates, Médias, Variant
     });
 
     const filterBar = container.querySelector('[data-testid="universe-filter-bar"]');
-    for (const u of ["Mode Élégance", "Technologie", "Beauté", "Artisanat algérien", "Maison & Décoration", "Alimentation", "Sport", "Accessoires", "Produits Enfants"]) {
+    for (const u of ["Mode Élégance", "Technologie", "Beauté", "Design & Objets", "Maison & Décoration", "Alimentation", "Sport", "Accessoires", "Produits Enfants"]) {
       expect(filterBar?.textContent).toContain(u);
     }
 
@@ -234,9 +234,9 @@ describe("Phase 4 — Outils de Construction (Pages, Templates, Médias, Variant
       expect(generated.some((s) => s.type === "featured_categories")).toBe(true);
     }
     const techCats = buildSectorAwareSectionDefaults("featured_categories", {}, "tech");
-    expect((techCats.categories as Array<{ name: string }>)[0].name).toContain("PC Portables");
+    expect((techCats.categories as Array<{ name: string }>)[0].name).toContain("Ultrabooks");
     const maisonCats = buildSectorAwareSectionDefaults("featured_categories", {}, "maison");
-    expect((maisonCats.categories as Array<{ name: string }>)[0].name).toContain("Salon");
+    expect((maisonCats.categories as Array<{ name: string }>)[0].name).toContain("Assises");
     expect(resolveCoherentSectionIdsForPage("editorial", SAMPLE_SECTIONS)).toEqual(["sec_hero_1"]);
   });
 });

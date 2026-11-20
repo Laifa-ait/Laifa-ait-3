@@ -1,5 +1,5 @@
 import { Router, Response } from "express";
-import { optionalAuthenticateToken, AuthenticatedRequest } from "../../middlewares/auth";
+import { optionalAuthenticateToken, AuthenticatedRequest, getUserProfileFromCache } from "../../middlewares/auth";
 import { SettingsService } from "../home/services/settings.service";
 import { db } from "../../config/firebase-admin";
 import { safeLogger } from "../../utils/logger";
@@ -7,6 +7,38 @@ import { safeLogger } from "../../utils/logger";
 import { isPubliclyVisible, PRODUCT_STATUSES } from "../product/product.status";
 
 const router = Router();
+let cachedFeaturedProducts: { items: Array<Record<string, unknown>>; cachedAt: number } | null = null;
+let inFlightFeaturedPromise: Promise<Array<Record<string, unknown>>> | null = null;
+const FEATURED_BOOTSTRAP_TTL_MS = 5 * 60 * 1000;
+
+async function getCachedFeaturedProducts(): Promise<Array<Record<string, unknown>>> {
+  if (
+    process.env.NODE_ENV !== "test" &&
+    cachedFeaturedProducts &&
+    Date.now() - cachedFeaturedProducts.cachedAt < FEATURED_BOOTSTRAP_TTL_MS
+  ) {
+    return cachedFeaturedProducts.items;
+  }
+  if (inFlightFeaturedPromise) return inFlightFeaturedPromise;
+
+  inFlightFeaturedPromise = db
+    .collection("products")
+    .where("status", "==", PRODUCT_STATUSES.ACTIVE)
+    .limit(20)
+    .get()
+    .then((snap) => {
+      const items = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((p) => isPubliclyVisible(p as { status?: string }));
+      cachedFeaturedProducts = { items, cachedAt: Date.now() };
+      return items;
+    })
+    .finally(() => {
+      inFlightFeaturedPromise = null;
+    });
+
+  return inFlightFeaturedPromise;
+}
 
 function projectUserProfile(data: Record<string, unknown> | undefined, uid: string) {
   if (!data) return null;
@@ -32,24 +64,19 @@ router.get("/bootstrap", optionalAuthenticateToken, async (req: AuthenticatedReq
   const uid = req.user?.uid;
 
   try {
+    const cachedProfile = uid ? getUserProfileFromCache(uid) : null;
     const [megamenuRes, categoriesRes, featuredRes, profileRes, cartRes, wishlistRes] = await Promise.allSettled([
       SettingsService.getSettingById("megamenu"),
       SettingsService.getCategoriesHierarchy(),
-      db.collection("products")
-        .where("status", "==", PRODUCT_STATUSES.ACTIVE)
-        .limit(20)
-        .get()
-        .then((snap) =>
-          snap.docs
-            .map((d) => ({ id: d.id, ...d.data() }))
-            .filter((p) => isPubliclyVisible(p as { status?: string }))
-        ),
+      getCachedFeaturedProducts(),
       uid
-        ? db
-            .collection("users")
-            .doc(uid)
-            .get()
-            .then((doc) => (doc.exists ? projectUserProfile(doc.data(), doc.id) : null))
+        ? cachedProfile
+          ? Promise.resolve(projectUserProfile(cachedProfile, uid))
+          : db
+              .collection("users")
+              .doc(uid)
+              .get()
+              .then((doc) => (doc.exists ? projectUserProfile(doc.data(), doc.id) : null))
         : Promise.resolve(null),
       uid ? db.collection("users").doc(uid).collection("cart").doc("active").get().then((doc) => (doc.exists ? doc.data()?.items || [] : [])) : Promise.resolve([]),
       uid ? db.collection("users").doc(uid).collection("wishlist").doc("active").get().then((doc) => (doc.exists ? doc.data()?.items || [] : [])) : Promise.resolve([]),

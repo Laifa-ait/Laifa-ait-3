@@ -8,6 +8,7 @@ import { resolveCatalogProductFrameVisuals, resolveEffectiveFrameShape } from ".
 import { resolveCardMaterialClasses } from "../ArtisticAtmosphereLayer";
 import { resolveShadowClass } from "./sectionStyleHelper";
 import { isDarkColor, readableTextColor } from "./themeColorUtils";
+import { DEFAULT_MODERN_THEME } from "../../../pages/Seller/StoreBuilder/constants/studioThemeDefaults";
 
 interface SectionProductItemCardProps {
   product: Product;
@@ -51,32 +52,32 @@ function resolveCardTokens(
   };
   if (cardStyle === "minimal") {
     return {
-      outer: "bg-transparent border-transparent shadow-none p-0 transition-all duration-300 hover:-translate-y-0.5",
-      media: isArch ? "rounded-t-[999px] rounded-b-xl" : "rounded-2xl",
-      body: isList ? "py-1 pr-1 flex-1" : "pt-3 pb-1 px-0.5",
+      outer: "bg-transparent border-transparent shadow-none p-0 transition-transform duration-200 hover:-translate-y-0.5",
+      media: isArch ? "rounded-t-[999px] rounded-b-xl" : "rounded-xl",
+      body: isList ? "py-1 pe-1 flex-1" : "pt-3 pb-1 px-0.5",
       outerStyle,
     };
   }
   if (cardStyle === "bordered") {
     return {
-      outer: `bg-[var(--store-surface,#FFFFFF)] border-2 p-2.5 @sm:p-3 shadow-2xs transition-all duration-300 hover:-translate-y-0.5 ${isArch ? "rounded-t-[999px] rounded-b-2xl" : "rounded-2xl"}`,
-      media: `${isArch ? "rounded-t-[999px] rounded-b-xl" : "rounded-xl"} ring-1 ring-black/10`,
-      body: isList ? "py-1 pr-1 flex-1" : "pt-3 pb-1 px-1",
-      outerStyle: { borderColor: cardBorderColor || `${primaryColor}55`, ...outerStyle },
+      outer: `bg-[var(--store-surface,#FFFFFF)] border p-2.5 transition-transform duration-200 hover:-translate-y-0.5 ${isArch ? "rounded-t-[999px] rounded-b-xl" : "rounded-xl"}`,
+      media: isArch ? "rounded-t-[999px] rounded-b-lg" : "rounded-lg",
+      body: isList ? "py-1 pe-1 flex-1" : "pt-3 pb-1 px-1",
+      outerStyle: { borderColor: cardBorderColor || `${primaryColor}45`, ...outerStyle },
     };
   }
   if (cardStyle === "elevated") {
     return {
-      outer: `bg-[var(--store-surface,#FFFFFF)] border border-black/[0.04] p-2.5 @sm:p-3 shadow-[0_18px_42px_-8px_rgba(15,23,42,0.16),0_6px_16px_-3px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_24px_50px_-8px_rgba(15,23,42,0.22)] ${isArch ? "rounded-t-[999px] rounded-b-2xl" : "rounded-3xl"}`,
-      media: isArch ? "rounded-t-[999px] rounded-b-xl" : "rounded-2xl",
-      body: isList ? "py-1 pr-2 flex-1" : "pt-3.5 pb-1.5 px-1.5",
+      outer: `bg-[var(--store-surface,#FFFFFF)] border border-black/[0.05] p-2.5 shadow-[0_14px_34px_-10px_rgba(15,23,42,0.12)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_20px_44px_-10px_rgba(15,23,42,0.16)] ${isArch ? "rounded-t-[999px] rounded-b-xl" : "rounded-2xl"}`,
+      media: isArch ? "rounded-t-[999px] rounded-b-lg" : "rounded-xl",
+      body: isList ? "py-1 pe-2 flex-1" : "pt-3 pb-1 px-1",
       outerStyle,
     };
   }
   return {
-    outer: `bg-[var(--store-surface,#FFFFFF)] border border-[var(--store-border,#E4E7EC)] shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 overflow-hidden ${isList ? "p-2.5 rounded-2xl" : isArch ? "rounded-t-[999px] rounded-b-2xl" : "rounded-2xl"}`,
-    media: isList ? "rounded-xl" : isArch ? "rounded-t-[999px]" : "rounded-t-2xl rounded-b-none",
-    body: isList ? "py-1 pr-2 flex-1" : "p-3 @sm:p-3.5",
+    outer: `bg-[var(--store-surface,#FFFFFF)] border border-[var(--store-border,#E2E8F0)] shadow-2xs hover:shadow-sm transition-all duration-200 hover:-translate-y-0.5 overflow-hidden ${isList ? "p-2.5 rounded-xl" : isArch ? "rounded-t-[999px] rounded-b-xl" : "rounded-xl"}`,
+    media: isList ? "rounded-lg" : isArch ? "rounded-t-[999px]" : "rounded-t-xl rounded-b-none",
+    body: isList ? "py-1 pe-2 flex-1" : "p-3 @sm:p-3.5",
     outerStyle,
   };
 }
@@ -96,7 +97,7 @@ export const SectionProductItemCard: React.FC<SectionProductItemCardProps> = ({
   const aspectClass =
     aspectRatio === "1/1" ? "aspect-square" : aspectRatio === "16/9" ? "aspect-video" : aspectRatio === "4/3" ? "aspect-[4/3]" : aspectRatio === "3/4" ? "aspect-[3/4]" : "aspect-[4/5]";
   const posClass = imagePosition === "top" ? "object-top" : imagePosition === "bottom" ? "object-bottom" : "object-center";
-  const fitClass = imageFit === "contain" ? "object-contain p-3 bg-zinc-50" : "object-cover";
+  const fitClass = imageFit === "contain" ? "object-contain p-3 bg-slate-50" : "object-cover";
 
   const rawPrice = Number(product.price || 0);
   const rawPromo = Number(product.promoPrice || 0);
@@ -110,53 +111,75 @@ export const SectionProductItemCard: React.FC<SectionProductItemCardProps> = ({
   const stockCount = typeof product.stock === "number" ? Math.max(0, product.stock) : 1;
   const reviewsCount = Number(product.stats?.reviewCount || 0);
   const ratingValue = Number(product.stats?.averageRating || product.rating || 0);
-  const primaryColor = accentColor || theme.accentColor || theme.primaryColor || "var(--store-primary, #B45309)";
-  const titleColor = cardTextColor || theme.secondaryColor || "var(--store-secondary, #18181B)";
+  const primaryColor = accentColor || theme.accentColor || theme.primaryColor || `var(--store-primary, ${DEFAULT_MODERN_THEME.primaryColor})`;
+  const titleColor = cardTextColor || theme.secondaryColor || `var(--store-secondary, ${DEFAULT_MODERN_THEME.secondaryColor})`;
   const resolvedPriceColor = priceColor || theme.priceColor || titleColor;
   const resolvedBadgeBg = badgeBgColor || theme.accentBadgeColor || primaryColor;
   const resolvedBadgeText = badgeTextColor || theme.badgeTextColor || readableTextColor(resolvedBadgeBg);
 
-  const isArchShape = !isHorizontalList && effectiveShape === "casbah-arch";
-  const isPolaroid = !isHorizontalList && effectiveShape === "polaroid-atelier";
+  const isArchShape = !isHorizontalList && (effectiveShape === "arch-minimal" || effectiveShape === "casbah-arch");
+  const isGalleryFrame = !isHorizontalList && effectiveShape === "polaroid-atelier";
   const tokens = resolveCardTokens(cardStyle, isHorizontalList, isArchShape, primaryColor, cardBgColor, cardBorderColor);
   const materialClass = cardStyle !== "minimal" ? resolveCardMaterialClasses(theme.cardMaterial, cardMaterial, isDarkColor(cardBgColor || theme.surfaceColor)) : "";
   const themeShadowClass = cardStyle === "modern" && theme.cardShadow ? resolveShadowClass(theme.cardShadow) : "";
 
-  const statusPillText =
-    stockCount <= 0 ? "Rupture" : showCompareAtPrice !== false && discountPct > 0 ? `-${discountPct}%` : stockCount <= 3 ? `Plus que ${stockCount}` : showStockBadge ? "En stock" : null;
+  const singleStatusLabel =
+    stockCount <= 0
+      ? "Rupture"
+      : showCompareAtPrice !== false && discountPct > 0
+      ? `-${discountPct}%`
+      : stockCount <= 3
+      ? `Limité (${stockCount})`
+      : showStockBadge
+      ? "En stock"
+      : null;
+
   const primaryImgUrl = product.image || product.images?.[0] || "";
+
+  const handleCardActivate = (e: React.MouseEvent<HTMLElement>) => {
+    if (isEditable) {
+      triggerDesignFocus?.(e, "selection");
+      return;
+    }
+    if (e.currentTarget.closest('[data-studio-interactive="true"]')) {
+      e.stopPropagation();
+      window.dispatchEvent(new CustomEvent("studio:simulate-cart-add", { detail: { product } }));
+      return;
+    }
+    navigate(`/product/${product.id}`);
+  };
 
   return (
     <article
       id={`product-${product.id}`}
-      onClick={(e) => (isEditable ? triggerDesignFocus?.(e, "selection") : navigate(`/product/${product.id}`))}
+      onClick={handleCardActivate}
       style={tokens.outerStyle}
       data-testid="section-product-card"
       data-artistic-frame={effectiveShape}
       data-card-style={cardStyle}
       className={`group relative flex ${isHorizontalList ? "flex-row items-center gap-3.5 @sm:gap-5" : "flex-col h-full"} cursor-pointer select-none ${tokens.outer} ${materialClass} ${themeShadowClass}`}
     >
-      <div className={`relative overflow-hidden bg-zinc-100/90 shrink-0 ${isHorizontalList ? `w-28 @sm:w-36 @md:w-40 ${aspectClass} ${tokens.media}` : `w-full ${aspectClass} ${tokens.media}`}`}>
+      <div className={`relative overflow-hidden bg-slate-100/90 shrink-0 ${isHorizontalList ? `w-28 @sm:w-36 @md:w-40 ${aspectClass} ${tokens.media}` : `w-full ${aspectClass} ${tokens.media}`}`}>
         {showQuickWishlist !== false && <WishlistHeartButton />}
         {primaryImgUrl && !imgBroken ? (
           <img
-            src={primaryImgUrl} alt={product.name || "Produit"} loading="lazy"
+            src={primaryImgUrl} alt={product.name || "Produit"} loading="lazy" referrerPolicy="no-referrer"
             style={{ filter: "var(--section-image-filter, none)" }} onError={() => setImgBroken(true)}
-            className={`w-full h-full transition-transform duration-700 ease-out group-hover:scale-105 ${posClass} ${fitClass}`}
+            className={`w-full h-full transition-transform duration-500 ease-out group-hover:scale-[1.03] ${posClass} ${fitClass}`}
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 bg-zinc-100 text-zinc-400 text-xs px-3 text-center">
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 bg-slate-100 text-slate-400 text-xs px-3 text-center">
             <ShoppingBag className="w-5 h-5 stroke-[1.5]" />
-            <span className="text-[10px] font-medium uppercase tracking-widest">Pièce d&apos;Atelier</span>
+            <span className="text-[11px] font-medium tracking-wide">Visuel produit</span>
           </div>
         )}
         {(cardStyle === "bordered" || frameVisuals.showDoubleGalleryBorder) && !isHorizontalList && (
-          <div className="pointer-events-none absolute inset-2 border z-10 rounded-lg" style={{ borderColor: cardBorderColor || `${primaryColor}55` }} />
+          <div className="pointer-events-none absolute inset-2 border z-10 rounded-md" style={{ borderColor: cardBorderColor || `${primaryColor}45` }} />
         )}
-        {showStockBadge && statusPillText && (
-          <div className={`pointer-events-none absolute z-20 ${isArchShape ? "bottom-2.5 left-1/2 -translate-x-1/2" : "bottom-2.5 left-2.5"}`}>
-            <span data-testid="product-card-badge" style={{ backgroundColor: stockCount <= 0 ? "#be123c" : resolvedBadgeBg, color: resolvedBadgeText }} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-[0.12em] border border-white/25 shadow-sm whitespace-nowrap">
-              {statusPillText}
+        {showStockBadge && singleStatusLabel && (
+          <div className={`pointer-events-none absolute z-20 ${isArchShape ? "bottom-2.5 inset-x-0 flex justify-center" : "bottom-2.5 start-2.5"}`}>
+            <span data-testid="product-card-badge" style={{ backgroundColor: stockCount <= 0 ? "#be123c" : resolvedBadgeBg, color: resolvedBadgeText }} className="inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-semibold tracking-wide shadow-2xs whitespace-nowrap">
+              {singleStatusLabel}
             </span>
           </div>
         )}
@@ -166,38 +189,33 @@ export const SectionProductItemCard: React.FC<SectionProductItemCardProps> = ({
         <div>
           <div className="flex items-center justify-between gap-2">
             {showCategory ? (
-              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400 truncate">
+              <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400 truncate">
                 {product.category ? `${product.category}${product.brand ? ` · ${product.brand}` : ""}` : "Collection"}
               </span>
             ) : <span />}
             {showStarRating && ratingValue > 0 && <ProductStarRating rating={ratingValue} reviewsCount={reviewsCount} />}
           </div>
-          <h4 data-testid="product-card-title" className={`${isHorizontalList ? "text-sm @sm:text-base font-bold line-clamp-2" : "text-sm font-semibold line-clamp-1"} leading-snug mt-1 transition-opacity group-hover:opacity-80 ${isPolaroid ? "italic font-serif" : ""}`} style={{ color: titleColor }}>
+          <h4 data-testid="product-card-title" className={`${isHorizontalList ? "text-sm @sm:text-base font-semibold line-clamp-2" : "text-[15px] font-semibold line-clamp-1"} leading-snug mt-1 break-words transition-opacity group-hover:opacity-80 ${isGalleryFrame ? "tracking-tight" : ""}`} style={{ color: titleColor }}>
             {product.name}
           </h4>
-          {isHorizontalList && product.description && <p className="text-xs text-zinc-500 line-clamp-1 mt-1 hidden @sm:block">{product.description}</p>}
+          {isHorizontalList && product.description && <p className="text-xs text-slate-500 line-clamp-1 mt-1 hidden @sm:block break-words">{product.description}</p>}
           {showStockProgressBar && (
             <div className="mt-2"><ProductStockProgressBar sold={soldCount} stock={stockCount} accentColor={primaryColor} /></div>
           )}
         </div>
 
-        <div className="mt-2.5 flex items-baseline justify-between gap-2 pt-1.5 border-t border-black/[0.04]" style={{ borderColor: cardBorderColor || undefined }}>
-          <div className="flex flex-wrap items-baseline gap-1.5 min-w-0">
-            <span data-testid="product-card-price" className="text-sm @sm:text-base font-extrabold tracking-tight tabular-nums whitespace-nowrap" style={{ color: resolvedPriceColor }}>
+        <div className="mt-2.5 flex items-baseline justify-between gap-2 pt-2 border-t border-black/[0.05]" style={{ borderColor: cardBorderColor || undefined }}>
+          <div className="flex flex-wrap items-baseline gap-2 min-w-0">
+            <span data-testid="product-card-price" className="text-[15px] font-bold tracking-tight tabular-nums whitespace-nowrap" style={{ color: resolvedPriceColor }}>
               {displayPrice.toLocaleString("fr-DZ")} DA
             </span>
             {showCompareAtPrice !== false && comparePrice && comparePrice > displayPrice && (
-              <span className="text-xs text-zinc-400 line-through tabular-nums whitespace-nowrap">{comparePrice.toLocaleString("fr-DZ")} DA</span>
+              <span className="text-xs text-slate-400 line-through tabular-nums whitespace-nowrap">{comparePrice.toLocaleString("fr-DZ")} DA</span>
             )}
           </div>
-          {isHorizontalList ? (
-            <span style={{ color: primaryColor, borderColor: `${primaryColor}35` }} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border bg-slate-50/80 shrink-0">
-              <span>Découvrir</span><ArrowUpRight className="w-3 h-3" />
-            </span>
-          ) : showStockBadge && (
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-zinc-600 shrink-0">
-              <span style={{ backgroundColor: stockCount > 0 ? primaryColor : "#f43f5e" }} className="w-2 h-2 rounded-full" />
-              <span className="hidden @sm:inline">{stockCount > 0 ? "En stock" : "Rupture"}</span>
+          {isHorizontalList && (
+            <span style={{ color: primaryColor }} className="inline-flex items-center gap-1 text-xs font-semibold shrink-0 whitespace-nowrap">
+              <span>Découvrir</span><ArrowUpRight className="w-3.5 h-3.5" />
             </span>
           )}
         </div>

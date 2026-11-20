@@ -35,7 +35,7 @@ export const ArtisticPresetsList: React.FC<ArtisticPresetsListProps> = ({
       <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1">
         {([
           { id: "all", labelFr: `Tous (${ARTISTIC_STUDIO_PRESETS.length})`, labelAr: "الكل" },
-          { id: "atelier_reference", labelFr: `Atelier (${ATELIER_PREMIUM_REFERENCE_PRESETS.length})`, labelAr: "أتيلييه (5)" },
+          { id: "atelier_reference", labelFr: `Studio (${ATELIER_PREMIUM_REFERENCE_PRESETS.length})`, labelAr: "الاستوديو (5)" },
           { id: "patrimoine_secteur", labelFr: "Secteurs (9)", labelAr: "القطاعات (9)" },
         ] as const).map((tab) => (
           <button
@@ -77,7 +77,7 @@ export const ArtisticPresetsList: React.FC<ArtisticPresetsListProps> = ({
                 className="w-full rounded-lg p-2.5 border flex items-center justify-between gap-2 text-left cursor-pointer"
                 style={{
                   backgroundColor: pt.canvasColor,
-                  borderColor: pt.borderColor || "#E5E7EB",
+                  borderColor: pt.borderColor || "var(--studio-border)",
                 }}
               >
                 <div className="min-w-0 space-y-0.5">
@@ -85,7 +85,7 @@ export const ArtisticPresetsList: React.FC<ArtisticPresetsListProps> = ({
                     className="text-[9px] font-semibold uppercase tracking-wider block"
                     style={{ color: pt.primaryColor }}
                   >
-                    {preset.collection === "atelier_premium" ? "Atelier Premium" : pt.sector}
+                    {preset.collection === "atelier_premium" ? "Direction Studio" : pt.sector}
                   </span>
                   <div
                     className="text-[12px] font-bold leading-tight truncate"
@@ -102,7 +102,7 @@ export const ArtisticPresetsList: React.FC<ArtisticPresetsListProps> = ({
                   className="shrink-0 px-2 py-1 border flex items-center gap-2"
                   style={{
                     backgroundColor: pt.surfaceColor,
-                    borderColor: pt.borderColor || "#E5E7EB",
+                    borderColor: pt.borderColor || "var(--studio-border)",
                     borderRadius: `${Math.min(10, pt.borderRadiusPx ?? 8)}px`,
                   }}
                 >
@@ -113,7 +113,7 @@ export const ArtisticPresetsList: React.FC<ArtisticPresetsListProps> = ({
                     className="px-1.5 py-0.5 text-[8.5px] font-semibold"
                     style={{
                       backgroundColor: pt.buttonColor || pt.primaryColor,
-                      color: pt.buttonTextColor || "#FFFFFF",
+                      color: pt.buttonTextColor || "var(--studio-white)",
                       borderRadius: `${Math.min(6, pt.borderRadiusPx ?? 6)}px`,
                     }}
                   >

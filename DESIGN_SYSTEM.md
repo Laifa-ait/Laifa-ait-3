@@ -1,70 +1,89 @@
 # OLMART — Design System
-## Source de vérité pour la génération de composants et pages
+## Source de vérité visuelle & Architecture de la Page d'Accueil
 
 ---
 
-## 1. Identité Visuelle (Palette Mindazzle Twilight & Sunset Amber)
+## 1. Identité Visuelle : Palette « Émeraude & Porcelaine d'Alger » (Règle 60-30-10)
+
+Direction artistique lumineuse, contemporaine et méditerranéenne : un fond minéral clair à haute respirabilité (`60 %`), structuré par une encre Obsidienne Marine et un Vert Émeraude profond inspirant la confiance (`30 %`), ponctué d'accents Ambre Saharien réservés aux appels à l'action clés (`10 %`).
 
 ### Palette Principale (`src/index.css`)
 
-| Token | Hex | Variable CSS | Usage |
-|-------|-----|--------------|-------|
-| `brand-midnight` | `#1A1836` | `--color-brand-midnight` | Encre principale, surfaces sombres architecturales, titres |
-| `brand-aubergine` | `#42164B` | `--color-brand-aubergine` | Surfaces profondes de marque, états actifs, bordures sombres |
-| `brand-primary` | `#622347` | `--color-brand-primary` | Couleur interactive primaire (Rich Mulberry), hover de titres |
-| `brand-crimson` | `#A54055` | `--color-brand-crimson` | Accents secondaires vibrants, badges de remise (`-XX%`), alertes |
-| `brand-amber` | `#E99856` | `--color-brand-amber` | Accent chaud luxe (Sunset Amber), CTA Hero, étoiles d'avis, puces |
-| `brand-blush` | `#E0B4B2` | `--color-brand-blush` | Reflets doux (Blush Rose), bordures au survol, sous-titres sur fond sombre |
-| `surface-subtle` | `#FAF7F6` | `--color-surface-subtle` | Fond de page principal (Warm Ivory Canvas) |
-| `surface` | `#FFFFFF` | `--color-surface` | Cartes produits, modales, conteneurs de sections |
-| `surface-muted` | `#F4EDED` | `--color-surface-muted` | Sections alternées (ex: `SponsoredSection`), squelettes de chargement |
-| `border-subtle` | `#EFE6E6` | `--color-border-subtle` | Bordures subtiles de cartes, séparateurs de sections |
-| `text-primary` | `#1A1836` | `--color-text-primary` | Titres, prix, textes principaux |
-| `text-muted` | `#6E5A6F` | `--color-text-muted` | Sous-titres, catégories, méta-textes |
-| `text-subtle` | `#9B879C` | `--color-text-subtle` | Prix barrés, états vides, placeholders |
-| `brand-trust` | `#059669` | `--color-brand-trust` | Succès, stock disponible, badges certifiés |
+| Rôle (60-30-10) | Token | Hex | Variable CSS | Usage |
+|-----------------|-------|-----|--------------|-------|
+| **60 % Fond** | `surface-subtle` | `#F7F8F6` | `--color-surface-subtle` | Fond de page principal (*Porcelaine Minérale*) |
+| **60 % Fond** | `surface` | `#FFFFFF` | `--color-surface` | Cartes produits, barre de navigation, conteneurs de sections |
+| **60 % Fond** | `surface-muted` | `#EFF3F1` | `--color-surface-muted` | Sections alternées (`SponsoredSection`), squelettes de chargement, fonds photo (`#F2F5F3`) |
+| **60 % Structure** | `border-subtle` | `#E3E9E5` | `--color-border-subtle` | Bordures hairline de cartes et séparateurs |
+| **60 % Structure** | `border-strong` | `#D4DFD9` | `--color-border-strong` | Bordures de section et survols discrets (`#C3D3CB`) |
+| **30 % Encre & Marque** | `brand-obsidian` | `#0F1B1D` | `--color-brand-obsidian` | Encre principale, top bar utilitaire, footer (`#0C1719` → `#060C0D`), cadre Hero |
+| **30 % Encre & Marque** | `brand-primary` | `#0D5C4B` | `--color-brand-primary` | Couleur interactive primaire (*Émeraude Méditerranéenne*), CTA principaux, hover de titres, icônes actives |
+| **30 % Encre & Marque** | `brand-primary-hover` | `#084236` | `--color-brand-primary-hover` | État survol / actif des boutons primaires (*Émeraude Forêt*) |
+| **30 % Encre & Marque** | `brand-primary-soft` | `#E9F4F1` | `--color-brand-primary-soft` | Surbrillance douce, fonds de sélection actifs |
+| **30 % Encre & Marque** | `text-secondary` | `#2E4144` | `--color-text-secondary` | Textes secondaires lisibles |
+| **30 % Encre & Marque** | `text-muted` | `#5F7073` | `--color-text-muted` | Sous-titres, libellés de catégories, métadonnées |
+| **30 % Encre & Marque** | `text-subtle` | `#839497` | `--color-text-subtle` | Prix barrés, états vides, placeholders |
+| **10 % Accent** | `brand-amber` | `#E59A42` | `--color-brand-amber` | Accent lumineux (*Ambre Saharien*) : CTA Hero, bouton « Vendre sur Olmart », étoiles d'avis, indicateurs actifs |
+| **10 % Accent** | `brand-ruby` | `#C83E4D` | `--color-brand-ruby` | Micro-étiquettes de remise (`-XX%`), pastilles favoris / alertes |
 
-### Dégradés Signatures
+### Dégradés & Voiles Signatures
 
 ```css
-btn-primary-gradient: linear-gradient(to right, #42164B, #622347, #A54055);
-cta-amber-gradient: linear-gradient(to right, #E99856, #f0aa6e);
-hero-overlay-gradient: linear-gradient(to top, #1A1836 0%, #1A183699 45%, transparent 100%);
+/* Bouton primaire Émeraude */
+btn-primary: #0D5C4B -> hover #084236;
+
+/* Accent CTA Hero Ambre Saharien */
+cta-amber: #E59A42 -> hover #EDAB59 (texte #0F1B1D);
+
+/* Voile directionnel Hero pour lisibilité typographique (sans ternir la photo) */
+hero-scrim-x: linear-gradient(100deg, rgba(15,27,29,0.92) 0%, rgba(15,27,29,0.68) 42%, rgba(15,27,29,0.12) 100%);
+
+/* Ruban supérieur du Footer */
+footer-top-ribbon: linear-gradient(to right, #0D5C4B, #1B7A63, #E59A42);
 ```
 
 ---
 
-## 2. Typographie (Règle 2+1 Luxe & Support RTL Arabe)
+## 2. Typographie (Règle 2+1 Éditoriale & Support RTL Arabe)
 
 ### Polices (`src/index.css`)
-- **Principale (`--font-sans`)** : `"Plus Jakarta Sans", "Cairo", ui-sans-serif, system-ui, sans-serif`
-- **Éditoriale / Titres (`--font-display`)** : `"Playfair Display", "Cormorant Garamond", Georgia, serif`
-- **Chiffres & Prix (`--font-mono`)** : `"JetBrains Mono", ui-monospace, monospace` (`tabular-nums`)
+- **Principale UI (`--font-sans`)** : `"Plus Jakarta Sans", "Cairo", ui-sans-serif, system-ui, sans-serif`
+- **Éditoriale / Titres (`--font-display`)** : `"Playfair Display", "Cormorant Garamond", Georgia, serif` (`text-wrap: balance` sur les grands titres)
+- **Chiffres, Prix & Index (`--font-mono`)** : `"JetBrains Mono", ui-monospace, monospace` avec `tabular-nums` systématique
 - **Arabe (`html[dir="rtl"]`)** : `"Cairo", sans-serif` appliqué automatiquement sur `--font-sans` et `--font-display`
 
 ---
 
-## 3. Composants de la Page d'Accueil (`Home.tsx`)
+## 3. Architecture & Composants de la Page d'Accueil (`Home.tsx`)
 
-### A. Carrousel Hero (`BentoHero.tsx` & `BentoHeroSlide.tsx`)
-- Conteneur : `rounded-3xl bg-[#1A1836] border border-[#42164B]/30 shadow-[0_20px_48px_-12px_rgba(26,24,54,0.22)]`
-- Bouton d'action principal : `bg-gradient-to-r from-[#E99856] to-[#f0aa6e] text-[#1A1836] font-extrabold rounded-xl`
-- Badge de remise : `bg-[#A54055] text-white` avec icône `Sparkles` en `#E99856`
-- Indicateurs de diapositives : pilule active `bg-[#E99856]`, inactive `bg-[#E0B4B2]/45`
+### A. Alignement Global & Rythme Spatial
+- **Largeur unifiée** : Tous les grands blocs de la page d'accueil (Navbar, Carrousel Hero, Grille des Départements, Sélection Sponsorisée, Sections Dynamiques, Grille Infinie et Footer) partagent un conteneur strictement aligné à **`max-w-[90rem] mx-auto px-4 sm:px-6 md:px-8`**.
+- **Discipline éditoriale stricte (Zéro contenu inventé)** : Aucune promesse commerciale non validée, aucune statistique fictive, aucun bloc marketing inventé n'est ajouté. La page affiche exclusivement les données réelles de la plateforme et préserve intégralement les mentions légales d'intermédiation existantes.
+- **Zéro surcharge de pilules (« Zero-Pill Discipline »)** : Les sur-titres de sections, méta-tags éditoriaux (`01 · INTÉRIEUR & DESIGN`), mentions légales et notes d'avis sont présentés en typographie nue et nette (sans capsules `rounded-full` décoratives ni points animés `animate-pulse`).
 
-### B. Grille des Départements (`NeoCategoryGrid.tsx` & `CategoryCard.tsx`)
-- En-tête éditorial : puce `#E99856`, sur-titre `text-[#A54055]`, titre `text-[#1A1836]`, bordure `border-[#EFE6E6]`
-- Carte de rayon (`CategoryCard`) : cadre architectural `bg-[#1A1836] border-[#42164B]/25 hover:border-[#E99856]/70`, photographie plein cadre lumineuse, badge d'index `/01` en `#E99856` et tag d'édition traduit (`cat_tag.*`)
+### B. Barre de Navigation & Recherche (`Navbar.tsx`, `NavbarTopUtilityBar.tsx`, `AdvancedSearchbar.tsx`, `CurvedBottomNav.tsx`)
+- **Barre utilitaire supérieure** : Fond `#0F1B1D`, états actifs `#0D5C4B`, appel vendeur en `#E59A42`.
+- **Barre principale** : Fond blanc translucide `bg-white/95`, emblème dégradé Émeraude (`from-[#0D5C4B] to-[#084236]`) avec icône Ambre, recherche `#F4F6F4` avec focus anneau `#0D5C4B`.
+- **Navigation mobile basse (`CurvedBottomNav.tsx`)** : Barre blanche à découpe liquide bordée de `#D4DFD9`, bulle active dégradée Émeraude (`#1B7A63` → `#0D5C4B` → `#084236`), pastilles `#C83E4D`.
 
-### C. Sélection Sponsorisée (`SponsoredSection.tsx` & `SponsoredProductCard.tsx`)
-- Section : `bg-[#F4EDED]/65 border-y border-[#EFE6E6]`
-- Badge Sponsorisé : `bg-[#FDF4EC] text-[#622347] border border-[#E99856]/40` (en-tête) et `bg-[#1A1836]/85 text-[#E0B4B2]` (carte)
-- Carte Produit Sponsorisé : alignée sur `ProductCard` (`border-[#EFE6E6] hover:border-[#E0B4B2]`, remise `bg-[#A54055]`, prix `text-[#1A1836] font-mono tabular-nums` formaté via `formatPrice()`)
+### C. Carrousel Hero (`BentoHero.tsx` & `BentoHeroSlide.tsx`)
+- **Visuel par défaut local** : Utilise l'illustration éditoriale locale `/src/assets/images/olmart_hero_flagship_1795059554378.jpg` (aucune dépendance fragile à une image Unsplash externe pour le hero par défaut).
+- **Conteneur** : `rounded-3xl bg-[#0F1B1D] border border-[#D4DFD9] shadow-[0_24px_48px_-16px_rgba(15,27,29,0.22)]`.
+- **Hiérarchie** : Sur-titre nu (`·`), titre `Playfair Display` équilibré, CTA principal `#E59A42` (`text-[#0F1B1D]`), flèches survol `#0D5C4B`, barre de progression active `#E59A42`.
 
-### D. Sections Dynamiques & Grille Infinie (`DynamicSection.tsx`, `SectionLayouts.tsx`, `HomeEndlessGrid.tsx`)
-- Conteneur de section : `bg-white rounded-3xl border border-[#EFE6E6] shadow-[0_2px_12px_rgba(26,24,54,0.04)]`
-- Squelettes de chargement : `bg-[#EFE6E6]/70` et `bg-[#F4EDED]` (aucune classe `slate-*` ou `zinc-*` disparate)
-- Bouton `"Afficher plus d'articles"` : `bg-gradient-to-r from-[#42164B] via-[#622347] to-[#A54055]`
+### D. Grille des Départements (`NeoCategoryGrid.tsx`, `CategoryCard.tsx`, `categoryThemes.ts`)
+- **Cartes éditoriales simple élévation** : Suppression des doubles cadres sombres imbriqués. Photographie plein cadre lumineuse, voiles de contraste haut/bas mesurés, index monospace nu (`01 · ...`), filet d'accent `#E59A42` ou `#3DA88D`, flèche de révélation Émeraude/Ambre au survol et fallback dégradé + icône en cas d'erreur d'image.
+
+### E. Cartes Produits & Sélection Sponsorisée (`ProductCard.tsx`, `SponsoredSection.tsx`, `SponsoredProductCard.tsx`)
+- **Surface produit** : Fond blanc pur `#FFFFFF` sur toile `#F7F8F6`, scène photo `#F2F5F3`, bordure `border-[#E3E9E5] hover:border-[#C3D3CB]`.
+- **Étiquettes rectangulaires nettes (`rounded-md`)** : Remise `bg-[#C83E4D]`, étiquette sponsorisée `bg-[#0F1B1D]/88 text-[#E59A42]`.
+- **Prix & Note** : Prix en `#0F1B1D font-mono tabular-nums`, étoile `#E59A42` sans bordure superflue, titre survol `#0D5C4B`.
+
+### F. Sections Dynamiques, Grille Infinie & Pied de Page (`DynamicSection.tsx`, `SectionHeader.tsx`, `SectionLayouts.tsx`, `HomeEndlessGrid.tsx`, `Footer.tsx`)
+- **En-têtes de section** : Sur-titre éditorial nu, titre `Playfair Display`, séparateur hairline `#E3E9E5`, bouton rectangulaire `rounded-xl`.
+- **Squelettes** : Unifiés sur `#EFF3F1`.
+- **Bouton « Charger plus »** : Émeraude solide `bg-[#0D5C4B] hover:bg-[#084236]`.
+- **Pied de page** : Fond Obsidienne profond `#0C1719` → `#060C0D`, ruban fin supérieur Émeraude-Ambre, contraste texte `#B8C8C4`, mention légale d'intermédiation épurée.
 
 ---
 
@@ -82,6 +101,7 @@ Le système de bannière des boutiques vendeurs repose sur **5 composants archit
 ## 5. Règles Absolues
 
 1. **Zéro texte codé en dur** : Tout texte visible ou `aria-label` doit passer par `react-i18next` (`t()`) et être présent dans les 3 langues (`fr`, `ar`, `en`).
-2. **Cohérence chromatique stricte** : Utiliser exclusivement les tokens de la palette **Mindazzle Twilight & Sunset Amber** sur la marketplace publique (aucun mélange accidentel avec `slate-*`, `emerald-*` ou `zinc-*`).
-3. **Support RTL natif** : Utiliser les propriétés logiques (`start-*`, `end-*`, `ms-*`, `me-*`) et gérer l'inversion directionnelle des carrousels lorsque `dir="rtl"`.
-4. **Limite stricte de 250 lignes par fichier** : Chaque composant ou module de logique doit rester sous la barre des 250 lignes.
+2. **Cohérence chromatique stricte** : Utiliser exclusivement les tokens de la palette **Émeraude & Porcelaine d'Alger** sur la marketplace publique (`#F7F8F6`, `#FFFFFF`, `#EFF3F1`, `#0F1B1D`, `#0D5C4B`, `#E59A42`, `#C83E4D`).
+3. **Zéro ajout non assumé** : Ne jamais introduire de promesses commerciales, chiffres inventés, garanties fictives ou sections marketing non demandées.
+4. **Support RTL natif** : Utiliser les propriétés logiques (`start-*`, `end-*`, `ms-*`, `me-*`) et gérer l'inversion directionnelle des carrousels lorsque `dir="rtl"`.
+5. **Limite stricte de 250 lignes par fichier** : Chaque composant ou module de logique doit rester sous la barre des 250 lignes.

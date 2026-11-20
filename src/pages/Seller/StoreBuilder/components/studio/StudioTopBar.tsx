@@ -18,6 +18,7 @@ interface StudioTopBarProps {
   isPublished?: boolean;
   isPublishing?: boolean;
   versionNumber?: number;
+  draftRevision?: number;
   sectionCount?: number;
   productCount?: number;
   sections?: CustomPageSection[];
@@ -52,7 +53,7 @@ const VIEWPORT_OPTIONS = [
 ] as const;
 
 export const StudioTopBar: React.FC<StudioTopBarProps> = ({
-  shopName, shopSlug, sellerId, isPublished = false, isPublishing = false, versionNumber = 1,
+  shopName, shopSlug, sellerId, isPublished = false, isPublishing = false, versionNumber = 1, draftRevision,
   sectionCount, productCount, sections, products = [], catalogStatus, storeConfig, onSelectNavMode,
   historyList = [], saveStatus, canUndo = false, canRedo = false, onUndo, onRedo,
   viewport, setViewport, onViewportChange, previewMode = "edit", onPreviewModeChange,
@@ -66,14 +67,21 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
   const [publishError, setPublishError] = useState<string | null>(null);
 
   const readinessReport = useMemo(() => {
-    if (!sections) return undefined;
-    return evaluatePublishReadiness({ storeConfig, sections, products, catalogStatus });
-  }, [catalogStatus, products, sections, storeConfig]);
+    if (!isPublishModalOpen || !sections) return undefined;
+    return evaluatePublishReadiness({
+      storeConfig, sections, products, catalogStatus,
+      draftRevision,
+      currentVersionNumber: versionNumber,
+      hasUnsavedChanges: saveStatus === "unsaved" || saveStatus === "saving",
+    });
+  }, [isPublishModalOpen, catalogStatus, draftRevision, products, saveStatus, sections, storeConfig, versionNumber]);
 
   const effectivePublishing = isPublishing || localPublishing;
+  const publishingLockRef = React.useRef(false);
 
   const handleConfirmPublish = async () => {
-    if (effectivePublishing) return;
+    if (effectivePublishing || publishingLockRef.current) return;
+    publishingLockRef.current = true;
     setPublishError(null);
     try {
       const outcome = onPublish(changeSummary.trim() || undefined);
@@ -93,6 +101,7 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
     } catch (err: unknown) {
       setPublishError(err instanceof Error ? err.message : "Échec de la publication. Veuillez réessayer.");
     } finally {
+      publishingLockRef.current = false;
       setLocalPublishing(false);
     }
   };
@@ -104,15 +113,12 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
 
   return (
     <>
-      <header className="h-[52px] bg-white border-b border-slate-200 px-3 sm:px-4 flex items-center justify-between gap-4 sticky top-0 z-30 shrink-0">
+      <header className="h-[54px] bg-white border-b border-[#E3E5E8] px-3 sm:px-4 flex items-center justify-between gap-4 sticky top-0 z-30 shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
           {onExitStudio && (
             <button
-              type="button"
-              onClick={onExitStudio}
-              aria-label="Retour au tableau de bord"
-              title="Retour au tableau de bord vendeur"
-              className="w-8 h-8 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              type="button" onClick={onExitStudio} aria-label="Retour au tableau de bord" title="Retour au tableau de bord vendeur"
+              className="w-8 h-8 rounded-lg border border-[#E3E5E8] hover:bg-[#F6F7F9] text-slate-600 hover:text-[#111827] flex items-center justify-center transition-colors cursor-pointer shrink-0"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
@@ -126,18 +132,8 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
               <span className={isPublished ? "text-emerald-700 font-medium" : "text-slate-600 font-medium"}>
                 {isPublished ? `En ligne v${versionNumber}` : "Brouillon"}
               </span>
-              {typeof sectionCount === "number" && (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span>{sectionCount} sections</span>
-                </>
-              )}
-              {typeof productCount === "number" && productCount > 0 && (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span>{productCount} produits</span>
-                </>
-              )}
+              {typeof sectionCount === "number" && (<><span aria-hidden="true">·</span><span>{sectionCount} sections</span></>)}
+              {typeof productCount === "number" && productCount > 0 && (<><span aria-hidden="true">·</span><span>{productCount} produits</span></>)}
             </span>
           </div>
         </div>
@@ -145,21 +141,13 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
         <div className="flex items-center gap-2 shrink-0">
           <div className="flex items-center bg-slate-100 p-0.5 rounded-lg">
             <button
-              type="button"
-              onClick={onUndo}
-              disabled={!canUndo}
-              title="Annuler (Ctrl+Z)"
-              aria-label="Annuler"
+              type="button" onClick={onUndo} disabled={!canUndo} title="Annuler (Ctrl+Z)" aria-label="Annuler"
               className="w-7 h-7 flex items-center justify-center rounded-md text-slate-600 hover:text-slate-900 hover:bg-white disabled:opacity-35 disabled:pointer-events-none transition-colors cursor-pointer"
             >
               <Undo2 className="w-3.5 h-3.5" />
             </button>
             <button
-              type="button"
-              onClick={onRedo}
-              disabled={!canRedo}
-              title="Rétablir (Ctrl+Y)"
-              aria-label="Rétablir"
+              type="button" onClick={onRedo} disabled={!canRedo} title="Rétablir (Ctrl+Y)" aria-label="Rétablir"
               className="w-7 h-7 flex items-center justify-center rounded-md text-slate-600 hover:text-slate-900 hover:bg-white disabled:opacity-35 disabled:pointer-events-none transition-colors cursor-pointer"
             >
               <Redo2 className="w-3.5 h-3.5" />
@@ -172,15 +160,12 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
               const active = viewport === vp.id;
               return (
                 <button
-                  key={vp.id}
-                  type="button"
-                  onClick={() => handleViewport(vp.id)}
+                  key={vp.id} type="button" onClick={() => handleViewport(vp.id)}
                   className={`h-7 px-2.5 rounded-md text-[11.5px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                     active ? "bg-white text-slate-900 shadow-2xs font-semibold" : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span className="hidden lg:inline">{vp.label}</span>
+                  <Icon className="w-3.5 h-3.5" /><span className="hidden lg:inline">{vp.label}</span>
                 </button>
               );
             })}
@@ -188,12 +173,9 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
 
           {onPreviewModeChange && (
             <button
-              type="button"
-              onClick={() => onPreviewModeChange(previewMode === "edit" ? "preview" : "edit")}
+              type="button" onClick={() => onPreviewModeChange(previewMode === "edit" ? "preview" : "edit")}
               className={`h-8 px-2.5 rounded-lg text-[11.5px] font-medium border flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                previewMode === "preview"
-                  ? "bg-slate-900 text-white border-slate-900"
-                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                previewMode === "preview" ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
               }`}
             >
               {previewMode === "preview" ? <Pencil className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -203,40 +185,29 @@ export const StudioTopBar: React.FC<StudioTopBarProps> = ({
         </div>
 
         <StudioTopBarRightActions
-          saveStatus={saveStatus}
-          shopSlug={shopSlug}
-          sellerId={sellerId}
-          isPublished={isPublished}
-          onSaveDraft={onSaveDraft}
-          onOpenHistory={onRollback ? () => setIsHistoryOpen(true) : undefined}
-          onOpenAudit={onOpenAudit}
-          onOpenCommandPalette={onOpenCommandPalette}
-          onOpenSponsorships={onOpenSponsorships}
-          onOpenPublishModal={() => setIsPublishModalOpen(true)}
+          saveStatus={saveStatus} shopSlug={shopSlug} sellerId={sellerId} isPublished={isPublished}
+          onSaveDraft={onSaveDraft} onOpenHistory={onRollback ? () => setIsHistoryOpen(true) : undefined}
+          onOpenAudit={onOpenAudit} onOpenCommandPalette={onOpenCommandPalette}
+          onOpenSponsorships={onOpenSponsorships} onOpenPublishModal={() => setIsPublishModalOpen(true)}
         />
       </header>
 
       {onRollback && (
         <StudioHistoryModal
-          isOpen={isHistoryOpen}
-          onClose={() => setIsHistoryOpen(false)}
-          historyList={historyList}
+          isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} historyList={historyList}
+          currentPublishedVersion={isPublished ? versionNumber : undefined}
+          draftSectionCount={sections?.length ?? sectionCount}
+          hasUnsavedChanges={saveStatus === "unsaved" || saveStatus === "saving"}
           onRollback={onRollback}
         />
       )}
 
       <StudioDirectPublishModal
         isOpen={isPublishModalOpen}
-        onClose={() => {
-          setPublishError(null);
-          setIsPublishModalOpen(false);
-        }}
-        changeSummary={changeSummary}
-        setChangeSummary={setChangeSummary}
-        isPublishing={effectivePublishing}
-        publishError={publishError}
-        readinessReport={readinessReport}
-        onNavigateToFix={onSelectNavMode}
+        onClose={() => { setPublishError(null); setIsPublishModalOpen(false); }}
+        changeSummary={changeSummary} setChangeSummary={setChangeSummary}
+        isPublishing={effectivePublishing} publishError={publishError}
+        readinessReport={readinessReport} onNavigateToFix={onSelectNavMode}
         onConfirm={() => void handleConfirmPublish()}
       />
     </>

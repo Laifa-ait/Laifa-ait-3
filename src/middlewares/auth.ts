@@ -36,17 +36,16 @@ export interface AuthenticatedRequest extends Request {
 }
 
 export function extractAuthCredential(req: Request): { token: string; isCookie: boolean } | undefined {
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    const token = authHeader.split("Bearer ")[1]?.trim();
-    if (token && token !== "undefined" && token !== "null") {
-      return { token, isCookie: false };
-    }
-  } else if (req.cookies && typeof req.cookies.admin_session === "string" && req.cookies.admin_session.trim()) {
+  const raw =
+    (typeof req.headers.authorization === "string" && req.headers.authorization.trim()) ||
+    (typeof req.headers["x-firebase-auth"] === "string" && req.headers["x-firebase-auth"].trim()) ||
+    "";
+  if (raw) {
+    const token = raw.startsWith("Bearer ") ? raw.slice(7).trim() : raw;
+    if (token && token !== "undefined" && token !== "null") return { token, isCookie: false };
+  } else if (req.cookies && typeof req.cookies.admin_session === "string") {
     const token = req.cookies.admin_session.trim();
-    if (token && token !== "undefined" && token !== "null") {
-      return { token, isCookie: true };
-    }
+    if (token && token !== "undefined" && token !== "null") return { token, isCookie: true };
   }
   return undefined;
 }
@@ -220,15 +219,30 @@ export const require2FA = async (req: AuthenticatedRequest, res: Response, next:
   if (!req.user) return res.status(401).json({ error: "Authentification requise." });
   try {
     if (!db) return res.status(503).json({ error: "Service de base de données indisponible pour la vérification 2FA." });
-    const userDoc = await db.collection("users").doc(req.user.uid).get();
-    if (userDoc.exists) {
-      const userData = userDoc.data();
-      if (userData?.verification?.verified === true || userData?.is2FAEnabled === true) {
-        const verifiedAt = userData?.verification?.verifiedAt;
+
+    let userData: Record<string, unknown> | null = getUserProfileFromCache(req.user.uid);
+    if (!userData) {
+      const userDoc = await db.collection("users").doc(req.user.uid).get();
+      if (userDoc.exists) {
+        userData = (userDoc.data() as Record<string, unknown>) || null;
+        if (userData) {
+          setUserProfileInCache(req.user.uid, { uid: req.user.uid, ...userData });
+        }
+      }
+    }
+
+    if (userData) {
+      const verification = userData.verification as { verified?: boolean; verifiedAt?: unknown } | undefined;
+      if (verification?.verified === true || userData.is2FAEnabled === true) {
+        const verifiedAt = verification?.verifiedAt as { toMillis?: () => number } | number | string | undefined;
         const authTime = Number(req.user.auth_time || 0);
         if (!authTime) return res.status(403).json({ error: "MFA_REQUIRED", message: "Date d'authentification invalide pour cette session." });
         const verifiedAtMillis = verifiedAt
-          ? typeof verifiedAt.toMillis === "function" ? verifiedAt.toMillis() : typeof verifiedAt === "number" ? verifiedAt : new Date(verifiedAt).getTime()
+          ? typeof verifiedAt === "object" && typeof verifiedAt.toMillis === "function"
+            ? verifiedAt.toMillis()
+            : typeof verifiedAt === "number"
+              ? verifiedAt
+              : new Date(String(verifiedAt)).getTime()
           : 0;
         if (verifiedAtMillis < authTime * 1000) {
           return res.status(403).json({ error: "MFA_REQUIRED", message: "Double authentification requise pour cette session." });

@@ -41,7 +41,7 @@ export const PromoActiveSlideForm: React.FC<PromoActiveSlideFormProps> = ({
     <div className="p-3 rounded-xl border border-slate-200 bg-white space-y-3 shadow-2xs">
       {/* Slide Toolbar */}
       <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-        <span className="text-xs font-extrabold text-[#023859]">
+        <span className="text-xs font-extrabold text-[var(--studio-primary)] tabular-nums">
           Configuration • Slide #{slideIndex + 1}
         </span>
         <div className="flex items-center gap-1">
@@ -93,7 +93,7 @@ export const PromoActiveSlideForm: React.FC<PromoActiveSlideFormProps> = ({
       {/* Badge Kicker + Quick Chips */}
       <div className="space-y-1.5">
         <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-          <Tag className="w-3 h-3 text-[#023859]" />
+          <Tag className="w-3 h-3 text-[var(--studio-primary)]" />
           <span>Badge d&apos;accroche (Sur-titre)</span>
         </label>
         <input
@@ -108,7 +108,7 @@ export const PromoActiveSlideForm: React.FC<PromoActiveSlideFormProps> = ({
               key={b}
               type="button"
               onClick={() => onUpdateField({ badge: b })}
-              className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-[#F0F7FA] text-[9.5px] font-bold text-slate-700 hover:text-[#023859] cursor-pointer"
+              className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-[var(--studio-primary-soft)] text-[9.5px] font-bold text-slate-700 hover:text-[var(--studio-primary)] cursor-pointer"
             >
               {b}
             </button>
@@ -134,7 +134,7 @@ export const PromoActiveSlideForm: React.FC<PromoActiveSlideFormProps> = ({
           value={String(slide.subtitle || "")}
           onChange={(e) => onUpdateField({ subtitle: e.target.value })}
           placeholder="Ex: Profitez de nos remises avec paiement à la livraison 69 Wilayas."
-          className="w-full rounded-lg border border-[#E4E7EC] bg-white p-2.5 text-xs text-[#17191C] focus:border-[#023859] focus:outline-none"
+          className="w-full rounded-lg border border-[var(--studio-border)] bg-white p-2.5 text-xs text-[var(--studio-black)] focus:border-[var(--studio-primary)] focus:outline-none"
         />
       </label>
 

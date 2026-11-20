@@ -15,9 +15,9 @@ interface PaletteControlsProps {
 
 const PRESET_PALETTES = [
   { name: "Obsidian Studio", canvas: "#F8FAFC", surface: "#FFFFFF", accent: "#0F172A", primary: "#1E293B", secondary: "#334155" },
-  { name: "Terracotta", canvas: "#FDFBF7", surface: "#FFFFFF", accent: "#B45309", primary: "#9A3412", secondary: "#451A03" },
-  { name: "Méditerranée", canvas: "#F8FAFC", surface: "#FFFFFF", accent: "#0284C7", primary: "#0369A1", secondary: "#0F172A" },
-  { name: "Émeraude", canvas: "#F6FBF7", surface: "#FFFFFF", accent: "#059669", primary: "#047857", secondary: "#064E3B" },
+  { name: "Nordic Paper", canvas: "#FAFAFA", surface: "#FFFFFF", accent: "#18181B", primary: "#27272A", secondary: "#3F3F46" },
+  { name: "Cobalt Brutalist", canvas: "#F8FAFC", surface: "#FFFFFF", accent: "#2563EB", primary: "#1D4ED8", secondary: "#0F172A" },
+  { name: "Emerald Lab", canvas: "#F6FBF7", surface: "#FFFFFF", accent: "#059669", primary: "#047857", secondary: "#064E3B" },
 ];
 
 export const PaletteControls: React.FC<PaletteControlsProps> = ({

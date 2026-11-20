@@ -1,4 +1,8 @@
-import { CustomPageSection, SellerStoreConfig } from "../../../../domains/seller/customPage.types";
+export {
+  buildMediaUsageIndex,
+  findMediaUsageInSections,
+  replaceMediaUrlInSections,
+} from "./studioMediaUsage";
 
 export const ALLOWED_IMAGE_MIMES = ["image/jpeg", "image/png", "image/webp", "image/avif"] as const;
 export const ALLOWED_VIDEO_MIMES = ["video/mp4", "video/webm"] as const;
@@ -77,27 +81,16 @@ export async function optimizeImageFileAndReadDimensions(
   }
   return await new Promise((resolve) => {
     let objectUrl = "";
-    try {
-      objectUrl = URL.createObjectURL(file);
-    } catch {
-      resolve({ blob: file, mimeType: file.type });
-      return;
-    }
+    try { objectUrl = URL.createObjectURL(file); } catch { resolve({ blob: file, mimeType: file.type }); return; }
     const img = new Image();
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
       const origW = img.naturalWidth || img.width || 0;
       const origH = img.naturalHeight || img.height || 0;
-      if (!origW || !origH) {
-        resolve({ blob: file, mimeType: file.type });
-        return;
-      }
+      if (!origW || !origH) { resolve({ blob: file, mimeType: file.type }); return; }
       const needsResize = origW > maxDimension || origH > maxDimension;
       const needsCompress = file.size > 1.5 * 1024 * 1024;
-      if (!needsResize && !needsCompress) {
-        resolve({ blob: file, mimeType: file.type, width: origW, height: origH });
-        return;
-      }
+      if (!needsResize && !needsCompress) { resolve({ blob: file, mimeType: file.type, width: origW, height: origH }); return; }
       const ratio = needsResize ? Math.min(maxDimension / origW, maxDimension / origH) : 1;
       const targetW = Math.max(1, Math.round(origW * ratio));
       const targetH = Math.max(1, Math.round(origH * ratio));
@@ -105,10 +98,7 @@ export async function optimizeImageFileAndReadDimensions(
       canvas.width = targetW;
       canvas.height = targetH;
       const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        resolve({ blob: file, mimeType: file.type, width: origW, height: origH });
-        return;
-      }
+      if (!ctx) { resolve({ blob: file, mimeType: file.type, width: origW, height: origH }); return; }
       ctx.drawImage(img, 0, 0, targetW, targetH);
       const outputMime = file.type === "image/png" ? "image/png" : "image/webp";
       canvas.toBlob(
@@ -123,105 +113,19 @@ export async function optimizeImageFileAndReadDimensions(
         0.84
       );
     };
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve({ blob: file, mimeType: file.type });
-    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve({ blob: file, mimeType: file.type }); };
     img.src = objectUrl;
   });
-}
-
-function containsExactUrlValue(node: unknown, targetUrl: string): boolean {
-  if (typeof node === "string") return node.trim() === targetUrl;
-  if (Array.isArray(node)) return node.some((el) => containsExactUrlValue(el, targetUrl));
-  if (node && typeof node === "object") {
-    return Object.values(node as Record<string, unknown>).some((v) => containsExactUrlValue(v, targetUrl));
-  }
-  return false;
-}
-
-export function findMediaUsageInSections(
-  url: string,
-  sections: CustomPageSection[] = [],
-  storeConfig?: SellerStoreConfig | null
-): string[] {
-  const cleanUrl = (url || "").trim();
-  if (!cleanUrl) return [];
-  const usages: string[] = [];
-  if (storeConfig?.logoUrl?.trim() === cleanUrl) usages.push("Logo de la boutique");
-  if (storeConfig?.bannerUrl?.trim() === cleanUrl) usages.push("Bannière de profil");
-  if (storeConfig?.seo?.ogImage?.trim() === cleanUrl) usages.push("Image OpenGraph SEO");
-
-  sections.forEach((sec) => {
-    if (containsExactUrlValue(sec.settings, cleanUrl)) {
-      usages.push(sec.title || `Section ${sec.type}`);
-    }
-  });
-  return usages;
-}
-
-function replaceUrlDeep(node: unknown, oldUrl: string, newUrl: string): { value: unknown; count: number } {
-  if (typeof node === "string") {
-    if (node.trim() === oldUrl) return { value: newUrl, count: 1 };
-    return { value: node, count: 0 };
-  }
-  if (Array.isArray(node)) {
-    let total = 0;
-    const mapped = node.map((item) => {
-      const res = replaceUrlDeep(item, oldUrl, newUrl);
-      total += res.count;
-      return res.value;
-    });
-    return { value: mapped, count: total };
-  }
-  if (node && typeof node === "object") {
-    let total = 0;
-    const nextObj: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
-      const res = replaceUrlDeep(v, oldUrl, newUrl);
-      total += res.count;
-      nextObj[k] = res.value;
-    }
-    return { value: nextObj, count: total };
-  }
-  return { value: node, count: 0 };
-}
-
-export function replaceMediaUrlInSections(
-  sections: CustomPageSection[],
-  storeConfig: SellerStoreConfig | null | undefined,
-  rawOldUrl: string,
-  rawNewUrl: string
-): { nextSections: CustomPageSection[]; updatedConfigPatch: Partial<SellerStoreConfig> | null; replacedCount: number } {
-  const oldUrl = rawOldUrl.trim();
-  const newUrl = rawNewUrl.trim();
-  if (!oldUrl || !newUrl || oldUrl === newUrl) {
-    return { nextSections: sections, updatedConfigPatch: null, replacedCount: 0 };
-  }
-  let replacedCount = 0;
-  const nextSections = sections.map((sec) => {
-    const res = replaceUrlDeep(sec.settings, oldUrl, newUrl);
-    if (res.count === 0) return sec;
-    replacedCount += res.count;
-    return { ...sec, settings: res.value as CustomPageSection["settings"] };
-  });
-
-  const configPatch: Partial<SellerStoreConfig> = {};
-  let configChanged = false;
-  if (storeConfig?.logoUrl?.trim() === oldUrl) { configPatch.logoUrl = newUrl; configChanged = true; replacedCount += 1; }
-  if (storeConfig?.bannerUrl?.trim() === oldUrl) { configPatch.bannerUrl = newUrl; configChanged = true; replacedCount += 1; }
-  if (storeConfig?.seo?.ogImage?.trim() === oldUrl && storeConfig.seo) {
-    configPatch.seo = { ...storeConfig.seo, ogImage: newUrl };
-    configChanged = true;
-    replacedCount += 1;
-  }
-  return { nextSections, updatedConfigPatch: configChanged ? configPatch : null, replacedCount };
 }
 
 export function isValidDirectVideoUrl(rawUrl: string): boolean {
   const trimmed = (rawUrl || "").trim();
   if (!trimmed) return true;
-  if (trimmed.toLowerCase().startsWith("javascript:") || trimmed.toLowerCase().startsWith("data:")) {
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith("javascript:") || lower.startsWith("data:") || lower.startsWith("vbscript:")) {
+    return false;
+  }
+  if (/(?:youtube\.com|youtu\.be|vimeo\.com|tiktok\.com|instagram\.com|facebook\.com)/i.test(lower)) {
     return false;
   }
   return /^https?:\/\/.+/i.test(trimmed) || trimmed.startsWith("/");

@@ -21,19 +21,20 @@ export const InteractiveCartSimulator: React.FC<InteractiveCartSimulatorProps> =
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-40">
+      <div className="fixed bottom-6 end-6 z-40">
         <button
           type="button"
+          data-testid="interactive-cart-simulator-btn"
           onClick={() => setIsOpen(true)}
           className="h-11 px-4 rounded-lg bg-slate-900 text-white shadow-lg hover:bg-slate-800 flex items-center gap-3 border border-slate-700 cursor-pointer"
         >
           <div className="relative">
             <ShoppingBag className="w-4 h-4 text-emerald-400" />
-            <span className="absolute -top-1.5 -right-2 w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
+            <span className="absolute -top-1.5 -end-2 w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
               {cartItems.length}
             </span>
           </div>
-          <span className="text-xs font-medium">Simulateur Panier :</span>
+          <span className="text-xs font-medium">Simulateur Panier ({cartItems.length}) :</span>
           <span className="text-xs font-semibold tabular-nums text-emerald-300">
             {totalAmount.toLocaleString()} DZD
           </span>
@@ -42,7 +43,7 @@ export const InteractiveCartSimulator: React.FC<InteractiveCartSimulatorProps> =
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/35">
-          <div className="w-full max-w-sm bg-white h-full border-l border-slate-200 flex flex-col p-5">
+          <div className="w-full max-w-sm bg-white h-full border-s border-slate-200 flex flex-col p-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="w-4 h-4 text-slate-900" />
@@ -65,9 +66,9 @@ export const InteractiveCartSimulator: React.FC<InteractiveCartSimulatorProps> =
                   key={`${prod.id}-${idx}`}
                   className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-200 bg-slate-50"
                 >
-                  {prod.images?.[0] ? (
+                  {prod.images?.[0] || prod.image ? (
                     <img
-                      src={prod.images[0]}
+                      src={prod.images?.[0] || prod.image}
                       alt={prod.name}
                       className="w-11 h-11 rounded-md object-cover bg-white border border-slate-200 shrink-0"
                     />

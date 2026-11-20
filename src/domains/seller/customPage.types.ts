@@ -7,6 +7,7 @@ import type {
   EditorialUnderlineStyle,
   KineticMarqueeSettings,
 } from "../../types/studio.types";
+import type { CinematicBannerConfig } from "../../components/Store/sections/CinematicBanner/cinematicBanner.types";
 
 export type {
   ArtisticAmbientLighting,
@@ -74,6 +75,8 @@ export interface CustomPageSectionStyles {
   cornerColorBr?: string;
   cornerColorBl?: string;
   sectionBorderColor?: string;
+  sectionBorderWidthPx?: number;
+  floatingCard?: boolean;
   buttonBgColor?: string;
   buttonTextColor?: string;
   buttonBorderColor?: string;
@@ -95,6 +98,8 @@ export interface CustomPageSectionStyles {
   divider?: "none" | "wave" | "slant" | "curve";
   animation?: "none" | "fade" | "slide-up" | "zoom";
   shadow?: HeroShadowToken;
+  shadowEnabled?: boolean;
+  shadowColor?: string;
   cardShadow?: HeroShadowToken;
   imageFilterPreset?: HeroImageFilterPreset;
   imageBrightness?: number;
@@ -158,6 +163,8 @@ export type HeroArchShapeId =
   | "asymmetric-leaf"
   | "floating-frame";
 
+export type HeroSplitProportion = "50-50" | "60-40" | "70-30";
+
 export type HeroColorPaletteId =
   | "pure-white"
   | "cream-earth"
@@ -174,6 +181,8 @@ export interface HeroDeviceMeasureConfig {
   textPosition9?: HeroTextPosition9;
   textAlign?: "left" | "center" | "right";
   titleSize?: "sm" | "md" | "lg" | "xl";
+  titleFontSizePx?: number;
+  subtitleFontSizePx?: number;
   textBoxMaxWidth?: 360 | 480 | 620;
   textVerticalGap?: 8 | 16 | 24;
   focalX?: number;
@@ -190,6 +199,30 @@ export interface HeroHotspotItem {
   badge?: string;
   link?: string;
   productId?: string;
+}
+
+export interface HeroTextFrameConfig {
+  enabled?: boolean;
+  placement?: "auto" | "overlay" | "docked-below" | "docked-above";
+  fillMode?: "solid" | "gradient";
+  bgColor?: string;
+  gradientColor2?: string;
+  gradientAngle?: number;
+  opacity?: number;
+  blurPx?: number;
+  borderWidthPx?: number;
+  borderStyle?: "solid" | "dashed" | "dotted" | "double";
+  borderColor?: string;
+  borderOpacity?: number;
+  borderRadiusPx?: number;
+  paddingXPx?: number;
+  paddingYPx?: number;
+  maxWidthMode?: "auto" | "custom" | "full";
+  maxWidthPx?: number;
+  shadow?: "none" | "sm" | "md" | "lg" | "floating" | "glow" | "brutal";
+  shadowColor?: string;
+  offsetXPx?: number;
+  offsetYPx?: number;
 }
 
 export interface HeroBannerSettings {
@@ -209,6 +242,8 @@ export interface HeroBannerSettings {
   contentPosition?: BannerContentPosition;
   textPosition9?: HeroTextPosition9;
   overlayOpacity?: number;
+  overlayColor?: string;
+  overlayEnabled?: boolean;
   // Per-device image focal point positioning ("50% 50%", "50% 0%", etc.)
   imagePositionDesktop?: string;
   imagePositionTablet?: string;
@@ -225,10 +260,11 @@ export interface HeroBannerSettings {
   imageAspectRatioMobile?: "inherit" | "4/5" | "1/1" | "3/4" | "16/9";
   imageSide?: "right" | "left";
   splitRatio?: "60-40" | "50-50" | "40-60" | "70-30" | "30-70";
-  splitProportion?: "50-50" | "60-40" | "70-30";
+  splitProportion?: HeroSplitProportion;
   archShape?: HeroArchShapeId;
   diptychGapPx?: number;
   containerMode?: "full" | "contained";
+  bannerFloating?: boolean;
   innerPaddingPx?: number;
   borderRadiusPx?: number;
   usePerCornerRadius?: boolean;
@@ -240,12 +276,15 @@ export interface HeroBannerSettings {
   bannerBgColor?: string;
   bannerBgGradient?: string;
   bannerBorderColor?: string;
+  bannerBorderWidthPx?: number;
   useCornerColors?: boolean;
   cornerColorTl?: string;
   cornerColorTr?: string;
   cornerColorBr?: string;
   cornerColorBl?: string;
   bannerShadow?: "none" | "sm" | "md" | "lg" | "xl" | "floating" | "glow" | "brutal";
+  bannerShadowEnabled?: boolean;
+  bannerShadowColor?: string;
   textBoxMaxWidth?: 360 | 480 | 620;
   textVerticalGap?: 8 | 16 | 24;
   showCompositionGuides?: boolean;
@@ -257,7 +296,8 @@ export interface HeroBannerSettings {
   heroTabletConfig?: HeroDeviceMeasureConfig;
   heroMobileConfig?: HeroDeviceMeasureConfig;
   mobileStackOrder?: "image-first" | "text-first";
-  imageShadow?: "none" | "sm" | "md" | "lg" | "xl" | "glow" | "brutal";
+  imageShadow?: "none" | "sm" | "md" | "lg" | "xl" | "floating" | "glow" | "brutal";
+  imageShadowColor?: string;
   imageMargin?: number;
   imageFilterPreset?: "none" | "warm-editorial" | "vivid-contrast" | "bw-art" | "soft-matte" | "golden-film";
   imageBrightness?: number;
@@ -276,7 +316,7 @@ export interface HeroBannerSettings {
   titleSizeDesktop?: "sm" | "md" | "lg" | "xl";
   titleSizeTablet?: "inherit" | "sm" | "md" | "lg" | "xl";
   titleSizeMobile?: "sm" | "md" | "lg" | "xl";
-  textShadow?: "none" | "sm" | "md" | "lg";
+  textShadow?: "none" | "sm" | "md" | "lg" | "soft" | "strong";
   subtitleColor?: string;
   ctaBgColor?: string;
   ctaTextColor?: string;
@@ -284,17 +324,24 @@ export interface HeroBannerSettings {
   ctaBorderWidthPx?: number;
   ctaBorderRadiusPx?: number;
   ctaShowArrow?: boolean;
-  ctaStyle?: "solid" | "outline" | "pill" | "glass" | "sharp";
-  ctaShadow?: "none" | "sm" | "md" | "lg" | "glow" | "brutal";
+  ctaStyle?: "solid" | "outline" | "pill" | "glass" | "sharp" | "rounded" | "minimal";
+  ctaShadow?: "none" | "sm" | "md" | "lg" | "xl" | "floating" | "glow" | "brutal";
+  ctaShadowColor?: string;
   showBadge?: boolean;
   showSubtitle?: boolean;
   showCta?: boolean;
   // Legacy & Extended Compatibility Fields
+  bannerHeight?: "sm" | "md" | "lg" | "xl";
+  heightPx?: number;
+  imagePosition?: string;
+  imageZoom?: number;
+  secondaryFocalX?: number;
+  secondaryFocalY?: number;
   socialProofBadge?: string;
   showSocialProofBadge?: boolean;
   secondaryCtaText?: string;
   secondaryCtaLink?: string;
-  secondaryCtaStyle?: "solid" | "outline" | "pill" | "glass" | "sharp";
+  secondaryCtaStyle?: "solid" | "outline" | "pill" | "glass" | "sharp" | "rounded" | "minimal";
   secondaryCtaShadow?: "none" | "sm" | "md" | "lg" | "glow" | "brutal";
   secondaryCtaBgColor?: string;
   secondaryCtaTextColor?: string;
@@ -362,8 +409,22 @@ export interface HeroBannerSettings {
   codTrustItems?: string[];
   imageStudioBg?: string;
   hideAllText?: boolean;
-  titleFontFamily?: "sans" | "serif" | "display";
+  titleFontFamily?: string;
+  subtitleFontFamily?: string;
   titleFontWeight?: "normal" | "semibold" | "bold" | "black";
+  titleFontSizePx?: number;
+  titleItalic?: boolean;
+  titleUnderline?: boolean;
+  titleTextTransform?: "none" | "uppercase" | "capitalize";
+  titleLineHeight?: number;
+  titleLetterSpacingEm?: number;
+  subtitleFontWeight?: "normal" | "medium" | "semibold" | "bold";
+  subtitleFontSizePx?: number;
+  subtitleItalic?: boolean;
+  subtitleUnderline?: boolean;
+  subtitleTextTransform?: "none" | "uppercase" | "capitalize";
+  subtitleLineHeight?: number;
+  subtitleLetterSpacingEm?: number;
   showPriceTag?: boolean;
   bannerLayoutMode?: "compact-bottom" | "stacked-below" | "image-only";
   collagePrice1?: string;
@@ -376,6 +437,8 @@ export interface HeroBannerSettings {
   enableImageSwap?: boolean;
   swapIntervalSec?: number;
   fullTopWidth?: boolean;
+  textFrame?: HeroTextFrameConfig;
+  cinematicConfig?: CinematicBannerConfig;
 }
 
 export type PromoCarouselStyleVariant =
@@ -480,6 +543,8 @@ export interface ProductCardDesignSettings {
   cardImagePosition?: "top" | "center" | "bottom";
   cardImageFit?: "cover" | "contain";
   columnsDesktop?: 2 | 3 | 4;
+  columnsTablet?: 1 | 2 | 3;
+  columnsMobile?: 1 | 2;
   cardAccentColor?: string;
   titleColor?: string;
   subtitleColor?: string;

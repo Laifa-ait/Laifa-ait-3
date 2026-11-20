@@ -73,6 +73,7 @@ export const corsOptions: cors.CorsOptions = {
   allowedHeaders: [
     "Content-Type",
     "Authorization",
+    "X-Firebase-Auth",
     "X-Requested-With",
     "X-CSRF-Token",
     "X-XSRF-Token",

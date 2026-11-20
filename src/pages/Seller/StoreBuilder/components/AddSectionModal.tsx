@@ -9,10 +9,12 @@ interface AddSectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   activeSector?: StoreThemeSector;
+  insertAtIndex?: number;
   onAddSection: (
     type: CustomPageSectionType,
     defaultSettings: Record<string, unknown>,
-    defaultTitle?: string
+    defaultTitle?: string,
+    insertAtIndex?: number
   ) => void;
 }
 
@@ -20,7 +22,7 @@ const SECTOR_OPTIONS: Array<{ id: StoreThemeSector; label: string }> = [
   { id: "mode", label: "Mode & Chic" },
   { id: "tech", label: "High-Tech" },
   { id: "beaute", label: "Beauté & Soins" },
-  { id: "artisanat", label: "Artisanat" },
+  { id: "artisanat", label: "Design & Objets" },
   { id: "maison", label: "Maison & Déco" },
   { id: "alimentation", label: "Alimentation" },
   { id: "sport", label: "Sport & Fitness" },
@@ -29,7 +31,7 @@ const SECTOR_OPTIONS: Array<{ id: StoreThemeSector; label: string }> = [
 ];
 
 export const AddSectionModal: React.FC<AddSectionModalProps> = ({
-  isOpen, onClose, activeSector = "mode", onAddSection,
+  isOpen, onClose, activeSector = "mode", insertAtIndex, onAddSection,
 }) => {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -90,15 +92,16 @@ export const AddSectionModal: React.FC<AddSectionModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleCreateCoherentSection = (type: CustomPageSectionType, baseSettings: Record<string, unknown>, customTitle?: string) => {
+  const handleCreateCoherentSection = (type: CustomPageSectionType, baseSettings: Record<string, unknown>, customTitle?: string, targetIdx?: number) => {
     const coherent = buildSectorAwareSectionDefaults(type, baseSettings, selectedSector);
-    onAddSection(type, { ...coherent, _sector: selectedSector }, customTitle);
+    onAddSection(type, { ...coherent, _sector: selectedSector }, customTitle, targetIdx ?? insertAtIndex);
   };
 
   const handleApplyBlueprint = (bpSections: Array<{ type: CustomPageSectionType; title: string }>) => {
-    bpSections.forEach((item) => {
+    bpSections.forEach((item, offset) => {
       const found = SECTION_CATALOG.find((s) => s.type === item.type);
-      if (found) handleCreateCoherentSection(found.type, found.defaultSettings, item.title);
+      const nextIdx = typeof insertAtIndex === "number" ? insertAtIndex + offset : undefined;
+      if (found) handleCreateCoherentSection(found.type, found.defaultSettings, item.title, nextIdx);
     });
     onClose();
   };
@@ -106,9 +109,16 @@ export const AddSectionModal: React.FC<AddSectionModalProps> = ({
   const modalNode = (
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 select-none" onClick={onClose}>
       <div className="bg-white text-slate-900 rounded-xl max-w-3xl w-full shadow-2xl border border-slate-200 max-h-[88vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()} data-testid="add-section-modal">
-        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between gap-2">
           <div>
-            <h2 className="text-[15px] font-semibold text-slate-900">Bibliothèque de sections</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-[15px] font-semibold text-slate-900">Bibliothèque de sections</h2>
+              {typeof insertAtIndex === "number" && (
+                <span data-testid="add-section-insert-position-badge" className="px-2 py-0.5 rounded-md bg-slate-900 text-white text-[10.5px] font-semibold">
+                  Insertion en position #{insertAtIndex + 1}
+                </span>
+              )}
+            </div>
             <p className="text-[12px] text-slate-500">Les contenus créés s&apos;adaptent automatiquement au secteur sélectionné</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Fermer" className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center cursor-pointer">

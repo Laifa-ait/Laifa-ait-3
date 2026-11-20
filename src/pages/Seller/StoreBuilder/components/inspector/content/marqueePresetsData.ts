@@ -6,11 +6,11 @@ import type {
 export const KINETIC_MARQUEE_PRESETS = [
   {
     id: "artisanat_algerie",
-    label: "Haute Couture & Artisanat",
-    textFr: "FAIT MAIN EN ALGÉRIE • ÉDITION LIMITÉE • SAVOIR-FAIRE AUTHENTIQUE",
-    textAr: "صنع بحب في الجزائر • إصدار محدود • حرفية أصيلة",
+    label: "Édition Studio & Design",
+    textFr: "ÉDITION STUDIO • DESIGN CONTEMPORAIN • QUALITÉ CERTIFIÉE",
+    textAr: "إصدار الاستوديو • تصميم معاصر • جودة معتمدة",
     textStyle: "alternating" as KineticMarqueeTextStyle,
-    separator: "star" as KineticMarqueeSeparator,
+    separator: "dot" as KineticMarqueeSeparator,
   },
   {
     id: "livraison_cod",
@@ -22,10 +22,10 @@ export const KINETIC_MARQUEE_PRESETS = [
   },
   {
     id: "lookbook_drop",
-    label: "Drop Avant-Garde Hollow",
-    textFr: "NOUVELLE COLLECTION • SÉRIE NUMÉROTÉE • ATELIER EXCLUSIF",
-    textAr: "مجموعة جديدة • تصميم حصري • أتيليه الفخامة",
+    label: "Drop Flagship Hollow",
+    textFr: "NOUVELLE COLLECTION • SÉRIE NUMÉROTÉE • DROP EXCLUSIF",
+    textAr: "مجموعة جديدة • تصميم حصري • إصدار محدود",
     textStyle: "hollow-stroke" as KineticMarqueeTextStyle,
-    separator: "crescent" as KineticMarqueeSeparator,
+    separator: "dot" as KineticMarqueeSeparator,
   },
 ];

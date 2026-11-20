@@ -334,8 +334,14 @@ productCatalogRouter.get("/api/v1/products", async (req, res) => {
 productCatalogRouter.get("/api/v1/products/shop", async (req, res) => {
   try {
     const { category, subcategory, subsubcategory, wilaya, tag, limit: queryLimit, offset: queryOffset } = req.query;
-    const parsedLimit = queryLimit ? parseInt(String(queryLimit), 10) : 24;
-    const parsedOffset = queryOffset ? parseInt(String(queryOffset), 10) : 0;
+    const parsedLimit = Math.min(Math.max(queryLimit ? parseInt(String(queryLimit), 10) : 24, 1), 100);
+    const parsedOffset = Math.max(queryOffset ? parseInt(String(queryOffset), 10) : 0, 0);
+
+    const cacheKey = `shop_${category || "all"}_${subcategory || ""}_${subsubcategory || ""}_${wilaya || "all"}_${tag || ""}_l${parsedLimit}_o${parsedOffset}`;
+    if (process.env.NODE_ENV !== "test") {
+      const cached = cache.get(cacheKey);
+      if (cached) return res.json(cached);
+    }
 
     let queryRef: admin.firestore.Query<admin.firestore.DocumentData> = db.collection("products");
     queryRef = queryRef.where("status", "==", PRODUCT_STATUSES.ACTIVE);
@@ -355,7 +361,7 @@ productCatalogRouter.get("/api/v1/products/shop", async (req, res) => {
       queryRef = queryRef.where("wilaya", "==", String(wilaya));
     }
 
-    const snap = await queryRef.get();
+    const snap = await queryRef.limit(250).get();
     let products = snap.docs.map((doc) => {
       const data = doc.data() as Product & Record<string, unknown>;
       const subSub = (data.subSubCategory || data.subsubcategory || "") as string;
@@ -390,12 +396,15 @@ productCatalogRouter.get("/api/v1/products/shop", async (req, res) => {
     });
 
     const paginatedProducts = products.slice(parsedOffset, parsedOffset + parsedLimit);
-
-    return res.json({
+    const payload = {
       products: paginatedProducts,
       hasMore: products.length > parsedOffset + parsedLimit,
       totalCount: products.length
-    });
+    };
+    if (process.env.NODE_ENV !== "test") {
+      cache.set(cacheKey, payload, 180);
+    }
+    return res.json(payload);
   } catch (error: unknown) {
     safeLogger.error("Shop endpoint error", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
@@ -441,7 +450,12 @@ productCatalogRouter.get("/api/v1/products/cross-sell", async (req, res) => {
     if (!sellerId) {
       return res.status(400).json({ error: "sellerId is required" });
     }
-    const parsedLimit = qLimit ? parseInt(String(qLimit), 10) : 4;
+    const parsedLimit = Math.min(Math.max(qLimit ? parseInt(String(qLimit), 10) : 4, 1), 20);
+    const cacheKey = `cross_sell_${sellerId}_${category || ""}_${currentProductId || ""}_${parsedLimit}`;
+    if (process.env.NODE_ENV !== "test") {
+      const cached = cache.get(cacheKey);
+      if (cached) return res.json(cached);
+    }
 
     if (category) {
       const snap1 = await db.collection("products")
@@ -452,7 +466,9 @@ productCatalogRouter.get("/api/v1/products/cross-sell", async (req, res) => {
         .get();
       if (!snap1.empty) {
         const products = snap1.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-        return res.json({ products });
+        const payload = { products };
+        if (process.env.NODE_ENV !== "test") cache.set(cacheKey, payload, 300);
+        return res.json(payload);
       }
     }
 
@@ -468,7 +484,9 @@ productCatalogRouter.get("/api/v1/products/cross-sell", async (req, res) => {
     }
     products = products.slice(0, parsedLimit);
 
-    return res.json({ products });
+    const payload = { products };
+    if (process.env.NODE_ENV !== "test") cache.set(cacheKey, payload, 300);
+    return res.json(payload);
   } catch (error: unknown) {
     safeLogger.error("Cross-sell error", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
@@ -478,6 +496,12 @@ productCatalogRouter.get("/api/v1/products/cross-sell", async (req, res) => {
 productCatalogRouter.get("/api/v1/products/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    const cacheKey = `product_raw_${id}`;
+    if (process.env.NODE_ENV !== "test") {
+      const cached = cache.get(cacheKey);
+      if (cached) return res.json(cached);
+    }
+
     const docRef = db.collection("products").doc(id);
     const snap = await docRef.get();
     if (!snap.exists) {
@@ -515,6 +539,7 @@ productCatalogRouter.get("/api/v1/products/:id", async (req, res) => {
         if (derived.size > 0) data.sizes = Array.from(derived);
       }
     }
+    if (process.env.NODE_ENV !== "test") cache.set(cacheKey, data, 120);
     return res.json(data);
   } catch (error: unknown) {
     return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
@@ -583,6 +608,12 @@ productCatalogRouter.get("/api/v1/products-by-id/:id", async (req, res) => {
   res.setHeader("Cache-Control", "no-cache, must-revalidate");
   try {
     const { id } = req.params;
+    const productCacheKey = `product_detail_${id}`;
+    if (process.env.NODE_ENV !== "test") {
+      const cachedDetail = cache.get(productCacheKey);
+      if (cachedDetail) return res.json(cachedDetail);
+    }
+
     const docSnap = await db.collection("products").doc(id).get();
     if (!docSnap.exists) {
       return res.status(404).json({ error: "Product not found" });
@@ -629,79 +660,87 @@ productCatalogRouter.get("/api/v1/products-by-id/:id", async (req, res) => {
     let shop: Record<string, unknown> | null = null;
     const sellerId = product.sellerId || product.shopId;
     if (sellerId) {
-      const [sellerSnap, shopSnap, pubSnap, userSnap] = await Promise.all([
-        db.collection("sellers").doc(sellerId).get().catch(() => null),
-        db.collection("shops").doc(sellerId).get().catch(() => null),
-        db.collection("publicProfiles").doc(sellerId).get().catch(() => null),
-        db.collection("users").doc(sellerId).get().catch(() => null),
-      ]);
+      const shopCacheKey = `seller_shop_meta_${sellerId}`;
+      const cachedShop = process.env.NODE_ENV !== "test" ? cache.get<Record<string, unknown>>(shopCacheKey) : undefined;
+      if (cachedShop) {
+        shop = cachedShop;
+      } else {
+        const [sellerSnap, shopSnap, pubSnap, userSnap] = await Promise.all([
+          db.collection("sellers").doc(sellerId).get().catch(() => null),
+          db.collection("shops").doc(sellerId).get().catch(() => null),
+          db.collection("publicProfiles").doc(sellerId).get().catch(() => null),
+          db.collection("users").doc(sellerId).get().catch(() => null),
+        ]);
 
-      const sData = sellerSnap && sellerSnap.exists ? sellerSnap.data() : {};
-      const shData = shopSnap && shopSnap.exists ? shopSnap.data() : {};
-      const pData = pubSnap && pubSnap.exists ? pubSnap.data() : {};
-      const uData = userSnap && userSnap.exists ? userSnap.data() : {};
+        const sData = sellerSnap && sellerSnap.exists ? sellerSnap.data() : {};
+        const shData = shopSnap && shopSnap.exists ? shopSnap.data() : {};
+        const pData = pubSnap && pubSnap.exists ? pubSnap.data() : {};
+        const uData = userSnap && userSnap.exists ? userSnap.data() : {};
 
-      const mergedShopName =
-        shData?.shopName ||
-        sData?.shopName ||
-        pData?.shopName ||
-        uData?.shopName ||
-        product.sellerShopName ||
-        product.storeName ||
-        product.sellerName ||
-        uData?.displayName ||
-        "Boutique Olmart";
+        const mergedShopName =
+          shData?.shopName ||
+          sData?.shopName ||
+          pData?.shopName ||
+          uData?.shopName ||
+          product.sellerShopName ||
+          product.storeName ||
+          product.sellerName ||
+          uData?.displayName ||
+          "Boutique Olmart";
 
-      const mergedPhone =
-        shData?.supportPhone ||
-        shData?.phone ||
-        sData?.phone ||
-        sData?.phoneNumber ||
-        pData?.phone ||
-        pData?.supportPhone ||
-        uData?.phone ||
-        uData?.phoneNumber ||
-        product.sellerPhone ||
-        null;
+        const mergedPhone =
+          shData?.supportPhone ||
+          shData?.phone ||
+          sData?.phone ||
+          sData?.phoneNumber ||
+          pData?.phone ||
+          pData?.supportPhone ||
+          uData?.phone ||
+          uData?.phoneNumber ||
+          product.sellerPhone ||
+          null;
 
-      const mergedWilaya =
-        shData?.wilaya ||
-        sData?.wilaya ||
-        pData?.wilaya ||
-        uData?.wilaya ||
-        product.sellerWilaya ||
-        product.wilaya ||
-        "";
+        const mergedWilaya =
+          shData?.wilaya ||
+          sData?.wilaya ||
+          pData?.wilaya ||
+          uData?.wilaya ||
+          product.sellerWilaya ||
+          product.wilaya ||
+          "";
 
-      const mergedLogo =
-        shData?.logoUrl ||
-        sData?.logoUrl ||
-        pData?.logoUrl ||
-        uData?.logoUrl ||
-        uData?.photoURL ||
-        product.sellerLogo ||
-        null;
+        const mergedLogo =
+          shData?.logoUrl ||
+          sData?.logoUrl ||
+          pData?.logoUrl ||
+          uData?.logoUrl ||
+          uData?.photoURL ||
+          product.sellerLogo ||
+          null;
 
-      shop = {
-        id: sellerId,
-        shopName: mergedShopName,
-        phone: mergedPhone,
-        supportPhone: mergedPhone,
-        wilaya: mergedWilaya,
-        logoUrl: mergedLogo,
-        avgPreparationTime: shData?.avgPreparationTime || sData?.avgPreparationTime || pData?.avgPreparationTime || "24-48h",
-        ...uData,
-        ...pData,
-        ...sData,
-        ...shData,
-      };
+        shop = {
+          id: sellerId,
+          shopName: mergedShopName,
+          phone: mergedPhone,
+          supportPhone: mergedPhone,
+          wilaya: mergedWilaya,
+          logoUrl: mergedLogo,
+          avgPreparationTime: shData?.avgPreparationTime || sData?.avgPreparationTime || pData?.avgPreparationTime || "24-48h",
+          ...uData,
+          ...pData,
+          ...sData,
+          ...shData,
+        };
 
-      shop.id = sellerId;
-      shop.shopName = mergedShopName;
-      shop.phone = mergedPhone;
-      shop.supportPhone = mergedPhone;
-      shop.wilaya = mergedWilaya;
-      shop.logoUrl = mergedLogo;
+        shop.id = sellerId;
+        shop.shopName = mergedShopName;
+        shop.phone = mergedPhone;
+        shop.supportPhone = mergedPhone;
+        shop.wilaya = mergedWilaya;
+        shop.logoUrl = mergedLogo;
+
+        if (process.env.NODE_ENV !== "test") cache.set(shopCacheKey, shop, 300);
+      }
     }
 
     if (!shop && (product.sellerName || product.storeName || product.sellerId)) {
@@ -729,7 +768,9 @@ productCatalogRouter.get("/api/v1/products-by-id/:id", async (req, res) => {
       product.wilaya = shop.wilaya;
     }
     
-    return res.json({ product, shop });
+    const payload = { product, shop };
+    if (process.env.NODE_ENV !== "test") cache.set(productCacheKey, payload, 120);
+    return res.json(payload);
   } catch (error: unknown) {
     return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
   }
@@ -738,6 +779,11 @@ productCatalogRouter.get("/api/v1/products-by-id/:id", async (req, res) => {
 productCatalogRouter.get("/api/v1/products-by-id/:id/reviews", async (req, res) => {
   try {
     const { id } = req.params;
+    const cacheKey = `product_reviews_${id}`;
+    if (process.env.NODE_ENV !== "test") {
+      const cached = cache.get(cacheKey);
+      if (cached) return res.json(cached);
+    }
     
     interface FirestoreReview {
       id: string;
@@ -775,7 +821,9 @@ productCatalogRouter.get("/api/v1/products-by-id/:id/reviews", async (req, res) 
       return tb - ta;
     });
     
-    return res.json({ reviews: loadedReviews });
+    const payload = { reviews: loadedReviews };
+    if (process.env.NODE_ENV !== "test") cache.set(cacheKey, payload, 180);
+    return res.json(payload);
   } catch (error: unknown) {
     return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
   }

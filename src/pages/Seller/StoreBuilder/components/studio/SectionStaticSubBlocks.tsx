@@ -58,7 +58,7 @@ const STATIC_SUB_BLOCKS_BY_TYPE: Record<string, SubBlockItemDef[]> = {
   brand_story: [
     { key: "title", label: "Titre de l'histoire", icon: Type },
     { key: "subtitle", label: "Récit & Paragraphe", icon: AlignLeft },
-    { key: "background", label: "Photo de l'atelier", icon: ImageIcon },
+    { key: "background", label: "Photo de marque", icon: ImageIcon },
     { key: "badge", label: "Années d'expérience & Signature", icon: Award },
   ],
   showcase_video: [

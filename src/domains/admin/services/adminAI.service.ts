@@ -1,4 +1,4 @@
-import { admin } from "../../../config/firebase-admin";
+import { admin, db } from "../../../config/firebase-admin";
 import { ai, DEFAULT_GEMINI_MODEL } from "../../../config/gemini";
 import { safeLogger } from "../../../utils/logger";
 import { AiAgentsConfigMap } from "../types/ai.types";
@@ -47,7 +47,7 @@ export const DEFAULT_AGENTS_CONFIG: AiAgentsConfigMap = {
 
 export class AdminAIService {
   static async getAgentsConfigFromDb(): Promise<AiAgentsConfigMap> {
-    const snapshot = await admin.firestore().collection("ai_agents").get();
+    const snapshot = await db.collection("ai_agents").get();
     const configs: AiAgentsConfigMap = JSON.parse(JSON.stringify(DEFAULT_AGENTS_CONFIG));
     snapshot.docs.forEach((doc) => {
       const key = doc.id;
@@ -59,17 +59,15 @@ export class AdminAIService {
   }
 
   static async toggleAgentStatus(key: string, isActive: boolean): Promise<void> {
-    const ref = admin.firestore().collection("ai_agents").doc(key);
-    await ref.set({ isActive }, { merge: true });
+    await db.collection("ai_agents").doc(key).set({ isActive }, { merge: true });
   }
 
   static async configureAgent(key: string, configData: Record<string, unknown>): Promise<void> {
-    const ref = admin.firestore().collection("ai_agents").doc(key);
-    await ref.set({ ...configData }, { merge: true });
+    await db.collection("ai_agents").doc(key).set({ ...configData }, { merge: true });
   }
 
   static async runGrowthAgent(): Promise<Record<string, unknown>> {
-    const productsSnap = await admin.firestore().collection("products").limit(20).get();
+    const productsSnap = await db.collection("products").limit(20).get();
     const productsList = productsSnap.docs.map((doc) => ({
       name: String(doc.data().name || ""),
       category: String(doc.data().category || ""),
@@ -93,10 +91,7 @@ Répondez STRICTEMENT au format JSON avec les clés : summary, kpis, pricingTips
       const response = await ai.models.generateContent({
         model: DEFAULT_GEMINI_MODEL,
         contents: prompt,
-        config: {
-          systemInstruction: systemPrompt,
-          responseMimeType: "application/json",
-        },
+        config: { systemInstruction: systemPrompt, responseMimeType: "application/json" },
       });
 
       const reportText = response.text || "{}";
@@ -108,13 +103,9 @@ Répondez STRICTEMENT au format JSON avec les clés : summary, kpis, pricingTips
       parsedReport = buildGrowthFallbackReport(productsList, growthConfig);
     }
 
-    const reportRef = admin.firestore().collection("ai_growth_reports").doc();
-    const reportDoc = {
-      ...parsedReport,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
+    const reportRef = db.collection("ai_growth_reports").doc();
+    const reportDoc = { ...parsedReport, createdAt: admin.firestore.FieldValue.serverTimestamp() };
     await reportRef.set(reportDoc);
-
     return reportDoc;
   }
 
@@ -137,10 +128,7 @@ Répondez STRICTEMENT au format JSON avec les clés : summary, kpis, pricingTips
       const response = await ai.models.generateContent({
         model: DEFAULT_GEMINI_MODEL,
         contents: prompt,
-        config: {
-          systemInstruction: "Vous êtes l'agent IA de récupération de panier Olma.",
-          responseMimeType: "application/json",
-        },
+        config: { systemInstruction: "Vous êtes l'agent IA de récupération de panier Olma.", responseMimeType: "application/json" },
       });
 
       const text = response.text || "{}";
@@ -150,10 +138,7 @@ Répondez STRICTEMENT au format JSON avec les clés : summary, kpis, pricingTips
       safeLogger.warn("[AdminAIService] Gemini unavailable for Cart Simulation, using deterministic template", {
         err: err instanceof Error ? err.message : String(err),
       });
-      return {
-        preview: buildCartFallbackPreview(sampleCart, cartConfig),
-        cart: sampleCart,
-      };
+      return { preview: buildCartFallbackPreview(sampleCart, cartConfig), cart: sampleCart };
     }
   }
 
@@ -170,10 +155,7 @@ Retournez un objet JSON avec : approved (boolean), qualityScore (number), infrac
       const response = await ai.models.generateContent({
         model: DEFAULT_GEMINI_MODEL,
         contents: `Titre du produit : "${title}"\nDescription : "${description}"`,
-        config: {
-          systemInstruction: systemPrompt,
-          responseMimeType: "application/json",
-        },
+        config: { systemInstruction: systemPrompt, responseMimeType: "application/json" },
       });
 
       const text = response.text || "{}";
@@ -189,27 +171,21 @@ Retournez un objet JSON avec : approved (boolean), qualityScore (number), infrac
   static async runSentinelDiagnostic(adminEmail: string): Promise<Record<string, unknown>> {
     let siteErrors: Array<Record<string, unknown>> = [];
     try {
-      const siteErrorsSnap = await admin.firestore().collection("site_errors").orderBy("timestamp", "desc").limit(10).get();
+      const siteErrorsSnap = await db.collection("site_errors").orderBy("timestamp", "desc").limit(10).get();
       siteErrors = siteErrorsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    } catch {
-      siteErrors = [];
-    }
+    } catch { siteErrors = []; }
 
     let checkoutAudits: Array<Record<string, unknown>> = [];
     try {
-      const checkoutAuditsSnap = await admin.firestore().collection("checkout_audits").orderBy("timestamp", "desc").limit(5).get();
+      const checkoutAuditsSnap = await db.collection("checkout_audits").orderBy("timestamp", "desc").limit(5).get();
       checkoutAudits = checkoutAuditsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    } catch {
-      checkoutAudits = [];
-    }
+    } catch { checkoutAudits = []; }
 
     let auditLogs: Array<Record<string, unknown>> = [];
     try {
-      const auditLogsSnap = await admin.firestore().collection("audit_logs").orderBy("timestamp", "desc").limit(10).get();
+      const auditLogsSnap = await db.collection("audit_logs").orderBy("timestamp", "desc").limit(10).get();
       auditLogs = auditLogsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    } catch {
-      auditLogs = [];
-    }
+    } catch { auditLogs = []; }
 
     let parsed: Record<string, unknown>;
     try {
@@ -224,10 +200,7 @@ Analysez la télémétrie fournie et répondez STRICTEMENT au format JSON avec :
       const response = await ai.models.generateContent({
         model: DEFAULT_GEMINI_MODEL,
         contents: prompt,
-        config: {
-          systemInstruction: systemPrompt,
-          responseMimeType: "application/json",
-        },
+        config: { systemInstruction: systemPrompt, responseMimeType: "application/json" },
       });
 
       const text = response.text || "{}";
@@ -239,14 +212,13 @@ Analysez la télémétrie fournie et répondez STRICTEMENT au format JSON avec :
       parsed = buildSentinelFallbackReport(siteErrors, checkoutAudits, auditLogs);
     }
 
-    const diagRef = admin.firestore().collection("ai_diagnostics").doc();
+    const diagRef = db.collection("ai_diagnostics").doc();
     const diagDoc = {
       ...parsed,
       timestamp: new Date().toISOString(),
       createdBy: adminEmail || "admin@olmart.dz",
     };
     await diagRef.set(diagDoc);
-
     return diagDoc;
   }
 }

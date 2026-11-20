@@ -16,17 +16,17 @@ interface VisualLayoutPickerProps {
 }
 
 const CATEGORY_VISUAL_LAYOUTS = [
-  { id: "bento", label: "Bento Apple", sublabel: "Mosaïque sans trou", badge: "PC & Mobile" },
+  { id: "bento", label: "Bento Studio", sublabel: "Mosaïque sans trou", badge: "PC & Mobile" },
   { id: "accordion", label: "Galerie Accordéon", sublabel: "Hover interactif", badge: "Idéal PC" },
-  { id: "arch", label: "Arche Palace", sublabel: "Dôme architectural", badge: "Tous écrans" },
-  { id: "polaroid", label: "Polaroid Studio", sublabel: "Moodboard photo", badge: "Tous écrans" },
-  { id: "magazine", label: "Index Magazine", sublabel: "Répertoire SSENSE", badge: "Idéal PC/Tab" },
-  { id: "glass-dock", label: "Glass Dock 3D", sublabel: "Capsule givrée", badge: "Luxe" },
+  { id: "arch", label: "Arche Contemporaine", sublabel: "Cadre architectural", badge: "Tous écrans" },
+  { id: "polaroid", label: "Cadre Galerie", sublabel: "Format éditorial", badge: "Tous écrans" },
+  { id: "magazine", label: "Index Magazine", sublabel: "Répertoire éditorial", badge: "Idéal PC/Tab" },
+  { id: "glass-dock", label: "Glass Dock 3D", sublabel: "Capsule givrée", badge: "Studio" },
   { id: "mesh-3d", label: "Split Studio", sublabel: "Photo à droite", badge: "Split" },
-  { id: "grid", label: "Grille Prestige", sublabel: "Cadre éditorial", badge: "Universel" },
+  { id: "grid", label: "Grille Éditoriale", sublabel: "Cadre net", badge: "Universel" },
   { id: "overlay", label: "Affiche Cinéma", sublabel: "Poster plein cadre", badge: "Poster" },
-  { id: "bubbles", label: "Médaillons Podium", sublabel: "Bague luxe & socle", badge: "Top Mobile" },
-  { id: "pills", label: "Dock Capsules", sublabel: "Grille rapide", badge: "Top Mobile" },
+  { id: "bubbles", label: "Cercles Podium", sublabel: "Médaillons épurés", badge: "Top Mobile" },
+  { id: "pills", label: "Dock Capsules", sublabel: "Bandeaux clairs", badge: "Top Mobile" },
   { id: "carousel", label: "Lookbook Slider", sublabel: "Glissement fluide", badge: "Top Mobile" },
 ];
 
@@ -106,13 +106,13 @@ export const VisualLayoutPicker: React.FC<VisualLayoutPickerProps> = ({
               type="button"
               onClick={() => onSelectLayout(opt.id)}
               className={`relative p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                isSelected ? "border-[#023859] bg-[#F0F7FA] text-[#011C40] ring-1 ring-[#023859]/25 shadow-xs" : "border-slate-200 bg-white hover:border-[#54ACBF] hover:bg-slate-50/60 text-slate-700"
+                isSelected ? "border-[var(--studio-primary)] bg-[var(--studio-highlight-soft)] text-[var(--studio-black)] ring-1 ring-[var(--studio-primary)]/25 shadow-xs" : "border-[var(--studio-border)] bg-white hover:border-[var(--studio-focus)] hover:bg-slate-50/60 text-slate-700"
               }`}
             >
               <div className="flex items-center justify-between w-full gap-1.5">
                 {renderLayoutSvg(opt.id, isSelected)}
                 {isSelected ? (
-                  <span className="w-4 h-4 rounded-full bg-[#023859] text-white flex items-center justify-center shrink-0"><Check className="w-2.5 h-2.5" /></span>
+                  <span className="w-4 h-4 rounded-full bg-[var(--studio-primary)] text-white flex items-center justify-center shrink-0"><Check className="w-2.5 h-2.5" /></span>
                 ) : (
                   <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 shrink-0">{opt.badge}</span>
                 )}
@@ -127,12 +127,12 @@ export const VisualLayoutPicker: React.FC<VisualLayoutPickerProps> = ({
       </div>
 
       {(showAspectRatio || showColsControl) && (
-        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+        <div className="p-2.5 rounded-xl bg-slate-50 border border-[var(--studio-border)] space-y-2.5">
           {showAspectRatio && onChangeAspectRatio && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="font-bold text-slate-700 flex items-center gap-1"><Maximize2 className="w-3 h-3 text-[#26658C]" /><span>Ratio d&apos;image ({activeDevice === "desktop" ? "PC" : activeDevice === "tablet" ? "Tablette" : "Mobile"})</span></span>
-                <span className="font-mono font-bold text-[#023859]">{normalizedRatio.replace("/", ":")}</span>
+                <span className="font-bold text-slate-700 flex items-center gap-1"><Maximize2 className="w-3 h-3 text-[var(--studio-muted)]" /><span>Ratio d&apos;image ({activeDevice === "desktop" ? "PC" : activeDevice === "tablet" ? "Tablette" : "Mobile"})</span></span>
+                <span className="font-mono font-bold text-[var(--studio-primary)] tabular-nums">{normalizedRatio.replace("/", ":")}</span>
               </div>
               <div className={`grid ${mode === "product" ? "grid-cols-2" : "grid-cols-3"} gap-1.5`}>
                 {aspectSteps.map((step) => (
@@ -140,7 +140,7 @@ export const VisualLayoutPicker: React.FC<VisualLayoutPickerProps> = ({
                     key={step.id}
                     type="button"
                     onClick={() => onChangeAspectRatio(step.id)}
-                    className={`py-1.5 px-2 rounded-lg border text-[10px] font-bold cursor-pointer transition-all ${normalizedRatio === step.id ? "border-[#023859] bg-[#023859] text-white shadow-2xs" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}`}
+                    className={`py-1.5 px-2 rounded-lg border text-[10px] font-bold cursor-pointer transition-all ${normalizedRatio === step.id ? "border-[var(--studio-primary)] bg-[var(--studio-primary)] text-white shadow-2xs" : "border-[var(--studio-border)] bg-white text-slate-700 hover:border-slate-300"}`}
                   >
                     {step.label}
                   </button>
@@ -152,8 +152,8 @@ export const VisualLayoutPicker: React.FC<VisualLayoutPickerProps> = ({
           {showColsControl && onChangeColumnsDesktop && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="font-bold text-slate-700 flex items-center gap-1"><Columns className="w-3 h-3 text-[#26658C]" /><span>{deviceColLabel}</span></span>
-                <span className="font-mono font-bold text-[#023859]">{columnsDesktop} col.</span>
+                <span className="font-bold text-slate-700 flex items-center gap-1"><Columns className="w-3 h-3 text-[var(--studio-muted)]" /><span>{deviceColLabel}</span></span>
+                <span className="font-mono font-bold text-[var(--studio-primary)] tabular-nums">{columnsDesktop} col.</span>
               </div>
               <div className={`grid grid-cols-${colChoices.length} gap-1.5`}>
                 {colChoices.map((col) => (
@@ -161,7 +161,7 @@ export const VisualLayoutPicker: React.FC<VisualLayoutPickerProps> = ({
                     key={col}
                     type="button"
                     onClick={() => onChangeColumnsDesktop(col)}
-                    className={`py-1.5 px-2 rounded-lg border text-[10px] font-bold cursor-pointer transition-all ${columnsDesktop === col ? "border-[#023859] bg-[#023859] text-white shadow-2xs" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}`}
+                    className={`py-1.5 px-2 rounded-lg border text-[10px] font-bold cursor-pointer transition-all ${columnsDesktop === col ? "border-[var(--studio-primary)] bg-[var(--studio-primary)] text-white shadow-2xs" : "border-[var(--studio-border)] bg-white text-slate-700 hover:border-slate-300"}`}
                   >
                     {col === 1 ? "1 Bandeau Large" : `${col} Colonnes`}
                   </button>

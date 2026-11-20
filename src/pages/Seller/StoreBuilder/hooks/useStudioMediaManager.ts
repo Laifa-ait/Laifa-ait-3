@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { toast } from "react-hot-toast";
 import { apiPut } from "../../../../lib/api";
 import { deleteStorageFile, uploadFileStrictWithProgress } from "../../../../services/storage.service";
 import { MediaFolderCategory, MediaGalleryItem, StoreConfig } from "../../../../domains/seller/customPage.types";
@@ -7,6 +8,8 @@ import {
   optimizeImageFileAndReadDimensions,
   validateMediaFile,
 } from "../utils/studioMediaValidation";
+
+export const MAX_STUDIO_GALLERY_ITEMS = 500;
 
 export interface UploadStudioMediaOptions {
   folder?: MediaFolderCategory;
@@ -88,7 +91,11 @@ export function useStudioMediaManager({
           uploadedAt: new Date().toISOString(),
         };
 
-        const nextGallery = [item, ...mediaGallery.filter((e) => e.id !== item.id)].slice(0, 80);
+        const deduplicated = [item, ...mediaGallery.filter((e) => e.id !== item.id)];
+        if (deduplicated.length > MAX_STUDIO_GALLERY_ITEMS) {
+          toast("Capacité maximale de la médiathèque atteinte (500 médias). Les éléments les plus anciens ne sont plus listés.");
+        }
+        const nextGallery = deduplicated.slice(0, MAX_STUDIO_GALLERY_ITEMS);
         try {
           const response = await apiPut<{ success: boolean; data: StoreConfig }>("/api/v1/seller/store/config", {
             mediaGallery: nextGallery.filter((entry) => !isSystemOrCatalogMedia(entry.id)),

@@ -1,10 +1,58 @@
+import { useEffect, useState } from "react";
 import type {
   CustomPageSection,
   CustomPageSectionStyles,
+  CustomPageSectionType,
   CustomPageTheme,
 } from "../../../domains/seller/customPage.types";
 
 export type StudioViewportDevice = "desktop" | "tablet" | "mobile";
+
+export const KNOWN_STUDIO_SECTION_TYPES: ReadonlySet<CustomPageSectionType> = new Set<CustomPageSectionType>([
+  "hero_banner",
+  "promo_carousel",
+  "kinetic_marquee",
+  "featured_categories",
+  "curated_collections",
+  "featured_products",
+  "new_arrivals",
+  "best_sellers",
+  "product_grid",
+  "brand_story",
+  "showcase_video",
+  "verified_reviews",
+  "delivery_info",
+  "return_policy",
+  "faq_accordion",
+  "contact_footer",
+]);
+
+export function detectWindowViewportDevice(): StudioViewportDevice {
+  if (typeof window === "undefined") return "desktop";
+  const w = window.innerWidth || 1280;
+  if (w < 768) return "mobile";
+  if (w < 1024) return "tablet";
+  return "desktop";
+}
+
+export function useStorefrontViewport(explicitViewport?: StudioViewportDevice): StudioViewportDevice {
+  const [detected, setDetected] = useState<StudioViewportDevice>(() =>
+    explicitViewport ?? detectWindowViewportDevice()
+  );
+
+  useEffect(() => {
+    if (explicitViewport) {
+      setDetected(explicitViewport);
+      return;
+    }
+    const handleResize = () => setDetected(detectWindowViewportDevice());
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [explicitViewport]);
+
+  return explicitViewport ?? detected;
+}
 
 export interface DeviceResponsiveOverride {
   titleFontSizePx?: number;
@@ -64,16 +112,10 @@ function resolveSource<T>(
     if (tabletVal !== undefined) return "tablet";
     return "desktop";
   }
-  if (viewport === "tablet") {
-    return tabletVal !== undefined ? "tablet" : "desktop";
-  }
+  if (viewport === "tablet") return tabletVal !== undefined ? "tablet" : "desktop";
   return "desktop";
 }
 
-/**
- * Résout l'héritage Responsive à 3 niveaux :
- * Valeur globale (Desktop) -> Surcharge Tablette -> Surcharge Mobile.
- */
 export function resolveResponsiveSectionValues(
   section: CustomPageSection,
   theme?: CustomPageTheme,
@@ -86,93 +128,56 @@ export function resolveResponsiveSectionValues(
   const mobile: DeviceResponsiveOverride = rawResponsive.mobile || {};
 
   const dTitle =
-    typeof settings.titleFontSizePx === "number"
-      ? settings.titleFontSizePx
-      : typeof theme?.titleFontSizePx === "number"
-      ? theme.titleFontSizePx
-      : 36;
+    typeof settings.titleFontSizePx === "number" ? settings.titleFontSizePx
+    : typeof theme?.titleFontSizePx === "number" ? theme.titleFontSizePx : 36;
   const dBody =
-    typeof settings.bodyFontSizePx === "number"
-      ? settings.bodyFontSizePx
-      : typeof theme?.bodyFontSizePx === "number"
-      ? theme.bodyFontSizePx
-      : 15;
+    typeof settings.bodyFontSizePx === "number" ? settings.bodyFontSizePx
+    : typeof theme?.bodyFontSizePx === "number" ? theme.bodyFontSizePx : 15;
   const dPadY = resolveBasePaddingY(styles.paddingY, theme?.spacingYPx);
   const dPadX = typeof styles.paddingX === "number" ? styles.paddingX : 20;
   const dAlign: "left" | "center" | "right" =
-    settings.textAlignment === "center" || settings.textAlignment === "right"
-      ? settings.textAlignment
-      : "left";
+    settings.textAlignment === "center" || settings.textAlignment === "right" ? settings.textAlignment : "left";
   const dCols = typeof settings.columnsDesktop === "number" ? settings.columnsDesktop : 4;
+  const tColsSetting = typeof settings.columnsTablet === "number" ? settings.columnsTablet : undefined;
+  const mColsSetting = typeof settings.columnsMobile === "number" ? settings.columnsMobile : undefined;
 
   const hideOnDesktop = Boolean(settings.hideOnDesktop);
   const hideOnTablet = Boolean(tablet.hidden ?? settings.hideOnTablet ?? false);
   const hideOnMobile = Boolean(mobile.hidden ?? settings.hideOnMobile ?? false);
 
   const titleFontSizePx =
-    viewport === "mobile"
-      ? mobile.titleFontSizePx ?? tablet.titleFontSizePx ?? dTitle
-      : viewport === "tablet"
-      ? tablet.titleFontSizePx ?? dTitle
-      : dTitle;
-
+    viewport === "mobile" ? mobile.titleFontSizePx ?? tablet.titleFontSizePx ?? dTitle
+    : viewport === "tablet" ? tablet.titleFontSizePx ?? dTitle : dTitle;
   const bodyFontSizePx =
-    viewport === "mobile"
-      ? mobile.bodyFontSizePx ?? tablet.bodyFontSizePx ?? dBody
-      : viewport === "tablet"
-      ? tablet.bodyFontSizePx ?? dBody
-      : dBody;
-
+    viewport === "mobile" ? mobile.bodyFontSizePx ?? tablet.bodyFontSizePx ?? dBody
+    : viewport === "tablet" ? tablet.bodyFontSizePx ?? dBody : dBody;
   const paddingY =
-    viewport === "mobile"
-      ? mobile.paddingY ?? tablet.paddingY ?? dPadY
-      : viewport === "tablet"
-      ? tablet.paddingY ?? dPadY
-      : dPadY;
-
+    viewport === "mobile" ? mobile.paddingY ?? tablet.paddingY ?? dPadY
+    : viewport === "tablet" ? tablet.paddingY ?? dPadY : dPadY;
   const paddingX =
-    viewport === "mobile"
-      ? mobile.paddingX ?? tablet.paddingX ?? dPadX
-      : viewport === "tablet"
-      ? tablet.paddingX ?? dPadX
-      : dPadX;
-
+    viewport === "mobile" ? mobile.paddingX ?? tablet.paddingX ?? dPadX
+    : viewport === "tablet" ? tablet.paddingX ?? dPadX : dPadX;
   const textAlignment =
-    viewport === "mobile"
-      ? mobile.textAlignment ?? tablet.textAlignment ?? dAlign
-      : viewport === "tablet"
-      ? tablet.textAlignment ?? dAlign
-      : dAlign;
-
+    viewport === "mobile" ? mobile.textAlignment ?? tablet.textAlignment ?? dAlign
+    : viewport === "tablet" ? tablet.textAlignment ?? dAlign : dAlign;
   const columns =
     viewport === "mobile"
-      ? mobile.columns ?? tablet.columns ?? Math.min(dCols, 2)
+      ? mobile.columns ?? mColsSetting ?? tablet.columns ?? tColsSetting ?? Math.min(dCols, 2)
       : viewport === "tablet"
-      ? tablet.columns ?? Math.min(dCols, 3)
+      ? tablet.columns ?? tColsSetting ?? Math.min(dCols, 3)
       : dCols;
-
   const isHiddenOnViewport =
-    viewport === "mobile"
-      ? hideOnMobile
-      : viewport === "tablet"
-      ? hideOnTablet
-      : hideOnDesktop;
+    viewport === "mobile" ? hideOnMobile : viewport === "tablet" ? hideOnTablet : hideOnDesktop;
 
   return {
-    titleFontSizePx,
-    bodyFontSizePx,
-    paddingY,
-    paddingX,
-    textAlignment,
-    columns,
-    isHiddenOnViewport,
+    titleFontSizePx, bodyFontSizePx, paddingY, paddingX, textAlignment, columns, isHiddenOnViewport,
     inheritanceSource: {
       titleFontSizePx: resolveSource(viewport, mobile.titleFontSizePx, tablet.titleFontSizePx),
       bodyFontSizePx: resolveSource(viewport, mobile.bodyFontSizePx, tablet.bodyFontSizePx),
       paddingY: resolveSource(viewport, mobile.paddingY, tablet.paddingY),
       paddingX: resolveSource(viewport, mobile.paddingX, tablet.paddingX),
       textAlignment: resolveSource(viewport, mobile.textAlignment, tablet.textAlignment),
-      columns: resolveSource(viewport, mobile.columns, tablet.columns),
+      columns: resolveSource(viewport, mobile.columns ?? mColsSetting, tablet.columns ?? tColsSetting),
     },
   };
 }
@@ -193,12 +198,8 @@ export function sanitizeControlledCssClasses(raw: string): string {
 export function sanitizeAnchorId(raw: string): string {
   if (!raw || typeof raw !== "string") return "";
   return raw
-    .trim()
-    .replace(/^#+/, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
+    .trim().replace(/^#+/, "").toLowerCase()
+    .replace(/[^a-z0-9-_]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "")
     .slice(0, 48);
 }
 

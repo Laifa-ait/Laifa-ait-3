@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { db } from "../config/firebase-admin";
 import { safeLogger } from "../utils/logger";
 
 export interface CspReportDetails {
@@ -20,7 +19,7 @@ export interface CspReportBody {
   documentURI?: string;
 }
 
-// In-memory cache to prevent database alert flooding for identical domains (10 min TTL)
+// In-memory cache to prevent log flooding for identical domains (10 min TTL)
 const recentAlertDomains = new Map<string, number>();
 const ALERT_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -44,7 +43,6 @@ function extractDomain(uri?: string): string | null {
     const url = new URL(uri);
     return url.hostname;
   } catch {
-    // If relative path or raw IP/string
     return uri.split("/")[0].split(":")[0];
   }
 }
@@ -73,7 +71,7 @@ function isKnownDomain(domain: string): boolean {
 }
 
 /**
- * Middleware pour l'analyse des rapports de violation CSP et la génération d'alertes automatiques
+ * Middleware pour l'analyse des rapports de violation CSP (logs serveur uniquement, 0 écriture Firestore)
  */
 export async function handleCspReport(req: Request, res: Response): Promise<void> {
   try {
@@ -87,7 +85,6 @@ export async function handleCspReport(req: Request, res: Response): Promise<void
 
     const domain = extractDomain(blockedUri);
 
-    // Standard Olmart Enterprise Logging
     safeLogger.warn("[Olmart Security] ⚠️ Violation CSP interceptée", {
       documentUri,
       violatedDirective,
@@ -101,7 +98,6 @@ export async function handleCspReport(req: Request, res: Response): Promise<void
 
       if (now - lastAlertTime > ALERT_COOLDOWN_MS) {
         recentAlertDomains.set(domain, now);
-        // Periodic pruning of expired domains to prevent unbounded memory growth
         if (recentAlertDomains.size > 500) {
           for (const [k, timestamp] of recentAlertDomains.entries()) {
             if (now - timestamp > ALERT_COOLDOWN_MS) {
@@ -112,25 +108,14 @@ export async function handleCspReport(req: Request, res: Response): Promise<void
 
         const severity: "HIGH" | "MEDIUM" = violatedDirective.includes("script") ? "HIGH" : "MEDIUM";
 
-        safeLogger.error("[Olmart Security] 🚨 ALERTE CRITIQUE : Domaine non autorisé détecté en violation CSP", { domain, violatedDirective });
-
-        // Audit Trail enregistrement Firestore
-        try {
-          await db.collection("security_alerts").add({
-            type: "CSP_UNAUTHORIZED_DOMAIN",
-            domain,
-            blockedUri,
-            violatedDirective,
-            documentUri,
-            userAgent,
-            severity,
-            status: "unread",
-            createdAt: new Date(),
-          });
-        } catch (dbErr: unknown) {
-          const errMsg = dbErr instanceof Error ? dbErr.message : "Erreur inconnue";
-          safeLogger.error("[Olmart Security] ❌ Échec enregistrement alerte Firestore", { err: errMsg });
-        }
+        safeLogger.error("[Olmart Security] 🚨 ALERTE CRITIQUE : Domaine non autorisé détecté en violation CSP", {
+          domain,
+          violatedDirective,
+          blockedUri,
+          documentUri,
+          userAgent,
+          severity,
+        });
       }
     }
 

@@ -5,6 +5,7 @@ import { apiGet, apiPost } from "../../lib/api";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { normalizeTimestamp } from "../../utils/date";
+import { startVisibilityAwarePolling } from "../../utils/visibilityPolling";
 import { BuyerSupportChat, SupportTicket, SupportMessage } from "../../components/Buyer/Support/BuyerSupportChat";
 import { SellerNewTicketModal } from "./components/support/SellerNewTicketModal";
 
@@ -47,10 +48,10 @@ export const Support: React.FC = () => {
       }
     };
     fetchTickets();
-    const intervalId = setInterval(fetchTickets, 10000);
+    const stopTicketsPolling = startVisibilityAwarePolling(fetchTickets, 60_000);
     return () => {
       isCancelled = true;
-      clearInterval(intervalId);
+      stopTicketsPolling();
     };
   }, [currentUser]);
 
@@ -75,10 +76,10 @@ export const Support: React.FC = () => {
       }
     };
     fetchMessages();
-    const intervalId = setInterval(fetchMessages, 5000);
+    const stopMessagesPolling = startVisibilityAwarePolling(fetchMessages, 20_000);
     return () => {
       isCancelled = true;
-      clearInterval(intervalId);
+      stopMessagesPolling();
     };
   }, [selectedTicket]);
 
@@ -114,6 +115,10 @@ export const Support: React.FC = () => {
     try {
       await apiPost(`/api/v1/support/tickets/${encodeURIComponent(selectedTicket)}/messages`, { text: newMessage.trim() });
       setNewMessage("");
+      const data = await apiGet<{ messages: SupportMessage[] }>(`/api/v1/support/tickets/${encodeURIComponent(selectedTicket)}/messages`);
+      if (data?.messages) {
+        setMessages(data.messages.map((m) => ({ ...m, sender: m.sender === "seller" ? "client" : m.sender })));
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error(t("Erreur lors de l'envoi."));

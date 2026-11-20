@@ -141,7 +141,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   if (hideNavigation) {
     return (
-      <div className={`min-h-screen w-full font-sans selection:bg-rose-200 text-zinc-900 ${dir}`} dir={dir}>
+      <div className={`min-h-screen w-full font-sans selection:bg-[#0D5C4B]/20 selection:text-[#0F1B1D] text-[#0F1B1D] ${dir}`} dir={dir}>
         {children}
         <Suspense fallback={null}>
           {areOverlaysHydrated && <AuthModal />}
@@ -155,9 +155,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   }
 
   return (
-    <div className={`min-h-screen overflow-x-clip w-full max-w-full text-zinc-900 font-sans selection:bg-rose-200 pb-0 sm:pb-0 ${dir}`} dir={dir}>
+    <div className={`min-h-screen overflow-x-clip w-full max-w-full text-[#0F1B1D] font-sans selection:bg-[#0D5C4B]/20 selection:text-[#0F1B1D] pb-0 sm:pb-0 ${dir}`} dir={dir}>
       {!isImmoPage && !isAutoPage && (
-        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-[9999] bg-white text-zinc-900 px-4 py-2 font-medium rounded-lg shadow-lg border border-zinc-200 outline-none focus:ring-2 focus:ring-teal-500">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-[9999] bg-white text-[#0F1B1D] px-4 py-2 font-medium rounded-lg shadow-lg border border-[#E3E9E5] outline-none focus:ring-2 focus:ring-[#0D5C4B]">
           Aller au contenu principal
         </a>
       )}

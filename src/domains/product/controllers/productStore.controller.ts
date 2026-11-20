@@ -18,6 +18,12 @@ productStoreRouter.get("/api/v1/stores/:sellerId", async (req, res) => {
     const { sellerId } = req.params;
     if (!sellerId) return res.status(400).json({ error: "Missing sellerId" });
 
+    const cacheKey = `store_page_${sellerId}`;
+    if (process.env.NODE_ENV !== "test") {
+      const cached = cache.get(cacheKey);
+      if (cached) return res.json(cached);
+    }
+
     const decodedId = decodeURIComponent(sellerId);
     let storeData: Record<string, unknown> | null = null;
 
@@ -68,7 +74,9 @@ productStoreRouter.get("/api/v1/stores/:sellerId", async (req, res) => {
 
     let products: Product[] = [];
     if (storeData) {
-      const targetIds = [storeData.id, storeData.sellerId, storeData.uid, sellerId].filter(Boolean) as string[];
+      const targetIds = Array.from(
+        new Set([storeData.id, storeData.sellerId, storeData.uid, sellerId].filter((v): v is string => typeof v === "string" && v.length > 0))
+      );
       const prodPromises = targetIds.map(async (tid) => {
         try {
           return await db.collection("products").where("sellerId", "==", tid).limit(50).get();
@@ -110,12 +118,16 @@ productStoreRouter.get("/api/v1/stores/:sellerId", async (req, res) => {
       return res.status(404).json({ error: "Store not found" });
     }
 
-    return res.json({
+    const payload = {
       success: true,
       shop: storeData,
       ...storeData,
       products
-    });
+    };
+    if (process.env.NODE_ENV !== "test") {
+      cache.set(cacheKey, payload, 180);
+    }
+    return res.json(payload);
   } catch (error: unknown) {
     return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
   }

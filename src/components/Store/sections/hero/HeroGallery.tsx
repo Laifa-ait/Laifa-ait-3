@@ -7,132 +7,209 @@ import {
   resolvePosition9FlexClasses,
 } from "./HeroMinimalTextAndGuides";
 import { sanitizeHeroTitle } from "./heroResponsiveHelper";
+import { resolveHeroGalleryLayout } from "./heroGalleryLayoutHelper";
+import { resolveHeroTextFrame } from "./heroTextFrameHelper";
 import {
+  hexToRgba,
+  resolveBannerEffectiveShadow,
   resolveHeroBackgroundStyle,
+  resolveHeroBorderCss,
   resolveHeroBorderRadiusCss,
   resolveHeroBoxShadowCss,
+  resolveHeroShadowAccentColor,
 } from "./heroVisualEffectsHelper";
 
 /**
- * STYLE 4 : "CADRE GALERIE MINIMALISTE / MULTI-VISUELS" (HeroGallery)
- * Supporte 1 à 3 visuels :
- * - 1 visuel : Cadre Passe-Partout plein format
- * - 2 à 3 visuels : Composition Galerie (visuel principal dominant + visuels secondaires),
- *   avec bascule verticale lisible sur Mobile.
+ * STYLE 4 : "PHOTO ENCADRÉE — PASSE-PARTOUT GALERIE" (HeroGallery)
+ * Architecture responsive 3 niveaux (PC / Tablette / Téléphone), 1 à 3 visuels.
  */
 export const HeroGallery: React.FC<HeroArchitecturalStyleProps> = ({
   settings,
+  sectionStyles,
   theme,
   profile,
   isEditable,
+  isEdgeToEdge = false,
   activeSubElement,
   isSubSelected,
   selectSub,
   getSubRing,
   handleTextPatch,
 }) => {
-  const isMobile = profile.viewport === "mobile";
-  const passePartoutPx = Math.min(48, Math.max(16, profile.innerPaddingPx || 32));
-  const innerRadiusPx = Math.max(0, profile.borderRadiusPx - Math.round(passePartoutPx * 0.35));
+  const layout = resolveHeroGalleryLayout(settings, theme, profile);
+  const textFrame = resolveHeroTextFrame(settings, theme, profile, true);
+  const hasCustomDockedFrame = Boolean(settings.textFrame) && textFrame.enabled;
   const posFlex = resolvePosition9FlexClasses(profile.textPosition9);
   const cleanTitle = sanitizeHeroTitle(settings.title, settings.spotlightProductTitle);
   const borderRadiusCss = resolveHeroBorderRadiusCss(settings, profile);
   const bgStyle = resolveHeroBackgroundStyle(settings, theme, theme.canvasColor);
-  const bannerShadowCss = resolveHeroBoxShadowCss(settings.bannerShadow, theme.primaryColor);
-  const imageShadowCss = resolveHeroBoxShadowCss(settings.imageShadow, theme.primaryColor);
-  const overlayAlpha = Math.min(60, Math.max(0, settings.overlayOpacity ?? 0)) / 100;
-  const galleryGapPx = Math.min(32, Math.max(8, profile.diptychGapPx || 14));
-
-  const secondaryImages = [profile.secondaryImageSrc, profile.tertiaryImageSrc].filter(
-    (u): u is string => Boolean(u && u.trim())
+  const bannerShadowCss = resolveBannerEffectiveShadow(settings, theme);
+  const imageShadowCss = resolveHeroBoxShadowCss(
+    settings.imageShadow,
+    resolveHeroShadowAccentColor(settings, theme, settings.imageShadow === "glow"),
+    settings.imageShadowColor
   );
-  const hasMultiGallery = secondaryImages.length > 0;
-  const frameHeightPx = Math.max(220, profile.heightPx - passePartoutPx * 2);
+  const overlayAlpha =
+    settings.overlayEnabled === false ? 0 : Math.min(80, Math.max(0, settings.overlayOpacity ?? 0)) / 100;
+
+  const textBlockNode = (
+    <HeroMinimalTextBlock
+      settings={settings}
+      sectionStyles={sectionStyles}
+      theme={theme}
+      profile={profile}
+      isEditable={isEditable}
+      activeSubElement={activeSubElement}
+      isSubSelected={isSubSelected}
+      selectSub={selectSub}
+      getSubRing={getSubRing}
+      handleTextPatch={handleTextPatch}
+    />
+  );
+
+  const dockedCaptionBlock = !settings.hideAllText && layout.useDockedCaption && (
+    <div
+      data-testid="hero-gallery-docked-caption"
+      className={`flex flex-col w-full ${layout.dockedAlignClass} ${
+        hasCustomDockedFrame ? "" : layout.isMobile ? "px-1.5 py-2.5" : "px-2 py-3"
+      }`}
+    >
+      {hasCustomDockedFrame ? (
+        <div
+          data-testid="hero-text-frame-card"
+          data-text-frame-enabled="true"
+          className="w-full transition-all"
+          style={textFrame.frameStyle}
+        >
+          {textBlockNode}
+        </div>
+      ) : (
+        textBlockNode
+      )}
+    </div>
+  );
 
   return (
     <div
       data-testid="hero-model-atelier-collage"
       data-hero-style="HeroGallery"
-      data-gallery-count={1 + secondaryImages.length}
-      className="relative w-full overflow-hidden border border-black/10"
+      data-gallery-count={1 + layout.secondaryImages.length}
+      data-gallery-viewport={profile.viewport}
+      className="relative w-full overflow-hidden"
       style={{
-        padding: `${passePartoutPx}px`,
+        padding: `${layout.passePartoutPx}px`,
         borderRadius: borderRadiusCss,
         boxShadow: bannerShadowCss,
-        borderColor: settings.bannerBorderColor || undefined,
+        border: resolveHeroBorderCss(settings, isEdgeToEdge),
         ...bgStyle,
       }}
     >
       <HeroCompositionGuides
         isEditable={isEditable}
         showGuides={settings.showCompositionGuides}
-        safePaddingPx={passePartoutPx}
+        safePaddingPx={layout.passePartoutPx}
       />
 
       <div
-        data-testid={hasMultiGallery ? "hero-gallery-multi" : "hero-gallery-single"}
-        className="relative w-full"
+        data-testid={layout.hasMultiGallery ? "hero-gallery-multi" : "hero-gallery-single"}
+        className="relative w-full flex flex-col"
+        style={{ gap: `${Math.max(10, Math.round(layout.galleryGapPx * 0.9))}px` }}
       >
+        {layout.dockCaptionFirst && dockedCaptionBlock}
+
         <div
           className={
-            hasMultiGallery
-              ? `grid grid-cols-1 ${!isMobile ? "@2xl:grid-cols-12" : ""} w-full`
+            layout.hasMultiGallery
+              ? layout.isMobile
+                ? "grid grid-cols-1 w-full"
+                : "grid grid-cols-12 w-full items-stretch"
               : "w-full"
           }
-          style={hasMultiGallery ? { gap: `${galleryGapPx}px` } : undefined}
+          style={layout.hasMultiGallery ? { gap: `${layout.galleryGapPx}px` } : undefined}
         >
           {/* VISUEL PRINCIPAL DOMINANT */}
           <div
             data-testid="hero-gallery-primary-slot"
-            className={`${hasMultiGallery && !isMobile ? "@2xl:col-span-8" : ""} relative w-full overflow-hidden shadow-xs ${getSubRing("background")}`}
+            className={`${
+              layout.hasMultiGallery && !layout.isMobile ? (layout.isTablet ? "col-span-7" : "col-span-8") : ""
+            } relative w-full overflow-hidden flex ${posFlex} ${layout.innerRingClass} ${getSubRing("background")}`}
             style={{
-              height: `${isMobile && hasMultiGallery ? Math.max(200, Math.round(frameHeightPx * 0.68)) : frameHeightPx}px`,
-              borderRadius: `${innerRadiusPx}px`,
+              minHeight: `${layout.frameMinHeightPx}px`,
+              borderRadius: `${layout.innerRadiusPx}px`,
               boxShadow: imageShadowCss,
             }}
           >
-            <HeroPurePhoto
-              src={profile.activeImageSrc}
-              alt={settings.imageAlt || cleanTitle || "Cadre Galerie Principal"}
-              fit={profile.imageFit}
-              focalX={profile.focalX}
-              focalY={profile.focalY}
-              zoom={profile.zoom}
-              studioBg={settings.imageStudioBg}
-              settings={settings}
-              onClick={(e) => selectSub(e, "background")}
-            />
+            <div className="absolute inset-0">
+              <HeroPurePhoto
+                src={profile.activeImageSrc}
+                alt={settings.imageAlt || cleanTitle || "Photo encadrée principale"}
+                fit={profile.imageFit}
+                focalX={profile.focalX}
+                focalY={profile.focalY}
+                zoom={profile.zoom}
+                studioBg={settings.imageStudioBg}
+                settings={settings}
+                onClick={(e) => selectSub(e, "background")}
+              />
+            </div>
 
             {overlayAlpha > 0 && (
               <div
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 z-[5]"
-                style={{ backgroundColor: `rgba(12, 12, 14, ${overlayAlpha})` }}
+                style={{
+                  backgroundColor: hexToRgba(
+                    settings.overlayColor || sectionStyles?.overlayColor,
+                    overlayAlpha,
+                    [12, 12, 14]
+                  ),
+                }}
               />
+            )}
+
+            {/* PLAQUE ÉDITORIALE FLOTTANTE (100% CONTRÔLABLE VIA textFrame) */}
+            {!settings.hideAllText && !layout.useDockedCaption && (
+              <div
+                data-testid="hero-gallery-floating-plaque"
+                className={`relative z-10 w-full flex ${posFlex} ${
+                  layout.isTablet ? "p-4 sm:p-5" : "p-5 sm:p-7"
+                } pointer-events-none`}
+              >
+                <div
+                  data-testid="hero-text-frame-card"
+                  data-text-frame-enabled={String(textFrame.enabled)}
+                  className="pointer-events-auto transition-all"
+                  style={textFrame.frameStyle}
+                >
+                  {textBlockNode}
+                </div>
+              </div>
             )}
           </div>
 
-          {/* VISUELS SECONDAIRES (1 OU 2) : COLONNE LATÉRALE DESKTOP / EMPILEMENT LISIBLE MOBILE */}
-          {hasMultiGallery && (
+          {/* VISUELS SECONDAIRES (1 OU 2) : COLONNE COMPAGNON PC/TABLETTE OU RANGÉE MOBILE */}
+          {layout.hasMultiGallery && (
             <div
               data-testid="hero-gallery-secondary-column"
               className={`${
-                !isMobile
-                  ? "@2xl:col-span-4 flex flex-col"
-                  : secondaryImages.length === 2
+                !layout.isMobile
+                  ? `${layout.isTablet ? "col-span-5" : "col-span-4"} grid ${
+                      layout.secondaryImages.length === 2 ? "grid-rows-2" : "grid-rows-1"
+                    }`
+                  : layout.secondaryImages.length === 2
                     ? "grid grid-cols-2"
-                    : "flex flex-col"
+                    : "grid grid-cols-1"
               } w-full`}
-              style={{ gap: `${galleryGapPx}px`, height: !isMobile ? `${frameHeightPx}px` : undefined }}
+              style={{ gap: `${layout.galleryGapPx}px` }}
             >
-              {secondaryImages.map((imgUrl, idx) => (
+              {layout.secondaryImages.map((imgUrl, idx) => (
                 <div
                   key={`${imgUrl}-${idx}`}
                   data-testid={`hero-gallery-secondary-slot-${idx + 1}`}
-                  className="relative flex-1 w-full overflow-hidden border border-black/8"
+                  className={`relative w-full h-full overflow-hidden ${layout.innerRingClass}`}
                   style={{
-                    minHeight: isMobile ? "140px" : `${Math.floor((frameHeightPx - (secondaryImages.length > 1 ? galleryGapPx : 0)) / secondaryImages.length)}px`,
-                    borderRadius: `${Math.max(8, innerRadiusPx - 4)}px`,
+                    minHeight: `${layout.secondarySlotMinHeightPx}px`,
+                    borderRadius: `${layout.secondaryRadiusPx}px`,
                     boxShadow: imageShadowCss,
                   }}
                 >
@@ -153,33 +230,7 @@ export const HeroGallery: React.FC<HeroArchitecturalStyleProps> = ({
           )}
         </div>
 
-        {/* CARTOUCHE MINIMALISTE FLOTTANT POSITIONNÉ SELON LA GRILLE 9 POINTS */}
-        {!settings.hideAllText && (
-          <div className={`absolute inset-0 z-10 flex ${posFlex} p-4 sm:p-6 pointer-events-none`}>
-            <div
-              className="pointer-events-auto rounded-2xl border border-black/8 shadow-sm backdrop-blur-md px-5 py-4 sm:px-7 sm:py-5"
-              style={{
-                backgroundColor: settings.bannerBgColor
-                  ? `${settings.bannerBgColor}F2`
-                  : theme.surfaceColor
-                    ? `${theme.surfaceColor}F2`
-                    : "rgba(255, 255, 255, 0.94)",
-              }}
-            >
-              <HeroMinimalTextBlock
-                settings={settings}
-                theme={theme}
-                profile={profile}
-                isEditable={isEditable}
-                activeSubElement={activeSubElement}
-                isSubSelected={isSubSelected}
-                selectSub={selectSub}
-                getSubRing={getSubRing}
-                handleTextPatch={handleTextPatch}
-              />
-            </div>
-          </div>
-        )}
+        {!layout.dockCaptionFirst && dockedCaptionBlock}
       </div>
     </div>
   );

@@ -38,18 +38,19 @@ export const ArtisanApplyPage: React.FC = () => {
           <ArtisanApplySuccess artisan={submittedProfile} />
         ) : (
           <div className="space-y-8">
-            {/* Header Hero */}
-            <div className="text-center space-y-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-900 text-xs font-black uppercase tracking-wider">
-                <Wrench className="w-3.5 h-3.5 text-amber-600" />
-                <span>Rejoignez les professionnels Olmart</span>
-              </div>
-              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-                Devenez Artisan Partenaire Olmart
+            {/* Header Hero tailored for normal individual artisans */}
+            <div className="text-center space-y-2.5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#1E3A8A] inline-flex items-center gap-1.5">
+                <Wrench className="w-3.5 h-3.5 text-[#1E3A8A]" />
+                <span>Espace Artisan Indépendant · Particuliers sans entreprise</span>
+              </p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] tracking-tight">
+                Ouvrez votre Espace Artisan et publiez vos offres de travaux
               </h1>
-              <p className="text-sm text-slate-600 max-w-xl mx-auto">
-                Augmentez votre clientèle, recevez des demandes de devis qualifiées et développez
-                votre activité dans votre wilaya.
+              <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
+                <strong>Aucune entreprise ni registre de commerce requis.</strong> Créez votre profil
+                gratuit en 2 minutes, publiez vos prestations avec photos et tarifs, et échangez avec
+                vos clients par devis et messagerie intégrée.
               </p>
             </div>
 

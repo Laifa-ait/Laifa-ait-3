@@ -104,11 +104,11 @@ export const HomeEndlessGrid: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="w-full max-w-[90rem] mx-auto px-4 sm:px-6 md:px-8 mb-12 sm:mb-16">
-        <div className="h-6 w-48 bg-[#EFE6E6] animate-pulse rounded-md mb-6" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
+      <section className="w-full max-w-[90rem] mx-auto px-4 sm:px-6 md:px-8 mb-14 sm:mb-20">
+        <div className="h-7 w-52 bg-[#EFF3F1] animate-pulse rounded-lg mb-6" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4 md:gap-5">
           {[...Array(12)].map((_, i) => (
-            <div key={i} className="aspect-[3/4] rounded-2xl bg-[#F4EDED] animate-pulse" />
+            <div key={i} className="aspect-[3/4] rounded-2xl bg-[#EFF3F1] animate-pulse" />
           ))}
         </div>
       </section>
@@ -118,19 +118,19 @@ export const HomeEndlessGrid: React.FC = () => {
   if (products.length === 0) return null;
 
   return (
-    <section className="w-full max-w-[90rem] mx-auto px-4 sm:px-6 md:px-8 mb-12 sm:mb-16">
-      <div className="flex items-center justify-between mb-5 sm:mb-6">
+    <section className="w-full max-w-[90rem] mx-auto px-4 sm:px-6 md:px-8 mb-14 sm:mb-20">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-6 pb-4 border-b border-[#E3E9E5]">
         <div className="space-y-1">
-          <h2 className="font-display text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-[#1A1836]">
+          <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-[#0F1B1D] text-balance">
             {t("home.endless_grid.title")}
           </h2>
-          <p className="text-xs sm:text-sm text-[#6E5A6F] font-medium">
+          <p className="text-xs sm:text-sm text-[#5F7073] font-medium">
             {t("home.endless_grid.subtitle")}
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4 md:gap-5">
         {products.map((product, i) => (
           <ProductCard key={product.id} product={product} index={i} />
         ))}
@@ -142,13 +142,13 @@ export const HomeEndlessGrid: React.FC = () => {
             type="button"
             onClick={loadMoreProducts}
             disabled={loadingMore}
-            className="group relative inline-flex items-center justify-center gap-2.5 px-8 py-3.5 bg-gradient-to-r from-[#42164B] via-[#622347] to-[#A54055] hover:from-[#622347] hover:via-[#A54055] hover:to-[#E99856] text-white text-xs sm:text-sm font-bold tracking-wider uppercase rounded-xl transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-60 cursor-pointer border-none whitespace-nowrap"
+            className="group relative inline-flex items-center justify-center gap-2.5 px-8 py-3.5 bg-[#0D5C4B] hover:bg-[#084236] active:bg-[#0F1B1D] text-white text-xs sm:text-sm font-bold tracking-wide rounded-xl transition-colors duration-200 shadow-sm hover:shadow-md disabled:opacity-60 cursor-pointer border-none whitespace-nowrap"
           >
             {loadingMore ? (
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[#E0B4B2] rounded-full animate-bounce [animation-delay:-0.3s]" />
-                <div className="w-2 h-2 bg-[#E0B4B2] rounded-full animate-bounce [animation-delay:-0.15s]" />
-                <div className="w-2 h-2 bg-[#E0B4B2] rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-[#E59A42] rounded-full animate-bounce [animation-delay:-0.3s]" />
+                <div className="w-2 h-2 bg-[#E59A42] rounded-full animate-bounce [animation-delay:-0.15s]" />
+                <div className="w-2 h-2 bg-[#E59A42] rounded-full animate-bounce" />
               </div>
             ) : (
               <span>{t("home.endless_grid.load_more")}</span>

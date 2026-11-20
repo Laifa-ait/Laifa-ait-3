@@ -50,8 +50,8 @@ export const CATEGORY_LAYOUT_OPTIONS: LayoutOptionItem[] = [
   { id: "mesh-3d", label: "Split Studio Éditorial", sublabel: "Format horizontal photo & index", icon: Sparkles },
   { id: "grid", label: "Grille Prestige", sublabel: "Cadre éditorial & barre d'action", icon: Grid },
   { id: "overlay", label: "Affiche Cinéma", sublabel: "Poster plein cadre & liseré", icon: Flame },
-  { id: "bubbles", label: "Médaillons Podium", sublabel: "Cercles bague luxe sur socle", icon: CircleDot },
-  { id: "pills", label: "Dock Capsules Pro", sublabel: "Bandeaux rapides avec photo", icon: Bookmark },
+  { id: "bubbles", label: "Médaillons Podium", sublabel: "Cercles photo simples & épurés", icon: CircleDot },
+  { id: "pills", label: "Dock Capsules Pro", sublabel: "Bandeaux horizontaux clairs", icon: Bookmark },
   { id: "carousel", label: "Lookbook Slider", sublabel: "Défilement horizontal fluide", icon: SlidersHorizontal },
 ];
 

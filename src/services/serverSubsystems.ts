@@ -13,6 +13,7 @@ import {
 } from "./ServiceAutoHealer";
 import { validateCsrfConfiguration } from "../middlewares/csrf";
 import { safeLogger } from "../utils/logger";
+import { globalErrorMiddleware } from "../../app";
 
 let isStaticPipelineAttached = false;
 
@@ -34,6 +35,7 @@ export async function initializeSubsystems(app: Express): Promise<void> {
   if (!isStaticPipelineAttached) {
     try {
       await setupViteAndStaticServing(app);
+      app.use(globalErrorMiddleware);
       isStaticPipelineAttached = true;
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);

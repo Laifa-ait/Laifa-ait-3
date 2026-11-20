@@ -16,19 +16,16 @@ import {
   SearchRequestExpress,
 } from "../types/search";
 
-export type {
-  SearchableProduct,
-  StoreProfile,
-  SearchStoresContainer,
-  SearchRequestExpress,
-};
+export type { SearchableProduct, StoreProfile, SearchStoresContainer, SearchRequestExpress };
 
 let cachedProducts: SearchableProduct[] = [];
 let cachedStores: SearchStoresContainer | null = null;
 let cachedFuse: Fuse<SearchableProduct> | null = null;
 let lastCacheUpdate = 0;
-let isRefreshingCache = false;
-const CACHE_TTL_MS = 20 * 60 * 1000;
+let inFlightRefreshPromise: Promise<void> | null = null;
+const CACHE_TTL_MS = 60 * 60 * 1000;
+const recentSearchLogWrites = new Map<string, number>();
+const SEARCH_LOG_DEDUPE_MS = 5 * 60 * 1000;
 
 function buildFuseIndex(pool: SearchableProduct[]): Fuse<SearchableProduct> {
   return new Fuse(pool, {
@@ -55,66 +52,68 @@ export function clearProductSearchCache(): void {
   cachedStores = null;
   cachedFuse = null;
   lastCacheUpdate = 0;
+  inFlightRefreshPromise = null;
+  recentSearchLogWrites.clear();
 }
 
 async function refreshMemoryIndex(): Promise<void> {
-  if (isRefreshingCache) return;
-  isRefreshingCache = true;
-  try {
-    const PAGE_SIZE = 500;
-    const MAX_PAGES = 5; // Up to 2500 active products indexed per cycle
-    const accumulatedProducts: SearchableProduct[] = [];
-    let lastDoc: admin.firestore.QueryDocumentSnapshot | null = null;
+  if (!db) return;
+  if (inFlightRefreshPromise) return inFlightRefreshPromise;
 
-    const profilesPromise = withFirestoreDeadline(
-      () => db.collection("publicProfiles").limit(500).get().catch(() => null),
-      null,
-      1500,
-      "search_profiles_index"
-    );
+  inFlightRefreshPromise = (async () => {
+    try {
+      const PAGE_SIZE = 250;
+      const MAX_PAGES = 1;
+      const accumulatedProducts: SearchableProduct[] = [];
+      let lastDoc: admin.firestore.QueryDocumentSnapshot | null = null;
 
-    for (let pageIdx = 0; pageIdx < MAX_PAGES; pageIdx++) {
-      const pageSnap = await withFirestoreDeadline(
-        () => {
-          let q = db.collection("products").where("status", "==", PRODUCT_STATUSES.ACTIVE).limit(PAGE_SIZE);
-          if (lastDoc && typeof q.startAfter === "function") {
-            q = q.startAfter(lastDoc);
-          }
-          return q.get();
-        },
+      const profilesPromise = withFirestoreDeadline(
+        () => db.collection("publicProfiles").limit(100).get().catch(() => null),
         null,
-        2000,
-        "search_products_index"
+        1500,
+        "search_profiles_index"
       );
 
-      if (!pageSnap || pageSnap.docs.length === 0) break;
-      for (const doc of pageSnap.docs) {
-        accumulatedProducts.push({ id: doc.id, ...doc.data() } as SearchableProduct);
+      for (let pageIdx = 0; pageIdx < MAX_PAGES; pageIdx++) {
+        const pageSnap = await withFirestoreDeadline(
+          () => {
+            let q = db.collection("products").where("status", "==", PRODUCT_STATUSES.ACTIVE).limit(PAGE_SIZE);
+            if (lastDoc && typeof q.startAfter === "function") q = q.startAfter(lastDoc);
+            return q.get();
+          },
+          null,
+          2000,
+          "search_products_index"
+        );
+
+        if (!pageSnap || pageSnap.docs.length === 0) break;
+        for (const doc of pageSnap.docs) {
+          accumulatedProducts.push({ id: doc.id, ...doc.data() } as SearchableProduct);
+        }
+        if (pageSnap.docs.length < PAGE_SIZE) break;
+        lastDoc = pageSnap.docs[pageSnap.docs.length - 1];
+        if (!lastDoc || typeof db.collection("products").limit(1).startAfter !== "function") break;
       }
-      if (pageSnap.docs.length < PAGE_SIZE) break;
-      lastDoc = pageSnap.docs[pageSnap.docs.length - 1];
-      if (!lastDoc || typeof db.collection("products").limit(1).startAfter !== "function") break;
-    }
 
-    const profilesSnap = await profilesPromise;
+      const profilesSnap = await profilesPromise;
+      if (accumulatedProducts.length > 0) {
+        cachedProducts = accumulatedProducts;
+        cachedFuse = buildFuseIndex(cachedProducts);
+      }
+      if (profilesSnap) {
+        cachedStores = { stores: profilesSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as StoreProfile[] };
+      }
+      lastCacheUpdate = Date.now();
+    } catch (err: unknown) {
+      safeLogger.warn("[ProductSearchService] Cache refresh notice", {
+        err: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      inFlightRefreshPromise = null;
+    }
+  })();
 
-    if (accumulatedProducts.length > 0) {
-      cachedProducts = accumulatedProducts;
-      cachedFuse = buildFuseIndex(cachedProducts);
-    }
-    if (profilesSnap) {
-      cachedStores = {
-        stores: profilesSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as StoreProfile[],
-      };
-    }
-    lastCacheUpdate = Date.now();
-  } catch (err: unknown) {
-    safeLogger.warn("[ProductSearchService] Cache refresh notice", {
-      err: err instanceof Error ? err.message : String(err),
-    });
-  } finally {
-    isRefreshingCache = false;
-  }
+  return inFlightRefreshPromise;
 }
 
 export class ProductSearchService {
@@ -141,11 +140,8 @@ export class ProductSearchService {
     const limitVal = Math.min(parseInt((req.query.limit as string) || "24", 10), 100);
 
     const now = Date.now();
-    if (cachedProducts.length === 0) {
-      await refreshMemoryIndex();
-    } else if (now - lastCacheUpdate > CACHE_TTL_MS) {
-      refreshMemoryIndex().catch(() => {});
-    }
+    if (cachedProducts.length === 0) await refreshMemoryIndex();
+    else if (now - lastCacheUpdate > CACHE_TTL_MS) refreshMemoryIndex().catch(() => {});
 
     const productPool = cachedProducts;
     const allStores = cachedStores;
@@ -155,17 +151,12 @@ export class ProductSearchService {
       if (minPrice !== null) filtered = filtered.filter((p) => (p.price ?? 0) >= minPrice);
       if (maxPrice !== null) filtered = filtered.filter((p) => (p.price ?? 0) <= maxPrice);
       if (wilayaFilter) filtered = filtered.filter((p) => p.wilaya === wilayaFilter);
-      if (categoryFilter && categoryFilter !== "Tous") {
-        filtered = filtered.filter((p) => p.category === categoryFilter);
-      }
+      if (categoryFilter && categoryFilter !== "Tous") filtered = filtered.filter((p) => p.category === categoryFilter);
 
       const offset = (page - 1) * limitVal;
       return {
         products: filtered.slice(offset, offset + limitVal),
-        stores: [],
-        total: filtered.length,
-        page,
-        limit: limitVal,
+        stores: [], total: filtered.length, page, limit: limitVal,
         hasMore: offset + limitVal < filtered.length,
       };
     }
@@ -185,23 +176,17 @@ export class ProductSearchService {
           [p.name, p.title, p.category, p.brand, p.translations?.ar?.name, p.translations?.en?.name, ...(p.tags || [])].join(" ")
         );
         let matchScore = 0;
-
         for (const term of queryTokens) {
-          if (text.includes(term)) {
-            matchScore += 1.0;
-            break;
-          }
+          if (text.includes(term)) { matchScore += 1.0; break; }
           for (const group of ALGERIAN_SYNONYM_GROUPS) {
             if (group.some((syn) => syn.includes(term) || term.includes(syn)) && group.some((syn) => text.includes(syn))) {
-              matchScore += 0.8;
-              break;
+              matchScore += 0.8; break;
             }
           }
           if (term.length >= 3 && this.getSoundex(term) && text.split(/\s+/).some((w) => this.getSoundex(w) === this.getSoundex(term))) {
             matchScore += 0.6;
           }
         }
-
         if (matchScore >= 0.6) {
           searchResults.push({ item: p, refIndex: 0, score: 0.5 });
           existingIds.add(p.id);
@@ -220,7 +205,6 @@ export class ProductSearchService {
 
     ranked.sort((a, b) => b.ranking - a.ranking);
     let finalProducts = ranked.map((r) => r.item);
-
     if (minPrice !== null) finalProducts = finalProducts.filter((p) => (p.price ?? 0) >= minPrice);
     if (maxPrice !== null) finalProducts = finalProducts.filter((p) => (p.price ?? 0) <= maxPrice);
     if (wilayaFilter) finalProducts = finalProducts.filter((p) => p.wilaya === wilayaFilter);
@@ -236,10 +220,21 @@ export class ProductSearchService {
 
     TrendingSearchesService.recordSearch(queryStr);
     try {
-      if (admin && admin.apps && admin.apps.length > 0) {
-        admin.firestore().collection("search_logs").add({
-          query: queryStr,
-          resultsCount: finalProducts.length,
+      const logKey = `${req.user?.uid || "anon"}:${normQuery}`;
+      const lastLoggedAt = recentSearchLogWrites.get(logKey) || 0;
+      if (
+        process.env.ENABLE_SEARCH_LOGS === "true" &&
+        db &&
+        admin &&
+        admin.apps &&
+        admin.apps.length > 0 &&
+        page === 1 &&
+        now - lastLoggedAt > SEARCH_LOG_DEDUPE_MS
+      ) {
+        if (recentSearchLogWrites.size > 500) recentSearchLogWrites.clear();
+        recentSearchLogWrites.set(logKey, now);
+        db.collection("search_logs").add({
+          query: queryStr, resultsCount: finalProducts.length,
           timestamp: admin.firestore.FieldValue.serverTimestamp(),
           userId: req.user?.uid || "anonymous",
           filters: { minPrice, maxPrice, wilaya: wilayaFilter, category: categoryFilter },
@@ -263,9 +258,7 @@ export class ProductSearchService {
     return {
       products: finalProducts.slice(offset, offset + limitVal),
       stores: matchedStores.slice(0, 5),
-      total: totalCount,
-      page,
-      limit: limitVal,
+      total: totalCount, page, limit: limitVal,
       hasMore: offset + limitVal < totalCount,
       suggestions,
     };
