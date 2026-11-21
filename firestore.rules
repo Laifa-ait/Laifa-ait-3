@@ -159,7 +159,7 @@ service cloud.firestore {
     match /user_documents/{docId} {
       allow read, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && (isAdmin() || (resource.data.userId == request.auth.uid && incoming().userId == existing().userId));
     }
 
     // Collections privées d'authentification et secrets OTP (strictement inaccessibles via SDK client)
@@ -247,7 +247,7 @@ service cloud.firestore {
         )
       );
       
-      // Modification : réservée à l'administrateur ou au vendeur/artisan propriétaire du produit (interdiction de modifier le sellerId/artisanId/userId)
+      // Modification : réservée à l'administrateur ou au vendeur/artisan propriétaire du produit (interdiction de modifier le sellerId/artisanId/userId ni les champs de modération/sponsoring)
       allow update: if isAdmin() || (
         (
           (isSeller() && (existing().sellerId == request.auth.uid || existing().userId == request.auth.uid)) ||
@@ -256,7 +256,12 @@ service cloud.firestore {
         (!('sellerId' in incoming()) || !('sellerId' in existing()) || incoming().sellerId == existing().sellerId) &&
         (!('artisanId' in incoming()) || !('artisanId' in existing()) || incoming().artisanId == existing().artisanId) &&
         (!('userId' in incoming()) || !('userId' in existing()) || incoming().userId == existing().userId) &&
-        !incoming().diff(existing()).affectedKeys().hasAny(['commission', 'sellerTrustScore', 'trustScore', 'rating'])
+        !incoming().diff(existing()).affectedKeys().hasAny([
+          'status', 'isApproved', 'moderationStatus', 'isFeatured', 'isSponsored',
+          'sponsoredUntil', 'sponsorshipTier', 'salesCount', 'reviewCount',
+          'flashSaleActive', 'flashSalePrice', 'commission', 'sellerTrustScore',
+          'trustScore', 'rating'
+        ])
       );
 
       // Suppression : réservée à l'administrateur ou au vendeur/artisan propriétaire
@@ -686,8 +691,7 @@ service cloud.firestore {
         isAdmin() ||
         resource.data.ownerId == request.auth.uid ||
         resource.data.sellerId == request.auth.uid ||
-        shopId == request.auth.uid ||
-        incoming().diff(existing()).affectedKeys().hasOnly(['followersCount'])
+        shopId == request.auth.uid
       );
       allow delete: if isAdmin();
     }
@@ -745,8 +749,10 @@ service cloud.firestore {
       );
       allow create: if isSignedIn() && (
         isAdmin() ||
-        (!('userId' in incoming()) || incoming().userId == request.auth.uid) ||
-        (!('participants' in incoming()) || request.auth.uid in incoming().participants)
+        (
+          (!('userId' in incoming()) || incoming().userId == request.auth.uid) &&
+          ('participants' in incoming() && incoming().participants is list && request.auth.uid in incoming().participants)
+        )
       );
       allow update: if isSignedIn() && (
         isAdmin() ||
@@ -768,7 +774,16 @@ service cloud.firestore {
         );
         allow create: if isSignedIn() && (
           isAdmin() ||
-          (!('senderId' in incoming()) || incoming().senderId == request.auth.uid)
+          (
+            'senderId' in incoming() &&
+            incoming().senderId == request.auth.uid &&
+            exists(/databases/$(database)/documents/chats/$(chatId)) && (
+              ('participants' in get(/databases/$(database)/documents/chats/$(chatId)).data && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants) ||
+              ('userId' in get(/databases/$(database)/documents/chats/$(chatId)).data && get(/databases/$(database)/documents/chats/$(chatId)).data.userId == request.auth.uid) ||
+              ('sellerId' in get(/databases/$(database)/documents/chats/$(chatId)).data && get(/databases/$(database)/documents/chats/$(chatId)).data.sellerId == request.auth.uid) ||
+              ('buyerId' in get(/databases/$(database)/documents/chats/$(chatId)).data && get(/databases/$(database)/documents/chats/$(chatId)).data.buyerId == request.auth.uid)
+            )
+          )
         );
         allow update, delete: if isAdmin();
       }
@@ -971,13 +986,15 @@ service cloud.firestore {
 
       allow create: if isAdmin() || (
         isSeller() &&
-        incoming().sellerId == request.auth.uid
+        incoming().sellerId == request.auth.uid &&
+        (!('status' in incoming()) || incoming().status in ['draft', 'pending'])
       );
 
       allow update: if isAdmin() || (
         isSignedIn() &&
         resource.data.sellerId == request.auth.uid &&
-        incoming().sellerId == request.auth.uid
+        incoming().sellerId == request.auth.uid &&
+        (!('status' in incoming()) || incoming().status in ['draft', 'pending'] || ('status' in existing() && incoming().status == existing().status))
       );
 
       allow delete: if isAdmin() || (

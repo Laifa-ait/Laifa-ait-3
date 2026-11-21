@@ -63,27 +63,18 @@ export async function resolveAuthentication(req: AuthenticatedRequest): Promise<
       if (!req.user) req.user = req.authContext.user;
       return req.authContext;
     }
-    if (req.authContext.status === "anonymous" && !idToken) {
-      return req.authContext;
-    }
-    if (req.authContext.status === "error" && req.authContext.token === idToken) {
+    if ((req.authContext.status === "anonymous" && !idToken) || (req.authContext.status === "error" && req.authContext.token === idToken)) {
       return req.authContext;
     }
   }
 
   if (process.env.NODE_ENV === "test" && req.user && typeof req.user.uid === "string") {
-    const result: AuthResolutionResult = {
-      status: "authenticated",
-      user: req.user,
-      token: idToken || "test_token",
-    };
+    const result: AuthResolutionResult = { status: "authenticated", user: req.user, token: idToken || "test_token" };
     req.authContext = result;
     return result;
   }
 
-  if (process.env.NODE_ENV !== "test") {
-    req.user = undefined;
-  }
+  if (process.env.NODE_ENV !== "test") req.user = undefined;
 
   if (!authCred || !idToken) {
     const result: AuthResolutionResult = { status: "anonymous" };
@@ -95,10 +86,25 @@ export async function resolveAuthentication(req: AuthenticatedRequest): Promise<
   try {
     let decodedToken: admin.auth.DecodedIdToken;
     if (authCred.isCookie) {
-      try {
-        decodedToken = await admin.auth().verifySessionCookie(idToken, true);
-      } catch {
-        decodedToken = await admin.auth().verifyIdToken(idToken, false);
+      const authClient = admin.auth();
+      if (typeof authClient.verifySessionCookie === "function") {
+        try {
+          decodedToken = await authClient.verifySessionCookie(idToken, true);
+        } catch (cookieErr: unknown) {
+          const errCode = (cookieErr as { code?: string })?.code || "";
+          const errMsg = cookieErr instanceof Error ? cookieErr.message : String(cookieErr);
+          const isRevokedOrDisabled =
+            errCode === "auth/session-cookie-revoked" ||
+            errCode === "auth/session-cookie-expired" ||
+            errCode === "auth/id-token-revoked" ||
+            errCode === "auth/user-disabled" ||
+            errMsg.includes("revoked") ||
+            errMsg.includes("disabled");
+          if (isRevokedOrDisabled) throw cookieErr;
+          decodedToken = await authClient.verifyIdToken(idToken, true);
+        }
+      } else {
+        decodedToken = await authClient.verifyIdToken(idToken, true);
       }
     } else {
       decodedToken = await admin.auth().verifyIdToken(idToken, false);
@@ -108,15 +114,13 @@ export async function resolveAuthentication(req: AuthenticatedRequest): Promise<
     const { userDocExists, dbRole, dbStatus, dbCapabilities, dbFetchError } =
       await resolveUserProfileFromCacheOrDb(decodedToken.uid, tokenRole);
 
+    const isSuspendedInDb = dbStatus === "suspended" || dbStatus === "blocked" || dbRole === "suspended" || dbRole === "blocked";
     let effectiveRole = "buyer";
     if (tokenRole === "admin" || tokenRole === "superadmin") {
       if (dbFetchError) {
-        safeLogger.warn("Auth middleware: DB unreachable, failing closed for admin access", {
-          uid: decodedToken.uid,
-          tokenRole,
-        });
+        safeLogger.warn("Auth middleware: DB unreachable, failing closed for admin access", { uid: decodedToken.uid, tokenRole });
         effectiveRole = "suspended";
-      } else if (dbStatus === "suspended" || dbStatus === "blocked" || dbRole === "suspended" || dbRole === "blocked") {
+      } else if (isSuspendedInDb) {
         effectiveRole = "suspended";
       } else if (userDocExists && (dbRole === "admin" || dbRole === "superadmin")) {
         effectiveRole = tokenRole;
@@ -125,16 +129,12 @@ export async function resolveAuthentication(req: AuthenticatedRequest): Promise<
       } else {
         effectiveRole = tokenRole;
       }
+    } else if (isSuspendedInDb) {
+      effectiveRole = "suspended";
+    } else if (!dbFetchError && (dbRole === "seller" || dbRole === "artisan" || dbRole === "property_owner") && dbStatus === "active") {
+      effectiveRole = dbRole;
     } else {
-      if (dbStatus === "suspended" || dbStatus === "blocked" || dbRole === "suspended" || dbRole === "blocked") {
-        effectiveRole = "suspended";
-      } else if (dbFetchError) {
-        effectiveRole = tokenRole || "buyer";
-      } else if ((dbRole === "seller" || dbRole === "artisan" || dbRole === "property_owner") && dbStatus === "active") {
-        effectiveRole = dbRole;
-      } else {
-        effectiveRole = tokenRole || "buyer";
-      }
+      effectiveRole = tokenRole || "buyer";
     }
 
     const authenticatedUser: AuthenticatedUser = {
@@ -150,17 +150,14 @@ export async function resolveAuthentication(req: AuthenticatedRequest): Promise<
     req.authContext = result;
     return result;
   } catch (error: unknown) {
-    const errObj = error as { code?: string; message?: string };
-    const code = errObj?.code;
+    const code = (error as { code?: string })?.code;
     const errorMsg = error instanceof Error ? error.message : String(error);
-
     let clientMessage = "Jeton d'authentification invalide ou expiré.";
     if (code === "auth/id-token-revoked" || code === "auth/session-cookie-revoked" || errorMsg.includes("revoked")) {
       clientMessage = authCred?.isCookie ? "Session révoquée. Veuillez vous reconnecter." : "Jeton révoqué. Veuillez vous reconnecter.";
     } else if (code === "auth/user-disabled" || errorMsg.includes("disabled")) {
       clientMessage = "Compte utilisateur désactivé par l'administration.";
     }
-
     req.user = undefined;
     const result: AuthResolutionResult = { status: "error", statusCode: 401, error: clientMessage, token: idToken };
     req.authContext = result;
@@ -219,18 +216,14 @@ export const require2FA = async (req: AuthenticatedRequest, res: Response, next:
   if (!req.user) return res.status(401).json({ error: "Authentification requise." });
   try {
     if (!db) return res.status(503).json({ error: "Service de base de données indisponible pour la vérification 2FA." });
-
     let userData: Record<string, unknown> | null = getUserProfileFromCache(req.user.uid);
     if (!userData) {
       const userDoc = await db.collection("users").doc(req.user.uid).get();
       if (userDoc.exists) {
         userData = (userDoc.data() as Record<string, unknown>) || null;
-        if (userData) {
-          setUserProfileInCache(req.user.uid, { uid: req.user.uid, ...userData });
-        }
+        if (userData) setUserProfileInCache(req.user.uid, { uid: req.user.uid, ...userData });
       }
     }
-
     if (userData) {
       const verification = userData.verification as { verified?: boolean; verifiedAt?: unknown } | undefined;
       if (verification?.verified === true || userData.is2FAEnabled === true) {
@@ -240,9 +233,7 @@ export const require2FA = async (req: AuthenticatedRequest, res: Response, next:
         const verifiedAtMillis = verifiedAt
           ? typeof verifiedAt === "object" && typeof verifiedAt.toMillis === "function"
             ? verifiedAt.toMillis()
-            : typeof verifiedAt === "number"
-              ? verifiedAt
-              : new Date(String(verifiedAt)).getTime()
+            : typeof verifiedAt === "number" ? verifiedAt : new Date(String(verifiedAt)).getTime()
           : 0;
         if (verifiedAtMillis < authTime * 1000) {
           return res.status(403).json({ error: "MFA_REQUIRED", message: "Double authentification requise pour cette session." });
@@ -251,8 +242,7 @@ export const require2FA = async (req: AuthenticatedRequest, res: Response, next:
     }
     next();
   } catch (error: unknown) {
-    const errMsg = error instanceof Error ? error.message : String(error);
-    safeLogger.error("require2FA middleware error", { err: errMsg });
+    safeLogger.error("require2FA middleware error", { err: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: "Erreur interne lors de la vérification de la double authentification." });
   }
 };

@@ -175,8 +175,8 @@ describe("Audit & Refonte Studio Vendeur : Sélecteur de Couleurs par Élément,
       styles: { headingColor: "#FF0000", cardBgColor: "#123456", buttonBgColor: "#000" },
     };
     const cleaned = stripHardcodedSectionColors([dirtySection]);
-    expect(cleaned[0].styles.headingColor).toBeUndefined();
-    expect(cleaned[0].styles.cardBgColor).toBeUndefined();
+    expect(cleaned[0].styles?.headingColor).toBeUndefined();
+    expect(cleaned[0].styles?.cardBgColor).toBeUndefined();
 
     await act(async () => { root.render(<ThemeColorPaletteTab theme={DEFAULT_STUDIO_THEME} onUpdateTheme={() => undefined} onErrorChange={() => undefined} />); });
     expect(container.querySelector('[data-testid="global-color-canvasColor"]')).not.toBeNull();
@@ -216,7 +216,7 @@ describe("Audit & Refonte Studio Vendeur : Sélecteur de Couleurs par Élément,
     await act(async () => { lgBtn.click(); });
     await renderBoth();
 
-    expect(heroSection.styles.borderRadius).toBe("lg");
+    expect(heroSection.styles?.borderRadius).toBe("lg");
     expect(heroSection.settings.borderRadiusPx).toBe(40);
     expect(heroSection.settings.heroMobileConfig?.borderRadiusPx).toBe(40);
     expect((container.querySelector('[data-testid="hero-model-editorial-split"]') as HTMLElement).style.borderRadius).toBe("40px");
@@ -228,7 +228,7 @@ describe("Audit & Refonte Studio Vendeur : Sélecteur de Couleurs par Élément,
     });
     await renderBoth();
 
-    expect(heroSection.styles.shadow).toBe("glow");
+    expect(heroSection.styles?.shadow).toBe("glow");
     expect(heroSection.settings.bannerShadow).toBe("glow");
     expect((container.querySelector('[data-testid="hero-model-editorial-split"]') as HTMLElement).style.boxShadow).toContain("rgba(236, 72, 153");
   });

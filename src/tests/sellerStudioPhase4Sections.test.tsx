@@ -46,11 +46,13 @@ const SAMPLE_PRODUCTS: Product[] = [
     id: "p_old_top", name: "Tapis Berbère Tradition", price: 18500, stock: 4, category: "Tapis",
     image: "https://images.unsplash.com/photo-1600166898405-da9535204843?w=500",
     sellerId: "s1", salesCount: 42, createdAt: "2026-01-10T10:00:00.000Z",
+    rating: 4.9, description: "Tapis artisanal", wilaya: "Tizi Ouzou", status: "active",
   },
   {
     id: "p_new_low", name: "Poterie de Kabylie", price: 4500, stock: 9, category: "Céramique",
     image: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=500",
     sellerId: "s1", salesCount: 3, createdAt: "2026-11-01T10:00:00.000Z",
+    rating: 4.8, description: "Poterie peinte main", wilaya: "Béjaïa", status: "active",
   },
 ];
 
@@ -87,7 +89,7 @@ describe("Phase 4 — Outils de Construction & Inspecteur des 16 Sections", () =
       const { container, unmount } = renderInDom(
         <div>
           <StoreSectionRenderer section={sec} theme={BASE_THEME} products={SAMPLE_PRODUCTS} isEditable />
-          <SectionInspectorPanel section={sec} sections={[sec]} products={SAMPLE_PRODUCTS} theme={BASE_THEME} onUpdateSection={() => {}} />
+          <SectionInspectorPanel section={sec} sections={[sec]} products={SAMPLE_PRODUCTS} onUpdateSection={() => {}} />
         </div>
       );
       expect(container.querySelector(`[data-section-type="${type}"]`)).not.toBeNull();
@@ -207,7 +209,7 @@ describe("Phase 4 — Outils de Construction & Inspecteur des 16 Sections", () =
       <div>
         <StoreSectionRenderer section={marqueeSec} theme={BASE_THEME} products={SAMPLE_PRODUCTS} isEditable />
         <StoreSectionRenderer section={footerSec} theme={BASE_THEME} products={SAMPLE_PRODUCTS} isEditable />
-        <SectionInspectorPanel section={marqueeSec} products={SAMPLE_PRODUCTS} theme={BASE_THEME} onUpdateSection={() => {}} />
+        <SectionInspectorPanel section={marqueeSec} products={SAMPLE_PRODUCTS} onUpdateSection={() => {}} />
       </div>
     );
     expect(container.querySelector('[data-testid="kinetic-marquee-empty-state"]')).not.toBeNull();

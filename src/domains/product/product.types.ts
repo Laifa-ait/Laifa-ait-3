@@ -163,6 +163,7 @@ export interface Product {
   specs?: Record<string, string>;
   createdAt?: AppTimestamp;
   updatedAt?: AppTimestamp;
+  deletedAt?: AppTimestamp;
 }
 
 export interface HomepageSection {

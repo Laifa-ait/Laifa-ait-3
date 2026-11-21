@@ -10,6 +10,13 @@ import { getTelemetryStats } from "../../../utils/telemetry";
 
 const router = Router();
 
+function sendInternalServerError(res: Response, context: string, err: unknown): Response {
+  safeLogger.error(`[AdminSystem] ${context}`, {
+    err: err instanceof Error ? err.message : String(err),
+  });
+  return res.status(500).json({ error: "Erreur interne du serveur" });
+}
+
 // ADMIN ONLY: Zero-cost in-memory Ring Buffer Telemetry (ACID transaction latencies & Background workers)
 router.get("/admin/telemetry", authenticateToken, authorizeAdmin, require2FA, (_req: AuthenticatedRequest, res: Response) => {
   const stats = getTelemetryStats();
@@ -115,7 +122,7 @@ router.post("/admin/danger-zone-wipe", authenticateToken, authorizeAdmin, requir
 
     res.json({ success: true, message: "Réinitialisation des données de test effectuée avec succès." });
   } catch (err: unknown) {
-    res.status(500).json({ error: err instanceof Error ? err.message : "Erreur interne" });
+    return sendInternalServerError(res, "danger-zone-wipe failed", err);
   }
 });
 
@@ -129,7 +136,7 @@ router.get(["/translations", "/api/v1/translations"], async (req: Request, res: 
     const translations = await LocaleStorageService.getMergedLocale(lang);
     res.json({ success: true, translations });
   } catch (error: unknown) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    return sendInternalServerError(res, "get translations failed", error);
   }
 });
 
@@ -154,7 +161,7 @@ router.post("/admin/save-translation", authenticateToken, authorizeAdmin, async 
 
     return res.status(400).json({ error: "Paramètres de traduction manquants ou invalides." });
   } catch (error: unknown) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    return sendInternalServerError(res, "save-translation failed", error);
   }
 });
 
@@ -216,7 +223,7 @@ router.get("/admin/users", authenticateToken, authorizeAdmin, async (req: Authen
 
     res.json({ success: true, users });
   } catch (error: unknown) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    return sendInternalServerError(res, "get users failed", error);
   }
 });
 
@@ -258,7 +265,7 @@ router.put("/admin/users/:id/status", authenticateToken, authorizeAdmin, async (
 
     res.json({ success: true });
   } catch (error: unknown) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    return sendInternalServerError(res, "update user status failed", error);
   }
 });
 
@@ -311,7 +318,7 @@ router.put("/admin/users/:id/role", authenticateToken, authorizeAdmin, async (re
 
     res.json({ success: true, role });
   } catch (error: unknown) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    return sendInternalServerError(res, "update user role failed", error);
   }
 });
 
@@ -332,7 +339,7 @@ router.put("/admin/users/:id/client-type", authenticateToken, authorizeAdmin, as
 
     res.json({ success: true });
   } catch (error: unknown) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    return sendInternalServerError(res, "update client-type failed", error);
   }
 });
 
@@ -381,11 +388,52 @@ router.put("/admin/users/:id/capabilities", authenticateToken, authorizeAdmin, a
 
     res.json({ success: true, capabilities });
   } catch (error: unknown) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    return sendInternalServerError(res, "update capabilities failed", error);
   }
 });
 
-router.post("/admin/users/bulk-status", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+const ADMIN_ROLE_WEIGHT: Record<string, number> = {
+  buyer: 1,
+  seller: 1,
+  artisan: 1,
+  property_owner: 1,
+  admin: 2,
+  superadmin: 3,
+};
+
+export function assertAdminCanMutateTargetRole(
+  callerId: string | undefined,
+  callerRole: string,
+  targetUserId: string,
+  targetRole: string
+): { allowed: true } | { allowed: false; status: 400 | 403; error: string } {
+  if (callerId && callerId === targetUserId) {
+    return {
+      allowed: false,
+      status: 400,
+      error: "Action interdite : vous ne pouvez pas supprimer votre propre compte.",
+    };
+  }
+  const callerWeight = ADMIN_ROLE_WEIGHT[callerRole] || 1;
+  const targetWeight = ADMIN_ROLE_WEIGHT[targetRole] || 1;
+  if (targetWeight >= callerWeight && callerRole !== "superadmin") {
+    return {
+      allowed: false,
+      status: 403,
+      error: "Action interdite : vous n'avez pas l'autorisation d'agir sur un rôle supérieur ou équivalent.",
+    };
+  }
+  if (targetRole === "superadmin" && callerRole === "superadmin") {
+    return {
+      allowed: false,
+      status: 403,
+      error: "Action interdite : impossible de supprimer un superadministrateur.",
+    };
+  }
+  return { allowed: true };
+}
+
+router.post("/admin/users/bulk-status", authenticateToken, authorizeAdmin, require2FA, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userIds, status, reason } = req.body;
     if (!Array.isArray(userIds) || userIds.length === 0) {
@@ -397,6 +445,31 @@ router.post("/admin/users/bulk-status", authenticateToken, authorizeAdmin, async
     if (!["active", "suspended", "blocked"].includes(status)) {
       return res.status(400).json({ error: "Statut invalide" });
     }
+
+    const callerId = req.user?.uid;
+    const callerRole = req.user?.role || "admin";
+    const targetSnaps = await Promise.all(
+      userIds.map((uid: string) => db.collection("users").doc(uid).get())
+    );
+    for (let idx = 0; idx < userIds.length; idx += 1) {
+      const uid = userIds[idx];
+      const snap = targetSnaps[idx];
+      const targetRole = (snap?.exists ? snap.data()?.role : undefined) || "buyer";
+      const check = assertAdminCanMutateTargetRole(callerId, callerRole, uid, targetRole);
+      if (!check.allowed) {
+        return res.status(check.status).json({ error: check.error, targetUserId: uid });
+      }
+    }
+
+    const auditRef = await db.collection("audit_logs").add({
+      type: "USER_MANAGEMENT",
+      action: "BULK_UPDATE_STATUS",
+      status: "INITIATED",
+      targetUserIds: userIds,
+      adminId: callerId || "admin",
+      details: { newStatus: status, reason, count: userIds.length },
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
 
     const batchSize = 400;
     for (let i = 0; i < userIds.length; i += batchSize) {
@@ -413,6 +486,8 @@ router.post("/admin/users/bulk-status", authenticateToken, authorizeAdmin, async
       await batch.commit();
     }
 
+    userIds.forEach((uid: string) => clearUserProfileCache(uid));
+
     // Invalidate refresh tokens for suspended/blocked users in bulk
     if (status === "suspended" || status === "blocked") {
       await Promise.allSettled(
@@ -427,22 +502,20 @@ router.post("/admin/users/bulk-status", authenticateToken, authorizeAdmin, async
       );
     }
 
-    await db.collection("audit_logs").add({
-      type: "USER_MANAGEMENT",
-      action: "BULK_UPDATE_STATUS",
-      targetUserIds: userIds,
-      adminId: req.user?.uid || "admin",
-      details: { newStatus: status, reason, count: userIds.length },
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    if (auditRef && typeof auditRef.update === "function") {
+      await auditRef.update({
+        status: "COMPLETED",
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
 
     res.json({ success: true, count: userIds.length });
   } catch (error: unknown) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    return sendInternalServerError(res, "bulk-status failed", error);
   }
 });
 
-router.post("/admin/users/bulk-delete", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+router.post("/admin/users/bulk-delete", authenticateToken, authorizeAdmin, require2FA, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userIds } = req.body;
     if (!Array.isArray(userIds) || userIds.length === 0) {
@@ -451,6 +524,31 @@ router.post("/admin/users/bulk-delete", authenticateToken, authorizeAdmin, async
     if (userIds.length > 20) {
       return res.status(400).json({ error: "La suppression en masse est limitée à 20 utilisateurs maximum par opération." });
     }
+
+    const callerId = req.user?.uid;
+    const callerRole = req.user?.role || "admin";
+    const targetSnaps = await Promise.all(
+      userIds.map((uid: string) => db.collection("users").doc(uid).get())
+    );
+    for (let idx = 0; idx < userIds.length; idx += 1) {
+      const uid = userIds[idx];
+      const snap = targetSnaps[idx];
+      const targetRole = (snap?.exists ? snap.data()?.role : undefined) || "buyer";
+      const check = assertAdminCanMutateTargetRole(callerId, callerRole, uid, targetRole);
+      if (!check.allowed) {
+        return res.status(check.status).json({ error: check.error, targetUserId: uid });
+      }
+    }
+
+    const auditRef = await db.collection("audit_logs").add({
+      type: "USER_MANAGEMENT",
+      action: "BULK_DELETE_USERS",
+      status: "INITIATED",
+      targetUserIds: userIds,
+      adminId: callerId || "admin",
+      details: { count: userIds.length },
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
 
     const batchSize = 400;
     for (let i = 0; i < userIds.length; i += batchSize) {
@@ -462,6 +560,8 @@ router.post("/admin/users/bulk-delete", authenticateToken, authorizeAdmin, async
       });
       await batch.commit();
     }
+
+    userIds.forEach((uid: string) => clearUserProfileCache(uid));
 
     // Invalidate refresh tokens on bulk delete
     await Promise.allSettled(
@@ -475,33 +575,29 @@ router.post("/admin/users/bulk-delete", authenticateToken, authorizeAdmin, async
       )
     );
 
-    await db.collection("audit_logs").add({
-      type: "USER_MANAGEMENT",
-      action: "BULK_DELETE_USERS",
-      targetUserIds: userIds,
-      adminId: req.user?.uid || "admin",
-      details: { count: userIds.length },
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    if (auditRef && typeof auditRef.update === "function") {
+      await auditRef.update({
+        status: "COMPLETED",
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
 
     res.json({ success: true, count: userIds.length });
   } catch (error: unknown) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    return sendInternalServerError(res, "bulk-delete failed", error);
   }
 });
 
-router.delete("/admin/users/:id", authenticateToken, authorizeAdmin, async (req: AuthenticatedRequest, res: Response) => {
+router.delete("/admin/users/:id", authenticateToken, authorizeAdmin, require2FA, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const targetUserId = req.params.id;
     const callerId = req.user?.uid;
     const callerRole = req.user?.role || "admin";
 
-    // 1. Interdire d'agir sur soi-même
     if (callerId && callerId === targetUserId) {
       return res.status(400).json({ error: "Action interdite : vous ne pouvez pas supprimer votre propre compte." });
     }
 
-    // 2. Vérifier l'utilisateur cible et la hiérarchie des rôles
     const targetDoc = await db.collection("users").doc(targetUserId).get();
     if (!targetDoc.exists) {
       return res.status(404).json({ error: "Utilisateur introuvable." });
@@ -509,30 +605,9 @@ router.delete("/admin/users/:id", authenticateToken, authorizeAdmin, async (req:
 
     const targetData = targetDoc.data();
     const targetRole = targetData?.role || "buyer";
-
-    const ROLE_WEIGHT: Record<string, number> = {
-      buyer: 1,
-      seller: 1,
-      artisan: 1,
-      property_owner: 1,
-      admin: 2,
-      superadmin: 3,
-    };
-
-    const callerWeight = ROLE_WEIGHT[callerRole] || 1;
-    const targetWeight = ROLE_WEIGHT[targetRole] || 1;
-
-    // Interdire d'agir sur un rôle supérieur ou égal pour un non-superadmin
-    if (targetWeight >= callerWeight && callerRole !== "superadmin") {
-      return res.status(403).json({
-        error: "Action interdite : vous n'avez pas l'autorisation d'agir sur un rôle supérieur ou équivalent.",
-      });
-    }
-
-    if (targetRole === "superadmin" && callerRole === "superadmin") {
-      return res.status(403).json({
-        error: "Action interdite : impossible de supprimer un superadministrateur.",
-      });
+    const check = assertAdminCanMutateTargetRole(callerId, callerRole, targetUserId, targetRole);
+    if (!check.allowed) {
+      return res.status(check.status).json({ error: check.error });
     }
 
     // 3. Supprimer le compte Auth (ou désactiver + révoquer en fallback)
@@ -572,7 +647,7 @@ router.delete("/admin/users/:id", authenticateToken, authorizeAdmin, async (req:
 
     res.json({ success: true, message: "Utilisateur supprimé avec succès." });
   } catch (error: unknown) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    return sendInternalServerError(res, "delete user failed", error);
   }
 });
 
@@ -585,7 +660,7 @@ router.get("/admin/audit-logs", authenticateToken, authorizeAdmin, async (req: A
 
     res.json({ success: true, logs });
   } catch (error: unknown) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    return sendInternalServerError(res, "get audit-logs failed", error);
   }
 });
 
@@ -661,7 +736,7 @@ router.get("/admin/reports/export", authenticateToken, authorizeAdmin, async (re
       data: { headers, rows, filename },
     });
   } catch (error: unknown) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    return sendInternalServerError(res, "reports export failed", error);
   }
 });
 
@@ -677,7 +752,7 @@ router.get("/admin/search/config", authenticateToken, authorizeAdmin, async (req
 
     res.json({ success: true, config });
   } catch (err: unknown) {
-    res.status(500).json({ error: err instanceof Error ? err.message : "Erreur interne" });
+    return sendInternalServerError(res, "get search config failed", err);
   }
 });
 
@@ -721,7 +796,7 @@ router.put("/admin/search/config", authenticateToken, authorizeAdmin, async (req
 
     res.json({ success: true });
   } catch (err: unknown) {
-    res.status(500).json({ error: err instanceof Error ? err.message : "Erreur interne" });
+    return sendInternalServerError(res, "update search config failed", err);
   }
 });
 
@@ -731,7 +806,7 @@ router.get("/admin/search/products-preview", authenticateToken, authorizeAdmin, 
     const products = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     res.json({ success: true, count: products.length, sample: products });
   } catch (err: unknown) {
-    res.status(500).json({ error: err instanceof Error ? err.message : "Erreur interne" });
+    return sendInternalServerError(res, "products-preview failed", err);
   }
 });
 

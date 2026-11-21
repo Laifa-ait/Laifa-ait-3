@@ -118,7 +118,7 @@ export function resolveHeroTextFrame(
     cfg.gradientColor2 || (darkSurface ? "#1E293B" : "#E7D5B8"),
     darkSurface ? "#1E293B" : "#E7D5B8"
   );
-  const fillMode = cfg.fillMode === "gradient" ? "gradient" : "solid";
+  const fillMode: "solid" | "gradient" = cfg.fillMode === "gradient" ? "gradient" : "solid";
   const gradientAngle = clampNum(cfg.gradientAngle, 0, 360, 135);
   const opacity = clampNum(cfg.opacity, 0, 100, 93);
   const blurPx = clampNum(cfg.blurPx, 0, 24, 12);

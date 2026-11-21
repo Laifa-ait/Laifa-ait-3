@@ -11,7 +11,7 @@ interface ArtisanOffersCatalogSectionProps {
   offers: ArtisanOffer[];
   wilaya?: string;
   activeTradeName?: string;
-  boostedArtisanIds: Record<string, string>;
+  boostedArtisanIds: Record<string, unknown>;
   nativeBanner: ArtisanInFeedBannerAd | null;
   onResetFilters: () => void;
   onRetry?: () => void;

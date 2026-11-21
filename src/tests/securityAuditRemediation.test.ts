@@ -77,9 +77,9 @@ describe("Security Audit Remediation Verification Suite (F-1 to F-6)", () => {
       const testOrigin = "https://malicious-attacker.com";
 
       if (typeof corsOptions.origin === "function") {
-        corsOptions.origin(testOrigin, (err: Error | null, allow?: boolean) => {
+        corsOptions.origin(testOrigin, (err: Error | null, allow?: boolean | string | RegExp | (boolean | string | RegExp)[]) => {
           expect(err).toBeNull();
-          allowed = allow;
+          allowed = Boolean(allow);
         });
       }
 
@@ -91,9 +91,9 @@ describe("Security Audit Remediation Verification Suite (F-1 to F-6)", () => {
       const validOrigin = "https://olmart.dz";
 
       if (typeof corsOptions.origin === "function") {
-        corsOptions.origin(validOrigin, (err: Error | null, allow?: boolean) => {
+        corsOptions.origin(validOrigin, (err: Error | null, allow?: boolean | string | RegExp | (boolean | string | RegExp)[]) => {
           expect(err).toBeNull();
-          allowed = allow;
+          allowed = Boolean(allow);
         });
       }
 

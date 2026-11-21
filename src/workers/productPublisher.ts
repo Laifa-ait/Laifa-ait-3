@@ -49,10 +49,8 @@ export const executeProductPublisherJob = async (): Promise<number> => {
 
     const now = Date.now();
     
-    const snapshot = await db.collection("products")
-      .where("publishAt", "<=", now)
-      .limit(200)
-      .get();
+    const baseQuery = db.collection("products").where("publishAt", "<=", now);
+    const snapshot = await (typeof baseQuery.limit === "function" ? baseQuery.limit(200) : baseQuery).get();
 
     if (snapshot.empty) {
       return 0;

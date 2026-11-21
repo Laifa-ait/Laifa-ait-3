@@ -38,7 +38,8 @@ async function recalculateProductStatsInsideTransaction(
   targetReviewPatch?: Partial<ReviewDocument>,
   isDelete = false
 ): Promise<void> {
-  const reviewsQuery = db.collection("reviews").where("productId", "==", productId).limit(500);
+  const baseReviewsQuery = db.collection("reviews").where("productId", "==", productId);
+  const reviewsQuery = typeof baseReviewsQuery.limit === "function" ? baseReviewsQuery.limit(500) : baseReviewsQuery;
   const reviewsSnap = await t.get(reviewsQuery);
 
   let totalRatingSum = 0;

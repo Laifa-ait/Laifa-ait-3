@@ -2,6 +2,8 @@ import { Router, Request, Response } from "express";
 import { admin, db, isFirebaseReady, getFirebaseInitState, getFirebaseInitError, FirebaseInitState } from "../../config/firebase-admin";
 import { isFrontendReady } from "../../services/ViteStaticService";
 import { verifyAndHealAllServices, getLastSelfHealReport } from "../../services/ServiceAutoHealer";
+import { authenticateToken, authorizeAdmin, AuthenticatedRequest } from "../../middlewares/auth";
+import { strictLimiter } from "../../middlewares/rateLimiters";
 import { safeLogger } from "../../utils/logger";
 
 const router = Router();
@@ -115,15 +117,30 @@ router.get(["/api/health/ready", "/api/v1/health/ready", "/health/ready", "/read
 /**
  * Autonomous Service Diagnostic & Self-Healing Endpoint (v1)
  */
-router.get("/api/v1/health/services", async (_req: Request, res: Response) => {
+router.get("/api/v1/health/services", async (req: AuthenticatedRequest, res: Response) => {
+  if (process.env.NODE_ENV === "production") {
+    let authPassed = false;
+    await authenticateToken(req, res, () => {
+      authorizeAdmin(req, res, () => {
+        authPassed = true;
+      });
+    });
+    if (!authPassed) return;
+  }
   const report = getLastSelfHealReport() ?? (await verifyAndHealAllServices());
   return res.status(200).json({ success: true, data: report });
 });
 
-router.post("/api/v1/health/self-heal", async (_req: Request, res: Response) => {
-  const report = await verifyAndHealAllServices();
-  return res.status(200).json({ success: true, data: report });
-});
+router.post(
+  "/api/v1/health/self-heal",
+  strictLimiter,
+  authenticateToken,
+  authorizeAdmin,
+  async (_req: Request, res: Response) => {
+    const report = await verifyAndHealAllServices();
+    return res.status(200).json({ success: true, data: report });
+  }
+);
 
 /**
  * Standard Health check
@@ -132,19 +149,22 @@ router.post("/api/v1/health/self-heal", async (_req: Request, res: Response) => 
  */
 router.get(["/api/health", "/api/v1/health", "/health", "/healthz"], async (_req: Request, res: Response) => {
   const { ready, firebase, frontend } = await checkReadiness();
-  const mem = process.memoryUsage();
+  const isProd = process.env.NODE_ENV === "production";
   const body: Record<string, unknown> = {
     status: ready ? "healthy" : "degraded",
     timestamp: new Date().toISOString(),
-    pid: process.pid,
-    uptime: Math.floor(process.uptime()),
-    memory: {
+    firebase,
+  };
+  if (!isProd) {
+    const mem = process.memoryUsage();
+    body.pid = process.pid;
+    body.uptime = Math.floor(process.uptime());
+    body.memory = {
       rssMb: Math.round(mem.rss / 1024 / 1024),
       heapTotalMb: Math.round(mem.heapTotal / 1024 / 1024),
       heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024),
-    },
-    firebase,
-  };
+    };
+  }
   if (frontend !== undefined) {
     body.frontend = frontend;
   }

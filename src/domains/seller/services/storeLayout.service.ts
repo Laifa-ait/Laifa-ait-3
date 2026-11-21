@@ -119,7 +119,11 @@ export class StoreLayoutService {
       const mergedConfig = stripUndefinedDeep<StoreConfig>({
         ...baseConfig, ...payload,
         theme: { ...baseConfig.theme, ...(payload.theme || {}) },
-        seo: { ...baseConfig.seo, ...(payload.seo || {}) },
+        seo: {
+          metaTitle: payload.seo?.metaTitle ?? baseConfig.seo?.metaTitle ?? "",
+          metaDescription: payload.seo?.metaDescription ?? baseConfig.seo?.metaDescription ?? "",
+          ...(payload.seo?.ogImage || baseConfig.seo?.ogImage ? { ogImage: payload.seo?.ogImage ?? baseConfig.seo?.ogImage } : {}),
+        },
         ...(payload.announcementBar || baseConfig.announcementBar ? { announcementBar: { ...(baseConfig.announcementBar || { enabled: false, text: "" }), ...(payload.announcementBar || {}) } } : {}),
         ...(payload.headerConfig || baseConfig.headerConfig ? { headerConfig: { ...(baseConfig.headerConfig || { layout: "left", sticky: true, showSearch: true, showTrustBar: true, navLinks: [] }), ...(payload.headerConfig || {}) } } : {}),
         ...(payload.commerceConfig || baseConfig.commerceConfig ? { commerceConfig: { ...(baseConfig.commerceConfig || { codEnabled: true, whatsappOrderEnabled: false }), ...(payload.commerceConfig || {}) } } : {}),

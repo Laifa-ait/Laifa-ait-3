@@ -181,4 +181,22 @@ describe('OLMART — Authentication & Identity Security Layer', () => {
       expect(result.user.role).toBe('suspended');
     }
   });
+
+  it('7. Rejects revoked admin_session cookie immediately without verifyIdToken bypass (M-16)', async () => {
+    const revokedCookieErr = new Error('The Firebase session cookie has been revoked.');
+    (revokedCookieErr as unknown as { code: string }).code = 'auth/session-cookie-revoked';
+    mockVerifyIdTokenRejectError = revokedCookieErr;
+
+    const req = {
+      headers: {},
+      cookies: { admin_session: 'revoked_admin_cookie_token' },
+    } as unknown as AuthenticatedRequest;
+
+    const result = await resolveAuthentication(req);
+    expect(result.status).toBe('error');
+    if (result.status === 'error') {
+      expect(result.statusCode).toBe(401);
+      expect(result.error).toBe('Session révoquée. Veuillez vous reconnecter.');
+    }
+  });
 });

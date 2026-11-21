@@ -68,10 +68,18 @@ describe("Security Middleware Configuration", () => {
       });
     });
 
-    it("disallows untrusted third-party origins in production", () => {
+    it("disallows untrusted third-party and user-content google domains in production (H-2)", () => {
       process.env.NODE_ENV = "production";
       const originFn = corsOptions.origin as CorsOriginFn;
       originFn("https://evil-unauthorized.com", (err: Error | null, allow?: boolean) => {
+        expect(err).toBeNull();
+        expect(allow).toBe(false);
+      });
+      originFn("https://evil-app.googleusercontent.com", (err: Error | null, allow?: boolean) => {
+        expect(err).toBeNull();
+        expect(allow).toBe(false);
+      });
+      originFn("https://www.google.com", (err: Error | null, allow?: boolean) => {
         expect(err).toBeNull();
         expect(allow).toBe(false);
       });
@@ -90,12 +98,7 @@ describe("Security Middleware Configuration", () => {
         headers: { host: "laifa-ait-git-mslz.europe-west1.run.app" },
       } as unknown as Request;
 
-      const res = {} as Response;
-      const next = () => {
-        nextCalled = true;
-      };
-
-      preventDirectCloudRunAccess(req, res, next);
+      preventDirectCloudRunAccess(req, {} as Response, () => { nextCalled = true; });
       expect(nextCalled).toBe(true);
     });
 
@@ -123,11 +126,7 @@ describe("Security Middleware Configuration", () => {
       } as unknown as Response;
 
       let nextCalled = false;
-      const next = () => {
-        nextCalled = true;
-      };
-
-      preventDirectCloudRunAccess(req, res, next);
+      preventDirectCloudRunAccess(req, res, () => { nextCalled = true; });
       expect(nextCalled).toBe(false);
       expect(statusCode).toBe(301);
       expect(redirectedUrl).toBe("https://olmart.dz/products");
@@ -150,34 +149,31 @@ describe("Security Middleware Configuration", () => {
     });
   });
 
-  describe("Clickjacking CSP Protection", () => {
-    it("configures frame-ancestors with 'self' and exact origins without wildcard *.run.app in production", () => {
+  describe("Clickjacking & Nonce CSP Protection (C-1)", () => {
+    it("configures frame-ancestors, dynamic script-src nonce, and removes unsafe-inline in production", () => {
       process.env.NODE_ENV = "production";
 
       const headers: Record<string, string> = {};
-      const req = {
-        headers: {},
-      } as unknown as Request;
-
+      const req = { headers: {} } as unknown as Request;
       const res = {
-        setHeader: (name: string, value: string) => {
-          headers[name.toLowerCase()] = value;
-        },
+        setHeader: (name: string, value: string) => { headers[name.toLowerCase()] = value; },
         removeHeader: () => {},
-        locals: {},
+        locals: { cspNonce: "testNonce12345==" },
       } as unknown as Response;
 
       helmetMiddleware(req, res, () => {});
 
       const cspHeader = headers["content-security-policy"] || "";
-      const frameAncestorsDirective = cspHeader
-        .split(";")
-        .find((dir) => dir.trim().startsWith("frame-ancestors")) || "";
+      const frameAncestorsDirective = cspHeader.split(";").find((dir) => dir.trim().startsWith("frame-ancestors")) || "";
+      const scriptSrcDirective = cspHeader.split(";").find((dir) => dir.trim().startsWith("script-src ")) || "";
 
       expect(frameAncestorsDirective).toContain("frame-ancestors");
       expect(frameAncestorsDirective).toContain("'self'");
       expect(frameAncestorsDirective).not.toContain("https://*.run.app");
       expect(frameAncestorsDirective).toContain("https://olmart.dz");
+
+      expect(scriptSrcDirective).toContain("'nonce-testNonce12345=='");
+      expect(scriptSrcDirective).not.toContain("'unsafe-inline'");
     });
   });
 
@@ -188,9 +184,7 @@ describe("Security Middleware Configuration", () => {
       const headers: Record<string, string> = {};
       const req = { headers: {} } as unknown as Request;
       const res = {
-        setHeader: (name: string, value: string) => {
-          headers[name.toLowerCase()] = value;
-        },
+        setHeader: (name: string, value: string) => { headers[name.toLowerCase()] = value; },
         removeHeader: () => {},
         locals: {},
       } as unknown as Response;

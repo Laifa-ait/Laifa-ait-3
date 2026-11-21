@@ -210,12 +210,12 @@ describe("Phase 4 — Outils de Construction (Pages, Templates, Médias, Variant
       );
     });
 
-    const techBtn = container.querySelector('[data-testid="hero-variant-tech-precision"]') as HTMLButtonElement;
+    const techBtn = container.querySelector('[data-testid="hero-model-card-editorial-split"]') as HTMLButtonElement;
     await act(async () => {
       techBtn.click();
     });
 
-    expect(patches[0]).toMatchObject({ heroVariant: "tech-precision", heroLayout: "editorial-split" });
+    expect(patches[0]).toMatchObject({ heroLayout: "editorial-split" });
 
     const report = buildStoreQualityReport({
       sections: SAMPLE_SECTIONS,

@@ -46,16 +46,12 @@ describe("Phase 7.1 — Consolidation Transversale des Phases 1 à 7 (Lots A, B,
     );
     expect(readLocalStudioBackup(key)).toBeNull();
 
-    const validSection: CustomPageSection = {
-      id: "sec_1",
-      type: "hero_banner",
-      title: "Hero",
-      isVisible: true,
-      order: 0,
-      settings: { title: "Bonjour" },
+    const validSection: CustomPageSection<"hero_banner"> = {
+      id: "sec_1", type: "hero_banner", title: "Hero", isVisible: true, order: 0, styles: {},
+      settings: { title: "Bonjour", imageUrl: "https://cdn.olmart.dz/hero.jpg" },
     };
     writeLocalStudioBackup(key, [validSection], 2);
-    writeLocalStudioThemeBackup(key, { primaryColor: "#023859", canvasColor: "#FAF6F0" }, [validSection]);
+    writeLocalStudioThemeBackup(key, { sector: "mode", fontFamily: "Plus Jakarta Sans", primaryColor: "#023859", canvasColor: "#FAF6F0" }, [validSection]);
 
     const recovered = readLocalStudioBackup(key);
     expect(recovered).not.toBeNull();
@@ -70,23 +66,19 @@ describe("Phase 7.1 — Consolidation Transversale des Phases 1 à 7 (Lots A, B,
     expect(getContrastRatio("var(--store-primary, #18181B)", "#FFFFFF")).toBeGreaterThan(15);
 
     const audits = auditThemeContrastPairs({
-      canvasColor: "invalid-hex",
-      textColor: "#18181B",
-      surfaceColor: "#FFFFFF",
-      secondaryColor: "#18181B",
-      primaryColor: "#18181B",
+      sector: "mode", fontFamily: "Plus Jakarta Sans", canvasColor: "invalid-hex",
+      textColor: "#18181B", surfaceColor: "#FFFFFF", secondaryColor: "#18181B", primaryColor: "#18181B",
     });
     const canvasCheck = audits.find((a) => a.id === "canvas-text");
     expect(canvasCheck?.passes).toBe(false);
     expect(canvasCheck?.ratio).toBe(0);
-
     expect(ARTISTIC_STUDIO_PRESETS).toHaveLength(14);
   });
 
   it("Lot B.3 & B.4: buildSmartHeroFromCatalog filters out inactive/draft products and computeHeroContrastDiagnostics flags low-overlay photo hero", () => {
     const products: Product[] = [
-      { id: "p_draft", name: "Produit Brouillon", price: 2000, status: "draft", stock: 10, image: "https://cdn.olmart.dz/draft.jpg" } as Product,
-      { id: "p_active", name: "Robe Kabyle Active", price: 9500, status: "active", stock: 5, image: "https://cdn.olmart.dz/active.jpg" } as Product,
+      { id: "p_draft", name: "Produit Brouillon", description: "Brouillon", wilaya: "Tizi Ouzou", category: "Artisanat", sellerId: "s1", rating: 0, price: 2000, status: "draft", stock: 10, image: "https://cdn.olmart.dz/draft.jpg" },
+      { id: "p_active", name: "Robe Kabyle Active", description: "Création artisanale de Tizi Ouzou", wilaya: "Tizi Ouzou", category: "Artisanat", sellerId: "s1", rating: 5, price: 9500, status: "active", stock: 5, image: "https://cdn.olmart.dz/active.jpg" },
     ];
     const heroPatch = buildSmartHeroFromCatalog(products, "artisanat", "Tizi Ouzou", "editorial-split");
     expect(heroPatch.title).toBe("Robe Kabyle Active");
@@ -94,13 +86,10 @@ describe("Phase 7.1 — Consolidation Transversale des Phases 1 à 7 (Lots A, B,
     expect(heroPatch.subtitle).toContain("Tizi Ouzou");
 
     const photoDiag = computeHeroContrastDiagnostics({
-      heroLayout: "cinema-full",
-      imageUrl: "https://cdn.olmart.dz/photo.jpg",
-      overlayOpacity: 10,
-      textShadow: "none",
+      heroLayout: "cinema-full", imageUrl: "https://cdn.olmart.dz/photo.jpg", overlayOpacity: 10, textShadow: "none",
     });
     expect(photoDiag.level).toBe("LOW");
-    expect(photoDiag.warningMessage).toContain("photographie");
+    expect(photoDiag.warningMessage).toContain("photo");
     expect(photoDiag.suggestedPatch.overlayOpacity).toBeGreaterThanOrEqual(35);
   });
 
@@ -112,21 +101,16 @@ describe("Phase 7.1 — Consolidation Transversale des Phases 1 à 7 (Lots A, B,
 
     const oldUrl = "https://cdn.olmart.dz/old-bg.webp";
     const newUrl = "https://cdn.olmart.dz/new-bg.webp";
-    const sections: CustomPageSection[] = [
-      {
-        id: "sec_styled",
-        type: "brand_story",
-        title: "Histoire",
-        isVisible: true,
-        order: 0,
-        settings: { heading: "Atelier" },
-        styles: { backgroundImageUrl: oldUrl },
-      },
-    ];
+    const sections: CustomPageSection[] = [{
+      id: "sec_styled", type: "brand_story", title: "Histoire", isVisible: true, order: 0,
+      settings: { heading: "Atelier", bodyText: "Savoir-faire" }, styles: { backgroundImageUrl: oldUrl },
+    }];
     const storeConfig: SellerStoreConfig = {
-      shopName: "Maison",
-      wilaya: "Alger",
-      customPages: [{ id: "cp1", title: "Lookbook", slug: "lookbook", bannerUrl: oldUrl, sectionIds: [] }],
+      sellerId: "seller_1", shopName: "Maison", shopSlug: "maison", wilaya: "Alger",
+      theme: { sector: "mode", primaryColor: "#023859", fontFamily: "Plus Jakarta Sans" },
+      seo: { metaTitle: "Maison", metaDescription: "Maison Alger" },
+      customPages: [{ id: "cp1", title: "Lookbook", slug: "lookbook", bannerUrl: oldUrl, sectionIds: [], updatedAt: "2026-01-01T00:00:00.000Z" }],
+      updatedAt: "2026-01-01T00:00:00.000Z",
     };
 
     const usages = findMediaUsageInSections(oldUrl, sections, storeConfig);
@@ -147,7 +131,7 @@ describe("Phase 7.1 — Consolidation Transversale des Phases 1 à 7 (Lots A, B,
     act(() => {
       root.render(
         <MediaInspectorPanel
-          mediaGallery={[{ id: "studio_1", url: newUrl, type: "image", name: "NomInitial.webp", folder: "images" }]}
+          mediaGallery={[{ id: "studio_1", url: newUrl, type: "image", name: "NomInitial.webp", folder: "images", uploadedAt: "2026-01-01T00:00:00.000Z" }]}
           onSaveConfig={failingSave}
         />
       );

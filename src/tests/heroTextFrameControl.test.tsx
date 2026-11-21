@@ -22,7 +22,7 @@ describe("HeroTextFrameControls — Contrôle 100% du cadre du texte", () => {
 
   const renderStep4 = async (
     settings: Partial<HeroBannerSettings>,
-    onSettingsChange: ReturnType<typeof vi.fn>
+    onSettingsChange: (fieldOrPatch: string | Record<string, unknown>, value?: unknown) => void
   ): Promise<void> => {
     const profile = resolveHeroDeviceProfile(settings, "desktop");
     await act(async () => {

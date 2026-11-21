@@ -1,5 +1,4 @@
 import React from "react";
-import type { IconType } from "@icons-pack/react-simple-icons";
 import SiFacebook from "@icons-pack/react-simple-icons/icons/SiFacebook";
 import SiInstagram from "@icons-pack/react-simple-icons/icons/SiInstagram";
 import SiTiktok from "@icons-pack/react-simple-icons/icons/SiTiktok";
@@ -13,6 +12,8 @@ import SiVisa from "@icons-pack/react-simple-icons/icons/SiVisa";
 import SiMastercard from "@icons-pack/react-simple-icons/icons/SiMastercard";
 import SiApplepay from "@icons-pack/react-simple-icons/icons/SiApplepay";
 import SiGooglepay from "@icons-pack/react-simple-icons/icons/SiGooglepay";
+
+type IconType = typeof SiFacebook;
 
 export type BrandIconName =
   | "facebook"

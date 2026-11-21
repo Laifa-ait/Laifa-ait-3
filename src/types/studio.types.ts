@@ -20,6 +20,7 @@ export type ArtisticCardMaterial =
 
 export type ArtisticFrameShape =
   | "sharp-couture"
+  | "architectural-sharp"
   | "soft-modern"
   | "arch-minimal"
   /** @deprecated Legacy alias mapped to arch-minimal */

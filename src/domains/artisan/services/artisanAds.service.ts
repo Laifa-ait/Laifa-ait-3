@@ -274,7 +274,7 @@ export class ArtisanAdsService {
         const c = snap.data() as ArtisanAdCampaign;
         if (c.status !== "active") return;
 
-        const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+        const updates: Record<string, FieldValue | string | number> = { updatedAt: new Date().toISOString() };
         let costDelta = 0;
 
         if (eventType === "impression") {

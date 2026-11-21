@@ -51,7 +51,7 @@ router.post(
       if (err instanceof BusinessError) {
         return res.status(err.statusCode).json({ error: err.message });
       }
-      return res.status(500).json({ error: err instanceof Error ? err.message : "Erreur interne" });
+      return res.status(500).json({ error: "Une erreur interne est survenue." });
     }
   }
 );
@@ -76,7 +76,30 @@ router.post(
       if (err instanceof BusinessError) {
         return res.status(err.statusCode).json({ error: err.message });
       }
-      return res.status(500).json({ error: err instanceof Error ? err.message : "Erreur interne" });
+      return res.status(500).json({ error: "Une erreur interne est survenue." });
+    }
+  }
+);
+
+// Confirm Order Receipt by Buyer (H-7)
+router.post(
+  "/buyer/orders/:id/confirm-receipt",
+  authenticateToken,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const orderId = req.params.id;
+    const userId = req.user?.uid || "";
+    if (!orderId) {
+      return res.status(400).json({ error: "orderId is required" });
+    }
+    try {
+      await OrderStatusService.confirmBuyerReceipt({ orderId, userId });
+      return res.json({ success: true });
+    } catch (err: unknown) {
+      safeLogger.error("Order confirm receipt error", { err: err instanceof Error ? err.message : String(err) });
+      if (err instanceof BusinessError) {
+        return res.status(err.statusCode).json({ error: err.message });
+      }
+      return res.status(500).json({ error: "Une erreur interne est survenue." });
     }
   }
 );
@@ -137,7 +160,7 @@ router.post(
       return res.status(200).json({ success: true, registrationId });
     } catch (err: unknown) {
       safeLogger.error("Server-side delivery confirmation failed", { err: err instanceof Error ? err.message : String(err) });
-      return res.status(500).json({ error: err instanceof Error ? err.message : "Erreur interne lors de la validation." });
+      return res.status(500).json({ error: "Une erreur interne est survenue lors de la validation." });
     }
   }
 );

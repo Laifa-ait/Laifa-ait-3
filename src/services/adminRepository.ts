@@ -101,8 +101,8 @@ export async function deleteAdminDoc(collectionName: string, docId: string): Pro
 
 export async function fetchDisputeOrdersCount(): Promise<number> {
   try {
-    const q1 = query(collection(db, "orders"), where("status", "==", "RETURN_REQUESTED"));
-    const q2 = query(collection(db, "orders"), where("status", "==", "DISPUTE_OPEN"));
+    const q1 = query(collection(db, "orders"), where("status", "==", "return_requested"));
+    const q2 = query(collection(db, "orders"), where("status", "==", "dispute_open"));
     const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
     return snap1.size + snap2.size;
   } catch (err) {

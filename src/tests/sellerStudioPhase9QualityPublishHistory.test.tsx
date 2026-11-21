@@ -25,13 +25,13 @@ const BASE_CONFIG: SellerStoreConfig = {
   logoUrl: "https://cdn.olmart.dz/logo.png",
   wilaya: "16 - Alger",
   contacts: { phone: "0550123456", whatsapp: "213550123456" },
-  commerceConfig: { codEnabled: true, freeShippingThreshold: 8000, returnPolicyDays: 7 },
+  commerceConfig: { codEnabled: true, freeShippingThresholdDZD: 8000, returnPolicyDays: 7 },
   seo: { metaTitle: "Maison Casbah Alger • Haute Maroquinerie", metaDescription: "Haute maroquinerie et artisanat algérien d'exception livré dans les 69 wilayas." },
   theme: BASE_THEME,
   updatedAt: "2026-03-01T10:00:00.000Z",
 };
 
-const HERO_SECTION: CustomPageSection = {
+const HERO_SECTION: CustomPageSection<"hero_banner"> = {
   id: "sec_hero_1",
   type: "hero_banner",
   isVisible: true,
@@ -40,6 +40,8 @@ const HERO_SECTION: CustomPageSection = {
   subtitle: "Savoir-faire algérien",
   styles: {},
   settings: {
+    title: "Collection Automne",
+    imageUrl: "https://cdn.olmart.dz/hero.jpg",
     bannerModel: "full-bleed-immersive",
     cinematicConfig: {
       image: { src: "https://cdn.olmart.dz/hero.jpg", alt: "Hero", zoom: 100, posX: 50, posY: 50, fit: "cover" },
@@ -104,7 +106,7 @@ describe("Phase 9 — Qualité, Prépublication, Publication et Historique", () 
         <PreviewAuditModal
           isOpen={true}
           onClose={onClose}
-          sections={[{ ...HERO_SECTION, settings: {} }, FEED_SECTION]}
+          sections={[{ ...HERO_SECTION, settings: { title: "Collection Automne", imageUrl: "" } }, FEED_SECTION]}
           theme={BASE_THEME}
           products={[]}
           catalogStatus="error"
@@ -153,7 +155,7 @@ describe("Phase 9 — Qualité, Prépublication, Publication et Historique", () 
 
     const readyWithWarnings = evaluatePublishReadiness({
       storeConfig: BASE_CONFIG,
-      sections: [{ ...HERO_SECTION, settings: {} }, FEED_SECTION],
+      sections: [{ ...HERO_SECTION, settings: { title: "Collection Automne", imageUrl: "" } }, FEED_SECTION],
       products: [],
       catalogStatus: "loaded",
       draftRevision: 8,

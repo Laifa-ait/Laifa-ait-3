@@ -53,6 +53,10 @@ const baseStoreConfig: SellerStoreConfig = {
     textColor: "#0F172A",
     fontFamily: "Inter",
   },
+  seo: {
+    metaTitle: "Atelier Moderne",
+    metaDescription: "Boutique Atelier Moderne Alger",
+  },
   updatedAt: "2026-11-12T10:00:00.000Z",
 };
 

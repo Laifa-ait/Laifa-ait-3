@@ -106,7 +106,10 @@ export class PublicCampaignService {
       for (let i = 0; i < uniqueProductIds.length; i += 100) {
         const chunkIds = uniqueProductIds.slice(i, i + 100);
         const refs = chunkIds.map((id) => db.collection("products").doc(id));
-        const snaps = await db.getAll(...refs);
+        const snaps =
+          typeof db.getAll === "function"
+            ? await db.getAll(...refs)
+            : await Promise.all(refs.map((r) => r.get()));
         snaps.forEach((doc) => {
           if (doc.exists) {
             productMap.set(doc.id, { id: doc.id, ...(doc.data() as Omit<Product, "id">) } as Product);

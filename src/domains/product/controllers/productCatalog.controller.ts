@@ -6,6 +6,7 @@ import NodeCache from "node-cache";
 import { safeLogger } from "../../../utils/logger";
 import { getCategoryQueryAliases } from "../../../utils/categoryCanonical";
 import { withFirestoreDeadline, isFirestoreQuotaError, isFirestoreAdminCircuitOpen } from "../../../utils/firestoreTimeout";
+import { projectPublicStoreProfile } from "./publicStoreProjection";
 
 const cache = new NodeCache({ stdTTL: 300, maxKeys: 1000, useClones: true });
 
@@ -125,6 +126,9 @@ productCatalogRouter.get("/api/v1/products", async (req, res) => {
       if (idList.length === 0) {
         return res.json({ products: [] });
       }
+      if (idList.length > 50) {
+        return res.status(400).json({ error: "Maximum 50 identifiants autorisés par requête." });
+      }
       
       const chunks: string[][] = [];
       for (let i = 0; i < idList.length; i += 10) {
@@ -133,7 +137,9 @@ productCatalogRouter.get("/api/v1/products", async (req, res) => {
       
       const fetchedPromises = chunks.map(async (chunk) => {
         const snap = await db.collection("products").where(admin.firestore.FieldPath.documentId(), "in", chunk).get();
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return snap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as Product))
+          .filter(p => isPubliclyVisible(p));
       });
       
       const results = await Promise.all(fetchedPromises);
@@ -144,7 +150,8 @@ productCatalogRouter.get("/api/v1/products", async (req, res) => {
       
       return res.json({ products });
     } catch (error: unknown) {
-      return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+      safeLogger.error("Error fetching products by ids", { err: error instanceof Error ? error.message : String(error) });
+      return res.status(500).json({ error: "Une erreur interne est survenue." });
     }
   }
 
@@ -185,7 +192,9 @@ productCatalogRouter.get("/api/v1/products", async (req, res) => {
         .get();
       if (tagSnap.empty) {
         const prodSnap = await applyLimitOffset(db.collection("products").where("tags", "array-contains", tag)).get();
-        const products = prodSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
+        const products = prodSnap.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() } as Product))
+          .filter((p) => isPubliclyVisible(p));
         const responseData = { products };
         cache.set(cacheKey, responseData, 300);
         return res.json(responseData);
@@ -199,28 +208,35 @@ productCatalogRouter.get("/api/v1/products", async (req, res) => {
 
       const productsMap = new Map<string, Product>();
       [...prodSnap1.docs, ...prodSnap2.docs, ...prodSnap3.docs].forEach((doc) => {
-        productsMap.set(doc.id, { id: doc.id, ...doc.data() } as Product);
+        const prod = { id: doc.id, ...doc.data() } as Product;
+        if (isPubliclyVisible(prod)) {
+          productsMap.set(doc.id, prod);
+        }
       });
 
       const responseData = { products: Array.from(productsMap.values()) };
       cache.set(cacheKey, responseData, 900);
       return res.json(responseData);
     } catch (error: unknown) {
-      return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+      safeLogger.error("Error fetching products by tag", { err: error instanceof Error ? error.message : String(error) });
+      return res.status(500).json({ error: "Une erreur interne est survenue." });
     }
   } else if (category) {
     try {
       const q = db.collection("products").where("category", "==", String(category));
       const snap = await applyLimitOffset(q).get();
-      const products = snap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      } as Product));
+      const products = snap.docs
+        .map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as Product))
+        .filter((p) => isPubliclyVisible(p));
       const responseData = { products };
       cache.set(cacheKey, responseData, 600);
       return res.json(responseData);
     } catch (error: unknown) {
-      return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+      safeLogger.error("Error fetching products by category", { err: error instanceof Error ? error.message : String(error) });
+      return res.status(500).json({ error: "Une erreur interne est survenue." });
     }
   } else if (isFeatured) {
     try {
@@ -299,34 +315,38 @@ productCatalogRouter.get("/api/v1/products", async (req, res) => {
     try {
       let products: Product[] = [];
       try {
-        const q = db.collection("products").orderBy("created_at", "desc");
+        const q = db.collection("products")
+          .where("status", "==", PRODUCT_STATUSES.ACTIVE)
+          .orderBy("createdAt", "desc");
         const snap = await applyLimitOffset(q).get();
-        products = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
+        products = snap.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() } as Product))
+          .filter((p) => isPubliclyVisible(p));
       } catch {
-        try {
-          const q = db.collection("products").orderBy("createdAt", "desc");
-          const snap = await applyLimitOffset(q).get();
-          products = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
-        } catch {
-          const snap = await db.collection("products").limit(200).get();
-          products = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
-          products.sort((a, b) => {
-            const timeA = typeof a.createdAt === "object" && a.createdAt && "seconds" in a.createdAt 
-              ? (a.createdAt as { seconds: number }).seconds * 1000 
-              : new Date(String(a.createdAt || 0)).getTime();
-            const timeB = typeof b.createdAt === "object" && b.createdAt && "seconds" in b.createdAt 
-              ? (b.createdAt as { seconds: number }).seconds * 1000 
-              : new Date(String(b.createdAt || 0)).getTime();
-            return timeB - timeA;
-          });
-          products = products.slice(parsedOffset, parsedOffset + parsedLimit);
-        }
+        const snap = await db.collection("products")
+          .where("status", "==", PRODUCT_STATUSES.ACTIVE)
+          .limit(200)
+          .get();
+        products = snap.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() } as Product))
+          .filter((p) => isPubliclyVisible(p));
+        products.sort((a, b) => {
+          const timeA = typeof a.createdAt === "object" && a.createdAt && "seconds" in a.createdAt 
+            ? (a.createdAt as { seconds: number }).seconds * 1000 
+            : new Date(String(a.createdAt || 0)).getTime();
+          const timeB = typeof b.createdAt === "object" && b.createdAt && "seconds" in b.createdAt 
+            ? (b.createdAt as { seconds: number }).seconds * 1000 
+            : new Date(String(b.createdAt || 0)).getTime();
+          return timeB - timeA;
+        });
+        products = products.slice(parsedOffset, parsedOffset + parsedLimit);
       }
       const responseData = { products };
       cache.set(cacheKey, responseData, 600);
       return res.json(responseData);
     } catch (error: unknown) {
-      return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+      safeLogger.error("Error fetching default products catalog", { err: error instanceof Error ? error.message : String(error) });
+      return res.status(500).json({ error: "Une erreur interne est survenue." });
     }
   }
 });
@@ -420,12 +440,27 @@ productCatalogRouter.post("/api/v1/products/batch", async (req, res) => {
     if (ids.length === 0) {
       return res.json({ products: [] });
     }
+    if (ids.length > 50) {
+      return res.status(400).json({ error: "Maximum 50 identifiants autorisés par requête batch." });
+    }
 
+    const uniqueIds = Array.from(new Set(ids.filter((id): id is string => typeof id === "string" && id.trim().length > 0)));
     const products: Product[] = [];
+    const idsToFetch: string[] = [];
+
+    for (const id of uniqueIds) {
+      const cachedProduct = process.env.NODE_ENV !== "test" ? cache.get<Product>(`product_raw_${id}`) : undefined;
+      if (cachedProduct && isPubliclyVisible(cachedProduct)) {
+        products.push(cachedProduct);
+      } else {
+        idsToFetch.push(id);
+      }
+    }
+
     const chunks: string[][] = [];
     const chunkSize = 30;
-    for (let i = 0; i < ids.length; i += chunkSize) {
-      chunks.push(ids.slice(i, i + chunkSize));
+    for (let i = 0; i < idsToFetch.length; i += chunkSize) {
+      chunks.push(idsToFetch.slice(i, i + chunkSize));
     }
 
     for (const chunk of chunks) {
@@ -433,14 +468,20 @@ productCatalogRouter.post("/api/v1/products/batch", async (req, res) => {
         .where(admin.firestore.FieldPath.documentId(), "in", chunk)
         .get();
       snap.docs.forEach((doc) => {
-        products.push({ id: doc.id, ...doc.data() } as Product);
+        const prod = { id: doc.id, ...doc.data() } as Product;
+        if (isPubliclyVisible(prod)) {
+          products.push(prod);
+          if (process.env.NODE_ENV !== "test") {
+            cache.set(`product_raw_${doc.id}`, prod, 120);
+          }
+        }
       });
     }
 
     return res.json({ products });
   } catch (error: unknown) {
     safeLogger.error("Batch products fetch error", { err: error instanceof Error ? error.message : String(error) });
-    return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    return res.status(500).json({ error: "Une erreur interne est survenue." });
   }
 });
 
@@ -498,13 +539,13 @@ productCatalogRouter.get("/api/v1/products/:id", async (req, res) => {
     const { id } = req.params;
     const cacheKey = `product_raw_${id}`;
     if (process.env.NODE_ENV !== "test") {
-      const cached = cache.get(cacheKey);
-      if (cached) return res.json(cached);
+      const cached = cache.get<Record<string, unknown>>(cacheKey);
+      if (cached && isPubliclyVisible(cached as { status?: string })) return res.json(cached);
     }
 
     const docRef = db.collection("products").doc(id);
     const snap = await docRef.get();
-    if (!snap.exists) {
+    if (!snap.exists || !isPubliclyVisible(snap.data() as { status?: string })) {
       return res.status(404).json({ error: "Product not found" });
     }
     const data = { id: snap.id, ...snap.data() } as Record<string, unknown>;
@@ -542,7 +583,8 @@ productCatalogRouter.get("/api/v1/products/:id", async (req, res) => {
     if (process.env.NODE_ENV !== "test") cache.set(cacheKey, data, 120);
     return res.json(data);
   } catch (error: unknown) {
-    return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    safeLogger.error("Product detail fetch error", { err: error instanceof Error ? error.message : String(error) });
+    return res.status(500).json({ error: "Une erreur interne est survenue." });
   }
 });
 
@@ -589,7 +631,10 @@ productCatalogRouter.get("/api/v1/products-by-tag", async (req, res) => {
     const productsMap = new Map<string, Product>();
     [...prodSnap1.docs, ...prodSnap2.docs, ...prodSnap3.docs].forEach(
       (doc) => {
-        productsMap.set(doc.id, { id: doc.id, ...doc.data() } as Product);
+        const prod = { id: doc.id, ...doc.data() } as Product;
+        if (isPubliclyVisible(prod)) {
+          productsMap.set(doc.id, prod);
+        }
       },
     );
 
@@ -600,7 +645,8 @@ productCatalogRouter.get("/api/v1/products-by-tag", async (req, res) => {
     cache.set(cacheKey, responseData, 900);
     res.json(responseData);
   } catch (error: unknown) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    safeLogger.error("Products by tag fetch error", { err: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: "Une erreur interne est survenue." });
   }
 });
 
@@ -615,7 +661,7 @@ productCatalogRouter.get("/api/v1/products-by-id/:id", async (req, res) => {
     }
 
     const docSnap = await db.collection("products").doc(id).get();
-    if (!docSnap.exists) {
+    if (!docSnap.exists || !isPubliclyVisible(docSnap.data() as { status?: string })) {
       return res.status(404).json({ error: "Product not found" });
     }
     const product = { id: docSnap.id, ...docSnap.data() } as { id: string; sellerId?: string; shopId?: string; [key: string]: unknown };
@@ -688,18 +734,6 @@ productCatalogRouter.get("/api/v1/products-by-id/:id", async (req, res) => {
           uData?.displayName ||
           "Boutique Olmart";
 
-        const mergedPhone =
-          shData?.supportPhone ||
-          shData?.phone ||
-          sData?.phone ||
-          sData?.phoneNumber ||
-          pData?.phone ||
-          pData?.supportPhone ||
-          uData?.phone ||
-          uData?.phoneNumber ||
-          product.sellerPhone ||
-          null;
-
         const mergedWilaya =
           shData?.wilaya ||
           sData?.wilaya ||
@@ -718,26 +752,23 @@ productCatalogRouter.get("/api/v1/products-by-id/:id", async (req, res) => {
           product.sellerLogo ||
           null;
 
+        const projectedShop = projectPublicStoreProfile(sellerId, {
+          userData: uData,
+          pubData: pData,
+          sellerData: sData,
+          shopData: shData,
+          fallbackName: String(mergedShopName),
+        });
+
         shop = {
+          ...projectedShop,
           id: sellerId,
           shopName: mergedShopName,
-          phone: mergedPhone,
-          supportPhone: mergedPhone,
+          supportPhone: shData?.supportPhone || pData?.supportPhone || null,
           wilaya: mergedWilaya,
           logoUrl: mergedLogo,
           avgPreparationTime: shData?.avgPreparationTime || sData?.avgPreparationTime || pData?.avgPreparationTime || "24-48h",
-          ...uData,
-          ...pData,
-          ...sData,
-          ...shData,
         };
-
-        shop.id = sellerId;
-        shop.shopName = mergedShopName;
-        shop.phone = mergedPhone;
-        shop.supportPhone = mergedPhone;
-        shop.wilaya = mergedWilaya;
-        shop.logoUrl = mergedLogo;
 
         if (process.env.NODE_ENV !== "test") cache.set(shopCacheKey, shop, 300);
       }

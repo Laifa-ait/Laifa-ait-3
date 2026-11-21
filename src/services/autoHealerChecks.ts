@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import crypto from "node:crypto";
 import type { MonitoredServiceId, ServiceCheckResult, ServiceHealthStatus } from "../types/systemHealth";
 import { isFrontendReady } from "./ViteStaticService";
 
@@ -106,18 +105,16 @@ export function checkAndHealCsrfSecurity(): ServiceCheckResult {
   if (raw.length >= 32) {
     return makeCheckResult("csrf_security", "Service Cryptographique CSRF", "healthy", false, "Clé HMAC CSRF active (>= 32 octets).", start);
   }
-  if (isProdOrCloudRun()) {
-    return makeCheckResult(
-      "csrf_security",
-      "Service Cryptographique CSRF",
-      "degraded",
-      false,
-      "CSRF_SECRET absent ou inférieur à 32 octets en production (mode Fail-Closed actif).",
-      start
-    );
-  }
-  process.env.CSRF_SECRET = crypto.randomBytes(32).toString("hex");
-  return makeCheckResult("csrf_security", "Service Cryptographique CSRF", "repaired", true, "Clé HMAC CSRF aléatoire générée pour l'environnement hors production.", start);
+  return makeCheckResult(
+    "csrf_security",
+    "Service Cryptographique CSRF",
+    isProdOrCloudRun() ? "degraded" : "healthy",
+    false,
+    isProdOrCloudRun()
+      ? "CSRF_SECRET absent ou inférieur à 32 octets en production (mode Fail-Closed actif)."
+      : "Clé HMAC CSRF éphémère gérée par le middleware CSRF hors production.",
+    start
+  );
 }
 
 export function checkAndHealFrontendAndBundle(): ServiceCheckResult[] {

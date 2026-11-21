@@ -44,7 +44,7 @@ const SAMPLE_SECTIONS: CustomPageSection[] = [
       subtitle: "Pièces numérotées cousues main",
       ctaText: "Découvrir l'atelier",
       imageUrl: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa",
-      heroLayout: "full",
+      heroLayout: "full-bleed",
     },
     styles: { backgroundColor: "#1E293B", buttonBgColor: "#B45309" },
   },
@@ -70,8 +70,8 @@ describe("Olmart Studio — Phase 3 : Design System, Thèmes & Cohérence Visuel
     window.localStorage.clear();
     useStudioStore.setState({
       studioExperienceMode: "expert",
-      activeStudioStep: "design",
-      unlockedStudioStep: 5,
+      activeStudioStep: 2,
+      unlockedStudioStep: 4,
       selectedSectionId: "sec-hero-1",
       isInteractiveMode: false,
       viewport: "desktop",
@@ -230,7 +230,7 @@ describe("Olmart Studio — Phase 3 : Design System, Thèmes & Cohérence Visuel
         <MemoryRouter>
           <StudioWorkspace
             saveStatus="saved"
-            storeConfig={{ shopName: "Atelier Test", wilaya: "Alger", theme: ARTISTIC_STUDIO_PRESETS[0].theme }}
+            storeConfig={{ sellerId: "s1", shopName: "Atelier Test", shopSlug: "atelier-test", wilaya: "Alger", theme: ARTISTIC_STUDIO_PRESETS[0].theme, updatedAt: "2026-03-01T00:00:00Z" }}
             sections={SAMPLE_SECTIONS}
             selectedSectionId="sec-hero-1"
             setSelectedSectionId={vi.fn()}

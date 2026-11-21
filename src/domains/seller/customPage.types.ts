@@ -55,6 +55,7 @@ export type BannerContentPosition =
 
 export interface CustomPageSectionStyles {
   backgroundColor?: string;
+  backgroundImageUrl?: string;
   textColor?: string;
   headingColor?: string;
   subtitleColor?: string;
@@ -225,11 +226,15 @@ export interface HeroTextFrameConfig {
   offsetYPx?: number;
 }
 
+export type HeroBoxShadowPreset = NonNullable<HeroTextFrameConfig["shadow"]>;
+
 export interface HeroBannerSettings {
-  title: string;
+  title?: string;
   subtitle?: string;
   badgeText?: string;
-  imageUrl: string;
+  imageUrl?: string;
+  isLocked?: boolean;
+  _sector?: string;
   tabletImageUrl?: string;
   mobileImageUrl?: string;
   backgroundImage?: string;
@@ -438,7 +443,8 @@ export interface HeroBannerSettings {
   swapIntervalSec?: number;
   fullTopWidth?: boolean;
   textFrame?: HeroTextFrameConfig;
-  cinematicConfig?: CinematicBannerConfig;
+  bannerModel?: string;
+  cinematicConfig?: Partial<CinematicBannerConfig> | Record<string, unknown>;
 }
 
 export type PromoCarouselStyleVariant =
@@ -615,10 +621,23 @@ export interface ShowcaseVideoSettings {
   muted?: boolean;
 }
 
+export interface VerifiedReviewCustomItem {
+  id?: string;
+  authorName?: string;
+  author?: string;
+  rating?: number;
+  comment?: string;
+  text?: string;
+  date?: string;
+  wilaya?: string;
+  verified?: boolean;
+}
+
 export interface VerifiedReviewsSettings {
   title?: string;
   maxReviews?: number;
   filterMinRating?: number;
+  customReviews?: VerifiedReviewCustomItem[];
 }
 
 export interface DeliveryInfoItem {
@@ -653,6 +672,7 @@ export interface FaqAccordionSettings {
 }
 
 export interface ContactFooterSettings {
+  title?: string;
   shopPhone?: string;
   shopEmail?: string;
   address?: string;
@@ -686,8 +706,9 @@ export interface CustomPageSection<T extends CustomPageSectionType = CustomPageS
   id: string;
   type: T;
   title?: string;
+  subtitle?: string;
   settings: SectionSettingsMap[T];
-  styles: CustomPageSectionStyles;
+  styles?: CustomPageSectionStyles;
   isVisible: boolean;
   order: number;
   schemaVersion?: number;
@@ -840,7 +861,8 @@ export interface StoreCommerceConfig {
   codEnabled: boolean;
   freeShippingThresholdDZD?: number;
   minOrderAmountDZD?: number;
-  whatsappOrderEnabled: boolean;
+  returnPolicyDays?: number;
+  whatsappOrderEnabled?: boolean;
   whatsappNumber?: string;
   preparationTimeHours?: string | number;
   showTrustBadges?: boolean;
@@ -873,7 +895,7 @@ export interface StoreConfig {
   avgPreparationTime?: string;
   legalStatus?: string;
   theme: CustomPageTheme;
-  seo: CustomPageSeo;
+  seo?: CustomPageSeo;
   previousSlugs?: string[];
   customPages?: StoreCustomPageItem[];
   collectionPageConfig?: CollectionPageDesignConfig;
@@ -892,6 +914,7 @@ export interface StoreConfig {
   contacts?: {
     phone?: string;
     email?: string;
+    whatsapp?: string;
   };
   updatedAt: string;
 }

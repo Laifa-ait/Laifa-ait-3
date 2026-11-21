@@ -111,6 +111,11 @@ router.get(["/api/v1/public/stores/:slugOrId", "/api/v1/public/shops/:slugOrId"]
   }
 });
 
+export function isPublicShopCouponVisible(d: Record<string, unknown>): boolean {
+  if (d.isPrivate === true || d.isPublic === false) return false;
+  return true;
+}
+
 router.get(["/api/v1/public/shops/:sellerId/products", "/api/v1/public/stores/:sellerId/products"], async (req: Request, res: Response) => {
   const { sellerId } = req.params;
   try {
@@ -122,7 +127,7 @@ router.get(["/api/v1/public/shops/:sellerId/products", "/api/v1/public/stores/:s
     return res.json({ success: true, products, count: totalCount, nextCursor });
   } catch (error: unknown) {
     safeLogger.error("Error fetching shop products", { sellerId, err: error instanceof Error ? error.message : String(error) });
-    return res.status(500).json({ success: false, error: error instanceof Error ? error.message : "Erreur interne", products: [] });
+    return res.status(500).json({ success: false, error: "Erreur lors de la récupération des produits de la boutique", products: [] });
   }
 });
 
@@ -135,6 +140,7 @@ router.get("/api/v1/public/shops/:sellerId/coupons", async (req: Request, res: R
     const activeCoupons = snap.docs
       .map((doc) => {
         const d = doc.data();
+        if (!isPublicShopCouponVisible(d)) return null;
         const maxUses = typeof d.maxUses === "number" ? d.maxUses : typeof d.usageLimit === "number" ? d.usageLimit : null;
         const currentUses = Number(d.usedCount ?? d.usageCount) || 0;
         if (maxUses !== null && maxUses > 0 && currentUses >= maxUses) return null;
@@ -152,7 +158,7 @@ router.get("/api/v1/public/shops/:sellerId/coupons", async (req: Request, res: R
     return res.json({ success: true, coupons: activeCoupons });
   } catch (error: unknown) {
     safeLogger.error("Error fetching shop public coupons", { sellerId, err: error instanceof Error ? error.message : String(error) });
-    return res.status(500).json({ success: false, error: error instanceof Error ? error.message : "Erreur interne", coupons: [] });
+    return res.status(500).json({ success: false, error: "Erreur lors de la récupération des coupons de la boutique", coupons: [] });
   }
 });
 
@@ -164,7 +170,8 @@ router.get("/api/v1/explore/products", async (_req: Request, res: Response) => {
       .map((doc) => ({ id: doc.id, ...doc.data() }));
     return res.json({ products });
   } catch (error: unknown) {
-    return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    safeLogger.error("Error fetching explore products", { err: error instanceof Error ? error.message : String(error) });
+    return res.status(500).json({ error: "Erreur interne du serveur" });
   }
 });
 
@@ -212,7 +219,8 @@ router.post(["/api/v1/public/stores/:sellerId/follow", "/api/v1/public/shops/:se
     const result = await SellerAnalyticsService.toggleFollowStore(sellerId, followerUid);
     return res.json({ success: true, ...result });
   } catch (err: unknown) {
-    return res.status(500).json({ success: false, error: err instanceof Error ? err.message : "Erreur interne" });
+    safeLogger.error("Error following public shop", { sellerId, err: err instanceof Error ? err.message : String(err) });
+    return res.status(500).json({ success: false, error: "Erreur interne du serveur" });
   }
 });
 

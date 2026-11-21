@@ -63,6 +63,8 @@ export interface ArtisanAdCampaign {
   updatedAt: string;
 }
 
+export type ArtisanInFeedBannerAd = ArtisanAdCampaign;
+
 export interface ArtisanSponsoredLsaItem {
   campaign: ArtisanAdCampaign;
   artisan: ArtisanProfile;

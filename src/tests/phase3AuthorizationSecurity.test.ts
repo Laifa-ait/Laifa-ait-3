@@ -229,8 +229,10 @@ describe("Phase 3: Authorization, Rules & RBAC Security Verification", () => {
       expect(firestoreRulesContent).toMatch(/match\s+\/withdrawals\/\{id\}\s*\{[\s\S]*?allow\s+write:\s*if\s+false;/);
     });
 
-    it("vérifie la propriété du produit sur la création dans product_history", () => {
-      expect(firestoreRulesContent).toMatch(/match\s+\/product_history\/\{id\}\s*\{[\s\S]*?exists\(\/databases\/\$\(database\)\/documents\/products\/\$\(incoming\(\)\.productId\)\)/);
+    it("vérifie la propriété du produit ou l'interdiction d'écriture client sur product_history", () => {
+      expect(firestoreRulesContent).toMatch(
+        /match\s+\/product_history\/\{id\}\s*\{[\s\S]*?(?:allow\s+write:\s*if\s+false;|exists\(\/databases\/\$\(database\)\/documents\/products\/\$\(incoming\(\)\.productId\)\))/
+      );
     });
 
     it("permet à superadmin d'effectuer toute opération autorisée à admin (superadmin ⊇ admin)", () => {

@@ -117,6 +117,65 @@ analyticsRouter.post("/api/v1/analytics/track", async (req: Request, res: Respon
   }
 });
 
+export const SPONSORSHIP_DEDUP_TTL_MS = 60_000;
+export const MAX_SPONSORSHIP_DEDUP_ENTRIES = 5_000;
+
+const sponsorshipDedupCache = new Map<string, number>();
+
+function pruneSponsorshipDedupCache(nowMs: number): void {
+  for (const [key, expiresAt] of sponsorshipDedupCache.entries()) {
+    if (expiresAt <= nowMs) {
+      sponsorshipDedupCache.delete(key);
+    }
+  }
+  while (sponsorshipDedupCache.size >= MAX_SPONSORSHIP_DEDUP_ENTRIES) {
+    const oldestKey = sponsorshipDedupCache.keys().next().value;
+    if (oldestKey === undefined) break;
+    sponsorshipDedupCache.delete(oldestKey);
+  }
+}
+
+export function shouldRecordSponsorshipEvent(
+  clientIp: string,
+  productId: string,
+  action: "impression" | "click",
+  nowMs: number = Date.now()
+): boolean {
+  const normalizedIp = (clientIp || "anon").trim() || "anon";
+  const key = `${normalizedIp}|${productId}|${action}`;
+  const existingExpiry = sponsorshipDedupCache.get(key);
+
+  if (existingExpiry !== undefined && existingExpiry > nowMs) {
+    return false;
+  }
+
+  if (sponsorshipDedupCache.size >= MAX_SPONSORSHIP_DEDUP_ENTRIES || sponsorshipDedupCache.size % 250 === 0) {
+    pruneSponsorshipDedupCache(nowMs);
+  }
+
+  sponsorshipDedupCache.set(key, nowMs + SPONSORSHIP_DEDUP_TTL_MS);
+  return true;
+}
+
+export function clearSponsorshipDedupCacheForTests(): void {
+  sponsorshipDedupCache.clear();
+}
+
+export function getSponsorshipDedupCacheSizeForTests(): number {
+  return sponsorshipDedupCache.size;
+}
+
+function extractClientIp(req: Request): string {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded.trim().length > 0) {
+    return forwarded.split(",")[0].trim() || "anon";
+  }
+  if (Array.isArray(forwarded) && forwarded.length > 0) {
+    return String(forwarded[0]).split(",")[0].trim() || "anon";
+  }
+  return (req.ip || req.socket?.remoteAddress || "anon").trim() || "anon";
+}
+
 // POST sponsorship analytics track
 analyticsRouter.post("/api/v1/sponsorship/analytics/track", async (req: Request, res: Response) => {
   try {
@@ -125,6 +184,11 @@ analyticsRouter.post("/api/v1/sponsorship/analytics/track", async (req: Request,
       return res.status(400).json({ success: false, error: "productId and valid action required" });
     }
     const { productId, campaignId, action } = parsed.data;
+    const clientIp = extractClientIp(req);
+
+    if (!shouldRecordSponsorshipEvent(clientIp, productId, action)) {
+      return res.status(200).json({ ok: true, success: true, deduplicated: true });
+    }
 
     const firestoreDb = getTargetDb();
     if (firestoreDb) {

@@ -11,6 +11,7 @@ describe("PHASE 1 — Two-Factor Authentication Legacy Fallback Elimination & Se
   const pastExpiresAt = admin.firestore.Timestamp.fromMillis(Date.now() - 5 * 60 * 1000);
 
   let mockSecretDoc: Record<string, unknown> | null = null;
+  let mockBackupDoc: Record<string, unknown> | null = null;
   let mockUserDoc: Record<string, unknown> | null = null;
   let secretUpdateSpy: ReturnType<typeof vi.fn>;
   let secretDeleteSpy: ReturnType<typeof vi.fn>;
@@ -20,12 +21,11 @@ describe("PHASE 1 — Two-Factor Authentication Legacy Fallback Elimination & Se
   beforeEach(() => {
     vi.clearAllMocks();
     mockSecretDoc = null;
+    mockBackupDoc = null;
     mockUserDoc = null;
 
     secretUpdateSpy = vi.fn().mockImplementation(async (data: Record<string, unknown>) => {
-      if (mockSecretDoc) {
-        Object.assign(mockSecretDoc, data);
-      }
+      if (mockSecretDoc) Object.assign(mockSecretDoc, data);
     });
 
     secretDeleteSpy = vi.fn().mockImplementation(async () => {
@@ -33,9 +33,7 @@ describe("PHASE 1 — Two-Factor Authentication Legacy Fallback Elimination & Se
     });
 
     userUpdateSpy = vi.fn().mockImplementation(async (data: Record<string, unknown>) => {
-      if (mockUserDoc) {
-        Object.assign(mockUserDoc, data);
-      }
+      if (mockUserDoc) Object.assign(mockUserDoc, data);
     });
 
     userGetSpy = vi.fn().mockImplementation(async () => ({
@@ -56,6 +54,23 @@ describe("PHASE 1 — Two-Factor Authentication Legacy Fallback Elimination & Se
             }),
             update: secretUpdateSpy,
             delete: secretDeleteSpy,
+          }),
+        } as unknown as ReturnType<typeof db.collection>;
+      }
+
+      if (colName === "user_secrets_backup") {
+        return {
+          doc: () => ({
+            get: vi.fn().mockImplementation(async () => ({
+              exists: mockBackupDoc !== null,
+              data: () => mockBackupDoc,
+            })),
+            set: vi.fn().mockImplementation(async (data: Record<string, unknown>) => {
+              mockBackupDoc = { ...data };
+            }),
+            update: vi.fn().mockImplementation(async (data: Record<string, unknown>) => {
+              if (mockBackupDoc) Object.assign(mockBackupDoc, data);
+            }),
           }),
         } as unknown as ReturnType<typeof db.collection>;
       }
@@ -133,11 +148,9 @@ describe("PHASE 1 — Two-Factor Authentication Legacy Fallback Elimination & Se
     mockSecretDoc = { otpHash, expiresAt: futureExpiresAt, attempts: 0 };
     mockUserDoc = { verification: { verified: false } };
 
-    // Premier appel (succès)
     const firstAttempt = await TwoFactorService.verifyCode(userId, validCode);
     expect(firstAttempt.success).toBe(true);
 
-    // Deuxième tentative avec le même code alors que user_secrets a été supprimé
     const replayAttempt = await TwoFactorService.verifyCode(userId, validCode);
     expect(replayAttempt.success).toBe(false);
     expect(replayAttempt.status).toBe(403);
@@ -146,12 +159,8 @@ describe("PHASE 1 — Two-Factor Authentication Legacy Fallback Elimination & Se
 
   // 6. Lecture client de user_secrets refusée (modèle de sécurité Firestore)
   it("6. Confirms user_secrets collection is strictly server-only in security rules specification", () => {
-    const isClientAccessAllowed = (collectionName: string) => {
-      if (collectionName === "user_secrets" || collectionName === "private_auth") {
-        return false;
-      }
-      return true;
-    };
+    const isClientAccessAllowed = (collectionName: string) =>
+      collectionName !== "user_secrets" && collectionName !== "private_auth";
     expect(isClientAccessAllowed("user_secrets")).toBe(false);
     expect(isClientAccessAllowed("private_auth")).toBe(false);
   });
@@ -161,13 +170,12 @@ describe("PHASE 1 — Two-Factor Authentication Legacy Fallback Elimination & Se
     const forbiddenKeys = ["role", "verification", "is2FAEnabled", "twoFactorSecret", "mfa"];
     const clientPayloadKeys = ["displayName", "verification"];
 
-    const hasUnauthorizedKeys = clientPayloadKeys.some(k => forbiddenKeys.includes(k));
+    const hasUnauthorizedKeys = clientPayloadKeys.some((k) => forbiddenKeys.includes(k));
     expect(hasUnauthorizedKeys).toBe(true);
   });
 
   // 8. Ancien champ verification.code dans users doc est STRICTEMENT ignoré
   it("8. Proves legacy users/{uid}.verification.code fallback is eliminated: returns 403 and never queries users", async () => {
-    // Cas critique : user_secrets n'existe pas, mais users possède un ancien code en clair
     mockSecretDoc = null;
     mockUserDoc = {
       verification: {
@@ -178,12 +186,28 @@ describe("PHASE 1 — Two-Factor Authentication Legacy Fallback Elimination & Se
 
     const result = await TwoFactorService.verifyCode(userId, "999888");
 
-    // L'échec DOIT être immédiat car user_secrets est absent
     expect(result.success).toBe(false);
     expect(result.status).toBe(403);
     expect(result.error).toBe("Aucun code de vérification actif pour cet utilisateur.");
-
-    // Le document users ne doit JAMAIS être interrogé pour chercher le code legacy
     expect(userGetSpy).not.toHaveBeenCalled();
+  });
+
+  // 9. Vérification d'un code de secours OLM-XXXXXX depuis user_secrets_backup après suppression de user_secrets (H-8)
+  it("9. Verifies single-use backup code from user_secrets_backup even after user_secrets OTP doc is deleted (H-8)", async () => {
+    mockSecretDoc = { otpHash, expiresAt: futureExpiresAt, attempts: 0 };
+    mockUserDoc = { verification: { verified: false } };
+
+    const otpResult = await TwoFactorService.verifyCode(userId, validCode);
+    expect(otpResult.success).toBe(true);
+    expect(mockSecretDoc).toBeNull();
+    expect(Array.isArray(otpResult.backupCodes)).toBe(true);
+    const firstBackupCode = otpResult.backupCodes![0];
+
+    const backupResult = await TwoFactorService.verifyCode(userId, firstBackupCode);
+    expect(backupResult.success).toBe(true);
+
+    const replayBackup = await TwoFactorService.verifyCode(userId, firstBackupCode);
+    expect(replayBackup.success).toBe(false);
+    expect(replayBackup.status).toBe(403);
   });
 });

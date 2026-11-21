@@ -20,9 +20,10 @@ function createSectionFromDefinition(def: SectionOption, order = 0): CustomPageS
 }
 
 const BASE_THEME: CustomPageTheme = {
+  sector: "artisanat",
   primaryColor: "#B45309", secondaryColor: "#18181B", accentColor: "#D97706",
   canvasColor: "#FAF6F0", surfaceColor: "#FFFFFF", fontFamily: "Plus Jakarta Sans",
-  headingFontFamily: "Cormorant Garamond", bodyFontFamily: "Plus Jakarta Sans", buttonStyle: "rounded",
+  headingFontFamily: "Cormorant Garamond", bodyFontFamily: "Plus Jakarta Sans", buttonStyle: "pill",
 };
 
 const SAMPLE_PRODUCTS: Product[] = [
@@ -161,7 +162,7 @@ describe("Phase 8 — Aperçu, Rendu Public et Responsive Final", () => {
   it("5. Isole un type de section inconnu sans crash : carte de diagnostic en Studio et null en boutique publique", async () => {
     const unknownSection: CustomPageSection = {
       id: "sec-unknown-1", type: "legacy_corrupted_widget" as CustomPageSectionType,
-      title: "Widget Inconnu", isVisible: true, order: 0, settings: {} as CustomPageSection["settings"],
+      title: "Widget Inconnu", isVisible: true, order: 0, styles: {}, settings: {} as CustomPageSection["settings"],
     };
 
     await act(async () => {
@@ -209,7 +210,15 @@ describe("Phase 8 — Aperçu, Rendu Public et Responsive Final", () => {
       ...createSectionFromDefinition(feedDef, 0),
       settings: { ...feedDef.defaultSettings, selectionMode: "manual", productIds: ["prod-1"] } as CustomPageSection["settings"],
     };
-    const storeConfig: SellerStoreConfig = { theme: BASE_THEME, customPages: [], sections: [feedSection] };
+    const storeConfig: SellerStoreConfig = {
+      sellerId: "seller-1",
+      shopName: "Maison Casbah",
+      shopSlug: "maison-casbah",
+      theme: BASE_THEME,
+      seo: { metaTitle: "Maison Casbah", metaDescription: "Artisanat" },
+      customPages: [],
+      updatedAt: "2026-03-01T10:00:00.000Z",
+    };
 
     await act(async () => {
       root.render(
@@ -225,7 +234,10 @@ describe("Phase 8 — Aperçu, Rendu Public et Responsive Final", () => {
 
     expect(container.querySelector('[data-testid="studio-preview-stage"]')).not.toBeNull();
     const card = container.querySelector('[data-testid="section-product-card"]') as HTMLElement;
-    await act(async () => { card.click(); });
+    await act(async () => {
+      card.click();
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    });
     expect(selectSpy).not.toHaveBeenCalled();
     expect(container.querySelector('[data-testid="interactive-cart-simulator-btn"]')).not.toBeNull();
   });

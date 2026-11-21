@@ -3,6 +3,8 @@ import { db } from "../../config/firebase-admin";
 import { optionalAuthenticateToken, AuthenticatedRequest } from "../../middlewares/auth";
 import { CouponService } from "./coupon.service";
 import { analyticsRouter } from "./analytics.routes";
+import { isPubliclyVisible } from "../product/product.status";
+import { safeLogger } from "../../utils/logger";
 import nodeCache from "node-cache";
 
 const cache = new nodeCache({ stdTTL: 300, maxKeys: 1000, useClones: false });
@@ -42,9 +44,12 @@ router.get("/api/v1/campaigns/:bannerId/products", async (req: Request, res: Res
     }
 
     const bannerData = { id: bannerSnap.id, ...bannerSnap.data() } as Record<string, unknown>;
+    if (bannerData.isActive === false) {
+      return res.status(404).json({ error: "Bannière introuvable" });
+    }
     const tagId = bannerData.tag_id as string | undefined;
     const featuredIds: string[] = Array.isArray(bannerData.featured_products)
-      ? (bannerData.featured_products as string[])
+      ? (bannerData.featured_products as string[]).slice(0, 50)
       : [];
 
     const productsMap = new Map<string, Record<string, unknown>>();
@@ -54,8 +59,10 @@ router.get("/api/v1/campaigns/:bannerId/products", async (req: Request, res: Res
         const chunk = featuredIds.slice(i, i + 10);
         const chunkSnap = await db.collection("products").where("__name__", "in", chunk).get();
         chunkSnap.docs.forEach((doc) => {
-          const prodData = { id: doc.id, ...doc.data(), isBannerFeatured: true };
-          productsMap.set(doc.id, prodData);
+          const prodData = { id: doc.id, ...doc.data(), isBannerFeatured: true } as Record<string, unknown>;
+          if (isPubliclyVisible(prodData as { status?: string })) {
+            productsMap.set(doc.id, prodData);
+          }
         });
       }
     }
@@ -72,7 +79,10 @@ router.get("/api/v1/campaigns/:bannerId/products", async (req: Request, res: Res
 
         [...prodSnap1.docs, ...prodSnap2.docs, ...prodSnap3.docs].forEach((doc) => {
           if (!productsMap.has(doc.id)) {
-            productsMap.set(doc.id, { id: doc.id, ...doc.data() });
+            const prodData = { id: doc.id, ...doc.data() } as Record<string, unknown>;
+            if (isPubliclyVisible(prodData as { status?: string })) {
+              productsMap.set(doc.id, prodData);
+            }
           }
         });
       }
@@ -105,7 +115,8 @@ router.get("/api/v1/campaigns/:bannerId/products", async (req: Request, res: Res
       hasMore: endIndex < totalProducts,
     });
   } catch (error: unknown) {
-    return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur interne" });
+    safeLogger.error("Campaign products fetch error", { err: error instanceof Error ? error.message : String(error) });
+    return res.status(500).json({ error: "Une erreur interne est survenue." });
   }
 });
 

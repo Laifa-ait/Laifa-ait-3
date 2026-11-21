@@ -34,22 +34,26 @@ if (typeof globalThis.IntersectionObserver === "undefined") {
 const THEME: CustomPageTheme = {
   sector: "mode", primaryColor: "#023859", secondaryColor: "#18181B",
   accentColor: "#B45309", canvasColor: "#FAF6F0", surfaceColor: "#FFFFFF",
+  fontFamily: "Plus Jakarta Sans",
 };
 
 function makeProduct(overrides: Partial<Product> & { id: string; name: string }): Product {
+  const { id, name, ...rest } = overrides;
   return {
-    id: overrides.id,
-    name: overrides.name,
-    price: overrides.price ?? 3500,
-    stock: overrides.stock ?? 5,
-    category: overrides.category ?? "Mode",
-    image: overrides.image ?? "https://cdn.example.com/item.jpg",
+    id,
+    name,
+    description: rest.description ?? "Description produit",
+    wilaya: rest.wilaya ?? "Alger",
+    price: rest.price ?? 3500,
+    stock: rest.stock ?? 5,
+    category: rest.category ?? "Mode",
+    image: rest.image ?? "https://cdn.example.com/item.jpg",
     sellerId: "seller_p7",
-    status: overrides.status ?? ("active" as Product["status"]),
-    createdAt: overrides.createdAt,
-    salesCount: overrides.salesCount ?? 0,
-    rating: overrides.rating ?? 0,
-    ...overrides,
+    status: rest.status ?? ("active" as Product["status"]),
+    createdAt: rest.createdAt,
+    salesCount: rest.salesCount ?? 0,
+    rating: rest.rating ?? 0,
+    ...rest,
   };
 }
 
@@ -88,6 +92,7 @@ describe("Phase 7 — Catalogue, Catégories & Contenus Dynamiques", () => {
 
     const newFeed: CustomPageSection<"new_arrivals"> = {
       id: "sec_new", type: "new_arrivals", title: "Nouveautés", isVisible: true, order: 0,
+      styles: {},
       settings: { selectionMode: "auto", maxItems: 6 },
     };
     const { container, unmount } = renderInDom(
@@ -138,7 +143,7 @@ describe("Phase 7 — Catalogue, Catégories & Contenus Dynamiques", () => {
     expect(manualRes.items.map((p) => p.id)).toEqual(["a2"]);
     expect(manualRes.inactiveProductIds).toEqual(["i1"]);
     expect(manualRes.missingProductIds).toEqual(["d1", "missing_99"]);
-    expect(resolveCategoryAssignedProducts({ id: "c1", name: "Mode", selectionMode: "auto", productIds: ["i1"] }, items).items).toHaveLength(2);
+    expect(resolveCategoryAssignedProducts({ name: "Mode", selectionMode: "auto", productIds: ["i1"] }, items).items).toHaveLength(2);
   });
 
   it("détecte et nettoie les références obsolètes dans ProductPickerSubTab et CategoryProductAssigner", () => {
@@ -213,8 +218,8 @@ describe("Phase 7 — Catalogue, Catégories & Contenus Dynamiques", () => {
 
     const report = buildStoreQualityReport({
       sections: [
-        { id: "h", type: "hero_banner", title: "Hero", isVisible: true, order: 0, settings: { imageUrl: "https://cdn.example.com/h.jpg", ctaLink: "#cat" } },
-        { id: "g", type: "product_grid", title: "Grille", isVisible: true, order: 1, settings: { selectionMode: "auto", filterCategoryId: "Inexistante" } },
+        { id: "h", type: "hero_banner", title: "Hero", isVisible: true, order: 0, styles: {}, settings: { title: "Hero", imageUrl: "https://cdn.example.com/h.jpg", ctaLink: "#cat" } },
+        { id: "g", type: "product_grid", title: "Grille", isVisible: true, order: 1, styles: {}, settings: { selectionMode: "auto", filterCategoryId: "Inexistante" } },
       ],
       theme: THEME,
       products: [makeProduct({ id: "x1", name: "X1", category: "Bijoux", createdAt: "2026-01-01T00:00:00Z" })],

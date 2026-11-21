@@ -19,6 +19,7 @@ import { CatalogCategoriesSubPanel } from "../pages/Seller/StoreBuilder/componen
 const THEME: CustomPageTheme = {
   sector: "artisanat", primaryColor: "#023859", secondaryColor: "#18181B",
   accentColor: "#B45309", canvasColor: "#FAF6F0", surfaceColor: "#FFFFFF",
+  fontFamily: "Plus Jakarta Sans",
 };
 
 if (typeof globalThis.IntersectionObserver === "undefined") {
@@ -30,11 +31,15 @@ if (typeof globalThis.IntersectionObserver === "undefined") {
 }
 
 function makeProduct(overrides: Partial<Product> & { id: string; name: string }): Product {
+  const { id, name, ...rest } = overrides;
   return {
-    id: overrides.id, name: overrides.name, price: overrides.price ?? 4200, stock: overrides.stock ?? 5,
-    category: overrides.category ?? "Artisanat & Tradition", image: overrides.image ?? "https://cdn.example.com/p.jpg",
-    sellerId: "seller_scale", status: overrides.status ?? ("active" as Product["status"]),
-    salesCount: overrides.salesCount ?? 0, rating: 0, ...overrides,
+    id, name,
+    description: rest.description ?? "Description artisanat",
+    wilaya: rest.wilaya ?? "Alger",
+    price: rest.price ?? 4200, stock: rest.stock ?? 5,
+    category: rest.category ?? "Artisanat & Tradition", image: rest.image ?? "https://cdn.example.com/p.jpg",
+    sellerId: "seller_scale", status: rest.status ?? ("active" as Product["status"]),
+    salesCount: rest.salesCount ?? 0, rating: 0, ...rest,
   };
 }
 
@@ -161,6 +166,7 @@ describe("Phase 7 — Scalabilité (300–500 Produits), Synchro Catégories, Ho
     let panelUpdated: CategoryItem[] = [];
     const catSec: CustomPageSection<"featured_categories"> = {
       id: "sec_cat", type: "featured_categories", title: "Rayons", isVisible: true, order: 0,
+      styles: {},
       settings: { categories: existingCats },
     };
     const panelView = renderInDom(
@@ -189,6 +195,7 @@ describe("Phase 7 — Scalabilité (300–500 Produits), Synchro Catégories, Ho
     ];
     const bestAutoSec: CustomPageSection<"best_sellers"> = {
       id: "sec_best_auto", type: "best_sellers", title: "Top Ventes", isVisible: true, order: 0,
+      styles: {},
       settings: { selectionMode: "auto", maxItems: 4 },
     };
 

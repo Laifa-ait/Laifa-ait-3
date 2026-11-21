@@ -27,22 +27,23 @@ function isAllowedPreviewOrigin(origin: string): boolean {
   try {
     const url = new URL(origin);
     const hostname = url.hostname.toLowerCase();
-    const isAiStudioOrGoogle =
+    const isAiStudioConsole =
       hostname === "ai.studio" ||
       hostname === "aistudio.google.com" ||
       hostname.endsWith(".ai.studio") ||
-      hostname.endsWith(".aistudio.google.com") ||
-      hostname === "google.com" ||
-      hostname.endsWith(".google.com") ||
-      hostname.endsWith(".googleusercontent.com");
+      hostname.endsWith(".aistudio.google.com");
 
-    if (isAiStudioOrGoogle && url.protocol === "https:") {
-      return true;
+    if (isAiStudioConsole && url.protocol === "https:") {
+      return process.env.NODE_ENV !== "production" || process.env.ALLOW_PREVIEW_ORIGINS === "true";
     }
 
     if (hostname.endsWith(".run.app") && url.protocol === "https:") {
       const isAiStudioCloudRun = /^ais-(dev|pre)-[a-z0-9-]+\.[a-z0-9-]+\.run\.app$/.test(hostname);
-      if (isAiStudioCloudRun || process.env.NODE_ENV !== "production" || process.env.ALLOW_PREVIEW_ORIGINS === "true") {
+      if (
+        (isAiStudioCloudRun && (process.env.NODE_ENV !== "production" || process.env.ALLOW_PREVIEW_ORIGINS === "true")) ||
+        process.env.NODE_ENV !== "production" ||
+        process.env.ALLOW_PREVIEW_ORIGINS === "true"
+      ) {
         return true;
       }
       return false;
@@ -138,51 +139,42 @@ export function injectNonceToHtml(html: string, nonce: string): string {
 }
 
 const sharedFrameAncestors = [
-  "'self'",
-  "https://olmart.dz",
-  "https://www.olmart.dz",
-  "https://*.google.com",
-  "https://*.aistudio.google.com",
-  "https://aistudio.google.com",
-  "https://*.google.dev",
-  "https://google.dev",
-  "https://*.ai.studio",
-  "https://ai.studio",
-  "https://*.googleusercontent.com",
+  "'self'", "https://olmart.dz", "https://www.olmart.dz", "https://*.google.com",
+  "https://*.aistudio.google.com", "https://aistudio.google.com", "https://*.google.dev",
+  "https://google.dev", "https://*.ai.studio", "https://ai.studio", "https://*.googleusercontent.com",
 ];
 
-const sharedScriptSrc = [
-  "'self'",
-  "'unsafe-inline'",
-  "blob:",
-  "https://apis.google.com",
-  "https://maps.googleapis.com",
-  "https://*.googleapis.com",
-  "https://www.gstatic.com",
-  "https://*.gstatic.com",
-  "https://www.googletagmanager.com",
-  "https://*.googletagmanager.com",
-  "https://cdn.jsdelivr.net",
+const prodExternalScriptDomains = [
+  "'self'", "blob:", "https://apis.google.com", "https://maps.googleapis.com",
+  "https://*.googleapis.com", "https://www.gstatic.com", "https://*.gstatic.com",
+  "https://www.googletagmanager.com", "https://*.googletagmanager.com", "https://cdn.jsdelivr.net",
+];
+
+const devScriptSrc = [...prodExternalScriptDomains, "'unsafe-inline'", "'unsafe-eval'"];
+
+const sharedImgSrc = [
+  "'self'", "data:", "blob:", "https://firebasestorage.googleapis.com", "https://storage.googleapis.com",
+  "https://*.googleusercontent.com", "https://images.unsplash.com", "https://*.gstatic.com",
+  "https://www.google-analytics.com", "https://olmart.dz", "https://www.olmart.dz",
 ];
 
 const sharedConnectSrc = [
-  "'self'",
-  "https://olmart.dz",
-  "https://www.olmart.dz",
-  "https://*.googleapis.com",
-  "https://fonts.googleapis.com",
-  "https://fonts.gstatic.com",
-  "https://*.gstatic.com",
-  "https://*.firebaseio.com",
-  "https://*.firebase.com",
-  "https://*.ai.studio",
-  "https://*.google.com",
-  "https://*.clients6.google.com",
-  "https://*.google-analytics.com",
-  "wss://*.firebaseio.com",
-  "wss:",
-  "ws:",
+  "'self'", "https://olmart.dz", "https://www.olmart.dz", "https://*.googleapis.com",
+  "https://fonts.googleapis.com", "https://fonts.gstatic.com", "https://*.gstatic.com",
+  "https://*.firebaseio.com", "https://*.firebase.com", "https://*.ai.studio",
+  "https://*.google.com", "https://*.clients6.google.com", "https://*.google-analytics.com",
+  "wss://*.firebaseio.com", "wss:", "ws:",
 ];
+
+const nonceHeaderDirective = (_req: unknown, res: unknown): string => {
+  const locals = (res as { locals?: { cspNonce?: string } })?.locals;
+  const nonce =
+    typeof locals?.cspNonce === "string" && locals.cspNonce.length > 0
+      ? locals.cspNonce
+      : crypto.randomBytes(16).toString("base64");
+  if (locals && !locals.cspNonce) locals.cspNonce = nonce;
+  return `'nonce-${nonce}'`;
+};
 
 const helmetProd = helmet({
   contentSecurityPolicy: {
@@ -190,12 +182,12 @@ const helmetProd = helmet({
     reportOnly: false,
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: sharedScriptSrc,
-      scriptSrcElem: sharedScriptSrc,
+      scriptSrc: [...prodExternalScriptDomains, nonceHeaderDirective],
+      scriptSrcElem: [...prodExternalScriptDomains, nonceHeaderDirective],
       workerSrc: ["'self'", "blob:"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "data:", "https://cdn.jsdelivr.net"],
-      imgSrc: ["*", "data:", "blob:"],
+      imgSrc: sharedImgSrc,
       connectSrc: sharedConnectSrc,
       frameSrc: ["'self'", "https://*.firebaseapp.com", "https://*.google.com", "https://apis.google.com"],
       frameAncestors: sharedFrameAncestors,
@@ -217,8 +209,8 @@ const helmetDev = helmet({
     reportOnly: false,
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: [...sharedScriptSrc, "'unsafe-eval'"],
-      scriptSrcElem: [...sharedScriptSrc, "'unsafe-eval'"],
+      scriptSrc: devScriptSrc,
+      scriptSrcElem: devScriptSrc,
       workerSrc: ["'self'", "blob:"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "data:", "https://cdn.jsdelivr.net"],
@@ -238,8 +230,6 @@ const helmetDev = helmet({
 });
 
 export function helmetMiddleware(req: Request, res: Response, next: NextFunction) {
-  if (process.env.NODE_ENV === "production") {
-    return helmetProd(req, res, next);
-  }
+  if (process.env.NODE_ENV === "production") return helmetProd(req, res, next);
   return helmetDev(req, res, next);
 }

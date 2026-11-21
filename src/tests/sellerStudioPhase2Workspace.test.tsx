@@ -197,8 +197,7 @@ describe("Phase 2 — Espace de travail, Navigation et Expérience Guidée", () 
             <MobileStudioHeader
               shopName="Maison Alger"
               saveStatus="unsaved"
-              isSaving={false}
-              isPublishing={false}
+              isPublished={false}
               canUndo={false}
               canRedo={false}
               onUndo={() => undefined}
